@@ -39,7 +39,7 @@ def test_advice_user_max_min():
 
 def test_advice_avoid_request_flags_caution():
     lvl, why = walk_advice(_r(5, under=1), None, None, ["underpass"])
-    assert lvl == "caution" and "underpass" in why[0]
+    assert lvl == "caution" and "지하 통로" in why[0]
 
 
 async def test_fake_route_is_deterministic_and_no_stairs_longer():
@@ -53,16 +53,44 @@ async def test_fake_route_is_deterministic_and_no_stairs_longer():
     assert c.taxi_fare and c.taxi_fare >= 4800
 
 
-def test_parse_tmap_counts_facilities():
+def test_parse_tmap_counts_facilities_like_real_response():
+    # 실측 형태: 횡단보도=포인트 211/212, 지하보도=연속 LineString facilityType 14 (하나의 통로), 계단=포인트 127
+    L = lambda ft, m: {"properties": {"facilityType": ft, "distance": m},
+                       "geometry": {"type": "LineString", "coordinates": [[127.0, 37.5], [127.01, 37.51]]}}
+    P = lambda tt: {"properties": {"turnType": tt}, "geometry": {"type": "Point", "coordinates": [127.0, 37.5]}}
     data = {"features": [
-        {"properties": {"totalDistance": 2500, "totalTime": 2580, "turnType": 200}, "geometry": {"type": "Point"}},
-        {"properties": {"turnType": 211}, "geometry": {"type": "Point"}},
-        {"properties": {"turnType": 127}, "geometry": {"type": "Point"}},
-        {"properties": {"turnType": 126}, "geometry": {"type": "Point"}},
-        {"properties": {"turnType": 213}, "geometry": {"type": "Point"}},
-        {"properties": {"facilityType": "15"}, "geometry": {"type": "LineString", "coordinates": [[127.0, 37.5], [127.01, 37.51]]}},
+        {"properties": {"totalDistance": 2306, "totalTime": 1880, "turnType": 200}, "geometry": {"type": "Point", "coordinates": [127.0, 37.5]}},
+        L("14", 18), P(12), L("14", 66), P(12), L("14", 26),      # 지하 통로 하나 (110m), 안에서 좌회전 2번
+        P(211), L("15", 10), L("11", 300),
+        P(127), L("11", 50),                                       # 계단
+        P(212), L("15", 12), L("17", 651),                          # 17은 무시
+        L("11", 200), L("14", 40),                                  # 별개 지하 통로
+        P(201),
     ]}
     r = parse_tmap(data, "recommended")
-    assert r.distance_m == 2500 and r.duration_s == 2580
-    assert r.facilities.crosswalk == 2 and r.facilities.stairs == 1 and r.facilities.underpass == 1
-    assert len(r.polyline) == 2 and r.polyline[0].lat == 37.5
+    assert r.distance_m == 2306 and r.duration_s == 1880
+    f = r.facilities
+    assert f.crosswalk == 2 and f.stairs == 1
+    assert f.origin_passage_m == 110          # 출발 직후 역 통로 — 장애물 아님
+    assert f.underpass == 1 and f.underpass_m == 40
+    assert len(r.polyline) == 2 * 10
+
+
+def test_dog_time_factor_orders_personas():
+    from app.geo.transport import dog_time_factor
+    f_kong, f_dubu, f_hal = (dog_time_factor(PERSONAS[k]) for k in ("kong", "dubu", "halmae"))
+    assert f_kong < f_dubu < f_hal <= 2.0
+    assert dog_time_factor(None) == 1.2
+
+
+def test_walk_options_to_try():
+    from app.geo.transport import walk_options_to_try
+    assert walk_options_to_try("recommended", [], PERSONAS["kong"]) == ["recommended"]
+    assert walk_options_to_try("no_stairs", [], PERSONAS["halmae"]) == ["no_stairs", "recommended"]
+    assert walk_options_to_try("recommended", ["underpass"], None) == ["recommended", "no_stairs"]
+
+
+def test_facilities_penalty_weights_avoid():
+    from app.providers.base import Facilities
+    f = Facilities(crosswalk=2, stairs=1, underpass=1)
+    assert f.penalty() < f.penalty(("underpass",)) < f.penalty(("underpass", "stairs"))

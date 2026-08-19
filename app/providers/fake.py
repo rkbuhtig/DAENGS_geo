@@ -48,7 +48,7 @@ class FakeProvider:
                 stairs = 0
                 dist *= 1.08
                 dur = dist / SPEED_MPS[mode]
-            fac = Facilities(crosswalk=crosswalk, stairs=stairs, underpass=underpass)
+            fac = Facilities(crosswalk=crosswalk, stairs=stairs, underpass=underpass, underpass_m=80 * underpass)
         elif mode == "car":
             taxi = 4800 + max(0, int((dist - 1600) / 131)) * 100   # 서울 기본요금 근사
         elif mode == "transit":

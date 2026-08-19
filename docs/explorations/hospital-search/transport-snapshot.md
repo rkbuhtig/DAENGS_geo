@@ -1,7 +1,8 @@
 ---
 status: exploring
 date: 2026-08-19
-depends-on: TMAP 키(도보), 네이버 or 카카오모빌리티 키(자동차), 카카오 신규 도보 API 스펙 확인(폴백)
+depends-on: 네이버 or 카카오모빌리티 키(자동차), 카카오 신규 도보 API 스펙 확인(폴백)
+live: TMAP 도보 실호출 검증 완료 (research/2026-08-19-tmap-live.md)
 research: ../../research/2026-08-19-route-apis.md
 ---
 # 교통 스냅샷 — 네비가 아니라 비교표
@@ -75,8 +76,15 @@ research: ../../research/2026-08-19-route-apis.md
 ## 어댑터
 `MapProvider`에 `route(mode, from, to, option) → {distance_m, duration_s, polyline, facilities?, taxi_fare?}` 추가. 3→4메서드. 모드별 구현체 다름.
 
+## 실측 후 바뀐 것 (2026-08-19)
+- 지하보도는 구간(LineString 14) 병합 카운트 + 길이. 출발 직후 역 통로는 `origin_passage_m`로 분리(장애물 아님)
+- 시간 = 제공사 원값 × 개 계수(1.2~2.0), `provider_min` 병기
+- 옵션 여러 개 받아 페널티로 고르고 `alternatives[{option,min,m,facilities,delta_min}]` 실음 — 계단제외 트레이드오프가 눈에 보임
+- 경로 캐시(도보 6h) + 제공사 오류 시 휴리스틱 강등
+
 ## 다음
-- [ ] TMAP 키 발급 + 요금 확인 (사용자)
-- [ ] `route()` 어댑터 + TMAP 구현 + 시설 집계
-- [ ] 휴리스틱 계수·advice 임계값 (서울동행맵 기준값 참고: 단차 2cm·경사 1/8)
-- [ ] 페르소나 3케이스로 0 vs 30 비교 실측
+- [x] TMAP 키 + `route()` + 시설 집계 + 실호출
+- [ ] TMAP free 쿼터 확인 (콘솔)
+- [ ] 자동차 제공사 키 → `car` 실측·택시비
+- [ ] advice 임계값 튜닝 (서울동행맵 기준값 참고: 단차 2cm·경사 1/8) — 지금은 규칙 초안
+- [ ] 출발 통로 규칙(150m/120m) 다른 출발지(주택가·공원)로 검증
