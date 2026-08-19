@@ -32,6 +32,7 @@ backlog.md           갈래에 안 붙는 미결
 - [TMAP 실호출 — 문서와 다른 점, 파서 반영](research/2026-08-19-tmap-live.md)
 - [Mapillary — 산책 개 합성 재료 조사 (라이선스·API·한국 커버리지)](research/2026-08-19-mapillary.md)
 - [네이버 파노라마 — 약관 원문(제7조 ⑨⑪), 정적 API 없음, Android 없음](research/2026-08-19-naver-panorama.md)
+- [국내 반려견 앱 경쟁 조사 — 서비스 유형 × 리뷰 불만, 우리 설계와 연결](research/2026-08-19-competitor-reviews.md)
 - [dev 콘솔 + spots(반려견 관심 지점)](research/2026-08-19-dev-console.md)
 
 ## 새 갈래 만들 때
