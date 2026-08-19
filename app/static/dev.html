@@ -75,6 +75,20 @@ let originMarker = L.circleMarker(origin, {radius: 8, color: '#1565c0', fillOpac
 map.on('click', e => { origin = [e.latlng.lat, e.latlng.lng]; originMarker.setLatLng(origin); document.getElementById('origin').textContent = origin.map(v => v.toFixed(4)).join(', '); run({reset: true}); });
 
 const $ = id => document.getElementById(id);
+function decodePolyline(str, precision = 5) {
+  const f = 10 ** precision; let i = 0, lat = 0, lng = 0; const pts = [];
+  while (i < str.length) {
+    for (const which of [0, 1]) {
+      let shift = 0, result = 0, b;
+      do { b = str.charCodeAt(i++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+      const d = (result & 1) ? ~(result >> 1) : (result >> 1);
+      if (which === 0) lat += d; else lng += d;
+    }
+    pts.push([lat / f, lng / f]);
+  }
+  return pts;
+}
+const COLORS = ['#1565c0', '#2e7d32', '#6a1b9a', '#ef6c00', '#00838f', '#5d4037'];
 $('radius').oninput = e => $('radiusv').textContent = (e.target.value / 1000) + 'km';
 $('radius').onchange = e => run({edits: [{tool: 'set_radius', args: {m: +e.target.value}}]});
 $('reset').onclick = () => run({reset: true});
@@ -89,7 +103,7 @@ document.querySelectorAll('.chip').forEach(c => c.onclick = () => {
 });
 
 async function run({reset = false, edits = [], utterance = null} = {}) {
-  const body = {dog_id: $('dog').value || null, origin, edits, utterance, shown_ids: shown, with_polyline_for: selected};
+  const body = {dog_id: $('dog').value || null, origin, edits, utterance, shown_ids: shown};
   if (!reset && state) body.state = state;
   const r = await fetch(API, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
   const d = await r.json();
@@ -118,10 +132,23 @@ function render(d) {
   $('count').textContent = d.results.length + '곳';
   layer.clearLayers();
   const list = $('list'); list.innerHTML = '';
+  // 1) 선이 먼저 — 실측된 모든 경로를 옅게. 카드 안 눌러도 "어느 쪽으로 얼마나"가 보인다
+  const allBounds = [];
+  d.results.forEach((x, i) => {
+    const w = (x.transport || {}).walk;
+    if (w && w.polyline) {
+      const pts = decodePolyline(w.polyline);
+      const isSel = x.id === selected;
+      L.polyline(pts, {color: COLORS[i % COLORS.length], weight: isSel ? 6 : 3, opacity: isSel ? .95 : (selected ? .25 : .6)}).addTo(layer)
+        .bindTooltip(`${String.fromCharCode(65 + i)} ${x.name} · 🚶${w.min}분`);
+      if (!selected) allBounds.push(...pts);
+    }
+  });
+  if (!selected && allBounds.length) map.fitBounds(L.latLngBounds(allBounds).pad(0.15));
   d.results.forEach((x, i) => {
     const t = x.transport || {}, w = t.walk || {}, c = t.car || {}, tr = t.transit;
     const label = String.fromCharCode(65 + i);
-    L.marker([x.lat, x.lng], {icon: L.divIcon({className: '', html: `<div style="background:${x.id === selected ? '#c62828' : '#222'};color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600">${label}</div>`, iconSize: [22, 22]})}).addTo(layer).bindTooltip(x.name);
+    L.marker([x.lat, x.lng], {icon: L.divIcon({className: '', html: `<div style="background:${x.id === selected ? '#c62828' : COLORS[i % COLORS.length]};color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600">${label}</div>`, iconSize: [22, 22]})}).addTo(layer).bindTooltip(x.name);
     const card = document.createElement('div'); card.className = 'card' + (x.id === selected ? ' sel' : '');
     const fac = w.facilities || {};
     const advCls = 'adv-' + (w.advice || 'ok');
@@ -136,11 +163,11 @@ function render(d) {
     card.onclick = () => { selected = (selected === x.id ? null : x.id); run({}); };
     if (x.id === selected && w.spots) {
       const sp = card.querySelector('.spots');
-      sp.innerHTML = '<h3>이 개한테 걸리는 지점</h3>' + w.spots.map((s, j) => `<div class="spot ${s.warn ? 'warn' : ''}"><span class="n">${j + 1}</span><div>${s.text}<div class="muted">${s.note || ''}</div></div></div>`).join('')
-        + (w.handoff ? `<div class="hand" style="margin-top:6px">따라가기: <a href="${w.handoff.naver}">네이버</a><a href="${w.handoff.kakao}">카카오</a><a href="${w.handoff.tmap}">TMAP</a></div>` : '');
-      if (w.polyline) L.polyline(w.polyline, {color: '#1565c0', weight: 5, opacity: .8}).addTo(layer);
-      w.spots.forEach((s, j) => L.marker([s.lat, s.lng], {icon: L.divIcon({className: '', html: `<div style="background:${s.warn ? '#c62828' : '#444'};color:#fff;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:11px">${j + 1}</div>`, iconSize: [18, 18]})}).addTo(layer).bindTooltip(`${s.text}${s.note ? ' — ' + s.note : ''}`));
-      if (w.polyline && w.polyline.length) map.fitBounds(L.latLngBounds(w.polyline).pad(0.2));
+      sp.innerHTML = '<details open><summary style="cursor:pointer;color:#666;font-size:12px">걸리는 지점 (지도의 점) — 펼치기</summary>' + w.spots.map((s, j) => `<div class="spot ${s.warn ? 'warn' : ''}"><span class="n">${j + 1}</span><div>${s.text}<div class="muted">${s.note || ''}</div></div></div>`).join('')
+        + '</details>' + (w.handoff ? `<div class="hand" style="margin-top:6px">따라가기: <a href="${w.handoff.naver}">네이버</a><a href="${w.handoff.kakao}">카카오</a><a href="${w.handoff.tmap}">TMAP</a></div>` : '');
+      // spots는 선 위의 점. warn만 빨강, 나머지는 작게
+      w.spots.forEach((s, j) => L.marker([s.lat, s.lng], {icon: L.divIcon({className: '', html: `<div style="background:${s.warn ? '#c62828' : '#666'};color:#fff;border-radius:50%;width:${s.warn ? 18 : 14}px;height:${s.warn ? 18 : 14}px;display:flex;align-items:center;justify-content:center;font-size:${s.warn ? 11 : 9}px">${j + 1}</div>`, iconSize: [18, 18]})}).addTo(layer).bindTooltip(`${s.text}${s.note ? ' — ' + s.note : ''}`));
+      if (w.polyline) map.fitBounds(L.latLngBounds(decodePolyline(w.polyline)).pad(0.2));
     }
     list.appendChild(card);
   });

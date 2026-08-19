@@ -76,6 +76,11 @@ research: ../../research/2026-08-19-route-apis.md
 ## 어댑터
 `MapProvider`에 `route(mode, from, to, option) → {distance_m, duration_s, polyline, facilities?, taxi_fare?}` 추가. 3→4메서드. 모드별 구현체 다름.
 
+## 선이 1급 (2026-08-19, decisions #24)
+- 실측(상위 N) 도보 경로는 `walk.polyline`(Google encoded, precision 5)로 **기본 포함**. `polyline_points` 병기. 옵트인 제거
+- 지도: 상위 N개 선을 전부 옅게 → 선택한 것만 굵게 + `spots` 점(warn만 빨강). 텍스트 리스트는 접힘
+- 이유: 선이 있으면 과정을 읽지 않아도 방향·거리감이 즉시 옴. spots는 그 선 위에서 "여기 조심"만
+
 ## 실측 후 바뀐 것 (2026-08-19)
 - 지하보도는 구간(LineString 14) 병합 카운트 + 길이. 출발 직후 역 통로는 `origin_passage_m`로 분리(장애물 아님)
 - 시간 = 제공사 원값 × 개 계수(1.2~2.0), `provider_min` 병기

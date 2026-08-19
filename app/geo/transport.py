@@ -12,6 +12,7 @@ import httpx
 from pydantic import BaseModel, Field
 
 from app.core.config import settings
+from app.geo.polyline import encode as encode_polyline
 from app.profile.contract import DogProfile
 from app.providers.base import Facilities, LatLng, Mode, RouteResult, Spot, WalkOption
 from app.providers.fake import FakeProvider, haversine_m
@@ -75,7 +76,8 @@ class Leg(BaseModel):
     why: list[str] = Field(default_factory=list)
     alternatives: list[Alt] = Field(default_factory=list)   # 다른 도보 옵션과의 트레이드오프
     spots: list[SpotOut] = Field(default_factory=list)      # 반려견 관심 지점 (출발 전 한 장)
-    polyline: list[tuple[float, float]] | None = None       # [(lat,lng)...] 요청 시에만
+    polyline: str | None = None                             # encoded polyline (precision 5). 실측이면 기본 포함
+    polyline_points: int = 0
     handoff: Handoff | None = None
 
 
@@ -246,7 +248,7 @@ async def _route(mode: Mode, o: LatLng, d: LatLng, option: WalkOption, measured:
 async def snapshot_for(origin: LatLng, dest: LatLng, *, rank: int, mode: Mode | None,
                        walk_option: WalkOption, walk_max: int | None, avoid: list[str],
                        profile: DogProfile | None, temp_c: float | None = None,
-                       dest_name: str = "", with_polyline: bool = False) -> Transport:
+                       dest_name: str = "", with_polyline: bool = True) -> Transport:
     measured = rank < settings.route_top_n
     straight = int(haversine_m(origin, dest))
     show_transit = profile is None or profile.size_class == "small"
@@ -277,8 +279,9 @@ async def snapshot_for(origin: LatLng, dest: LatLng, *, rank: int, mode: Mode | 
     wl.alternatives = alts
     wl.spots = spots_out(best, profile)
     wl.handoff = handoff_links(origin, dest, dest_name)
-    if with_polyline and best.polyline:
-        wl.polyline = [(p.lat, p.lng) for p in best.polyline]
+    if with_polyline and best.polyline and best.source != "estimate":
+        wl.polyline = encode_polyline([(p.lat, p.lng) for p in best.polyline])
+        wl.polyline_points = len(best.polyline)
     return Transport(
         as_of=datetime.now(UTC), straight_m=straight,
         walk=wl, car=_leg(car), transit=_leg(transit) if transit else None,
