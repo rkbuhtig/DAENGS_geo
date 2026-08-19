@@ -38,16 +38,10 @@ GET /places/search?lat=37.4979&lng=127.0276&kind=hospital&night=true&open_now=tr
 - 백엔드: **FastAPI / Python**, DB: **PostgreSQL + PostGIS** (팀 pgvector와 동거)
 - 클라이언트: 웹 메인 + **Android(Kotlin) 전용** 앱. iOS 없음
 - 산책은 백그라운드 위치가 필요하므로 네이티브 앱에서만. 병원/약국은 웹·앱 양쪽
-- 반려견 프로필은 이 레포가 소유하지 않는다 → 외부 계약으로 소비 (`docs/02-dog-profile-contract.md`)
+- 반려견 프로필은 이 레포가 소유하지 않는다 → 외부 계약으로 소비 (`docs/contracts/dog-profile.md`)
 - 산책 게임에 판타지 세계관 없음. 에이전트 = 프로필 기반 **개의 목소리**, 진행도 = 현실 기반
 - 판정·보상은 코드가 결정, LLM은 서술과 자연어 파싱만
 
 ## 문서
 
-1. [컨셉](docs/01-concept.md)
-2. [반려견 프로필 계약 + 가상 페르소나](docs/02-dog-profile-contract.md)
-3. [병원/약국 찾기](docs/03-hospital-search.md)
-4. [산책 세션 엔진](docs/04-walk-session.md)
-5. [아키텍처 결정 기록](docs/05-decisions.md)
-6. [미결 사항](docs/06-open-questions.md)
-7. [지도 제공사 비교](docs/07-map-provider.md)
+[docs/README.md](docs/README.md) 가 지도. 확정(`decisions/`) · 계약(`contracts/`) · 갈래(`explorations/`) · 조사(`research/`)로 나뉘고, 갈래는 status(exploring/adopted/parked/rejected)로 상태를 표시한다.
