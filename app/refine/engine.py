@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from app.profile.contract import DogProfile
 from app.refine import tools
 from app.refine.diff import changes as diff_changes
+from app.refine.diff import changes_by_policy
 from app.refine.nl import ToolCall, llm
 from app.refine.state import SearchState
 
@@ -16,15 +17,17 @@ from app.refine.state import SearchState
 class RefineResult:
     state: SearchState
     changes: list[str]
+    grouped: dict[str, list[str]] = field(default_factory=dict)   # 정책별 (target/journey/view)
     applied: list[ToolCall] = field(default_factory=list)
     question: str | None = None
 
 
 def draft(lat: float, lng: float, profile: DogProfile | None, radius_m: int) -> SearchState:
     """초안. 필터 없음. 프로필은 도보 옵션 '기본값'에만 — 사용자가 끄면 꺼진다."""
-    s = SearchState(lat=lat, lng=lng, radius_m=radius_m)
+    s = SearchState(lat=lat, lng=lng)
+    s.target.radius_m = radius_m
     if profile and (profile.is_senior or profile.has_joint_issue):
-        s.walk.option = "no_stairs"
+        s.journey.walk.option = "no_stairs"      # journey 기본값만. 결과를 거르지 않는다
     return s
 
 
@@ -60,7 +63,9 @@ async def refine(state: SearchState | None, edits: list[ToolCall], utterance: st
             cur = tools.apply(cur, c.tool, c.args)
             applied.append(c)
 
+    grouped = changes_by_policy(base, cur)
     ch = diff_changes(base, cur)
     if state is None:
         ch = diff_changes(None, base) + ([] if ch == ["변경 없음"] else ch)
-    return RefineResult(state=cur, changes=ch, applied=applied, question=question)
+        grouped["target"] = changes_by_policy(None, base)["target"] + grouped["target"]
+    return RefineResult(state=cur, changes=ch, grouped=grouped, applied=applied, question=question)

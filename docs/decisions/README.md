@@ -28,3 +28,4 @@
 | 22 | 도보는 네비가 아니라 **출발 전 한 장**: 이 개한테 걸리는 지점(spots)+한마디, 실제 따라가기는 제공사 앱 딥링크 ([transport-snapshot](../explorations/hospital-search/transport-snapshot.md), research/2026-08-19-dev-console.md) | 검색하는 사람은 모르는 곳에 처음 가는 사람. 원하는 건 "어디가 걸리는지"의 통찰, 도달 과정은 타 지도앱이 잘함 | 2026-08-19 |
 | 23 | `/dev` 검증 콘솔(HTML 1파일, Leaflet+OSM). 앱 UI 아님, 운영 비노출 | JSON으론 루프와 길의 감각이 안 보임. 화면에 올려야 뭘 버릴지 정해짐 | 2026-08-19 |
 | 24 | **선(폴리라인)이 1급.** 실측 경로는 encoded polyline으로 기본 포함, 상위 N개 선을 지도에 다 그린다. spots는 선 위의 점, 텍스트는 접힌 보조 | 글로 읽고 머릿속에서 재생성하는 건 불편. 선이 있으면 과정을 몰라도 "어디로 가야 하는지"가 펼치지 않고 보인다 (사용자) | 2026-08-19 |
+| 25 | **조건을 두 정책으로 분리**: target(어디를 갈까=필터) / journey(어떻게 갈까=판정, 결과를 안 뺌) / view(표시). 타입·툴 그룹·diff·프롬프트까지 전부 분리하고 테스트로 강제 ([policy-split](../explorations/hospital-search/policy-split.md)) | 두 조건이 결과에 하는 짓이 다른데 평평한 한 덩어리라 섞일 위험. 경계를 넘는 건 journey.hard_limit 하나뿐 | 2026-08-19 |

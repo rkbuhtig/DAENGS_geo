@@ -29,6 +29,9 @@
   .ev { font-size:12px; color:#555; margin-top:2px; }
   .tag { font-size:11px; background:#eee; border-radius:4px; padding:0 4px; margin-right:3px; }
   .hand a { margin-right:8px; font-size:12px; }
+  .pol { font-size:10px; border-radius:8px; padding:1px 6px; margin-left:4px; text-transform:none; letter-spacing:0; font-weight:400; }
+  .pol.t { background:#e3f2fd; color:#1565c0; } .pol.j { background:#e8f5e9; color:#2e7d32; }
+  .chg { display:flex; gap:6px; align-items:baseline; margin:2px 0; }
 </style>
 </head>
 <body>
@@ -40,17 +43,29 @@
     <button id="reset">초안</button>
   </div>
 
-  <h3>필터 (edits)</h3>
-  <div class="row" id="chips">
+  <h3>어디를 갈까 <span class="pol t">target · 결과가 바뀜</span></h3>
+  <div class="row">
     <span class="chip" data-tool="set_time" data-args='{"open_now":true}' data-off='{"open_now":false}' data-key="open_now">지금 영업중</span>
     <span class="chip" data-tool="set_time" data-args='{"night":true}' data-off='{"night":false}' data-key="night">야간</span>
     <span class="chip" data-tool="set_time" data-args='{"emergency":true}' data-off='{"emergency":false}' data-key="emergency">응급</span>
+    <span class="chip" data-tool="require" data-args='{"tags":["24h"]}' data-off-tool="unrequire" data-off='{"tags":["24h"]}' data-key="req=24h">24시</span>
+    <span class="chip" data-tool="require" data-args='{"tags":["center"]}' data-off-tool="unrequire" data-off='{"tags":["center"]}' data-key="req=center">의료센터</span>
+  </div>
+  <div class="row">반경 <input type="range" id="radius" min="300" max="5000" step="100" value="2000" style="flex:1"><span id="radiusv">2km</span></div>
+
+  <h3>어떻게 갈까 <span class="pol j">journey · 결과는 그대로</span></h3>
+  <div class="row">
     <span class="chip" data-tool="set_mode" data-args='{"mode":"walk"}' data-off='{"mode":null}' data-key="mode=walk">도보</span>
     <span class="chip" data-tool="set_mode" data-args='{"mode":"car"}' data-off='{"mode":null}' data-key="mode=car">차량</span>
     <span class="chip" data-tool="set_walk_option" data-args='{"option":"no_stairs"}' data-off='{"option":"recommended"}' data-key="walk.option=no_stairs">계단제외</span>
-    <span class="chip" data-tool="avoid" data-args='{"facilities":["underpass"]}' data-key="avoid=underpass">지하도 피함</span>
+    <span class="chip" data-tool="avoid" data-args='{"facilities":["underpass"]}' data-off-tool="unavoid" data-off='{"facilities":["underpass"]}' data-key="avoid=underpass">지하도 피함</span>
   </div>
-  <div class="row">반경 <input type="range" id="radius" min="300" max="5000" step="100" value="2000" style="flex:1"><span id="radiusv">2km</span></div>
+  <div class="row">
+    <span>시간 상한</span>
+    <input type="number" id="maxmin" min="0" step="5" placeholder="분" style="width:70px">
+    <label><input type="checkbox" id="hard"> 초과 제외 <span class="muted">(끄면 표시만)</span></label>
+    <button id="applymax">적용</button>
+  </div>
 
   <h3>자연어 (utterance)</h3>
   <input type="text" id="utt" placeholder="예: 눈이 뿌옇고 걸어서 갈 수 있는 데 / 첫번째 거는 빼줘 / 아까대로">
@@ -91,6 +106,7 @@ function decodePolyline(str, precision = 5) {
 const COLORS = ['#1565c0', '#2e7d32', '#6a1b9a', '#ef6c00', '#00838f', '#5d4037'];
 $('radius').oninput = e => $('radiusv').textContent = (e.target.value / 1000) + 'km';
 $('radius').onchange = e => run({edits: [{tool: 'set_radius', args: {m: +e.target.value}}]});
+$('applymax').onclick = () => { const v = $('maxmin').value; run({edits: [{tool: 'set_max_min', args: {minutes: v === '' ? null : +v, hard: $('hard').checked}}]}); };
 $('reset').onclick = () => run({reset: true});
 $('dog').onchange = () => run({reset: true});
 $('send').onclick = () => { const u = $('utt').value.trim(); if (u) run({utterance: u}); };
@@ -99,7 +115,8 @@ document.querySelectorAll('.chip').forEach(c => c.onclick = () => {
   const on = c.classList.contains('on');
   const args = JSON.parse(on ? (c.dataset.off || 'null') : c.dataset.args);
   if (args === null) return;
-  run({edits: [{tool: c.dataset.tool, args}]});
+  const tool = on ? (c.dataset.offTool || c.dataset.tool) : c.dataset.tool;
+  run({edits: [{tool, args}]});
 });
 
 async function run({reset = false, edits = [], utterance = null} = {}) {
@@ -114,20 +131,26 @@ async function run({reset = false, edits = [], utterance = null} = {}) {
 }
 
 function syncChips(st) {
+  const tg = st.target, jn = st.journey;
   document.querySelectorAll('.chip').forEach(c => {
     const k = c.dataset.key; let on = false;
-    if (k === 'open_now') on = st.open_now; else if (k === 'night') on = st.night; else if (k === 'emergency') on = st.emergency;
-    else if (k.startsWith('mode=')) on = st.mode === k.split('=')[1];
-    else if (k === 'walk.option=no_stairs') on = st.walk.option === 'no_stairs';
-    else if (k === 'avoid=underpass') on = (st.walk.avoid || []).includes('underpass');
+    if (k === 'open_now') on = tg.open_now; else if (k === 'night') on = tg.night; else if (k === 'emergency') on = tg.emergency;
+    else if (k.startsWith('req=')) on = (tg.require_tags || []).includes(k.split('=')[1]);
+    else if (k.startsWith('mode=')) on = jn.mode === k.split('=')[1];
+    else if (k === 'walk.option=no_stairs') on = jn.walk.option === 'no_stairs';
+    else if (k === 'avoid=underpass') on = (jn.walk.avoid || []).includes('underpass');
     c.classList.toggle('on', !!on);
   });
-  $('radius').value = st.radius_m; $('radiusv').textContent = (st.radius_m / 1000) + 'km';
+  $('radius').value = tg.radius_m; $('radiusv').textContent = (tg.radius_m / 1000) + 'km';
+  $('maxmin').value = jn.max_min == null ? '' : jn.max_min; $('hard').checked = !!jn.hard_limit;
 }
 
 function render(d) {
   syncChips(d.state);
-  $('changes').textContent = d.changes.join(' · ') + '\n' + d.reply;
+  const g = d.changes_by_policy || {};
+  const line = (cls, label, arr) => (arr && arr.length) ? `<div class="chg"><span class="pol ${cls}">${label}</span><span>${arr.join(' · ')}</span></div>` : '';
+  $('changes').innerHTML = (line('t', '찾는 곳', g.target) + line('j', '가는 길', g.journey) + line('t', '보기', g.view)
+     || `<div class="chg">${d.changes.join(' · ')}</div>`) + `<div class="muted">${d.reply}</div>`;
   $('question').style.display = d.question ? '' : 'none'; $('question').textContent = d.question || '';
   $('count').textContent = d.results.length + '곳';
   layer.clearLayers();

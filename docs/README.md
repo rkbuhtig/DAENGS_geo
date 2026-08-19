@@ -15,7 +15,7 @@ backlog.md           갈래에 안 붙는 미결
 `exploring` 파는 중 · `adopted` 채택 (decisions/에 한 줄 생김) · `parked` 보류 · `rejected` 기각 (지우지 않음 — 같은 질문 다시 안 하려고)
 
 ## 주제
-- [병원 찾기](explorations/hospital-search/README.md) — 10갈래, 오늘의 초점은 [community-search](explorations/hospital-search/community-search.md)
+- [병원 찾기](explorations/hospital-search/README.md) — 11갈래, 오늘의 초점은 [community-search](explorations/hospital-search/community-search.md)
 - [지도 제공사](explorations/map-provider/README.md)
 - [산책](explorations/walk/README.md) — 사용자 담당
 

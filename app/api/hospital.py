@@ -59,6 +59,7 @@ class HospitalSearchOut(BaseModel):
     results: list[ResultOut]
     map: MapOut
     changes: list[str]
+    changes_by_policy: dict[str, list[str]] = Field(default_factory=dict)
     applied: list[Edit]
     question: str | None = None
     reply: str
@@ -87,47 +88,64 @@ async def hospital_search(
     )
     st = r.state
 
+    # --- target 정책: 결과 집합 결정. journey 값은 절대 여기 들어오지 않는다 (state.py 참조)
+    tg = st.target
     places = await find_places(
-        db, lat=st.lat, lng=st.lng, radius_m=st.radius_m, kind="hospital",
-        open_now=st.open_now, night=st.night, emergency=st.emergency,
-        specialty=st.specialty, require_tags=st.require_tags, exclude_ids=st.exclude_ids,
-        at=st.at, limit=st.limit,
+        db, lat=st.lat, lng=st.lng, radius_m=tg.radius_m, kind="hospital",
+        open_now=tg.open_now, night=tg.night, emergency=tg.emergency,
+        specialty=tg.specialty, require_tags=tg.require_tags, exclude_ids=tg.exclude_ids,
+        at=tg.at, limit=tg.limit,
     )
 
     # 근거는 맥락(발화·특화)이 있을 때만. 초안에 붙이면 무관한 부스트가 거리순을 흐린다
-    want_ev = body.with_evidence and (bool(body.utterance) or bool(st.specialty))
+    want_ev = body.with_evidence and (bool(body.utterance) or bool(tg.specialty))
     ev = await attach_evidence(body.utterance, profile, places) if want_ev else {}
     origin_pt = LatLng(st.lat, st.lng)
     results: list[ResultOut] = []
     for i, p in enumerate(places):
         t = None
         if body.with_transport:
+            # --- journey 정책: 경로·advice만. 결과를 빼지 않는다
+            jn = st.journey
             t = await snapshot_for(
-                origin_pt, LatLng(p.lat, p.lng), rank=i, mode=st.mode,
-                walk_option=st.walk.option, walk_max=st.walk.max_min, avoid=st.walk.avoid,
+                origin_pt, LatLng(p.lat, p.lng), rank=i, mode=jn.mode,
+                walk_option=jn.walk.option, walk_max=jn.max_min, avoid=jn.walk.avoid,
                 profile=profile, dest_name=p.name, with_polyline=body.with_polyline,
             )
         e = [EvidenceOut(source=x.source, text=x.text, url=x.url) for x in ev.get(p.id, [])]
         results.append(ResultOut(**p.model_dump(), transport=t, evidence=e,
                                  boost=len(p.specialty_hit) * 2 + len(e)))
 
+    # journey.hard_limit: 정책 경계를 넘는 유일한 스위치. 사용자가 명시적으로 켤 때만
+    dropped = 0
+    if st.journey.hard_limit and st.journey.max_min is not None:
+        keep, mode = [], st.journey.mode or "walk"
+        for res in results:
+            leg = getattr(res.transport, mode, None) if res.transport else None
+            if leg and leg.min > st.journey.max_min:
+                dropped += 1
+                continue
+            keep.append(res)
+        results = keep
+
     results = _sort(results, st)
-    mp = build_map(st.lat, st.lng, st.radius_m, "hospital", st.open_now, st.night, results)
+    mp = build_map(st.lat, st.lng, tg.radius_m, "hospital", tg.open_now, tg.night, results)
     return HospitalSearchOut(
-        state=st, results=results, map=mp, changes=r.changes,
+        state=st, results=results, map=mp, changes=r.changes, changes_by_policy=r.grouped,
         applied=[Edit(tool=c.tool, args=c.args) for c in r.applied],
-        question=r.question, reply=_reply(r.changes, len(results), r.question),
+        question=r.question,
+        reply=_reply(r.changes, len(results), r.question) + (f" ({dropped}곳은 시간 초과로 제외)" if dropped else ""),
     )
 
 
 def _sort(results: list[ResultOut], st: SearchState) -> list[ResultOut]:
     """부스트는 '살짝 위' — 같은 밴드(500m / 5분) 안에서만 순서를 바꾼다. 거리·시간을 뒤집진 않는다."""
     def key(r: ResultOut):
-        pinned = 0 if r.id in st.pin_ids else 1
+        pinned = 0 if r.id in st.target.pin_ids else 1
         if st.sort == "open_first":
             primary, band = (0 if r.open_now else 1), (0 if r.open_now else 1)
-        elif st.sort == "duration" and r.transport and st.mode:
-            leg = getattr(r.transport, st.mode)
+        elif st.sort == "duration" and r.transport and st.journey.mode:
+            leg = getattr(r.transport, st.journey.mode)
             primary = leg.min if leg else 10**6
             band = primary // 5
         else:

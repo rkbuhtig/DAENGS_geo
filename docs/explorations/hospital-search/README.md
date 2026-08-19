@@ -12,6 +12,7 @@
 | [name-tagging](name-tagging.md) | exploring | 사업장명·인허가(면적·종사자)에서 24시/응급/규모 태깅. 공짜 |
 | [kakao-category](kakao-category.md) | exploring | 카카오 로컬 `category_name`으로 과목 보강. 미저장 |
 | [community-search](community-search.md) | **exploring** | 주인 말투 쿼리 → 네이버 검색 API(카페·블로그·지식iN) → 병원명 추출 → DB 매칭 → 근거 부착 |
+| [policy-split](policy-split.md) | **adopted** | 조건을 target(필터)/journey(판정)/view로 분리. 경계는 테스트로 강제 |
 | [refine-loop](refine-loop.md) | exploring | 초안 → 대화로 조건 편집 → 재검색. LLM은 툴로 상태만 고침 |
 | [condition-schema](condition-schema.md) | exploring | 이용 가능한 조건 전체 펼침. 필터/정렬/표시 역할 분리 |
 | [transport-snapshot](transport-snapshot.md) | **exploring** | 도보/차량/대중교통을 병원마다 같은 칸에. 도보 장애물은 TMAP, advice는 우리 |
