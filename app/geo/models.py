@@ -2,7 +2,8 @@ from datetime import datetime
 from typing import Any
 
 from geoalchemy2 import Geography
-from sqlalchemy import JSON, BigInteger, Boolean, DateTime, String, func
+from sqlalchemy import JSON, BigInteger, Boolean, DateTime, Integer, Numeric, String, func
+from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.db import Base
@@ -20,6 +21,9 @@ class Place(Base):
     is_night: Mapped[bool] = mapped_column(Boolean, default=False)
     is_24h: Mapped[bool] = mapped_column(Boolean, default=False)
     hours: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+    tags: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
+    area_m2: Mapped[float | None] = mapped_column(Numeric)
+    staff_count: Mapped[int | None] = mapped_column(Integer)
     source: Mapped[str] = mapped_column(String)
     source_id: Mapped[str | None] = mapped_column(String)
     active: Mapped[bool] = mapped_column(Boolean, default=True)

@@ -8,7 +8,7 @@ from urllib.parse import urlencode
 
 import httpx
 
-from app.providers.base import LatLng, StaticMapSpec
+from app.providers.base import LatLng, Mode, RouteResult, StaticMapSpec, WalkOption
 
 APIGW = "https://naveropenapi.apigw.ntruss.com"
 
@@ -88,3 +88,8 @@ class NaverProvider:
         region = results[0].get("region", {})
         parts = [region.get(f"area{i}", {}).get("name", "") for i in range(1, 5)]
         return " ".join(p for p in parts if p) or None
+
+    async def route(self, mode: Mode, origin: LatLng, dest: LatLng,
+                    option: WalkOption = "recommended") -> RouteResult | None:
+        # TODO: 자동차 = 카카오모빌리티 Directions / 네이버 Directions 5. 키 발급 후.
+        return None

@@ -10,12 +10,22 @@
 
 ## 상태
 
-**공통 지오 레이어 1차 완료** (2026-08-19). 병원/약국 · 산책이 공유하는 부분만 깔았다.
+**워킹 스켈레톤 동작** (2026-08-19). 키 0개로 메뉴/딥링크 진입 → 재조정(UI·자연어) → 검색 → 교통 스냅샷 → 근거 부착까지 끝까지 돈다. 외부 것은 전부 결정론 가짜, 인터페이스는 진짜.
 
-- `app/providers/` — 지도 제공사 어댑터 (`MapProvider` 3메서드: 정적지도 URL / 지오코딩 / 역지오코딩). 카카오·네이버 구현체, 설정으로 메서드별 선택
-- `app/geo/` — `place` 모델(PostGIS), 영업시간 판정(`hours.py`, 순수함수), 반경 검색(`search.py`)
-- `app/api/` — `GET /places/search` (메뉴 진입용), `GET /map/static` (정적 지도 프록시)
-- 아직 없음: 챗봇 `parse()`, 공공데이터 적재, 산책 세션
+```
+app/
+├── api/         GET /places/search (순수 조회) · POST /hospital/search (상태 편집+검색+스냅샷) · GET /map/static
+├── geo/         search(PostGIS) · hours(영업시간) · tagging(이름→태그) · transport(스냅샷·advice)
+├── refine/      state · tools(순수 함수) · nl(발화→툴: FakeLLM 규칙 / OpenAI) · diff(changes) · engine
+├── enrich/      community(쿼리 재작성→검색→병원명 매칭→evidence, Fake 시드)
+├── providers/   MapProvider 4메서드(정적지도·지오코딩·역지오코딩·route) — kakao/naver/tmap/fake/null, 모드별 선택
+├── profile/     DogProfile 계약 + Fake 페르소나 3마리(콩이·두부·할매)
+└── core/        config · db
+```
+
+**LLM은 `utterance`가 있을 때만**, 그것도 "말 → 툴 호출" 번역 한 겹. 병원 정보 생성 안 함. UI 필터(`edits`)와 자연어는 같은 툴로 수렴.
+
+진짜 vs 가짜: PostGIS 검색·영업시간·태깅·상태 편집·diff·스냅샷 조립·advice 규칙은 진짜 / LLM·경로·커뮤니티 검색·프로필·정적지도는 가짜(설정 한 줄로 교체).
 
 ## 실행
 
@@ -29,9 +39,15 @@ uv run pytest
 ```
 
 ```
-GET /places/search?lat=37.4979&lng=127.0276&kind=hospital&night=true&open_now=true
-→ { params, results[{id,name,lat,lng,distance_m,open_now,hours_today,...}], map{preview_url,deeplink,web_url} }
+POST /hospital/search
+{ "dog_id":"halmae", "origin":[37.4979,127.0276] }                                   ← 메뉴 진입(초안)
+{ "dog_id":"halmae", "state":{...}, "utterance":"눈이 뿌옇고 걸어서 갈 데", "shown_ids":[..] }  ← 자연어/음성
+{ "dog_id":"halmae", "state":{...}, "edits":[{"tool":"set_walk_max","args":{"minutes":15}}] }  ← 필터 UI
+{ "dog_id":"dubu",   "state":{"lat":..,"lng":..,"night":true,"open_now":true} }         ← 챗봇 카드 딥링크
+→ { state, results[{..., tags, transport{walk{min,m,facilities,advice,why}, car{taxi_fare}, transit}, evidence[]}],
+    map{deeplink,web_url}, changes[], applied[], question?, reply }
 ```
+시나리오 드라이버 예시는 커밋 메시지·`docs/research/2026-08-19-skeleton-run.md` 참고.
 
 ## 확정 사항 (2026-08-19)
 

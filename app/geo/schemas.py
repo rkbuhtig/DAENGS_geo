@@ -32,6 +32,10 @@ class PlaceOut(BaseModel):
     is_24h: bool
     open_now: bool | None               # None = 영업시간 미상
     hours_today: list[tuple[str, str]] | None
+    tags: list[str] = Field(default_factory=list)
+    area_m2: float | None = None        # 인허가 면적 — 표시만
+    staff_count: int | None = None      # 인허가 종사자수 — 표시만
+    specialty_hit: list[str] = Field(default_factory=list)  # 요청 특화와 태그 교집합 — 부스트 근거
 
 
 class MapOut(BaseModel):

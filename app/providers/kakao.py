@@ -6,7 +6,7 @@
 
 import httpx
 
-from app.providers.base import LatLng, StaticMapSpec
+from app.providers.base import LatLng, Mode, RouteResult, StaticMapSpec, WalkOption
 
 LOCAL_BASE = "https://dapi.kakao.com/v2/local"
 
@@ -48,3 +48,8 @@ class KakaoProvider:
         road = docs[0].get("road_address") or {}
         jibun = docs[0].get("address") or {}
         return road.get("address_name") or jibun.get("address_name")
+
+    async def route(self, mode: Mode, origin: LatLng, dest: LatLng,
+                    option: WalkOption = "recommended") -> RouteResult | None:
+        # TODO: 자동차 = 카카오모빌리티 Directions / 네이버 Directions 5. 키 발급 후.
+        return None

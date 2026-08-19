@@ -28,6 +28,7 @@ backlog.md           갈래에 안 붙는 미결
 - [리뷰/평가 데이터 출처](research/2026-08-19-review-sources.md)
 - [쿼리 재작성 실험](research/2026-08-19-query-rewrite-experiment.md)
 - [경로 API 조사 + 네이버 화면 실측](research/2026-08-19-route-apis.md)
+- [워킹 스켈레톤 실행 로그](research/2026-08-19-skeleton-run.md)
 
 ## 새 갈래 만들 때
 `explorations/<주제>/<갈래>.md`, 상단에

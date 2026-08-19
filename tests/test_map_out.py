@@ -1,5 +1,5 @@
-from app.geo.schemas import PlaceOut, SearchParams
-from app.geo.search import _build_map
+from app.geo.schemas import PlaceOut
+from app.geo.search import build_map
 
 
 def _p(i, lat, lng):
@@ -8,8 +8,7 @@ def _p(i, lat, lng):
 
 
 def test_deeplink_carries_filters_and_ids():
-    p = SearchParams(lat=37.5, lng=127.0, kind="hospital", open_now=True, night=True)
-    m = _build_map(p, [_p(1, 37.5, 127.0), _p(2, 37.51, 127.01)])
+    m = build_map(37.5, 127.0, 2000, "hospital", True, True, [_p(1, 37.5, 127.0), _p(2, 37.51, 127.01)])
     assert m.deeplink.startswith("daengs://map?")
     assert "type=hospital" in m.deeplink
     assert "filter=open%2Cnight" in m.deeplink
@@ -18,6 +17,6 @@ def test_deeplink_carries_filters_and_ids():
 
 
 def test_no_provider_gives_no_preview():
-    m = _build_map(SearchParams(lat=37.5, lng=127.0), [])
+    m = build_map(37.5, 127.0, 2000, None, False, False, [])
     assert m.preview_url is None
     assert "ids" not in m.deeplink

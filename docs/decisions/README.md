@@ -21,3 +21,7 @@
 | 15 | 리뷰는 링크아웃(인앱 브라우저), 우리가 읽지 않음 ([link-out](../explorations/hospital-search/link-out.md)) | 크롤링 회피. 눈앞까지는 되고 읽는 건 안 됨 | 2026-08-19 |
 | 16 | Google Places 기각 ([google-places](../explorations/hospital-search/google-places.md)) | 국내 신뢰도 낮음 (사용자 결정) | 2026-08-19 |
 | 17 | 문서는 갈래 구조 (`docs/README.md`) | 한 줄기로 박으면 확정처럼 읽힘. 여러 방향으로 뻗을 수 있게 | 2026-08-19 |
+| 18 | LLM은 `utterance` 있을 때만, "말→툴 호출" 번역 한 겹. UI 필터와 자연어는 같은 툴로 수렴 ([refine-loop](../explorations/hospital-search/refine-loop.md)) | 팀 챗봇 관할 분리. LLM 실수 범위를 '조건 잘못 바꿈'으로 한정 | 2026-08-19 |
+| 19 | 진입 3종(메뉴=초안 / 딥링크=state 복원 / 재조정=edits·utterance)을 `POST /hospital/search` 하나로 | 엔드포인트 분리 불필요. state 유무로 갈림 | 2026-08-19 |
+| 20 | 부스트(특화·근거)는 같은 거리/시간 밴드 안에서만 순서 변경. 필터 아님 | 데이터 있는 병원만 위로 가는 왜곡 방지 | 2026-08-19 |
+| 21 | 도보 경로 = TMAP 단독, 폴백은 휴리스틱(시간·거리만) ([transport-snapshot](../explorations/hospital-search/transport-snapshot.md)) | 장애물 주는 API가 TMAP뿐. 틀린 시설정보는 없는 것보다 나쁨 | 2026-08-19 |

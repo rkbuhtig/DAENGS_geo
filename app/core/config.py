@@ -10,11 +10,28 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+asyncpg://daengs:daengs@localhost:5432/daengs"
 
     # 지도 제공사 — docs/07-map-provider.md. 정적 지도와 지오코딩을 따로 고를 수 있다.
-    map_provider: Literal["kakao", "naver", "none"] = "none"
-    static_map_provider: Literal["kakao", "naver", "none"] | None = None  # None → map_provider 따름
-    geocode_provider: Literal["kakao", "naver", "none"] | None = None
+    map_provider: Literal["kakao", "naver", "fake", "none"] = "none"
+    static_map_provider: Literal["kakao", "naver", "fake", "none"] | None = None  # None → map_provider 따름
+    geocode_provider: Literal["kakao", "naver", "fake", "none"] | None = None
+
+    # 경로 — 모드별 제공사. 도보 장애물은 TMAP만 줌 (docs/research/2026-08-19-route-apis.md)
+    walk_route_provider: Literal["tmap", "fake", "none"] = "fake"
+    car_route_provider: Literal["kakao", "naver", "fake", "none"] = "fake"
+    transit_route_provider: Literal["kakao", "fake", "none"] = "fake"
+    route_top_n: int = 5              # 실측 호출은 상위 N개만, 나머지 휴리스틱
+
+    # LLM — utterance 있을 때만 호출. fake = 규칙 기반
+    llm_provider: Literal["fake", "openai"] = "fake"
+    openai_api_key: str = ""
+    openai_model: str = "gpt-4o-mini"
+
+    # 커뮤니티 근거 (네이버 검색 API). fake = 시드 스니펫
+    community_provider: Literal["fake", "naver", "none"] = "fake"
+    naver_search_client_id: str = ""
+    naver_search_client_secret: str = ""
 
     kakao_rest_key: str = ""
+    tmap_app_key: str = ""
     naver_ncp_key_id: str = ""
     naver_ncp_key: str = ""
 
