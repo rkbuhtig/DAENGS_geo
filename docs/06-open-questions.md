@@ -1,7 +1,7 @@
 # 06. 미결 사항
 
 ## 팀에 요청/확인
-- [ ] PostGIS 확장 (팀 PostgreSQL 인스턴스)
+- [ ] PostGIS 확장 (팀 PostgreSQL 인스턴스) — 로컬은 docker-compose로 검증 완료
 - [ ] 아키텍처 그림에 산책 세션 API를 Agent Router 바깥으로 반영
 - [ ] 반려견 프로필 조회 API/스키마 (`profile_version` 포함) — `02-dog-profile-contract.md` 인터페이스 제안
 - [ ] 보행체크 AI와의 경계: 산책이 수집한 GPS/속도 데이터를 넘겨주는지, 완전 분리인지
@@ -14,5 +14,5 @@
 - [ ] 위치 프라이버시 정책 (시작/종료 좌표 절삭, 보관 기간)
 - [ ] 어뷰징 검증 임계값 (속도/가속도)
 - [ ] 프로필 함수 구체값: 나이·체중·brachy·flags·기온 → 권장 시간/거리
-- [ ] 정적 지도 이미지 생성 방식 (카카오/네이버 Static Map vs 서버 렌더)
+- [ ] 지도 제공사 확정 (팀 클라이언트 SDK 결정 따름) — `07-map-provider.md`
 - [ ] 딥링크 스킴 이름 (`daengs://` 가안)

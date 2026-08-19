@@ -10,7 +10,28 @@
 
 ## 상태
 
-**구상 단계.** 코드 없음. `docs/` 에 확정된 설계 결정만 기록.
+**공통 지오 레이어 1차 완료** (2026-08-19). 병원/약국 · 산책이 공유하는 부분만 깔았다.
+
+- `app/providers/` — 지도 제공사 어댑터 (`MapProvider` 3메서드: 정적지도 URL / 지오코딩 / 역지오코딩). 카카오·네이버 구현체, 설정으로 메서드별 선택
+- `app/geo/` — `place` 모델(PostGIS), 영업시간 판정(`hours.py`, 순수함수), 반경 검색(`search.py`)
+- `app/api/` — `GET /places/search` (메뉴 진입용), `GET /map/static` (정적 지도 프록시)
+- 아직 없음: 챗봇 `parse()`, 공공데이터 적재, 산책 세션
+
+## 실행
+
+```bash
+cp .env.example .env
+docker compose up -d            # PostGIS 16-3.4, migrations/ 자동 적용
+docker compose exec -T db psql -U daengs -d daengs < migrations/dev_seed.sql   # 개발용 시드
+uv sync
+uv run uvicorn app.main:app --reload
+uv run pytest
+```
+
+```
+GET /places/search?lat=37.4979&lng=127.0276&kind=hospital&night=true&open_now=true
+→ { params, results[{id,name,lat,lng,distance_m,open_now,hours_today,...}], map{preview_url,deeplink,web_url} }
+```
 
 ## 확정 사항 (2026-08-19)
 
@@ -29,3 +50,4 @@
 4. [산책 세션 엔진](docs/04-walk-session.md)
 5. [아키텍처 결정 기록](docs/05-decisions.md)
 6. [미결 사항](docs/06-open-questions.md)
+7. [지도 제공사 비교](docs/07-map-provider.md)
