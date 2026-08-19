@@ -38,6 +38,8 @@ uv run uvicorn app.main:app --reload
 uv run pytest
 ```
 
+**검증 콘솔**: `http://localhost:8000/dev` — 페르소나·출발지(지도 클릭)·필터 칩·자연어 입력, 카드 클릭하면 도보 폴리라인 + 반려견 관심 지점(spots) + 따라가기 딥링크.
+
 ```
 POST /hospital/search
 { "dog_id":"halmae", "origin":[37.4979,127.0276] }                                   ← 메뉴 진입(초안)

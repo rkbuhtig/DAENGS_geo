@@ -13,7 +13,7 @@ from pydantic import BaseModel, Field
 
 from app.core.config import settings
 from app.profile.contract import DogProfile
-from app.providers.base import Facilities, LatLng, Mode, RouteResult, WalkOption
+from app.providers.base import Facilities, LatLng, Mode, RouteResult, Spot, WalkOption
 from app.providers.fake import FakeProvider, haversine_m
 from app.providers.registry import route_provider
 
@@ -31,6 +31,27 @@ def _ckey(mode: Mode, o: LatLng, d: LatLng, option: WalkOption) -> tuple:
 
 def cache_stats() -> dict:
     return {"size": len(_cache)}
+
+
+class SpotOut(BaseModel):
+    kind: str
+    lat: float
+    lng: float
+    offset_m: int
+    text: str
+    landmark: str = ""
+    road: str = ""
+    big_road: bool = False
+    length_m: int = 0
+    note: str | None = None      # daengs 고유 — 이 개한테 한마디
+    warn: bool = False           # 강조 표시 여부
+
+
+class Handoff(BaseModel):
+    """실제 따라가기는 제공사 앱으로. 딥링크 3종 (앱 미설치 시 스토어/웹은 클라이언트가 처리)."""
+    naver: str
+    kakao: str
+    tmap: str
 
 
 class Alt(BaseModel):
@@ -53,6 +74,9 @@ class Leg(BaseModel):
     advice: str | None = None       # ok | caution | avoid
     why: list[str] = Field(default_factory=list)
     alternatives: list[Alt] = Field(default_factory=list)   # 다른 도보 옵션과의 트레이드오프
+    spots: list[SpotOut] = Field(default_factory=list)      # 반려견 관심 지점 (출발 전 한 장)
+    polyline: list[tuple[float, float]] | None = None       # [(lat,lng)...] 요청 시에만
+    handoff: Handoff | None = None
 
 
 class Transport(BaseModel):
@@ -84,6 +108,71 @@ def walk_options_to_try(prefer: WalkOption, avoid: list[str], profile: DogProfil
         for o in ("no_stairs", "recommended"):
             if o not in opts: opts.append(o)
     return opts
+
+
+# ---- spot 노트 (시설 × 프로필) --------------------------------------------
+def spot_note(sp: Spot, profile: DogProfile | None) -> tuple[str | None, bool]:
+    """(note, warn). 이 개한테 이 지점이 뭔지 한마디. 없으면 None."""
+    p = profile
+    if sp.kind == "crosswalk":
+        bits = []
+        if sp.big_road:
+            bits.append("큰길 — 목줄 짧게, 신호 기다리기")
+        if p and "reactive_to_dogs" in p.temperament:
+            bits.append("건널목에 다른 개 있을 수 있음")
+        if p and p.is_senior and sp.big_road:
+            bits.append("신호 한 번에 못 건너면 중앙 대기")
+        return (" · ".join(bits) or None, sp.big_road)
+    if sp.kind == "stairs":
+        if p and (p.is_senior or p.has_joint_issue):
+            return ("계단 — 안고 이동 권장", True)
+        if p and p.size_class == "small":
+            return ("계단 — 소형견은 안고 이동", True)
+        return ("계단", False)
+    if sp.kind == "underpass":
+        if p and p.size_class == "large":
+            return (f"지하 통로 {sp.length_m}m — 대형견 스트레스, 짧게 통과", True)
+        if p and "timid" in p.temperament:
+            return (f"지하 통로 {sp.length_m}m — 소음·울림, 겁 많으면 주의", True)
+        return (f"지하 통로 {sp.length_m}m", sp.length_m >= 100)
+    if sp.kind == "overpass":
+        return ("육교 — 계단 있을 가능성", bool(p and (p.is_senior or p.has_joint_issue)))
+    if sp.kind == "elevator":
+        return ("엘리베이터 — 케이지/안고 탑승", False)
+    if sp.kind == "slope":
+        return ("경사로", bool(p and p.has_joint_issue))
+    if sp.kind == "origin_passage":
+        return ("출발 지점 통로 (이미 서 있는 곳)", False)
+    if sp.kind == "arrive":
+        return ("도착 — 간판·층수 확인, 진료 전 전화 권장", False)
+    return (None, False)
+
+
+def spots_out(r: RouteResult, profile: DogProfile | None) -> list[SpotOut]:
+    """같은 (종류, 도로)의 노트는 첫 번째만 풀로. 반복은 소음."""
+    out = []
+    seen: set[tuple[str, str]] = set()
+    for sp in r.spots:
+        note, warn = spot_note(sp, profile)
+        key = (sp.kind, sp.road)
+        if note and key in seen and sp.kind == "crosswalk":
+            note = "큰길" if sp.big_road else None
+        seen.add(key)
+        out.append(SpotOut(kind=sp.kind, lat=sp.at.lat, lng=sp.at.lng, offset_m=sp.offset_m, text=sp.text,
+                           landmark=sp.landmark, road=sp.road, big_road=sp.big_road, length_m=sp.length_m,
+                           note=note, warn=warn))
+    return out
+
+
+def handoff_links(origin: LatLng, dest: LatLng, dest_name: str) -> Handoff:
+    from urllib.parse import quote
+    n = quote(dest_name)
+    return Handoff(
+        naver=f"nmap://route/walk?slat={origin.lat}&slng={origin.lng}&sname={quote('현재 위치')}"
+              f"&dlat={dest.lat}&dlng={dest.lng}&dname={n}&appname=daengs",
+        kakao=f"kakaomap://route?sp={origin.lat},{origin.lng}&ep={dest.lat},{dest.lng}&by=FOOT",
+        tmap=f"tmap://route?goalx={dest.lng}&goaly={dest.lat}&goalname={n}",
+    )
 
 
 # ---- advice 규칙 --------------------------------------------------------
@@ -156,7 +245,8 @@ async def _route(mode: Mode, o: LatLng, d: LatLng, option: WalkOption, measured:
 
 async def snapshot_for(origin: LatLng, dest: LatLng, *, rank: int, mode: Mode | None,
                        walk_option: WalkOption, walk_max: int | None, avoid: list[str],
-                       profile: DogProfile | None, temp_c: float | None = None) -> Transport:
+                       profile: DogProfile | None, temp_c: float | None = None,
+                       dest_name: str = "", with_polyline: bool = False) -> Transport:
     measured = rank < settings.route_top_n
     straight = int(haversine_m(origin, dest))
     show_transit = profile is None or profile.size_class == "small"
@@ -185,6 +275,10 @@ async def snapshot_for(origin: LatLng, dest: LatLng, *, rank: int, mode: Mode | 
 
     wl = _leg(best, walk_advice(best, profile, walk_max, avoid, temp_c, factor), factor)
     wl.alternatives = alts
+    wl.spots = spots_out(best, profile)
+    wl.handoff = handoff_links(origin, dest, dest_name)
+    if with_polyline and best.polyline:
+        wl.polyline = [(p.lat, p.lng) for p in best.polyline]
     return Transport(
         as_of=datetime.now(UTC), straight_m=straight,
         walk=wl, car=_leg(car), transit=_leg(transit) if transit else None,

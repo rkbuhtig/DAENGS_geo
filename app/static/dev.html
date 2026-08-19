@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>DAENGS_geo dev console</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  * { box-sizing: border-box; }
+  body { margin:0; font: 13px/1.4 system-ui, sans-serif; display:grid; grid-template-columns: 420px 1fr; height:100vh; color:#222; }
+  #left { overflow:auto; border-right:1px solid #ddd; padding:10px; }
+  #map { height:100vh; }
+  h3 { margin:10px 0 4px; font-size:12px; color:#666; text-transform:uppercase; letter-spacing:.04em; }
+  .row { display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin:4px 0; }
+  .chip { border:1px solid #bbb; border-radius:14px; padding:2px 9px; cursor:pointer; background:#fff; font-size:12px; }
+  .chip.on { background:#222; color:#fff; border-color:#222; }
+  input[type=text] { width:100%; padding:6px 8px; border:1px solid #bbb; border-radius:6px; }
+  select, button { padding:4px 8px; }
+  .card { border:1px solid #ddd; border-radius:8px; padding:8px; margin:6px 0; cursor:pointer; }
+  .card.sel { border-color:#222; box-shadow:0 0 0 2px #2223; }
+  .card .name { font-weight:600; }
+  .muted { color:#777; }
+  .adv-ok { color:#1a7f37; } .adv-caution { color:#b26a00; } .adv-avoid { color:#c62828; font-weight:600; }
+  .changes { background:#f6f6f6; border-radius:6px; padding:6px 8px; margin:6px 0; white-space:pre-wrap; }
+  .q { background:#fff4d6; border-radius:6px; padding:6px 8px; margin:6px 0; }
+  .spot { display:flex; gap:6px; padding:3px 0; border-top:1px dashed #eee; }
+  .spot .n { width:18px; height:18px; border-radius:50%; background:#444; color:#fff; font-size:11px; display:flex; align-items:center; justify-content:center; flex:none; }
+  .spot.warn .n { background:#c62828; }
+  .ev { font-size:12px; color:#555; margin-top:2px; }
+  .tag { font-size:11px; background:#eee; border-radius:4px; padding:0 4px; margin-right:3px; }
+  .hand a { margin-right:8px; font-size:12px; }
+</style>
+</head>
+<body>
+<div id="left">
+  <h3>페르소나 · 출발지 (지도 클릭)</h3>
+  <div class="row">
+    <select id="dog"><option value="halmae">할매 (말티즈 13세·관절)</option><option value="dubu">두부 (퍼그 5세·과체중)</option><option value="kong">콩이 (보더콜리 2세)</option><option value="">없음</option></select>
+    <span id="origin" class="muted">37.4979, 127.0276</span>
+    <button id="reset">초안</button>
+  </div>
+
+  <h3>필터 (edits)</h3>
+  <div class="row" id="chips">
+    <span class="chip" data-tool="set_time" data-args='{"open_now":true}' data-off='{"open_now":false}' data-key="open_now">지금 영업중</span>
+    <span class="chip" data-tool="set_time" data-args='{"night":true}' data-off='{"night":false}' data-key="night">야간</span>
+    <span class="chip" data-tool="set_time" data-args='{"emergency":true}' data-off='{"emergency":false}' data-key="emergency">응급</span>
+    <span class="chip" data-tool="set_mode" data-args='{"mode":"walk"}' data-off='{"mode":null}' data-key="mode=walk">도보</span>
+    <span class="chip" data-tool="set_mode" data-args='{"mode":"car"}' data-off='{"mode":null}' data-key="mode=car">차량</span>
+    <span class="chip" data-tool="set_walk_option" data-args='{"option":"no_stairs"}' data-off='{"option":"recommended"}' data-key="walk.option=no_stairs">계단제외</span>
+    <span class="chip" data-tool="avoid" data-args='{"facilities":["underpass"]}' data-key="avoid=underpass">지하도 피함</span>
+  </div>
+  <div class="row">반경 <input type="range" id="radius" min="300" max="5000" step="100" value="2000" style="flex:1"><span id="radiusv">2km</span></div>
+
+  <h3>자연어 (utterance)</h3>
+  <input type="text" id="utt" placeholder="예: 눈이 뿌옇고 걸어서 갈 수 있는 데 / 첫번째 거는 빼줘 / 아까대로">
+  <div class="row"><button id="send">보내기</button><span class="muted">Enter로도 전송</span></div>
+
+  <div id="changes" class="changes"></div>
+  <div id="question" class="q" style="display:none"></div>
+
+  <h3>결과 <span id="count" class="muted"></span></h3>
+  <div id="list"></div>
+</div>
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const API = "/hospital/search";
+let state = null, shown = [], selected = null, origin = [37.4979, 127.0276];
+const map = L.map('map').setView(origin, 15);
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 19, attribution: '© OpenStreetMap (dev only)'}).addTo(map);
+const layer = L.layerGroup().addTo(map);
+let originMarker = L.circleMarker(origin, {radius: 8, color: '#1565c0', fillOpacity: .9}).addTo(map).bindTooltip('출발');
+map.on('click', e => { origin = [e.latlng.lat, e.latlng.lng]; originMarker.setLatLng(origin); document.getElementById('origin').textContent = origin.map(v => v.toFixed(4)).join(', '); run({reset: true}); });
+
+const $ = id => document.getElementById(id);
+$('radius').oninput = e => $('radiusv').textContent = (e.target.value / 1000) + 'km';
+$('radius').onchange = e => run({edits: [{tool: 'set_radius', args: {m: +e.target.value}}]});
+$('reset').onclick = () => run({reset: true});
+$('dog').onchange = () => run({reset: true});
+$('send').onclick = () => { const u = $('utt').value.trim(); if (u) run({utterance: u}); };
+$('utt').onkeydown = e => { if (e.key === 'Enter') $('send').click(); };
+document.querySelectorAll('.chip').forEach(c => c.onclick = () => {
+  const on = c.classList.contains('on');
+  const args = JSON.parse(on ? (c.dataset.off || 'null') : c.dataset.args);
+  if (args === null) return;
+  run({edits: [{tool: c.dataset.tool, args}]});
+});
+
+async function run({reset = false, edits = [], utterance = null} = {}) {
+  const body = {dog_id: $('dog').value || null, origin, edits, utterance, shown_ids: shown, with_polyline_for: selected};
+  if (!reset && state) body.state = state;
+  const r = await fetch(API, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+  const d = await r.json();
+  if (!r.ok) { $('changes').textContent = JSON.stringify(d, null, 1); return; }
+  state = d.state; shown = d.results.map(x => x.id);
+  $('utt').value = '';
+  render(d);
+}
+
+function syncChips(st) {
+  document.querySelectorAll('.chip').forEach(c => {
+    const k = c.dataset.key; let on = false;
+    if (k === 'open_now') on = st.open_now; else if (k === 'night') on = st.night; else if (k === 'emergency') on = st.emergency;
+    else if (k.startsWith('mode=')) on = st.mode === k.split('=')[1];
+    else if (k === 'walk.option=no_stairs') on = st.walk.option === 'no_stairs';
+    else if (k === 'avoid=underpass') on = (st.walk.avoid || []).includes('underpass');
+    c.classList.toggle('on', !!on);
+  });
+  $('radius').value = st.radius_m; $('radiusv').textContent = (st.radius_m / 1000) + 'km';
+}
+
+function render(d) {
+  syncChips(d.state);
+  $('changes').textContent = d.changes.join(' · ') + '\n' + d.reply;
+  $('question').style.display = d.question ? '' : 'none'; $('question').textContent = d.question || '';
+  $('count').textContent = d.results.length + '곳';
+  layer.clearLayers();
+  const list = $('list'); list.innerHTML = '';
+  d.results.forEach((x, i) => {
+    const t = x.transport || {}, w = t.walk || {}, c = t.car || {}, tr = t.transit;
+    const label = String.fromCharCode(65 + i);
+    L.marker([x.lat, x.lng], {icon: L.divIcon({className: '', html: `<div style="background:${x.id === selected ? '#c62828' : '#222'};color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600">${label}</div>`, iconSize: [22, 22]})}).addTo(layer).bindTooltip(x.name);
+    const card = document.createElement('div'); card.className = 'card' + (x.id === selected ? ' sel' : '');
+    const fac = w.facilities || {};
+    const advCls = 'adv-' + (w.advice || 'ok');
+    card.innerHTML = `
+      <div><span class="name">${label}. ${x.name}</span> <span class="muted">${x.distance_m}m · ${x.open_now === null ? '영업 미상' : x.open_now ? '영업중' : '영업종료'}</span></div>
+      <div>${(x.tags || []).map(t => `<span class="tag">${t}</span>`).join('')}${x.area_m2 ? `<span class="muted">${x.area_m2}㎡ · ${x.staff_count ?? '?'}인</span>` : ''}</div>
+      ${t.walk ? `<div>🚶 <b>${w.min}분</b><span class="muted">(제공사 ${w.provider_min ?? w.min}·${w.source})</span> ${w.m}m · 횡단${fac.crosswalk ?? 0} 계단${fac.stairs ?? 0} 지하${fac.underpass ?? 0} <span class="${advCls}">${w.advice}</span> <span class="muted">${(w.why || []).join(' / ')}</span></div>` : ''}
+      ${w.alternatives && w.alternatives.length ? `<div class="muted">대안: ${w.alternatives.map(a => `${a.option} ${a.min}분 (Δ${a.delta_min >= 0 ? '+' : ''}${a.delta_min})`).join(', ')}</div>` : ''}
+      ${t.car ? `<div>🚗 ${c.min}분 ${c.m}m · 택시 ${c.taxi_fare ?? '-'}원 ${tr ? `· 🚌 ${tr.min}분 ${tr.fare}원` : ''}</div>` : ''}
+      ${x.evidence.map(e => `<div class="ev">[${e.source}] ${e.text}</div>`).join('')}
+      <div class="spots"></div>`;
+    card.onclick = () => { selected = (selected === x.id ? null : x.id); run({}); };
+    if (x.id === selected && w.spots) {
+      const sp = card.querySelector('.spots');
+      sp.innerHTML = '<h3>이 개한테 걸리는 지점</h3>' + w.spots.map((s, j) => `<div class="spot ${s.warn ? 'warn' : ''}"><span class="n">${j + 1}</span><div>${s.text}<div class="muted">${s.note || ''}</div></div></div>`).join('')
+        + (w.handoff ? `<div class="hand" style="margin-top:6px">따라가기: <a href="${w.handoff.naver}">네이버</a><a href="${w.handoff.kakao}">카카오</a><a href="${w.handoff.tmap}">TMAP</a></div>` : '');
+      if (w.polyline) L.polyline(w.polyline, {color: '#1565c0', weight: 5, opacity: .8}).addTo(layer);
+      w.spots.forEach((s, j) => L.marker([s.lat, s.lng], {icon: L.divIcon({className: '', html: `<div style="background:${s.warn ? '#c62828' : '#444'};color:#fff;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:11px">${j + 1}</div>`, iconSize: [18, 18]})}).addTo(layer).bindTooltip(`${s.text}${s.note ? ' — ' + s.note : ''}`));
+      if (w.polyline && w.polyline.length) map.fitBounds(L.latLngBounds(w.polyline).pad(0.2));
+    }
+    list.appendChild(card);
+  });
+}
+run({reset: true});
+</script>
+</body>
+</html>

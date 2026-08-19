@@ -25,3 +25,5 @@
 | 19 | 진입 3종(메뉴=초안 / 딥링크=state 복원 / 재조정=edits·utterance)을 `POST /hospital/search` 하나로 | 엔드포인트 분리 불필요. state 유무로 갈림 | 2026-08-19 |
 | 20 | 부스트(특화·근거)는 같은 거리/시간 밴드 안에서만 순서 변경. 필터 아님 | 데이터 있는 병원만 위로 가는 왜곡 방지 | 2026-08-19 |
 | 21 | 도보 경로 = TMAP 단독, 폴백은 휴리스틱(시간·거리만) ([transport-snapshot](../explorations/hospital-search/transport-snapshot.md)) | 장애물 주는 API가 TMAP뿐. 틀린 시설정보는 없는 것보다 나쁨 | 2026-08-19 |
+| 22 | 도보는 네비가 아니라 **출발 전 한 장**: 이 개한테 걸리는 지점(spots)+한마디, 실제 따라가기는 제공사 앱 딥링크 ([transport-snapshot](../explorations/hospital-search/transport-snapshot.md), research/2026-08-19-dev-console.md) | 검색하는 사람은 모르는 곳에 처음 가는 사람. 원하는 건 "어디가 걸리는지"의 통찰, 도달 과정은 타 지도앱이 잘함 | 2026-08-19 |
+| 23 | `/dev` 검증 콘솔(HTML 1파일, Leaflet+OSM). 앱 UI 아님, 운영 비노출 | JSON으론 루프와 길의 감각이 안 보임. 화면에 올려야 뭘 버릴지 정해짐 | 2026-08-19 |

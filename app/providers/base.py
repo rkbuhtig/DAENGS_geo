@@ -60,6 +60,23 @@ class Facilities:
 
 
 @dataclass(frozen=True)
+class Spot:
+    """반려견 관심 지점 — 출발 전 한 장에 찍히는 것. 네비 스텝이 아니다.
+
+    kind: crosswalk | stairs | underpass | overpass | elevator | slope | origin_passage | arrive
+    """
+
+    kind: str
+    at: LatLng
+    offset_m: int                 # 출발로부터 경로상 거리
+    text: str                     # "버거킹 차병원사거리점 앞 횡단보도 (논현로)"
+    landmark: str = ""            # nearPoiName / intersectionName
+    road: str = ""                # 관련 도로명
+    big_road: bool = False        # 대로급 횡단
+    length_m: int = 0             # 지하 통로 등 구간 길이
+
+
+@dataclass(frozen=True)
 class RouteResult:
     mode: Mode
     distance_m: int
@@ -70,6 +87,7 @@ class RouteResult:
     taxi_fare: int | None = None              # car만
     fare: int | None = None                   # transit만
     option: WalkOption | None = None
+    spots: tuple[Spot, ...] = ()              # walk만. 순서 있음
 
 
 class MapProvider(Protocol):

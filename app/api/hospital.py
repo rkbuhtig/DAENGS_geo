@@ -39,6 +39,7 @@ class HospitalSearchIn(BaseModel):
     shown_ids: list[int] = Field(default_factory=list)
     with_transport: bool = True
     with_evidence: bool = True
+    with_polyline_for: int | None = None      # 이 병원 id만 도보 폴리라인 포함 (상세 화면)
 
 
 class EvidenceOut(BaseModel):
@@ -104,7 +105,8 @@ async def hospital_search(
             t = await snapshot_for(
                 origin_pt, LatLng(p.lat, p.lng), rank=i, mode=st.mode,
                 walk_option=st.walk.option, walk_max=st.walk.max_min, avoid=st.walk.avoid,
-                profile=profile,
+                profile=profile, dest_name=p.name,
+                with_polyline=(body.with_polyline_for == p.id),
             )
         e = [EvidenceOut(source=x.source, text=x.text, url=x.url) for x in ev.get(p.id, [])]
         results.append(ResultOut(**p.model_dump(), transport=t, evidence=e,

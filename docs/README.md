@@ -30,6 +30,7 @@ backlog.md           갈래에 안 붙는 미결
 - [경로 API 조사 + 네이버 화면 실측](research/2026-08-19-route-apis.md)
 - [워킹 스켈레톤 실행 로그](research/2026-08-19-skeleton-run.md)
 - [TMAP 실호출 — 문서와 다른 점, 파서 반영](research/2026-08-19-tmap-live.md)
+- [dev 콘솔 + spots(반려견 관심 지점)](research/2026-08-19-dev-console.md)
 
 ## 새 갈래 만들 때
 `explorations/<주제>/<갈래>.md`, 상단에

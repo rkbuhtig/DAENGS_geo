@@ -40,6 +40,8 @@ class Settings(BaseSettings):
     max_radius_m: int = 10000
     default_limit: int = 20
 
+    dev_console: bool = True          # /dev 검증 콘솔. 운영에선 False
+
     # 딥링크
     app_scheme: str = "daengs"
     web_map_base: str = "https://daengs.example/map"
