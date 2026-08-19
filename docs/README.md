@@ -17,7 +17,7 @@ backlog.md           갈래에 안 붙는 미결
 ## 주제
 - [병원 찾기](explorations/hospital-search/README.md) — 9갈래, 오늘의 초점은 [community-search](explorations/hospital-search/community-search.md)
 - [지도 제공사](explorations/map-provider/README.md)
-- [산책](explorations/walk/README.md) — 사용자 담당
+- [산책](explorations/walk/README.md) — 세션 엔진 · 종료 후 경로 기반 공간 스토리보드, 사용자 담당
 
 ## 계약
 - [반려견 프로필](contracts/dog-profile.md) — 외부에서 받는 형태 + 가상 페르소나 3마리
@@ -27,6 +27,7 @@ backlog.md           갈래에 안 붙는 미결
 - [지도 제공사 요금·쿼터·코드](research/2026-08-19-map-provider-pricing.md)
 - [리뷰/평가 데이터 출처](research/2026-08-19-review-sources.md)
 - [쿼리 재작성 실험](research/2026-08-19-query-rewrite-experiment.md)
+- [산책 스토리보드용 공간 이미지 제공사](research/2026-08-19-spatial-imagery-providers.md)
 
 ## 새 갈래 만들 때
 `explorations/<주제>/<갈래>.md`, 상단에

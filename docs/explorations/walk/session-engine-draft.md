@@ -20,9 +20,12 @@ owner: 사용자
 POST /walks                     세션 시작  ← 프로필 + 날씨로 오늘 목표 계산, 출발 전 메시지
 POST /walks/{id}/locations      위치 배치 업로드 (앱 백그라운드 주기)
                                 → 판정 → 트리거 있으면 짧은 서술 응답
-POST /walks/{id}/finish         종료 → 경로 요약 에피소드, 보상 확정
+POST /walks/{id}/finish         종료 → 최종 경로·요약 에피소드·보상 확정
+                                → 공간 스토리보드 후처리 요청 (실패해도 산책 완료 유지)
 GET  /walks/{id}                조회
 ```
+
+종료 후 경로를 공간 이미지 장면으로 재구성하는 갈래는 [route-storyboard.md](route-storyboard.md)에서 다룬다. `finish`가 장면 생성까지 기다릴지, 경로만 반환하고 비동기 처리할지는 미결이다.
 
 ## 판정 (코드, 결정론)
 

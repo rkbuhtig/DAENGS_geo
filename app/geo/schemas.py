@@ -7,7 +7,7 @@ Kind = Literal["hospital", "pharmacy"]
 
 
 class SearchParams(BaseModel):
-    """챗봇 parse()와 메뉴 UI가 공통으로 채우는 검색 파라미터. docs/03."""
+    """챗봇 parse()와 메뉴 UI가 공통으로 채우는 검색 파라미터. docs/explorations/hospital-search/condition-schema.md."""
 
     lat: float = Field(ge=-90, le=90)
     lng: float = Field(ge=-180, le=180)

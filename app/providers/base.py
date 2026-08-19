@@ -1,4 +1,4 @@
-"""지도 제공사 어댑터 — docs/07-map-provider.md.
+"""지도 제공사 어댑터 — docs/explorations/map-provider/README.md.
 
 백엔드가 제공사를 만지는 곳은 정적 지도 URL 조립과 지오코딩뿐이다. 그래서 딱 3메서드.
 타일·렌더링·길찾기는 클라이언트/제공사 앱 몫이므로 여기 없다.

@@ -9,7 +9,7 @@ class Settings(BaseSettings):
 
     database_url: str = "postgresql+asyncpg://daengs:daengs@localhost:5432/daengs"
 
-    # 지도 제공사 — docs/07-map-provider.md. 정적 지도와 지오코딩을 따로 고를 수 있다.
+    # 지도 제공사 — docs/explorations/map-provider/README.md. 정적 지도와 지오코딩을 따로 고를 수 있다.
     map_provider: Literal["kakao", "naver", "none"] = "none"
     static_map_provider: Literal["kakao", "naver", "none"] | None = None  # None → map_provider 따름
     geocode_provider: Literal["kakao", "naver", "none"] | None = None
