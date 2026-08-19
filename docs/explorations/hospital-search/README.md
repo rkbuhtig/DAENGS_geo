@@ -14,6 +14,7 @@
 | [community-search](community-search.md) | **exploring** | 주인 말투 쿼리 → 네이버 검색 API(카페·블로그·지식iN) → 병원명 추출 → DB 매칭 → 근거 부착 |
 | [refine-loop](refine-loop.md) | exploring | 초안 → 대화로 조건 편집 → 재검색. LLM은 툴로 상태만 고침 |
 | [condition-schema](condition-schema.md) | exploring | 이용 가능한 조건 전체 펼침. 필터/정렬/표시 역할 분리 |
+| [transport-snapshot](transport-snapshot.md) | **exploring** | 도보/차량/대중교통을 병원마다 같은 칸에. 도보 장애물은 TMAP, advice는 우리 |
 | [homepage-enrich](homepage-enrich.md) | parked | 병원 홈페이지에서 진료시간·과목 온디맨드 추출 |
 
 갈래끼리 배타적이지 않다. 여러 개가 같이 adopted 될 수 있음. rejected도 지우지 않는다 — 같은 질문을 다시 안 하려고.

@@ -15,7 +15,7 @@ backlog.md           갈래에 안 붙는 미결
 `exploring` 파는 중 · `adopted` 채택 (decisions/에 한 줄 생김) · `parked` 보류 · `rejected` 기각 (지우지 않음 — 같은 질문 다시 안 하려고)
 
 ## 주제
-- [병원 찾기](explorations/hospital-search/README.md) — 9갈래, 오늘의 초점은 [community-search](explorations/hospital-search/community-search.md)
+- [병원 찾기](explorations/hospital-search/README.md) — 10갈래, 오늘의 초점은 [community-search](explorations/hospital-search/community-search.md)
 - [지도 제공사](explorations/map-provider/README.md)
 - [산책](explorations/walk/README.md) — 사용자 담당
 
@@ -27,6 +27,7 @@ backlog.md           갈래에 안 붙는 미결
 - [지도 제공사 요금·쿼터·코드](research/2026-08-19-map-provider-pricing.md)
 - [리뷰/평가 데이터 출처](research/2026-08-19-review-sources.md)
 - [쿼리 재작성 실험](research/2026-08-19-query-rewrite-experiment.md)
+- [경로 API 조사 + 네이버 화면 실측](research/2026-08-19-route-apis.md)
 
 ## 새 갈래 만들 때
 `explorations/<주제>/<갈래>.md`, 상단에

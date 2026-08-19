@@ -23,4 +23,6 @@
 ## 키 발급 (사용자)
 - [ ] 네이버 개발자센터 검색 API 앱 등록 (`community-search.md`)
 - [ ] 카카오 REST 키 (`kakao-category.md`, 지오코딩)
+- [ ] TMAP(SK오픈API) 키 + 요금 확인 (`transport-snapshot.md` 도보)
+- [ ] 네이버 클라우드 Maps 또는 카카오모빌리티 키 (자동차)
 - [ ] 공공데이터포털 행안부 동물병원 조회서비스 활용신청
