@@ -49,6 +49,11 @@ class Facilities:
     overpass: int = 0
     elevator: int = 0
     slope: int = 0
+    # 길의 성격 — 큰길(대로/로) 구간 비율. 소음·차·밝기의 대리 지표. 계단보다 매번 있는 진짜 축
+    big_road_m: int = 0
+    total_m: int = 0
+    big_road_ratio: float = 0.0
+    big_crossings: int = 0
 
     def penalty(self, avoid: tuple[str, ...] = ()) -> int:
         """비교용 점수. 낮을수록 좋다. avoid에 든 시설은 가중."""

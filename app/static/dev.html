@@ -42,6 +42,11 @@
     <span id="origin" class="muted">37.4979, 127.0276</span>
     <button id="reset">초안</button>
   </div>
+  <div class="row">
+    <label><input type="radio" name="comp" value="dog" checked> 🐕 동반</label>
+    <label><input type="radio" name="comp" value="none"> 🚶 나만 감 (약 타러 등)</label>
+    <span class="muted">→ companion. none이면 개 계수·노트·advice 없음</span>
+  </div>
 
   <h3>어디를 갈까 <span class="pol t">target · 결과가 바뀜</span></h3>
   <div class="row">
@@ -83,6 +88,9 @@
 <script>
 const API = "/hospital/search";
 let state = null, shown = [], selected = null, origin = [37.4979, 127.0276];
+let lastSearch = null, journeys = {};   // journeys[id] = JourneyItem (실측)
+const companion = () => document.querySelector('input[name=comp]:checked').value;
+const TOP_N = 5;
 const map = L.map('map').setView(origin, 15);
 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 19, attribution: '© OpenStreetMap (dev only)'}).addTo(map);
 const layer = L.layerGroup().addTo(map);
@@ -109,6 +117,7 @@ $('radius').onchange = e => run({edits: [{tool: 'set_radius', args: {m: +e.targe
 $('applymax').onclick = () => { const v = $('maxmin').value; run({edits: [{tool: 'set_max_min', args: {minutes: v === '' ? null : +v, hard: $('hard').checked}}]}); };
 $('reset').onclick = () => run({reset: true});
 $('dog').onchange = () => run({reset: true});
+document.querySelectorAll('input[name=comp]').forEach(r => r.onchange = () => run({}));
 $('send').onclick = () => { const u = $('utt').value.trim(); if (u) run({utterance: u}); };
 $('utt').onkeydown = e => { if (e.key === 'Enter') $('send').click(); };
 document.querySelectorAll('.chip').forEach(c => c.onclick = () => {
@@ -120,15 +129,31 @@ document.querySelectorAll('.chip').forEach(c => c.onclick = () => {
 });
 
 async function run({reset = false, edits = [], utterance = null} = {}) {
-  const body = {dog_id: $('dog').value || null, origin, edits, utterance, shown_ids: shown};
+  const body = {dog_id: $('dog').value || null, origin, edits, utterance, shown_ids: shown, companion: companion(), transport: 'estimate'};
   if (!reset && state) body.state = state;
   const r = await fetch(API, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
   const d = await r.json();
   if (!r.ok) { $('changes').textContent = JSON.stringify(d, null, 1); return; }
-  state = d.state; shown = d.results.map(x => x.id);
+  state = d.state; shown = d.results.map(x => x.id); lastSearch = d;
+  if (selected && !shown.includes(selected)) selected = null;
   $('utt').value = '';
+  journeys = {};
+  render(d);                                   // 1) 검색 결과 먼저 (휴리스틱)
+  await fetchJourneys(d.results.slice(0, TOP_N).map(x => x.id));   // 2) 상위 N 실측 → 선
   render(d);
 }
+
+async function fetchJourneys(ids) {
+  if (!ids.length) return;
+  const body = {origin, dests: ids.map(id => ({id})), companion: companion(), dog_id: $('dog').value || null,
+                prefs: state ? state.journey : undefined, measured: true, with_polyline: true};
+  const r = await fetch('/journey', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+  if (!r.ok) return;
+  const j = await r.json();
+  j.items.forEach(it => journeys[it.id] = it);
+}
+
+function tOf(x) { const j = journeys[x.id]; return j ? j.transport : (x.transport || {}); }
 
 function syncChips(st) {
   const tg = st.target, jn = st.journey;
@@ -158,7 +183,7 @@ function render(d) {
   // 1) 선이 먼저 — 실측된 모든 경로를 옅게. 카드 안 눌러도 "어느 쪽으로 얼마나"가 보인다
   const allBounds = [];
   d.results.forEach((x, i) => {
-    const w = (x.transport || {}).walk;
+    const w = (tOf(x)).walk;
     if (w && w.polyline) {
       const pts = decodePolyline(w.polyline);
       const isSel = x.id === selected;
@@ -169,7 +194,7 @@ function render(d) {
   });
   if (!selected && allBounds.length) map.fitBounds(L.latLngBounds(allBounds).pad(0.15));
   d.results.forEach((x, i) => {
-    const t = x.transport || {}, w = t.walk || {}, c = t.car || {}, tr = t.transit;
+    const t = tOf(x), w = t.walk || {}, c = t.car || {}, tr = t.transit;
     const label = String.fromCharCode(65 + i);
     L.marker([x.lat, x.lng], {icon: L.divIcon({className: '', html: `<div style="background:${x.id === selected ? '#c62828' : COLORS[i % COLORS.length]};color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600">${label}</div>`, iconSize: [22, 22]})}).addTo(layer).bindTooltip(x.name);
     const card = document.createElement('div'); card.className = 'card' + (x.id === selected ? ' sel' : '');
@@ -178,12 +203,14 @@ function render(d) {
     card.innerHTML = `
       <div><span class="name">${label}. ${x.name}</span> <span class="muted">${x.distance_m}m · ${x.open_now === null ? '영업 미상' : x.open_now ? '영업중' : '영업종료'}</span></div>
       <div>${(x.tags || []).map(t => `<span class="tag">${t}</span>`).join('')}${x.area_m2 ? `<span class="muted">${x.area_m2}㎡ · ${x.staff_count ?? '?'}인</span>` : ''}</div>
-      ${t.walk ? `<div>🚶 <b>${w.min}분</b><span class="muted">(제공사 ${w.provider_min ?? w.min}·${w.source})</span> ${w.m}m · 횡단${fac.crosswalk ?? 0} 계단${fac.stairs ?? 0} 지하${fac.underpass ?? 0} <span class="${advCls}">${w.advice}</span> <span class="muted">${(w.why || []).join(' / ')}</span></div>` : ''}
-      ${w.alternatives && w.alternatives.length ? `<div class="muted">대안: ${w.alternatives.map(a => `${a.option} ${a.min}분 (Δ${a.delta_min >= 0 ? '+' : ''}${a.delta_min})`).join(', ')}</div>` : ''}
+      ${t.walk ? `<div>🚶 <b>${w.min}분</b>${w.provider_min ? `<span class="muted">(성인 ${w.provider_min})</span>` : ''} ${w.m}m <span class="tag">${w.source === 'estimate' ? '약' : w.source}</span>${w.option_label ? `<span class="tag">${w.option_label}</span>` : ''} ${w.advice ? `<span class="${advCls}">${w.advice}</span>` : ''}</div>` : ''}
+      ${w.road_mix && w.source !== 'estimate' ? `<div class="muted">이 길: 큰길 ${Math.round(w.road_mix.big_ratio * 100)}% · 큰길 횡단 ${w.road_mix.big_crossings}회 · 횡단 총 ${fac.crosswalk ?? 0}${fac.stairs ? ` · 계단 ${fac.stairs}` : ''}${fac.underpass ? ` · 지하 ${fac.underpass}` : ''}</div>` : ''}
+      ${(w.why || []).length ? `<div class="muted">${w.why.join(' / ')}</div>` : ''}
+      ${w.alternatives && w.alternatives.length ? `<div class="muted">다른 길: ${w.alternatives.map(a => `${a.label} ${a.min}분 (Δ${a.delta_min >= 0 ? '+' : ''}${a.delta_min}) 큰길 ${Math.round((a.facilities.big_road_ratio || 0) * 100)}%`).join(', ')}</div>` : ''}
       ${t.car ? `<div>🚗 ${c.min}분 ${c.m}m · 택시 ${c.taxi_fare ?? '-'}원 ${tr ? `· 🚌 ${tr.min}분 ${tr.fare}원` : ''}</div>` : ''}
       ${x.evidence.map(e => `<div class="ev">[${e.source}] ${e.text}</div>`).join('')}
       <div class="spots"></div>`;
-    card.onclick = () => { selected = (selected === x.id ? null : x.id); run({}); };
+    card.onclick = async () => { selected = (selected === x.id ? null : x.id); if (selected && !journeys[selected]) await fetchJourneys([selected]); render(lastSearch); };
     if (x.id === selected && w.spots) {
       const sp = card.querySelector('.spots');
       sp.innerHTML = '<details open><summary style="cursor:pointer;color:#666;font-size:12px">걸리는 지점 (지도의 점) — 펼치기</summary>' + w.spots.map((s, j) => `<div class="spot ${s.warn ? 'warn' : ''}"><span class="n">${j + 1}</span><div>${s.text}<div class="muted">${s.note || ''}</div></div></div>`).join('')

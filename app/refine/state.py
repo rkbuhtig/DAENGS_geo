@@ -3,7 +3,7 @@
 **두 정책은 다르다. 그래서 타입도 나눈다.**
 
   target (어디를 갈까)  = 필터.  조건에 안 맞으면 결과 집합에서 사라진다.        → geo.search.find_places
-  journey (어떻게 갈까) = 판정.  결과를 빼지 않는다. 경로 계산 방식과 advice만 바꾼다. → geo.transport.snapshot_for
+  journey (어떻게 갈까) = 판정.  결과를 빼지 않는다. 경로 계산 방식과 advice만 바꾼다. → journey.engine.snapshot (POST /journey)
 
 이 경계를 넘는 유일한 예외는 `journey.hard_limit` 하나뿐이고, 그건 사용자가 명시적으로 켤 때만 동작한다.
 journey 값을 find_places에 넘기거나, target 값으로 경로를 바꾸지 말 것.

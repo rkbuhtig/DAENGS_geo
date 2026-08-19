@@ -3,12 +3,17 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 
-from app.api import hospital, places, static_map
+from app.api import places, static_map
 from app.core.config import settings
+from app.features.hospital import api as hospital
+from app.features.pharmacy import api as pharmacy
+from app.journey import api as journey
 
 app = FastAPI(title="DAENGS_geo", version="0.1.0")
 app.include_router(places.router)
 app.include_router(hospital.router)
+app.include_router(pharmacy.router)
+app.include_router(journey.router)
 app.include_router(static_map.router)
 
 

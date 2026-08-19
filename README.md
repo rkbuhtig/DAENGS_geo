@@ -14,12 +14,17 @@
 
 ```
 app/
-├── api/         GET /places/search (순수 조회) · POST /hospital/search (상태 편집+검색+스냅샷) · GET /map/static
-├── geo/         search(PostGIS) · hours(영업시간) · tagging(이름→태그) · transport(스냅샷·advice)
-├── refine/      state · tools(순수 함수) · nl(발화→툴: FakeLLM 규칙 / OpenAI) · diff(changes) · engine
+├── geo/         search(PostGIS) · hours · tagging · polyline                       공용
+├── journey/     engine(route+캐시) · advice(개 계수·옵션 비교) · spots · handoff  공용 ← POST /journey
+├── providers/   MapProvider 4메서드 — kakao/naver/tmap/fake/null, 모드별 선택      공용
+├── profile/     DogProfile 계약 + 페르소나 3마리                                   공용
+├── refine/      검색 상태 편집기 — state(target/journey/view) · tools · nl · diff
 ├── enrich/      community(쿼리 재작성→검색→병원명 매칭→evidence, Fake 시드)
-├── providers/   MapProvider 4메서드(정적지도·지오코딩·역지오코딩·route) — kakao/naver/tmap/fake/null, 모드별 선택
-├── profile/     DogProfile 계약 + Fake 페르소나 3마리(콩이·두부·할매)
+├── features/
+│   ├── hospital/  POST /hospital/search (편집+검색, transport=estimate만)
+│   ├── pharmacy/  GET /pharmacy/search (얇음, companion 기본 none)
+│   └── walk/      사용자 담당
+├── api/         GET /places/search · GET /map/static
 └── core/        config · db
 ```
 

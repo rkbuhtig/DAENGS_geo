@@ -1,5 +1,5 @@
 from app.geo.tagging import dog_ok, tags_for
-from app.geo.transport import walk_advice
+from app.journey.advice import walk_advice
 from app.profile.source import PERSONAS
 from app.providers.base import Facilities, LatLng, RouteResult
 from app.providers.fake import FakeProvider
@@ -77,17 +77,20 @@ def test_parse_tmap_counts_facilities_like_real_response():
 
 
 def test_dog_time_factor_orders_personas():
-    from app.geo.transport import dog_time_factor
+    from app.journey.advice import dog_time_factor
     f_kong, f_dubu, f_hal = (dog_time_factor(PERSONAS[k]) for k in ("kong", "dubu", "halmae"))
     assert f_kong < f_dubu < f_hal <= 2.0
     assert dog_time_factor(None) == 1.2
 
 
 def test_walk_options_to_try():
-    from app.geo.transport import walk_options_to_try
-    assert walk_options_to_try("recommended", [], PERSONAS["kong"]) == ["recommended"]
-    assert walk_options_to_try("no_stairs", [], PERSONAS["halmae"]) == ["no_stairs", "recommended"]
-    assert walk_options_to_try("recommended", ["underpass"], None) == ["recommended", "no_stairs"]
+    from app.journey.advice import walk_options_to_try
+    # 콩이(반응성)·할매(겁) → 골목 vs 큰길 비교. 두부(성격 플래그 없음, 낮) → 비교 없음. 밤이면 누구나 큰길 후보
+    assert walk_options_to_try("recommended", [], PERSONAS["kong"]) == ["recommended", "main_road"]
+    assert walk_options_to_try("no_stairs", [], PERSONAS["halmae"]) == ["no_stairs", "recommended", "main_road"]  # 추천은 항상 기준선
+    assert walk_options_to_try("recommended", [], PERSONAS["dubu"]) == ["recommended"]
+    assert walk_options_to_try("recommended", [], PERSONAS["dubu"], is_night=True) == ["recommended", "main_road"]
+    assert walk_options_to_try("recommended", ["stairs"], None) == ["recommended", "no_stairs"]
 
 
 def test_facilities_penalty_weights_avoid():

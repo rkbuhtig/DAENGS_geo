@@ -45,6 +45,8 @@ def parse_tmap(data: dict, option: WalkOption) -> RouteResult:
     prev_kind: str | None = None
     walked = 0
     last_road = ""            # 직전 구간 도로명 (횡단보도 판정용)
+    big_m = 0                 # 큰길(대로/로) 구간 길이 합
+    big_cross = 0
 
     def _pt(g: dict) -> LatLng | None:
         c = g.get("coordinates")
@@ -92,6 +94,8 @@ def parse_tmap(data: dict, option: WalkOption) -> RouteResult:
                     text = f"{where}{road} 횡단보도"
                 else:
                     text = f"{where}횡단보도"
+                if big:
+                    big_cross += 1
                 if at:
                     spots.append(Spot("crosswalk", at, walked, text, landmark, road, big))
             elif tt in (127, 129):
@@ -121,6 +125,8 @@ def parse_tmap(data: dict, option: WalkOption) -> RouteResult:
             name = (p.get("name") or "").strip()
             if name and name != "보행자도로":
                 last_road = name
+            if road_rank(name) >= 1:
+                big_m += m
             if kind and kind == prev_kind and runs:
                 runs[-1].m += m
             elif kind and at:
@@ -150,6 +156,9 @@ def parse_tmap(data: dict, option: WalkOption) -> RouteResult:
         mode="walk", distance_m=total_d, duration_s=total_t, source="tmap",
         polyline=tuple(pts),
         facilities=Facilities(crosswalk=cross, stairs=stairs, underpass=len(under), underpass_m=sum(under),
-                              origin_passage_m=origin_m, overpass=len(over), elevator=elev, slope=slope),
+                              origin_passage_m=origin_m, overpass=len(over), elevator=elev, slope=slope,
+                              big_road_m=big_m, total_m=walked,
+                              big_road_ratio=round(big_m / walked, 2) if walked else 0.0,
+                              big_crossings=big_cross),
         option=option, spots=tuple(spots),
     )
