@@ -43,6 +43,38 @@ uv run uvicorn app.main:app --reload
 uv run pytest
 ```
 
+### 실제 병원·약국 데이터 동기화
+
+행정안전부 공공데이터포털의 전국 동물병원·동물약국 인허가 데이터를 `place`에 적재한다.
+공공 API는 사용자 검색 시 호출하지 않고 배치에서만 호출한다. 좌표(EPSG:5174)는 적재 시
+PostGIS에서 WGS84(EPSG:4326)로 변환하며, 검색 후 선택한 목적지만 기존 `/journey`가 TMAP에 넘긴다.
+
+기존 `pgdata` 볼륨은 Docker 초기화 SQL을 다시 실행하지 않으므로 마이그레이션을 한 번 적용한다.
+
+```bash
+docker compose exec -T db psql -U daengs -d daengs \
+  -f /docker-entrypoint-initdb.d/003_mois_ingest.sql
+```
+
+```bash
+# data.go.kr에서 받은 일반(Decoding) 인증키
+DAENGS_DATA_GO_KR_SERVICE_KEY=... uv run python -m app.ingest full
+
+# 이후 매일. 마지막 원천 갱신시점에서 3일 겹쳐 변경분을 다시 받는다.
+DAENGS_DATA_GO_KR_SERVICE_KEY=... uv run python -m app.ingest incremental
+
+# 한 종류만 동기화
+uv run python -m app.ingest full --kind hospital
+uv run python -m app.ingest full --kind pharmacy
+```
+
+- 원천: [동물병원 조회서비스](https://www.data.go.kr/data/15154952/openapi.do),
+  [동물약국 조회서비스](https://www.data.go.kr/data/15155272/openapi.do)
+- `SALS_STTS_CD=01`만 `active=true`; 휴업·폐업·취소·삭제·기타는 검색에서 제외한다.
+- 영업상태는 인허가 상태이지 현재 영업시간이 아니다. 이 API는 `hours`, 야간·24시간 진료를 제공하지 않는다.
+- 좌표가 없거나 변환 후 대한민국 범위를 벗어난 신규 레코드는 저장하지 않는다. 기존 레코드는 좌표가
+  사라져도 폐업 등 상태 변경을 반영한다.
+
 **검증 콘솔**: `http://localhost:8000/dev` — 페르소나·출발지(지도 클릭)·필터 칩·자연어 입력, 카드 클릭하면 도보 폴리라인 + 반려견 관심 지점(spots) + 따라가기 딥링크.
 
 ```
