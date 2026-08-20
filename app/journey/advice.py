@@ -105,7 +105,9 @@ def walk_advice(r: RouteResult, profile: DogProfile | None, max_min: int | None,
         elif minutes > cap:
             level = max(level, 1); why.append(f"{int(minutes)}분 — 권장 {int(cap)}분 초과")
         if fac.stairs and (profile.is_senior or profile.has_joint_issue):
-            level = 2; why.append(f"계단 {fac.stairs}회 — 노령·관절")
+            # 사유는 실제로 해당하는 것만 — 어린 관절 이슈 개에게 '노령'이라고 하면 안 된다 (뽀글)
+            reason = " · ".join(r for r, on in (("노령", profile.is_senior), ("관절", profile.has_joint_issue)) if on)
+            level = 2; why.append(f"계단 {fac.stairs}회 — {reason}")
         if fac.underpass and profile.size_class == "large":
             level = max(level, 1); why.append(f"지하 통로 {fac.underpass}곳({fac.underpass_m}m) — 대형견 스트레스")
         if profile.is_brachy and temp_c is not None and temp_c >= 28:
