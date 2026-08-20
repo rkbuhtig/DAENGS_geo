@@ -1,9 +1,10 @@
 from app.geo.tagging import dog_ok, tags_for
 from app.journey.advice import walk_advice
 from app.profile.source import PERSONAS
-from app.providers.base import Facilities, LatLng, RouteResult
+from app.providers.base import LatLng
 from app.providers.fake import FakeProvider
 from app.providers.tmap import parse_tmap
+from tests.conftest import route
 
 
 def test_tags_from_names():
@@ -14,31 +15,26 @@ def test_tags_from_names():
     assert dog_ok(tags_for("역삼동물병원"))
 
 
-def _r(minutes, stairs=0, under=0, cross=1):
-    return RouteResult("walk", int(minutes * 60), int(minutes * 60), "estimate",
-                       facilities=Facilities(crosswalk=cross, stairs=stairs, underpass=under))
-
-
 def test_advice_senior_joint_avoids_stairs():
-    lvl, why = walk_advice(_r(10, stairs=1), PERSONAS["halmae"], None, [])
+    lvl, why = walk_advice(route(10, stairs=1), PERSONAS["halmae"], None, [])
     assert lvl == "avoid" and any("계단" in w for w in why)
 
 
 def test_advice_young_dog_ok_long_walk():
-    assert walk_advice(_r(30), PERSONAS["kong"], None, [])[0] == "ok"
+    assert walk_advice(route(30), PERSONAS["kong"], None, [])[0] == "ok"
 
 
 def test_advice_brachy_caution_over_cap():
-    lvl, _ = walk_advice(_r(25), PERSONAS["dubu"], None, [])
+    lvl, _ = walk_advice(route(25), PERSONAS["dubu"], None, [])
     assert lvl == "caution"
 
 
 def test_advice_user_max_min():
-    assert walk_advice(_r(12), None, 10, [])[0] == "avoid"
+    assert walk_advice(route(12), None, 10, [])[0] == "avoid"
 
 
 def test_advice_avoid_request_flags_caution():
-    lvl, why = walk_advice(_r(5, under=1), None, None, ["underpass"])
+    lvl, why = walk_advice(route(5, underpass=1), None, None, ["underpass"])
     assert lvl == "caution" and "지하 통로" in why[0]
 
 

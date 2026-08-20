@@ -17,7 +17,7 @@ app/
 ├── geo/         search(PostGIS) · hours · tagging · polyline                       공용
 ├── journey/     engine(route+캐시) · advice(개 계수·옵션 비교) · spots · handoff  공용 ← POST /journey
 ├── providers/   MapProvider 4메서드 — kakao/naver/tmap/fake/null, 모드별 선택      공용
-├── profile/     DogProfile 계약 + 페르소나 3마리                                   공용
+├── profile/     Dog/OwnerProfile 계약 + 개 8마리·견주 5명 페르소나                 공용
 ├── refine/      검색 상태 편집기 — state(target/journey/view) · tools · nl · diff
 ├── enrich/      community(쿼리 재작성→검색→병원명 매칭→evidence, Fake 시드)
 ├── features/
