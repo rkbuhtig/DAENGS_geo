@@ -9,6 +9,7 @@ import re
 RULES: list[tuple[str, re.Pattern[str]]] = [
     ("24h",       re.compile(r"24\s*시|24시간|24H", re.IGNORECASE)),
     ("emergency", re.compile(r"응급")),
+    ("night",     re.compile(r"야간|심야")),
     ("center",    re.compile(r"의료센터|메디컬센터|메디컬|센터")),
     ("secondary", re.compile(r"2차|이차")),
     ("surgery",   re.compile(r"외과")),
