@@ -2,10 +2,8 @@ from datetime import datetime
 from typing import Any
 
 from geoalchemy2 import Geography
-from sqlalchemy import JSON, BigInteger, Boolean, DateTime, Integer, Numeric, String, func
-from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy import JSON, BigInteger, Boolean, DateTime, Integer, Numeric, String, Text, func
-from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.db import Base

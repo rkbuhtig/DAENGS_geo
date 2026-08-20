@@ -22,10 +22,33 @@ def test_undo_on_empty_is_noop():
     assert tools.undo(S) is S
 
 
-def test_avoid_stairs_sets_option_and_mode():
-    s = tools.avoid(S, ["stairs"])
-    assert s.journey.walk.option == "no_stairs" and s.journey.mode == "walk"
-    assert tools.unavoid(s, ["stairs"]).journey.walk.option == "recommended"
+def test_walk_avoid_stays_inside_walk_scope():
+    """도보 툴은 option 까지만 건드린다. **수단(preferred_mode)은 절대 안 세운다.**"""
+    s = tools.set_walk_avoid(S, ["stairs"])
+    assert s.journey.walk.option == "no_stairs"
+    assert s.journey.preferred_mode is None, "하위 설정이 상위(수단)를 몰래 세웠다"
+    assert tools.unset_walk_avoid(s, ["stairs"]).journey.walk.option == "recommended"
+
+
+def test_walk_settings_survive_switching_to_car():
+    """차량으로 바꿔도 도보 설정은 남는다 — 도보 대안에 계속 쓰이고, 돌아오면 살아 있어야 한다."""
+    s = tools.set_walk_avoid(S, ["stairs"])
+    s = tools.set_mode(s, "car")
+    assert s.journey.preferred_mode == "car"
+    assert s.journey.walk.avoid == ["stairs"] and s.journey.walk.option == "no_stairs"
+
+
+def test_total_and_walk_time_limits_are_separate():
+    """'차로 10분'과 '노견 도보 10분'은 다른 값이다."""
+    s = tools.set_max_total_min(S, 30)
+    s = tools.set_walk_max_min(s, 10)
+    assert s.journey.max_total_min == 30 and s.journey.walk.max_walk_min == 10
+    assert tools.set_max_total_min(s, 45).journey.walk.max_walk_min == 10
+
+
+def test_time_limit_does_not_imply_a_mode():
+    """'15분 안에'는 수단을 함의하지 않는다 — 차로 갈 수도 있다."""
+    assert tools.set_max_total_min(S, 15).journey.preferred_mode is None
 
 
 def test_set_mode_switches_sort_to_duration():
@@ -50,8 +73,8 @@ def test_diff_draft():
     ("지금 열린 데", "set_time", {"open_now": True}),
     ("밤에 갈 수 있는 곳", "set_time", {"night": True}),
     ("뒷다리 절뚝거려서 관절 잘 보는 데", "set_specialty", {"tags": ["ortho"]}),
-    ("계단 없는 길로 걸어갈래", "avoid", {"facilities": ["stairs"]}),
-    ("15분 안에 갈 수 있는 데", "set_max_min", {"minutes": 15}),
+    ("계단 없는 길로 걸어갈래", "set_walk_avoid", {"facilities": ["stairs"]}),
+    ("15분 안에 갈 수 있는 데", "set_max_total_min", {"minutes": 15}),
     ("차로 갈게", "set_mode", {"mode": "car"}),
     ("아까대로", "undo", {}),
     ("24시 하는 데", "require", {"tags": ["24h"]}),
@@ -115,8 +138,8 @@ def test_tool_specs_cover_all_tools_with_policy():
 def test_journey_tools_never_touch_target():
     from app.refine.tools import JOURNEY_TOOLS
     args = {"set_mode": {"mode": "car"}, "set_walk_option": {"option": "no_stairs"},
-            "set_max_min": {"minutes": 10}, "avoid": {"facilities": ["stairs"]},
-            "unavoid": {"facilities": ["stairs"]}}
+            "set_max_total_min": {"minutes": 10}, "set_walk_avoid": {"facilities": ["stairs"]},
+            "unset_walk_avoid": {"facilities": ["stairs"]}, "set_walk_max_min": {"minutes": 10}}
     for name, fn in JOURNEY_TOOLS.items():
         out = fn(S, **args[name])
         assert out.target == S.target, f"{name} 이 target 을 건드렸다"
@@ -135,14 +158,43 @@ def test_target_tools_never_touch_journey():
 
 def test_diff_groups_by_policy():
     from app.refine.diff import changes_by_policy
-    s = tools.avoid(tools.narrow(S), ["stairs"])
+    s = tools.set_walk_avoid(tools.narrow(S), ["stairs"])
     g = changes_by_policy(S, s)
     assert any("반경" in c for c in g["target"])
     assert any("피하기" in c or "도보 옵션" in c for c in g["journey"])
     assert not g["target"] or all("계단" not in c for c in g["target"])
 
 
-def test_max_min_is_advice_only_unless_hard():
-    s = tools.set_max_min(S, 10)
-    assert s.journey.max_min == 10 and s.journey.hard_limit is False
-    assert tools.set_max_min(S, 10, hard=True).journey.hard_limit is True
+def test_max_total_min_is_advice_only_unless_hard():
+    s = tools.set_max_total_min(S, 10)
+    assert s.journey.max_total_min == 10 and s.journey.hard_limit is False
+    assert tools.set_max_total_min(S, 10, hard=True).journey.hard_limit is True
+
+
+def test_every_tool_has_a_scope_and_walk_tools_are_marked():
+    """scope 는 policy 와 직교하는 축. 도보 전용 툴만 walk 여야 한다."""
+    assert {n for n in tools.TOOLS if tools.scope_of(n) == "walk"} == set(tools.WALK_TOOLS)
+    for spec in tools.TOOL_SPECS:
+        assert spec.get("scope") in ("any", "walk"), spec["name"]
+        if spec["name"] in tools.TOOLS:
+            assert spec["scope"] == tools.scope_of(spec["name"]), spec["name"]
+
+
+def test_nl_emits_mode_explicitly_for_walk_scoped_intent():
+    """'계단 없는 길'은 도보를 함의한다 — 그럼 set_mode(walk)를 **따로** 내야 한다.
+    툴이 몰래 세우면 applied/diff 에 안 보여서 사용자가 왜 도보가 됐는지 모른다."""
+    import asyncio
+
+    from app.refine.nl import FakeLLM
+    plan = asyncio.run(FakeLLM().plan("계단 없는 길로", S, [], ""))
+    assert [c.tool for c in plan] == ["set_mode", "set_walk_avoid"]
+
+
+def test_nl_merges_accumulating_tools_instead_of_dropping():
+    """같은 툴이 두 번 나오면 인자를 합친다. 마지막 것만 남기면 조건이 조용히 사라진다."""
+    import asyncio
+
+    from app.refine.nl import FakeLLM
+    plan = asyncio.run(FakeLLM().plan("눈이 뿌옇고 다리도 절뚝거려", S, [], ""))
+    tags = next(c.args["tags"] for c in plan if c.tool == "set_specialty")
+    assert set(tags) == {"eye", "ortho"}, tags

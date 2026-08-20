@@ -27,6 +27,9 @@ from app.refine.state import SearchState
 
 router = APIRouter(prefix="/hospital", tags=["hospital"])
 
+# 병원 도메인이 소유하는 문구. 공용 journey/spots 는 "진료"를 몰라야 한다.
+ARRIVE_NOTE = "도착 — 간판·층수 확인, 진료 전 전화 권장"
+
 
 class Edit(BaseModel):
     tool: str
@@ -116,9 +119,11 @@ async def hospital_search(
             # --- journey 정책: 경로·advice만. 결과를 빼지 않는다. 여기선 휴리스틱만(호출 0)
             jn = st.journey
             t = await snapshot(
-                origin_pt, LatLng(p.lat, p.lng), companion=body.companion, measured=False, mode=jn.mode,
-                walk_option=jn.walk.option, walk_max=jn.max_min, avoid=jn.walk.avoid,
-                profile=profile, dest_name=p.name, with_polyline=False,
+                origin_pt, LatLng(p.lat, p.lng), companion=body.companion, measured=False,
+                mode=jn.preferred_mode, walk_option=jn.walk.option,
+                walk_max=jn.walk.max_walk_min,          # 개가 걸어도 되는 시간 (전체 이동시간 아님)
+                avoid=jn.walk.avoid, profile=profile, dest_name=p.name, with_polyline=False,
+                arrive_note=ARRIVE_NOTE,
             )
         e = [EvidenceOut(source=x.source, text=x.text, url=x.url) for x in ev.get(p.id, [])]
         results.append(ResultOut(**p.model_dump(), transport=t, evidence=e,
@@ -126,11 +131,11 @@ async def hospital_search(
 
     # journey.hard_limit: 정책 경계를 넘는 유일한 스위치. 사용자가 명시적으로 켤 때만
     dropped = 0
-    if st.journey.hard_limit and st.journey.max_min is not None:
-        keep, mode = [], st.journey.mode or "walk"
+    if st.journey.hard_limit and st.journey.max_total_min is not None:
+        keep, mode = [], st.journey.preferred_mode or "walk"
         for res in results:
             leg = getattr(res.transport, mode, None) if res.transport else None
-            if leg and leg.min > st.journey.max_min:
+            if leg and leg.min > st.journey.max_total_min:
                 dropped += 1
                 continue
             keep.append(res)
@@ -154,8 +159,8 @@ def _sort(results: list[ResultOut], st: SearchState) -> list[ResultOut]:
         pinned = 0 if r.id in st.target.pin_ids else 1
         if st.sort == "open_first":
             primary, band = (0 if r.open_now else 1), (0 if r.open_now else 1)
-        elif st.sort == "duration" and r.transport and st.journey.mode:
-            leg = getattr(r.transport, st.journey.mode)
+        elif st.sort == "duration" and r.transport and st.journey.preferred_mode:
+            leg = getattr(r.transport, st.journey.preferred_mode)
             primary = leg.min if leg else 10**6
             band = primary // 5
         else:

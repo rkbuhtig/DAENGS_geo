@@ -93,3 +93,37 @@ def test_facilities_penalty_weights_avoid():
     from app.providers.base import Facilities
     f = Facilities(crosswalk=2, stairs=1, underpass=1)
     assert f.penalty() < f.penalty(("underpass",)) < f.penalty(("underpass", "stairs"))
+
+
+# ------------------------------------------------- 수단별 적용 범위 (계층 불변식)
+async def test_walk_avoid_changes_walk_leg_only():
+    """도보 설정은 도보 leg 에만 닿는다. Transport 가 셋을 다 반환하므로
+    '차량 모드인데 도보 판정이 있다'는 정상 — 문제는 **범위가 새는 것**이다."""
+    from app.journey.engine import snapshot
+    from app.providers.base import LatLng as LL
+
+    o, d = LL(37.4979, 127.0276), LL(37.5145, 127.0316)
+    plain = await snapshot(o, d, measured=False, profile=PERSONAS["halmae"], avoid=[])
+    avoided = await snapshot(o, d, measured=False, profile=PERSONAS["halmae"],
+                             avoid=["stairs", "underpass"])
+
+    assert (plain.car.min, plain.car.m, plain.car.advice, plain.car.why) == \
+           (avoided.car.min, avoided.car.m, avoided.car.advice, avoided.car.why), "차량 leg 가 변했다"
+    assert plain.walk.why != avoided.walk.why, "도보 leg 에는 반영돼야 한다"
+
+
+def test_arrive_note_is_injected_not_hardcoded():
+    """공용 route 층은 '진료' 같은 도메인 어휘를 몰라야 한다. 산책·약국이 같은 층을 쓴다."""
+    from app.journey.spots import DEFAULT_ARRIVE_NOTE, spot_note
+    from app.providers.base import LatLng as LL
+    from app.providers.base import Spot
+
+    sp = Spot("arrive", LL(37.5, 127.0), 0, "도착")
+    assert "진료" not in DEFAULT_ARRIVE_NOTE, "공용 기본값에 병원 어휘가 있다"
+    assert spot_note(sp, None)[0] == DEFAULT_ARRIVE_NOTE
+    assert spot_note(sp, None, "도착 — 처방전 챙기기")[0] == "도착 — 처방전 챙기기"
+
+
+def test_hospital_feature_owns_its_arrive_note():
+    from app.features.hospital.api import ARRIVE_NOTE
+    assert "진료" in ARRIVE_NOTE

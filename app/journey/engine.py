@@ -84,10 +84,11 @@ def _leg(r: RouteResult, factor: float, advice: tuple[str, list[str]] | None = N
 
 async def snapshot(origin: LatLng, dest: LatLng, *, companion: Companion = "dog",
                    measured: bool = True, mode: Mode | None = None,
-                   walk_option: WalkOption = "recommended", walk_max: int | None = None,
+                   walk_option: WalkOption = "recommended", walk_max: int | None = None,  # 도보 상한
                    avoid: list[str] | None = None, profile: DogProfile | None = None,
                    temp_c: float | None = None, at: datetime | None = None,
-                   dest_name: str = "", with_polyline: bool = True) -> Transport:
+                   dest_name: str = "", with_polyline: bool = True,
+                   arrive_note: str | None = None) -> Transport:
     avoid = avoid or []
     straight = int(haversine_m(origin, dest))
     dog = companion == "dog"
@@ -122,7 +123,7 @@ async def snapshot(origin: LatLng, dest: LatLng, *, companion: Companion = "dog"
             delta_min=round((r.duration_s - best.duration_s) * factor / 60))
         for r in walks if r is not best
     ]
-    wl.spots = spots_out(best, profile, companion)
+    wl.spots = spots_out(best, profile, companion, arrive_note)
     wl.handoff = handoff_links(origin, dest, dest_name, "walk")
     if with_polyline and best.polyline and best.source != "estimate":
         wl.polyline = encode_polyline([(p.lat, p.lng) for p in best.polyline])

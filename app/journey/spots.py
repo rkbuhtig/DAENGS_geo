@@ -1,11 +1,18 @@
-"""spots — 반려견 관심 지점 + 한마디. companion=none이면 도착 앵커만."""
+"""spots — 반려견 관심 지점 + 한마디. companion=none이면 도착 앵커만.
+
+**도착 문구는 도메인이 주입한다.** 여기(공용 route 층)가 "진료 전 전화 권장" 같은 걸 알면
+산책·약국이 이 층을 못 쓴다. 병원 feature 가 자기 문구를 넘긴다.
+"""
+
+DEFAULT_ARRIVE_NOTE = "도착 — 간판·층수 확인"
 
 from app.journey.models import Companion, SpotOut
 from app.profile.contract import DogProfile
 from app.providers.base import RouteResult, Spot
 
 
-def spot_note(sp: Spot, profile: DogProfile | None) -> tuple[str | None, bool]:
+def spot_note(sp: Spot, profile: DogProfile | None,
+              arrive_note: str | None = None) -> tuple[str | None, bool]:
     """(note, warn). 이 개한테 이 지점이 뭔지 한마디. 없으면 None."""
     p = profile
     if sp.kind == "crosswalk":
@@ -38,18 +45,19 @@ def spot_note(sp: Spot, profile: DogProfile | None) -> tuple[str | None, bool]:
     if sp.kind == "origin_passage":
         return ("출발 지점 통로 (이미 서 있는 곳)", False)
     if sp.kind == "arrive":
-        return ("도착 — 간판·층수 확인, 진료 전 전화 권장", False)
+        return (arrive_note or DEFAULT_ARRIVE_NOTE, False)
     return (None, False)
 
 
-def spots_out(r: RouteResult, profile: DogProfile | None, companion: Companion) -> list[SpotOut]:
+def spots_out(r: RouteResult, profile: DogProfile | None, companion: Companion,
+              arrive_note: str | None = None) -> list[SpotOut]:
     """같은 (종류, 도로)의 노트는 첫 번째만 풀로. companion=none이면 도착 앵커만."""
     out: list[SpotOut] = []
     seen: set[tuple[str, str]] = set()
     for sp in r.spots:
         if companion == "none" and sp.kind != "arrive":
             continue
-        note, warn = spot_note(sp, profile) if companion == "dog" else (None, False)
+        note, warn = spot_note(sp, profile, arrive_note) if companion == "dog" else (None, False)
         key = (sp.kind, sp.road)
         if note and key in seen and sp.kind == "crosswalk":
             note = "큰길" if sp.big_road else None

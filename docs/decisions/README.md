@@ -32,3 +32,4 @@
 | 26 | **지도·경로를 공용 `journey/`로 분리**, 병원 검색은 가볍게(estimate만), 실측은 `POST /journey`로 카드 눌렀을 때. 약국은 얇은 feature ([journey-view](../explorations/hospital-search/journey-view.md)) | 검색 응답에 경로가 붙어 있는 게 과함. 산책·약국이 같은 journey를 쓴다 | 2026-08-19 |
 | 27 | `companion: dog\|none`. 사람만 갈 땐 개 계수·노트·advice·프로필 기본값 전부 빠짐. 병원 dog / 약국 none 기본 | 약국은 대개 혼자 감. 개 요소가 붙으면 이상함 | 2026-08-19 |
 | 28 | 계단제외·지하도 피함은 UI 옵션에서 제거. 비교축은 **골목 섞인 추천 vs 큰길 위주**(큰길 비율·큰길 횡단 수). 서울 한정 혼잡도는 안 함 | 실측상 계단·지하는 거의 안 나옴. 큰길은 매번 있음. 지역 한정 기능은 안 넣음 | 2026-08-19 |
+| 29 | **policy와 직교하는 `scope` 축 도입**: 수단 선택(walk/car/transit)과 수단별 하위 설정은 계층이 다르다. 도보 옵션·피할 시설은 `scope=walk`, 전체 이동시간은 `scope=any`. 하위 설정 툴이 `preferred_mode`를 몰래 세우지 않는다 ([policy-split](../explorations/hospital-search/policy-split.md)) | 도보 옵션이 차량 판정에 적용되면 안 된다. #25가 journey를 한 덩어리로 묶는 바람에 `avoid()`가 mode를 세우고, `max_min` 하나가 '전체 이동시간'과 '개가 걸어도 되는 시간' 두 뜻으로 쓰였다 | 2026-08-20 |
