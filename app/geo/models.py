@@ -3,7 +3,7 @@ from typing import Any
 
 from geoalchemy2 import Geography
 from sqlalchemy import JSON, BigInteger, Boolean, DateTime, Integer, Numeric, String, func
-from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.db import Base
@@ -26,5 +26,10 @@ class Place(Base):
     staff_count: Mapped[int | None] = mapped_column(Integer)
     source: Mapped[str] = mapped_column(String)
     source_id: Mapped[str | None] = mapped_column(String)
+    source_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    license_status_code: Mapped[str | None] = mapped_column(String)
+    license_status_name: Mapped[str | None] = mapped_column(String)
+    coordinate_source: Mapped[str | None] = mapped_column(String)
+    raw_data: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
