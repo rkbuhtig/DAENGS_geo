@@ -35,25 +35,6 @@ class KakaoProvider:
             return None
         return LatLng(lat=float(docs[0]["y"]), lng=float(docs[0]["x"]))
 
-    async def geocode_detailed(self, address: str) -> tuple[LatLng, str | None, str | None] | None:
-        """좌표 + **매칭된 주소 + 정밀도**. 지오코딩 복구는 출처를 남겨야 해서 이게 필요하다.
-
-        address_type: ROAD_ADDR(건물) · REGION_ADDR(지번) · ROAD · REGION(동 단위, 오차 큼).
-        """
-        r = await self._client.get(
-            f"{LOCAL_BASE}/search/address.json",
-            params={"query": address, "size": 1},
-            headers=self._headers,
-        )
-        if r.status_code != 200:
-            return None
-        docs = r.json().get("documents") or []
-        if not docs:
-            return None
-        d = docs[0]
-        return (LatLng(lat=float(d["y"]), lng=float(d["x"])),
-                d.get("address_name"), d.get("address_type"))
-
     async def reverse_geocode(self, pos: LatLng) -> str | None:
         r = await self._client.get(
             f"{LOCAL_BASE}/geo/coord2address.json",
