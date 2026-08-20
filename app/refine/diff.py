@@ -55,17 +55,26 @@ def changes_by_policy(before: SearchState | None, after: SearchState) -> dict[st
         out["target"].append("고정 추가")
 
     # ---- journey: 결과는 그대로, 가는 방법만
-    if bj.mode != aj.mode:
-        out["journey"].append(f"이동수단: {_l(aj.mode) if aj.mode else '미지정'}")
-    if bj.walk.option != aj.walk.option:
-        out["journey"].append(f"도보 옵션: {_l(aj.walk.option)}")
-    if bj.walk.avoid != aj.walk.avoid:
-        out["journey"].append("피하기: " + (", ".join(_l(t) for t in aj.walk.avoid) or "없음"))
-    if (bj.max_min, bj.hard_limit) != (aj.max_min, aj.hard_limit):
-        if aj.max_min is None:
-            out["journey"].append("시간 제한 해제")
+    # -- 수단 무관 (scope: any)
+    if bj.preferred_mode != aj.preferred_mode:
+        out["journey"].append(f"이동수단: {_l(aj.preferred_mode) if aj.preferred_mode else '미지정'}")
+    if (bj.max_total_min, bj.hard_limit) != (aj.max_total_min, aj.hard_limit):
+        if aj.max_total_min is None:
+            out["journey"].append("전체 시간 제한 해제")
         else:
-            out["journey"].append(f"{aj.max_min}분 이내" + (" (초과 제외)" if aj.hard_limit else " (표시만)"))
+            out["journey"].append(f"전체 {aj.max_total_min}분 이내"
+                                  + (" (초과 제외)" if aj.hard_limit else " (표시만)"))
+
+    # -- 도보로 갈 때만 (scope: walk). 차·대중교통을 고른 상태면 '도보 대안'으로 내려서 말한다.
+    #    숨기지는 않는다 — 사용자가 바꿨는데 아무 반응이 없으면 그게 더 나쁘다. 상태에도 남는다.
+    pre = "" if aj.preferred_mode in (None, "walk") else "도보 대안 — "
+    if bj.walk.option != aj.walk.option:
+        out["journey"].append(f"{pre}도보 옵션: {_l(aj.walk.option)}")
+    if bj.walk.avoid != aj.walk.avoid:
+        out["journey"].append(f"{pre}피하기: " + (", ".join(_l(t) for t in aj.walk.avoid) or "없음"))
+    if bj.walk.max_walk_min != aj.walk.max_walk_min:
+        out["journey"].append(f"{pre}도보 시간 제한 해제" if aj.walk.max_walk_min is None
+                              else f"{pre}도보 {aj.walk.max_walk_min}분 이내")
 
     # ---- view
     if before.sort != after.sort:

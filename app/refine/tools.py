@@ -69,41 +69,55 @@ def pin(state: SearchState, ids: list[int]) -> SearchState:
     s = _push(state); s.target.pin_ids = sorted(set(s.target.pin_ids) | set(ids)); return s
 
 
-# --------------------------------------------------------------- JOURNEY (판정)
+# ------------------------------------------------- JOURNEY / 수단 (scope: any)
 def set_mode(state: SearchState, mode: str | None) -> SearchState:
-    s = _push(state); s.journey.mode = mode  # type: ignore[assignment]
+    """어느 leg 를 앞에 놓을지의 선호. Transport 는 늘 셋 다 반환한다."""
+    s = _push(state); s.journey.preferred_mode = mode  # type: ignore[assignment]
     if mode in ("walk", "car", "transit") and s.sort == "distance":
         s.sort = "duration"
     return s
 
 
+def set_max_total_min(state: SearchState, minutes: int | None,
+                      hard: bool | None = None) -> SearchState:
+    """**전체 이동시간** 상한. 수단 무관 — 차든 도보든 같은 잣대다.
+
+    개가 걸어도 되는 시간은 `set_walk_max_min` 이다. 둘을 한 값으로 쓰면
+    '차로 10분'과 '노견 도보 10분'이 같은 뜻이 된다.
+    hard=True 일 때만 결과에서 제외 (정책 경계를 넘는 유일한 지점).
+    """
+    s = _push(state); s.journey.max_total_min = minutes
+    if hard is not None: s.journey.hard_limit = hard
+    return s
+
+
+# ------------------------------------------------ JOURNEY / 도보 (scope: walk)
+# 이 그룹은 preferred_mode 를 건드리지 않는다. '계단 없는 길로'가 도보를 함의한다면
+# 그건 자연어 층이 set_mode(walk) 를 **따로 내는** 것이지, 툴이 몰래 세울 일이 아니다.
 def set_walk_option(state: SearchState, option: str) -> SearchState:
     s = _push(state); s.journey.walk.option = option  # type: ignore[assignment]
-    if s.journey.mode is None: s.journey.mode = "walk"
     return s
 
 
-def set_max_min(state: SearchState, minutes: int | None, hard: bool | None = None) -> SearchState:
-    """소요시간 상한. hard=True일 때만 결과에서 제외 (정책 경계를 넘는 유일한 지점)."""
-    s = _push(state); s.journey.max_min = minutes
-    if hard is not None: s.journey.hard_limit = hard
-    if minutes is not None and s.journey.mode is None: s.journey.mode = "walk"
-    return s
-
-
-def avoid(state: SearchState, facilities: list[str]) -> SearchState:
+def set_walk_avoid(state: SearchState, facilities: list[str]) -> SearchState:
     s = _push(state)
     s.journey.walk.avoid = sorted(set(s.journey.walk.avoid) | set(facilities))  # type: ignore[arg-type]
+    # option 도 도보 scope 안이라 같이 움직여도 된다 (계층을 넘지 않는다)
     if "stairs" in s.journey.walk.avoid: s.journey.walk.option = "no_stairs"
-    if s.journey.mode is None: s.journey.mode = "walk"
     return s
 
 
-def unavoid(state: SearchState, facilities: list[str]) -> SearchState:
+def unset_walk_avoid(state: SearchState, facilities: list[str]) -> SearchState:
     s = _push(state)
     s.journey.walk.avoid = [f for f in s.journey.walk.avoid if f not in facilities]
     if "stairs" in facilities and s.journey.walk.option == "no_stairs":
         s.journey.walk.option = "recommended"
+    return s
+
+
+def set_walk_max_min(state: SearchState, minutes: int | None) -> SearchState:
+    """**개가 걸어도 되는 시간** 상한. 전체 이동시간(`set_max_total_min`)과 다르다."""
+    s = _push(state); s.journey.walk.max_walk_min = minutes
     return s
 
 
@@ -131,10 +145,15 @@ TARGET_TOOLS: dict[str, Callable[..., SearchState]] = {
     "set_time": set_time, "set_specialty": set_specialty, "require": require, "unrequire": unrequire,
     "exclude": exclude, "pin": pin,
 }
-JOURNEY_TOOLS: dict[str, Callable[..., SearchState]] = {
-    "set_mode": set_mode, "set_walk_option": set_walk_option, "set_max_min": set_max_min,
-    "avoid": avoid, "unavoid": unavoid,
+# 수단 선택은 scope="any", 수단별 설정은 그 수단 scope. 계층이 다르다.
+MODE_TOOLS: dict[str, Callable[..., SearchState]] = {
+    "set_mode": set_mode, "set_max_total_min": set_max_total_min,
 }
+WALK_TOOLS: dict[str, Callable[..., SearchState]] = {
+    "set_walk_option": set_walk_option, "set_walk_avoid": set_walk_avoid,
+    "unset_walk_avoid": unset_walk_avoid, "set_walk_max_min": set_walk_max_min,
+}
+JOURNEY_TOOLS: dict[str, Callable[..., SearchState]] = {**MODE_TOOLS, **WALK_TOOLS}
 VIEW_TOOLS: dict[str, Callable[..., SearchState]] = {
     "set_sort": set_sort, "undo": undo, "reset": reset,
 }
@@ -148,27 +167,36 @@ def policy_of(tool: str) -> str:
     return "unknown"
 
 
-# LLM에 주는 툴 설명. policy를 같이 줘서 모델도 두 정책을 구분하게 한다.
+def scope_of(tool: str) -> str:
+    """어느 수단에서만 의미가 있나. 정책(policy)과 **직교하는 축**이다.
+
+    'any' = 수단 무관 (반경·정렬·전체 이동시간), 'walk' = 도보로 갈 때만.
+    """
+    return "walk" if tool in WALK_TOOLS else "any"
+
+
+# LLM에 주는 툴 설명. policy(결과를 바꾸나)와 scope(어느 수단에서만 의미 있나)를 같이 준다.
 TOOL_SPECS: list[dict[str, Any]] = [
-    {"policy": "target", "name": "set_origin", "desc": "검색 기준 좌표 변경 (집 근처 등)", "args": {"lat": "float", "lng": "float"}},
-    {"policy": "target", "name": "set_radius", "desc": "검색 반경(m)", "args": {"m": "int"}},
-    {"policy": "target", "name": "widen", "desc": "반경 넓히기(기본 2배)", "args": {"factor": "float?"}},
-    {"policy": "target", "name": "narrow", "desc": "반경 좁히기(기본 절반)", "args": {"factor": "float?"}},
-    {"policy": "target", "name": "set_time", "desc": "지금 영업중/야간/응급 필터", "args": {"open_now": "bool?", "night": "bool?", "emergency": "bool?"}},
-    {"policy": "target", "name": "set_specialty", "desc": "진료 특화 (ortho, eye, dental, derma, cardio, rehab)", "args": {"tags": "list[str]"}},
-    {"policy": "target", "name": "require", "desc": "필수 태그 (24h, center, secondary, surgery)", "args": {"tags": "list[str]"}},
-    {"policy": "target", "name": "unrequire", "desc": "필수 태그 해제", "args": {"tags": "list[str]"}},
-    {"policy": "target", "name": "exclude", "desc": "결과에서 제외할 병원 id (화면 순번→id는 shown_ids로 매핑)", "args": {"ids": "list[int]"}},
-    {"policy": "target", "name": "pin", "desc": "위로 고정할 병원 id", "args": {"ids": "list[int]"}},
-    {"policy": "journey", "name": "set_mode", "desc": "이동수단 walk|car|transit|null", "args": {"mode": "str?"}},
-    {"policy": "journey", "name": "set_walk_option", "desc": "도보 옵션 recommended|main_road|shortest|no_stairs", "args": {"option": "str"}},
-    {"policy": "journey", "name": "set_max_min", "desc": "소요시간 상한(분). hard=true면 초과를 결과에서 뺀다(기본 false: 표시만)", "args": {"minutes": "int?", "hard": "bool?"}},
-    {"policy": "journey", "name": "avoid", "desc": "도보 시 피할 시설 stairs|underpass|overpass", "args": {"facilities": "list[str]"}},
-    {"policy": "journey", "name": "unavoid", "desc": "피하기 해제", "args": {"facilities": "list[str]"}},
-    {"policy": "view", "name": "set_sort", "desc": "정렬 distance|duration|open_first", "args": {"sort": "str"}},
-    {"policy": "view", "name": "undo", "desc": "직전 상태로", "args": {}},
-    {"policy": "view", "name": "reset", "desc": "필터 초기화", "args": {}},
-    {"policy": "view", "name": "ask", "desc": "의도가 불명확할 때 되묻기. 상태 변경 없음", "args": {"question": "str"}},
+    {"policy": "target", "scope": "any", "name": "set_origin", "desc": "검색 기준 좌표 변경 (집 근처 등)", "args": {"lat": "float", "lng": "float"}},
+    {"policy": "target", "scope": "any", "name": "set_radius", "desc": "검색 반경(m)", "args": {"m": "int"}},
+    {"policy": "target", "scope": "any", "name": "widen", "desc": "반경 넓히기(기본 2배)", "args": {"factor": "float?"}},
+    {"policy": "target", "scope": "any", "name": "narrow", "desc": "반경 좁히기(기본 절반)", "args": {"factor": "float?"}},
+    {"policy": "target", "scope": "any", "name": "set_time", "desc": "지금 영업중/야간/응급 필터", "args": {"open_now": "bool?", "night": "bool?", "emergency": "bool?"}},
+    {"policy": "target", "scope": "any", "name": "set_specialty", "desc": "진료 특화 (ortho, eye, dental, derma, cardio, rehab)", "args": {"tags": "list[str]"}},
+    {"policy": "target", "scope": "any", "name": "require", "desc": "필수 태그 (24h, center, secondary, surgery)", "args": {"tags": "list[str]"}},
+    {"policy": "target", "scope": "any", "name": "unrequire", "desc": "필수 태그 해제", "args": {"tags": "list[str]"}},
+    {"policy": "target", "scope": "any", "name": "exclude", "desc": "결과에서 제외할 병원 id (화면 순번→id는 shown_ids로 매핑)", "args": {"ids": "list[int]"}},
+    {"policy": "target", "scope": "any", "name": "pin", "desc": "위로 고정할 병원 id", "args": {"ids": "list[int]"}},
+    {"policy": "journey", "scope": "any", "name": "set_mode", "desc": "선호 이동수단 walk|car|transit|null. 도보 설정을 바꾸고 싶으면 이걸 따로 부를 것", "args": {"mode": "str?"}},
+    {"policy": "journey", "scope": "any", "name": "set_max_total_min", "desc": "전체 이동시간 상한(분), 수단 무관. hard=true면 초과를 결과에서 뺀다(기본 false: 표시만)", "args": {"minutes": "int?", "hard": "bool?"}},
+    {"policy": "journey", "scope": "walk", "name": "set_walk_option", "desc": "도보 옵션 recommended|main_road|shortest|no_stairs", "args": {"option": "str"}},
+    {"policy": "journey", "scope": "walk", "name": "set_walk_avoid", "desc": "도보 시 피할 시설 stairs|underpass|overpass", "args": {"facilities": "list[str]"}},
+    {"policy": "journey", "scope": "walk", "name": "unset_walk_avoid", "desc": "도보 피하기 해제", "args": {"facilities": "list[str]"}},
+    {"policy": "journey", "scope": "walk", "name": "set_walk_max_min", "desc": "개가 걸어도 되는 시간 상한(분). 전체 이동시간과 다르다", "args": {"minutes": "int?"}},
+    {"policy": "view", "scope": "any", "name": "set_sort", "desc": "정렬 distance|duration|open_first", "args": {"sort": "str"}},
+    {"policy": "view", "scope": "any", "name": "undo", "desc": "직전 상태로", "args": {}},
+    {"policy": "view", "scope": "any", "name": "reset", "desc": "필터 초기화", "args": {}},
+    {"policy": "view", "scope": "any", "name": "ask", "desc": "의도가 불명확할 때 되묻기. 상태 변경 없음", "args": {"question": "str"}},
 ]
 
 

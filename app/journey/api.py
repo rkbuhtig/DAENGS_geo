@@ -38,6 +38,7 @@ class JourneyIn(BaseModel):
     prefs: JourneyPrefs = Field(default_factory=JourneyPrefs)
     measured: bool = True
     with_polyline: bool = True
+    arrive_note: str | None = None    # 도착 지점 한마디. 도메인이 넘긴다 (journey 는 병원을 모른다)
 
 
 class JourneyItem(BaseModel):
@@ -79,8 +80,10 @@ async def journey(body: JourneyIn, db: Annotated[AsyncSession, Depends(get_sessi
             raise HTTPException(422, "dest needs id or lat/lng")
         t = await snapshot(
             origin, LatLng(lat, lng), companion=body.companion, measured=body.measured,
-            mode=body.prefs.mode, walk_option=body.prefs.walk.option, walk_max=body.prefs.max_min,
-            avoid=body.prefs.walk.avoid, profile=profile, dest_name=name, with_polyline=body.with_polyline,
+            mode=body.prefs.preferred_mode, walk_option=body.prefs.walk.option,
+            walk_max=body.prefs.walk.max_walk_min, avoid=body.prefs.walk.avoid,
+            profile=profile, dest_name=name, with_polyline=body.with_polyline,
+            arrive_note=body.arrive_note,
         )
         items.append(JourneyItem(id=d.id, name=name, lat=lat, lng=lng, transport=t))
     return JourneyOut(companion=body.companion, items=items)
