@@ -40,7 +40,12 @@ async def find_places(
     if kind:
         stmt = stmt.where(Place.kind == kind)
     if night:
-        stmt = stmt.where((Place.is_night.is_(True)) | (Place.is_24h.is_(True)))
+        # 인허가 원천은 야간·24시 컬럼을 주지 않는다 (전부 false로 적재된다). 이름 태그가 유일한 재료다 -
+        # 컬럼과 태그 중 하나라도 걸리면 남긴다. 이 셋이 다 비면 야간 필터는 결과 0곳이 된다.
+        stmt = stmt.where(
+            Place.is_night.is_(True) | Place.is_24h.is_(True)
+            | Place.tags.overlap(["night", "24h", "emergency"])
+        )
     if emergency:
         stmt = stmt.where(Place.tags.overlap(["emergency", "24h"]))
     if require_tags:
@@ -58,7 +63,9 @@ async def find_places(
         if only_dog_ok and not dog_ok(tags):
             continue
         open_flag = is_open_at(place.hours, at, is_24h=place.is_24h)
-        if open_now and open_flag is not True:
+        # **미상은 제외하지 않는다** (condition-schema.md). 확정 '영업종료'만 뺀다.
+        # 인허가 원천에 영업시간이 없어 실데이터는 대부분 미상이다 - 여기서 빼면 결과가 통째로 사라진다.
+        if open_now and open_flag is False:
             continue
         out.append(PlaceOut(
             id=place.id, kind=place.kind, name=place.name, lat=plat, lng=plng,
@@ -69,9 +76,10 @@ async def find_places(
             staff_count=place.staff_count,
             specialty_hit=sorted(set(tags) & set(specialty or []) & SPECIALTY_TAGS),
         ))
-        if len(out) >= limit:
-            break
-    return out
+    if open_now:
+        # 확정 영업중을 앞으로, 미상은 뒤로 - 빼지는 않는다. 거리순은 각 묶음 안에서 유지.
+        out.sort(key=lambda p: (p.open_now is not True, p.distance_m))
+    return out[:limit]
 
 
 async def search_places(db: AsyncSession, p: SearchParams) -> SearchOut:

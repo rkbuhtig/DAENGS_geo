@@ -68,11 +68,16 @@ class HospitalSearchOut(BaseModel):
     reply: str
 
 
-def _reply(changes: list[str], n: int, question: str | None) -> str:
+def _reply(changes: list[str], n: int, question: str | None, unknown_hours: int = 0) -> str:
     if question:
         return question
     head = " · ".join(changes)
-    return f"{head}. {n}곳." if n else f"{head}. 조건에 맞는 곳이 없어요 — 반경을 넓히거나 필터를 풀어볼까요?"
+    if not n:
+        return f"{head}. 조건에 맞는 곳이 없어요 — 반경을 넓히거나 필터를 풀어볼까요?"
+    # '지금 영업중'을 걸었는데 영업시간을 모르는 곳이 섞여 있으면 말해줘야 한다.
+    # 안 그러면 전부 확정 영업중으로 읽힌다 (공공데이터엔 영업시간이 없다).
+    tail = f" 그중 {unknown_hours}곳은 영업시간 미상이에요 — 전화로 확인해주세요." if unknown_hours else ""
+    return f"{head}. {n}곳.{tail}"
 
 
 @router.post("/search", response_model=HospitalSearchOut)
@@ -137,7 +142,9 @@ async def hospital_search(
         state=st, results=results, map=mp, changes=r.changes, changes_by_policy=r.grouped,
         applied=[Edit(tool=c.tool, args=c.args) for c in r.applied],
         question=r.question,
-        reply=_reply(r.changes, len(results), r.question) + (f" ({dropped}곳은 시간 초과로 제외)" if dropped else ""),
+        reply=_reply(r.changes, len(results), r.question,
+                     sum(1 for x in results if x.open_now is None) if tg.open_now else 0)
+        + (f" ({dropped}곳은 시간 초과로 제외)" if dropped else ""),
     )
 
 

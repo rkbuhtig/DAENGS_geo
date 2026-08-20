@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Any
 
 from geoalchemy2 import Geography
-from sqlalchemy import JSON, BigInteger, Boolean, DateTime, Integer, Numeric, String, func
+from sqlalchemy import JSON, BigInteger, Boolean, DateTime, Integer, Numeric, String, Text, func
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -21,7 +21,9 @@ class Place(Base):
     is_night: Mapped[bool] = mapped_column(Boolean, default=False)
     is_24h: Mapped[bool] = mapped_column(Boolean, default=False)
     hours: Mapped[dict[str, Any] | None] = mapped_column(JSON)
-    tags: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
+    # DB 컬럼은 TEXT[]. ARRAY(String)이면 바인드가 VARCHAR[]로 나가서
+    # tags && / @> 연산자가 통째로 깨진다 (text[] && varchar[] 연산자가 없다).
+    tags: Mapped[list[str]] = mapped_column(ARRAY(Text), default=list)
     area_m2: Mapped[float | None] = mapped_column(Numeric)
     staff_count: Mapped[int | None] = mapped_column(Integer)
     source: Mapped[str] = mapped_column(String)
