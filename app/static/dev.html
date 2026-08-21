@@ -24,6 +24,9 @@
   .adv-ok { color:#1a7f37; } .adv-caution { color:#b26a00; } .adv-avoid { color:#c62828; font-weight:600; }
   .changes { background:#f6f6f6; border-radius:6px; padding:6px 8px; margin:6px 0; white-space:pre-wrap; }
   .q { background:#fff4d6; border-radius:6px; padding:6px 8px; margin:6px 0; }
+  .actions { display:flex; flex-wrap:wrap; gap:5px; margin:6px 0; }
+  .action { border:1px solid #1565c0; border-radius:14px; background:#fff; color:#1565c0; cursor:pointer; }
+  .action:hover { background:#e3f2fd; }
   /* 안전 표면 — 장식이 아니라 계약이다 (app/planning/trace.py) */
   .safety { background:#fdecea; border:1px solid #f3b5ae; border-radius:6px; padding:8px; margin:6px 0; }
   .safety b { color:#c62828; }
@@ -108,6 +111,7 @@
   <div id="changes" class="changes"></div>
   <details id="trace" class="trace" style="display:none"><summary>이 결과가 정해진 과정</summary><ul id="tracelist"></ul></details>
   <div id="question" class="q" style="display:none"></div>
+  <div id="actions" class="actions"></div>
 
   <h3>결과 <span id="count" class="muted"></span></h3>
   <div id="list"></div>
@@ -351,6 +355,24 @@ function renderSafety(d) {
   ).join('');
 }
 
+function renderActions(d) {
+  const box = $('actions');
+  box.replaceChildren();
+  (d.actions || []).filter(a => a.kind === 'edits').forEach(action => {
+    const button = document.createElement('button');
+    button.className = 'action';
+    button.type = 'button';
+    button.textContent = action.label;
+    button.title = action.source === 'assistant' ? 'AI 제안' : '현재 조건에서 가능한 제안';
+    button.onclick = async () => {
+      button.disabled = true;
+      try { await run({edits: action.edits}); }
+      finally { button.disabled = false; }
+    };
+    box.appendChild(button);
+  });
+}
+
 function render(d) {
   syncChips(d.state);
   renderSafety(d);
@@ -359,6 +381,7 @@ function render(d) {
   $('changes').innerHTML = (line('c', '상황', g.context) + line('t', '찾는 곳', g.target) + line('j', '가는 길', g.journey) + line('t', '보기', g.view)
      || `<div class="chg">${d.changes.join(' · ')}</div>`) + `<div class="muted">${d.reply}</div>`;
   $('question').style.display = d.question ? '' : 'none'; $('question').textContent = d.question || '';
+  renderActions(d);
   $('count').textContent = d.results.length + '곳';
   geoMap.clear();
   const list = $('list'); list.innerHTML = '';

@@ -5,31 +5,16 @@ target 변경은 "결과가 바뀐다", journey 변경은 "같은 결과, 가는
 """
 
 from app.planning.state import EditableState
+from app.refine.labels import format_distance_m, value_label
 
-_LABEL = {
-    "recommended": "추천", "main_road": "큰길 우선", "shortest": "최단", "no_stairs": "계단 제외",
-    "walk": "도보", "car": "차량", "transit": "대중교통",
-    "distance": "거리순", "duration": "소요시간순", "open_first": "영업중 우선",
-    "ortho": "정형", "eye": "안과", "dental": "치과", "derma": "피부", "cardio": "심장", "rehab": "재활",
-    "24h": "24시", "center": "의료센터", "secondary": "2차", "surgery": "외과",
-    "stairs": "계단", "underpass": "지하도", "overpass": "육교",
-}
 POLICY_LABEL = {"context": "상황", "target": "찾는 곳", "journey": "가는 길", "view": "보기"}
 _TIME_KIND = {"depart_at": "출발", "arrive_by": "도착 기한", "service_at": "진료 시각"}
-
-
-def _l(v) -> str:
-    return _LABEL.get(v, str(v))
-
-
-def _fmt_m(m: int) -> str:
-    return f"{m/1000:g}km" if m >= 1000 else f"{m}m"
 
 
 def changes_by_policy(before: EditableState | None, after: EditableState) -> dict[str, list[str]]:
     out: dict[str, list[str]] = {"context": [], "target": [], "journey": [], "view": []}
     if before is None:
-        out["target"].append(f"초안: 반경 {_fmt_m(after.target.radius_m)}, 필터 없음")
+        out["target"].append(f"초안: 반경 {format_distance_m(after.target.radius_m)}, 필터 없음")
         return out
 
     bt, at_ = before.target, after.target
@@ -48,7 +33,8 @@ def changes_by_policy(before: EditableState | None, after: EditableState) -> dic
     if (before.lat, before.lng) != (after.lat, after.lng):
         out["target"].append("기준 위치 변경")
     if bt.radius_m != at_.radius_m:
-        out["target"].append(f"반경 {_fmt_m(bt.radius_m)} → {_fmt_m(at_.radius_m)}")
+        out["target"].append(
+            f"반경 {format_distance_m(bt.radius_m)} → {format_distance_m(at_.radius_m)}")
     # 라벨은 필드가 실제로 하는 일을 말한다. 야간·응급은 **거르지 않고 위로 올릴 뿐**이다
     # (geo/search.py `_prefer_tags`) — "야간만"이라고 쓰면 사용자는 나머지가 사라졌다고 읽는다.
     for f, on, off in (("open_now", "지금 영업중만", "영업중 필터 해제"),
@@ -57,11 +43,11 @@ def changes_by_policy(before: EditableState | None, after: EditableState) -> dic
         if getattr(bt, f) != getattr(at_, f):
             out["target"].append(on if getattr(at_, f) else off)
     if bt.specialty != at_.specialty:
-        out["target"].append("특화 우선: " + (", ".join(_l(t) for t in at_.specialty) or "없음"))
+        out["target"].append("특화 우선: " + (", ".join(value_label(t) for t in at_.specialty) or "없음"))
     if bt.symptoms != at_.symptoms:
         out["target"].append("증상 메모: " + (", ".join(at_.symptoms) or "없음"))
     if bt.require_tags != at_.require_tags:
-        out["target"].append("필수: " + (", ".join(_l(t) for t in at_.require_tags) or "없음"))
+        out["target"].append("필수: " + (", ".join(value_label(t) for t in at_.require_tags) or "없음"))
     added = set(at_.exclude_ids) - set(bt.exclude_ids)
     if added:
         out["target"].append(f"{len(added)}곳 제외")
@@ -71,7 +57,8 @@ def changes_by_policy(before: EditableState | None, after: EditableState) -> dic
     # ---- journey: 결과는 그대로, 가는 방법만
     # -- 수단 무관 (scope: any)
     if bj.preferred_mode != aj.preferred_mode:
-        out["journey"].append(f"이동수단: {_l(aj.preferred_mode) if aj.preferred_mode else '미지정'}")
+        out["journey"].append(
+            f"이동수단: {value_label(aj.preferred_mode) if aj.preferred_mode else '미지정'}")
     if (bj.max_total_min, bj.hard_limit) != (aj.max_total_min, aj.hard_limit):
         if aj.max_total_min is None:
             out["journey"].append("전체 시간 제한 해제")
@@ -83,16 +70,17 @@ def changes_by_policy(before: EditableState | None, after: EditableState) -> dic
     #    숨기지는 않는다 — 사용자가 바꿨는데 아무 반응이 없으면 그게 더 나쁘다. 상태에도 남는다.
     pre = "" if aj.preferred_mode in (None, "walk") else "도보 대안 — "
     if bj.walk.option != aj.walk.option:
-        out["journey"].append(f"{pre}도보 옵션: {_l(aj.walk.option)}")
+        out["journey"].append(f"{pre}도보 옵션: {value_label(aj.walk.option)}")
     if bj.walk.avoid != aj.walk.avoid:
-        out["journey"].append(f"{pre}피하기: " + (", ".join(_l(t) for t in aj.walk.avoid) or "없음"))
+        out["journey"].append(
+            f"{pre}피하기: " + (", ".join(value_label(t) for t in aj.walk.avoid) or "없음"))
     if bj.walk.max_walk_min != aj.walk.max_walk_min:
         out["journey"].append(f"{pre}도보 시간 제한 해제" if aj.walk.max_walk_min is None
                               else f"{pre}도보 {aj.walk.max_walk_min}분 이내")
 
     # ---- view
     if before.sort != after.sort:
-        out["view"].append(f"정렬: {_l(after.sort)}")
+        out["view"].append(f"정렬: {value_label(after.sort)}")
     return out
 
 
