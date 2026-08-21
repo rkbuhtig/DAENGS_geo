@@ -74,8 +74,8 @@ class EvidenceOut(BaseModel):
 
 class ResultOut(PlaceOut):
     transport: Transport | None = None
-    evidence: list[EvidenceOut] = Field(default_factory=list)   # 표시 전용 — 순위에 안 들어간다
-    boost: int = 0                     # prefer_hit 만. 정렬 부스트 근거 (표시용)
+    evidence: list[EvidenceOut] = Field(default_factory=list)   # 표시 + 순위 — 근거는 hospital_search 참조
+    boost: int = 0                     # prefer_hit×2 + 근거 수. 정렬 부스트 근거 (표시용)
 
 
 class ResolutionOut(BaseModel):
