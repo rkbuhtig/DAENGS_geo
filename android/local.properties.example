@@ -1,0 +1,10 @@
+# Copy to local.properties. Never commit the real file.
+sdk.dir=C\:\\Users\\you\\AppData\\Local\\Android\\Sdk
+
+# Emulator default is http://10.0.2.2:8000.
+# With `adb reverse tcp:8000 tcp:8000`, use http://127.0.0.1:8000.
+DAENGS_API_BASE_URL=http://10.0.2.2:8000
+
+# Naver Cloud Platform Maps application with Dynamic Map enabled.
+# Register Android package com.daengs.geo in the NCP console.
+DAENGS_NAVER_NCP_KEY_ID=

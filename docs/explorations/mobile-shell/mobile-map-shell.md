@@ -1,5 +1,5 @@
 ---
-status: exploring
+status: working-skeleton
 depends-on: 결정 #2(Android 전용 앱), #23(/dev는 앱 UI가 아님), #44(네이버 지도 표면)
 ---
 # 모바일 셸 — 지도는 등뼈지만 산책의 주인공 화면은 아니다
@@ -162,8 +162,17 @@ PR #12 의 웹 지도는 병원 검색과 실험 표면으로 남는다.
 
 ### ② 그 밖
 
-- [ ] Android/Web 역할표를 결정 기록으로 올릴지 (README 확정 사항 갱신 포함)
+- [x] Android/Web 역할표와 같은 레포 `android/` 배치를 결정 #46으로 기록
 - [ ] 하단 시트에 먼저 보일 후보 수 (2~3개?)와 "이 지역 다시 검색" 발동 조건
 - [ ] `/dev/mobile` 390×844 하네스를 별도로 둘지, `/dev` 를 좁힐지
 - [ ] 산책 알림 빈도 상한의 실제 수치 (초안: 3회 / 8분 간격)
 - [ ] 네이버 Android SDK 앱 패키지명 등록 (웹 서비스 URL 등록과 별개)
+
+## 착지 — Android 첫 수직 절단면
+
+구현은 `android/`에 있다. 단일 Compose 모듈에서 foreground 위치 단발 조회, NAVER 지도,
+`POST /hospital/search`, 마커·카드, `actions[]` 재요청, 전화와 안전 통지를 끝까지 연결했다.
+`state`와 action edits는 불투명 JSON으로 왕복하며 요청 빌더 테스트가 pinned origin 생략을 고정한다.
+
+산책 탭은 자리만 있다. 이 스켈레톤은 판정 소유권·업로드 주기·foreground service를 결정한
+것으로 보지 않는다.
