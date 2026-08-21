@@ -1,4 +1,4 @@
-"""검색 상태 — 대화·UI가 편집하는 것.
+"""편집 상태 — 지도 버튼과 자연어가 **함께** 편집하는 것. 클라이언트가 왕복시킨다.
 
 **두 정책은 다르다. 그래서 타입도 나눈다.**
 
@@ -9,14 +9,16 @@
 journey 값을 find_places에 넘기거나, target 값으로 경로를 바꾸지 말 것.
 
 무상태 서버: 클라이언트가 state를 되돌려준다. history는 undo용 스택.
+서버가 매 요청 다시 뽑는 사실(프로필·날씨·현재 시각)은 여기 없다 → `planning/facts.py`.
+클라이언트가 실어 보낼 수 있으면 변조되고, 되돌아오면 노후화된다.
 docs/explorations/hospital-search/refine-loop.md, condition-schema.md
 """
 
-from datetime import datetime
 from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from app.planning.semantics import TimeIntent, Urgency
 from app.providers.base import Mode, WalkOption
 
 Sort = Literal["distance", "duration", "open_first"]
@@ -24,14 +26,24 @@ WalkFacility = Literal["underpass", "overpass", "stairs"]
 
 
 class TargetPrefs(BaseModel):
-    """어디를 갈까 — **필터**. 결과 집합을 바꾼다."""
+    """어디를 갈까 — **필터**. 결과 집합을 바꾼다.
+
+    시각은 여기 없다 → `EditableState.time_intent`. 영업 판정 시각과 이동의 야간 판정
+    시각이 한 필드를 공유하면서 서로 어긋났다 (`app/planning/semantics.py`).
+
+    아래 둘은 **병원이 표방하는 것**이지 이번 상황이 아니다. "지금 밤이다"는
+    `EditableState.time_intent`, "지금 급하다"는 `EditableState.urgency` 다.
+    """
 
     radius_m: int = 2000
     open_now: bool = False
-    night: bool = False
-    emergency: bool = False
-    at: datetime | None = None                              # 판정 기준 시각
+    night_service: bool = False        # 야간진료를 표방하는 곳만
+    emergency_service: bool = False    # 응급을 표방하는 곳만
     specialty: list[str] = Field(default_factory=list)      # ortho, eye, dental, derma, cardio, rehab — 부스트용
+    # 증상은 **진단이 아니라 사용자의 말 그대로**다. 과목으로 번역하지 않는다 — 그건 진단이고
+    # 관할 밖이다 (docs/overview.md). 이 말이 커뮤니티 검색 쿼리가 되고, 걸린 병원이 부스트된다
+    # (query-rewrite-experiment.md). state 에 있으니 턴이 바뀌어도 유지되고, 칩으로 해제된다.
+    symptoms: list[str] = Field(default_factory=list)
     require_tags: list[str] = Field(default_factory=list)   # 24h, center, secondary ... — 필수
     exclude_ids: list[int] = Field(default_factory=list)
     pin_ids: list[int] = Field(default_factory=list)
@@ -70,9 +82,16 @@ class JourneyPrefs(BaseModel):
     walk: WalkPrefs = Field(default_factory=WalkPrefs)
 
 
-class SearchState(BaseModel):
+class EditableState(BaseModel):
     lat: float
     lng: float
+
+    # --- 상황(context): 사실이지 요구가 아니다. target 과 journey **둘 다**의 입력이다
+    time_intent: TimeIntent | None = None    # 시각의 뜻. 없으면 "지금"
+    urgency: Urgency = "normal"              # **사용자가 말한 것만**
+    # 규칙이 파생한 긴급도는 여기 안 남는다 — 턴마다 RuntimeFacts 에서 다시 뽑는다.
+    # state 에 눌어붙으면 undo 도 안 되고, 증상 정규식 오탐 하나가 세션을 응급 모드에 가둔다.
+
     target: TargetPrefs = Field(default_factory=TargetPrefs)
     journey: JourneyPrefs = Field(default_factory=JourneyPrefs)
     sort: Sort = "distance"         # 표시 정책 — 어느 쪽도 아님

@@ -72,9 +72,26 @@ async def test_open_now_puts_confirmed_before_unknown():
         assert [p.distance_m for p in group] == sorted(p.distance_m for p in group)
 
 
-# --------------------------------------------- night 는 이름 태그로 산다
-async def test_night_falls_back_to_name_tags():
-    """인허가 원천은 is_night/is_24h 를 안 준다 — 이름 태그가 유일한 재료."""
+# --------------------------------------------- 이름 태그는 순위지 필터가 아니다
+async def test_night_prefers_name_tags_without_removing_the_rest():
+    """인허가 원천은 is_night/is_24h 를 안 준다 — 이름 태그가 유일한 재료다.
+
+    그 재료가 너무 얇아서 필터로 쓰면 검색이 죽는다: 실측 2026-08-20 활성 병원
+    5,457곳 중 night 태그 **1곳** · emergency **2곳**. 그래서 거르지 않고 위로 올린다.
+    """
     async with seeded_places(ROWS) as db:
-        names = {p.name for p in await _search(db, night=True)}
-    assert names == {"테헤란24시동물병원", "논현야간동물병원", "대치응급동물의료센터"}, names
+        results = await _search(db, night=True)
+    names = [p.name for p in results]
+    assert "가까운동물병원" in names, "태그 없는 곳이 사라졌다 — 실데이터에선 전멸한다"
+    tagged = {p.name for p in results if p.prefer_hit}
+    assert tagged == {"테헤란24시동물병원", "논현야간동물병원", "대치응급동물의료센터"}, tagged
+
+
+async def test_emergency_does_not_wipe_the_result_set():
+    """"급해요" 한마디에 반경 안 병원이 사라지면 안 된다. 응급일수록 더더욱."""
+    async with seeded_places(ROWS) as db:
+        results = await _search(db, emergency=True)
+    names = [p.name for p in results]
+    assert "가까운동물병원" in names
+    assert {p.name for p in results if p.prefer_hit} == {"테헤란24시동물병원",
+                                                        "대치응급동물의료센터"}

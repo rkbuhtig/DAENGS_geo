@@ -1,13 +1,15 @@
+from datetime import UTC, datetime
+
 import pytest
 
+from app.planning.state import EditableState
 from app.profile.source import PERSONAS
 from app.refine import tools
 from app.refine.diff import changes
 from app.refine.engine import draft, refine
 from app.refine.nl import FakeLLM, ToolCall
-from app.refine.state import SearchState
 
-S = SearchState(lat=37.4979, lng=127.0276)
+S = EditableState(lat=37.4979, lng=127.0276)
 
 
 def test_tools_are_pure_and_push_history():
@@ -56,10 +58,10 @@ def test_set_mode_switches_sort_to_duration():
 
 
 def test_diff_lists_every_change():
-    s = tools.set_time(tools.narrow(S), night=True)
+    s = tools.set_night_service(tools.narrow(S))
     s = tools.exclude(s, [3, 4])
     c = changes(S, s)
-    assert "반경 2km → 1km" in c and "야간 진료만" in c and "2곳 제외" in c
+    assert "반경 2km → 1km" in c and "야간 표방 우선" in c and "2곳 제외" in c
 
 
 def test_diff_draft():
@@ -70,8 +72,9 @@ def test_diff_draft():
     ("너무 멀어", "narrow", {}),
     ("좀 더 넓게 봐줘", "widen", {}),
     ("500m 안에서만", "set_radius", {"m": 500}),
-    ("지금 열린 데", "set_time", {"open_now": True}),
-    ("밤에 갈 수 있는 곳", "set_time", {"night": True}),
+    ("지금 열린 데", "set_open_now", {"on": True}),
+    ("밤에 갈 수 있는 곳", "set_night_service", {"on": True}),
+    ("급해요 지금 당장", "set_urgency", {"level": "urgent"}),
     ("뒷다리 절뚝거려서 관절 잘 보는 데", "set_specialty", {"tags": ["ortho"]}),
     ("계단 없는 길로 걸어갈래", "set_walk_avoid", {"facilities": ["stairs"]}),
     ("15분 안에 갈 수 있는 데", "set_max_total_min", {"minutes": 15}),
@@ -108,7 +111,7 @@ def test_draft_uses_profile_only_as_default():
 async def test_refine_edits_then_utterance():
     r = await refine(None, [ToolCall("set_radius", {"m": 800})], "야간에 하는 데",
                      [], PERSONAS["dubu"], 37.5, 127.0, 2000)
-    assert r.state.target.radius_m == 800 and r.state.target.night is True
+    assert r.state.target.radius_m == 800 and r.state.target.night_service is True
     assert r.question is None
     assert any("야간" in c for c in r.changes)
 
@@ -120,12 +123,36 @@ async def test_refine_question_leaves_state():
 
 # --- 정책 경계 (state.py) --------------------------------------------------
 def test_every_tool_belongs_to_exactly_one_policy():
-    from app.refine.tools import JOURNEY_TOOLS, TARGET_TOOLS, TOOLS, VIEW_TOOLS
-    groups = [set(TARGET_TOOLS), set(JOURNEY_TOOLS), set(VIEW_TOOLS)]
+    from app.refine.tools import CONTEXT_TOOLS, JOURNEY_TOOLS, TARGET_TOOLS, TOOLS, VIEW_TOOLS
+    groups = [set(CONTEXT_TOOLS), set(TARGET_TOOLS), set(JOURNEY_TOOLS), set(VIEW_TOOLS)]
     assert set().union(*groups) == set(TOOLS)                  # 빠진 툴 없음
     for i, a in enumerate(groups):                             # 겹치는 툴 없음
         for b in groups[i + 1:]:
             assert not (a & b)
+
+
+def test_context_tools_touch_neither_target_nor_journey():
+    """상황은 **입력**이지 정책이 아니다.
+
+    '급하다'가 target 을 직접 건드리면 journey 는 그걸 영영 못 본다 — `emergency` 가
+    정확히 그 상태였다. 사영은 resolver 한 곳에서만 일어나야 하고, 툴은 사실만 적는다.
+    """
+    from app.refine.tools import CONTEXT_TOOLS
+    args = {"set_urgency": {"level": "urgent"},
+            "set_time_intent": {"kind": "service_at", "at": datetime(2026, 8, 20, 15, 0, tzinfo=UTC)}}
+    for name, fn in CONTEXT_TOOLS.items():
+        out = fn(S, **args[name])
+        assert out.target == S.target, f"{name} 이 target 을 건드렸다"
+        assert out.journey == S.journey, f"{name} 이 journey 를 건드렸다"
+
+
+def test_reset_clears_filters_but_keeps_the_situation():
+    """필터 초기화가 사실까지 지우면 안 된다 — 지금 급한 건 필터를 푼다고 안 달라진다."""
+    s = tools.set_urgency(tools.set_night_service(S), "urgent")
+    s = tools.set_time_intent(s, "depart_at", datetime(2026, 8, 20, 21, 0, tzinfo=UTC))
+    r = tools.reset(s)
+    assert r.target.night_service is False
+    assert r.urgency == "urgent" and r.time_intent is not None
 
 
 def test_tool_specs_cover_all_tools_with_policy():
@@ -148,7 +175,9 @@ def test_journey_tools_never_touch_target():
 def test_target_tools_never_touch_journey():
     from app.refine.tools import TARGET_TOOLS
     args = {"set_origin": {"lat": 37.6, "lng": 127.1}, "set_radius": {"m": 500}, "widen": {},
-            "narrow": {}, "set_time": {"night": True}, "set_specialty": {"tags": ["eye"]},
+            "narrow": {}, "set_open_now": {}, "set_night_service": {},
+            "set_emergency_service": {}, "set_specialty": {"tags": ["eye"]},
+            "note_symptoms": {"terms": ["눈이 뿌옇"]}, "clear_symptoms": {},
             "require": {"tags": ["24h"]}, "unrequire": {"tags": ["24h"]},
             "exclude": {"ids": [1]}, "pin": {"ids": [2]}}
     for name, fn in TARGET_TOOLS.items():
@@ -191,10 +220,27 @@ def test_nl_emits_mode_explicitly_for_walk_scoped_intent():
 
 
 def test_nl_merges_accumulating_tools_instead_of_dropping():
-    """같은 툴이 두 번 나오면 인자를 합친다. 마지막 것만 남기면 조건이 조용히 사라진다."""
+    """같은 툴이 두 번 나오면 인자를 합친다. 마지막 것만 남기면 조건이 조용히 사라진다.
+
+    증상이 아니라 **과목**을 두 개 말한 경우다 — 증상→과목 추론은 하지 않는다 (nl.py).
+    """
     import asyncio
 
     from app.refine.nl import FakeLLM
-    plan = asyncio.run(FakeLLM().plan("눈이 뿌옇고 다리도 절뚝거려", S, [], ""))
+    plan = asyncio.run(FakeLLM().plan("안과랑 정형 둘 다 보는 데", S, [], ""))
     tags = next(c.args["tags"] for c in plan if c.tool == "set_specialty")
     assert set(tags) == {"eye", "ortho"}, tags
+
+
+def test_symptoms_do_not_become_specialties():
+    """증상은 진단이 아니다. "숨을 헐떡여요" → 심장은 관할 밖이고 재료도 없다.
+
+    (실측 2026-08-20: cardio 태그 전국 16곳 · ortho 2곳. 그것도 간판 이름일 뿐이다.)
+    증상 표현은 커뮤니티 근거 경로가 원문 그대로 받아 쓴다.
+    """
+    import asyncio
+
+    from app.refine.nl import FakeLLM
+    for utt in ("숨을 헐떡여요", "뒷다리를 절뚝거려요", "눈이 뿌옇게 됐어요", "자꾸 긁어요"):
+        plan = asyncio.run(FakeLLM().plan(utt, S, [], ""))
+        assert not [c for c in plan if c.tool == "set_specialty"], f"{utt} -> {plan}"

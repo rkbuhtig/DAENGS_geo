@@ -16,9 +16,9 @@ from app.core.db import get_session
 from app.geo.models import Place
 from app.journey.engine import snapshot
 from app.journey.models import Companion, Transport
+from app.planning.state import JourneyPrefs
 from app.profile.source import profile_source
 from app.providers.base import LatLng
-from app.refine.state import JourneyPrefs
 
 router = APIRouter(prefix="/journey", tags=["journey"])
 

@@ -11,9 +11,23 @@ from app.core.config import settings
 from app.geo.hours import is_open_at, today_ranges
 from app.geo.models import Place
 from app.geo.schemas import MapOut, PlaceOut, SearchOut, SearchParams
-from app.geo.tagging import SPECIALTY_TAGS, dog_ok
+from app.geo.tagging import dog_ok
 from app.providers.base import LatLng, MapMarker, StaticMapSpec
 from app.providers.registry import static_map_provider
+
+
+def _prefer_tags(specialty: list[str] | None, *, night: bool, emergency: bool) -> set[str]:
+    """**순위만** 바꾸는 태그들. 결과 집합은 안 건드린다.
+
+    특화(specialty)와 야간·응급이 한 자리에 있는 건 셋 다 같은 재료 — 간판 이름 —
+    이기 때문이다. 신뢰도가 같으니 권한도 같아야 한다.
+    """
+    prefer = set(specialty or [])
+    if night:
+        prefer |= {"night", "24h", "emergency"}
+    if emergency:
+        prefer |= {"emergency", "24h"}
+    return prefer
 
 
 def _point(lat: float, lng: float):
@@ -39,21 +53,21 @@ async def find_places(
     )
     if kind:
         stmt = stmt.where(Place.kind == kind)
-    if night:
-        # 인허가 원천은 야간·24시 컬럼을 주지 않는다 (전부 false로 적재된다). 이름 태그가 유일한 재료다 -
-        # 컬럼과 태그 중 하나라도 걸리면 남긴다. 이 셋이 다 비면 야간 필터는 결과 0곳이 된다.
-        stmt = stmt.where(
-            Place.is_night.is_(True) | Place.is_24h.is_(True)
-            | Place.tags.overlap(["night", "24h", "emergency"])
-        )
-    if emergency:
-        stmt = stmt.where(Place.tags.overlap(["emergency", "24h"]))
+    # **야간·응급은 거르지 않는다.** 인허가 원천엔 진료 능력이 없어서 이 태그들은 간판 이름
+    # 정규식이 전부다 (geo/tagging.py). 실측 2026-08-20, 활성 병원 5,457곳 중
+    # night 1곳 · emergency 2곳 · ortho 2곳 — WHERE 로 쓰면 반경 안 결과가 통째로 사라진다.
+    # '미상은 제외하지 않는다'(open_now)와 같은 판단이다: 모르는 걸 없는 것으로 취급하지 않는다.
+    # 진짜 요구('24시만 보여줘')는 require_tags 로 온다 — 그건 사용자가 명시했으니 거른다.
     if require_tags:
         stmt = stmt.where(Place.tags.contains(list(require_tags)))
     if exclude_ids:
         stmt = stmt.where(Place.id.notin_(list(exclude_ids)))
-    # specialty는 필터가 아니라 부스트 — SQL로 안 거른다 (condition-schema.md)
+    prefer = _prefer_tags(specialty, night=night, emergency=emergency)
     fetch = limit * 4 if open_now else limit * 2
+    # prefer 를 SQL 정렬로 앞당기지 않는다. 태그 우선 + [:limit] 절단은 사실상 필터가 된다 —
+    # 실측(강남역 5km): 태그 10곳이 전부 들어오면 근접 병원 10곳이 집합에서 밀려난다.
+    # '빼지 않는다'는 약속은 집합 단위로 지켜야 한다. 희귀 태그가 fetch 창 밖인 문제
+    # (예은, top-12 밖)는 기본 모음/추천 모음 분리에서 두 번째 조회로 푼다 (backlog).
     stmt = stmt.order_by(dist).limit(fetch)
 
     rows = (await db.execute(stmt)).all()
@@ -74,7 +88,7 @@ async def find_places(
             hours_today=today_ranges(place.hours, at), tags=tags,
             area_m2=float(place.area_m2) if place.area_m2 is not None else None,
             staff_count=place.staff_count,
-            specialty_hit=sorted(set(tags) & set(specialty or []) & SPECIALTY_TAGS),
+            prefer_hit=sorted(set(tags) & prefer),
         ))
     if open_now:
         # 확정 영업중을 앞으로, 미상은 뒤로 - 빼지는 않는다. 거리순은 각 묶음 안에서 유지.

@@ -31,6 +31,7 @@
   .hand a { margin-right:8px; font-size:12px; }
   .pol { font-size:10px; border-radius:8px; padding:1px 6px; margin-left:4px; text-transform:none; letter-spacing:0; font-weight:400; }
   .pol.t { background:#e3f2fd; color:#1565c0; } .pol.j { background:#e8f5e9; color:#2e7d32; }
+  .pol.c { background:#fff3e0; color:#e65100; }
   .chg { display:flex; gap:6px; align-items:baseline; margin:2px 0; }
 </style>
 </head>
@@ -48,11 +49,17 @@
     <span class="muted">→ companion. none이면 개 계수·노트·advice 없음</span>
   </div>
 
+  <h3>어떤 상황인가 <span class="pol c">context · 둘 다의 입력</span></h3>
+  <div class="row">
+    <span class="chip" data-tool="set_urgency" data-args='{"level":"urgent"}' data-off='{"level":"normal"}' data-key="urgency">급한 상황</span>
+    <span class="muted">→ 조건을 좁히지 않는다. 병원 종류 요구는 아래 &lsquo;응급 표방&rsquo;</span>
+  </div>
+
   <h3>어디를 갈까 <span class="pol t">target · 결과가 바뀜</span></h3>
   <div class="row">
-    <span class="chip" data-tool="set_time" data-args='{"open_now":true}' data-off='{"open_now":false}' data-key="open_now">지금 영업중</span>
-    <span class="chip" data-tool="set_time" data-args='{"night":true}' data-off='{"night":false}' data-key="night">야간</span>
-    <span class="chip" data-tool="set_time" data-args='{"emergency":true}' data-off='{"emergency":false}' data-key="emergency">응급</span>
+    <span class="chip" data-tool="set_open_now" data-args='{"on":true}' data-off='{"on":false}' data-key="open_now">지금 영업중</span>
+    <span class="chip" data-tool="set_night_service" data-args='{"on":true}' data-off='{"on":false}' data-key="night_service">야간 표방</span>
+    <span class="chip" data-tool="set_emergency_service" data-args='{"on":true}' data-off='{"on":false}' data-key="emergency_service">응급 표방</span>
     <span class="chip" data-tool="require" data-args='{"tags":["24h"]}' data-off-tool="unrequire" data-off='{"tags":["24h"]}' data-key="req=24h">24시</span>
     <span class="chip" data-tool="require" data-args='{"tags":["center"]}' data-off-tool="unrequire" data-off='{"tags":["center"]}' data-key="req=center">의료센터</span>
   </div>
@@ -169,7 +176,10 @@ function syncChips(st) {
   const tg = st.target, jn = st.journey;
   document.querySelectorAll('.chip').forEach(c => {
     const k = c.dataset.key; let on = false;
-    if (k === 'open_now') on = tg.open_now; else if (k === 'night') on = tg.night; else if (k === 'emergency') on = tg.emergency;
+    if (k === 'open_now') on = tg.open_now;
+    else if (k === 'night_service') on = tg.night_service;
+    else if (k === 'emergency_service') on = tg.emergency_service;
+    else if (k === 'urgency') on = st.urgency === 'urgent';
     else if (k.startsWith('req=')) on = (tg.require_tags || []).includes(k.split('=')[1]);
     else if (k.startsWith('mode=')) on = jn.preferred_mode === k.split('=')[1];
     else if (k === 'walk.option=no_stairs') on = jn.walk.option === 'no_stairs';
@@ -185,7 +195,7 @@ function render(d) {
   syncChips(d.state);
   const g = d.changes_by_policy || {};
   const line = (cls, label, arr) => (arr && arr.length) ? `<div class="chg"><span class="pol ${cls}">${label}</span><span>${arr.join(' · ')}</span></div>` : '';
-  $('changes').innerHTML = (line('t', '찾는 곳', g.target) + line('j', '가는 길', g.journey) + line('t', '보기', g.view)
+  $('changes').innerHTML = (line('c', '상황', g.context) + line('t', '찾는 곳', g.target) + line('j', '가는 길', g.journey) + line('t', '보기', g.view)
      || `<div class="chg">${d.changes.join(' · ')}</div>`) + `<div class="muted">${d.reply}</div>`;
   $('question').style.display = d.question ? '' : 'none'; $('question').textContent = d.question || '';
   $('count').textContent = d.results.length + '곳';

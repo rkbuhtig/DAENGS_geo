@@ -19,11 +19,11 @@ from app.geo.schemas import MapOut, PlaceOut
 from app.geo.search import build_map, find_places
 from app.journey.engine import snapshot
 from app.journey.models import Companion, Transport
+from app.planning.state import EditableState
 from app.profile.source import profile_source
 from app.providers.base import LatLng
 from app.refine.engine import refine
 from app.refine.nl import ToolCall
-from app.refine.state import SearchState
 
 router = APIRouter(prefix="/hospital", tags=["hospital"])
 
@@ -39,7 +39,7 @@ class Edit(BaseModel):
 class HospitalSearchIn(BaseModel):
     dog_id: str | None = None
     origin: tuple[float, float] | None = None       # (lat, lng). state 없을 때 필수
-    state: SearchState | None = None
+    state: EditableState | None = None
     edits: list[Edit] = Field(default_factory=list)
     utterance: str | None = None
     shown_ids: list[int] = Field(default_factory=list)
@@ -56,12 +56,12 @@ class EvidenceOut(BaseModel):
 
 class ResultOut(PlaceOut):
     transport: Transport | None = None
-    evidence: list[EvidenceOut] = Field(default_factory=list)
-    boost: int = 0                     # specialty_hit + evidence 수. 정렬 부스트 근거 (표시용)
+    evidence: list[EvidenceOut] = Field(default_factory=list)   # 표시 전용 — 순위에 안 들어간다
+    boost: int = 0                     # prefer_hit 만. 정렬 부스트 근거 (표시용)
 
 
 class HospitalSearchOut(BaseModel):
-    state: SearchState
+    state: EditableState
     results: list[ResultOut]
     map: MapOut
     changes: list[str]
@@ -101,16 +101,20 @@ async def hospital_search(
 
     # --- target 정책: 결과 집합 결정. journey 값은 절대 여기 들어오지 않는다 (state.py 참조)
     tg = st.target
+    # time_intent → 영업 판정 시각. **이 사영은 resolver 자리다** (step 4): 지금은 한 줄이지만
+    # journey 의 야간 판정도 같은 값을 봐야 하고, 그걸 각자 주워 쓰다 어긋난 게 이 사달이었다.
+    service_at = (st.time_intent.at
+                  if st.time_intent and st.time_intent.kind == "service_at" else None)
     places = await find_places(
         db, lat=st.lat, lng=st.lng, radius_m=tg.radius_m, kind="hospital",
-        open_now=tg.open_now, night=tg.night, emergency=tg.emergency,
+        open_now=tg.open_now, night=tg.night_service, emergency=tg.emergency_service,
         specialty=tg.specialty, require_tags=tg.require_tags, exclude_ids=tg.exclude_ids,
-        at=tg.at, limit=tg.limit,
+        at=service_at, limit=tg.limit,
     )
 
-    # 근거는 맥락(발화·특화)이 있을 때만. 초안에 붙이면 무관한 부스트가 거리순을 흐린다
-    want_ev = body.with_evidence and (bool(body.utterance) or bool(tg.specialty))
-    ev = await attach_evidence(body.utterance, profile, places) if want_ev else {}
+    # 근거는 state 가 시킨다 — 그 턴에 말을 했는지가 아니라. utterance 는 여기 못 들어온다.
+    ev = (await attach_evidence(tg.symptoms, tg.specialty, profile, places)
+          if body.with_evidence else {})
     origin_pt = LatLng(st.lat, st.lng)
     results: list[ResultOut] = []
     for p in places:
@@ -126,8 +130,12 @@ async def hospital_search(
                 arrive_note=ARRIVE_NOTE,
             )
         e = [EvidenceOut(source=x.source, text=x.text, url=x.url) for x in ev.get(p.id, [])]
+        # evidence 가 과목 신호의 **본체**다 (query-rewrite-experiment.md) — 이름 태그(prefer_hit)는
+        # 전국 몇 곳짜리 보조 신호일 뿐이다. 순위 권한을 줘도 되는 이유: 쿼리가 state(symptoms·
+        # specialty)에서 나오므로 같은 state 는 같은 근거를 얻는다. 한 턴의 발화 유무로 순위가
+        # 흔들리던 1번 버그와 다르다. 밴드 밖은 못 뒤집는 건 _sort 가 보장한다.
         results.append(ResultOut(**p.model_dump(), transport=t, evidence=e,
-                                 boost=len(p.specialty_hit) * 2 + len(e)))
+                                 boost=len(p.prefer_hit) * 2 + len(e)))
 
     # journey.hard_limit: 정책 경계를 넘는 유일한 스위치. 사용자가 명시적으로 켤 때만
     dropped = 0
@@ -142,7 +150,8 @@ async def hospital_search(
         results = keep
 
     results = _sort(results, st)
-    mp = build_map(st.lat, st.lng, tg.radius_m, "hospital", tg.open_now, tg.night, results)
+    mp = build_map(st.lat, st.lng, tg.radius_m, "hospital", tg.open_now, tg.night_service,
+                   results)
     return HospitalSearchOut(
         state=st, results=results, map=mp, changes=r.changes, changes_by_policy=r.grouped,
         applied=[Edit(tool=c.tool, args=c.args) for c in r.applied],
@@ -153,7 +162,7 @@ async def hospital_search(
     )
 
 
-def _sort(results: list[ResultOut], st: SearchState) -> list[ResultOut]:
+def _sort(results: list[ResultOut], st: EditableState) -> list[ResultOut]:
     """부스트는 '살짝 위' — 같은 밴드(500m / 5분) 안에서만 순서를 바꾼다. 거리·시간을 뒤집진 않는다."""
     def key(r: ResultOut):
         pinned = 0 if r.id in st.target.pin_ids else 1
