@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.db import get_session
 from app.enrich.community import attach_evidence
+from app.features.hospital.actions import build_actions
 from app.geo.schemas import MapOut, PlaceOut
 from app.geo.search import build_map, find_places
 from app.journey.engine import snapshot
@@ -25,6 +26,7 @@ from app.planning.resolver import resolve_request
 from app.planning.state import EditableState
 from app.profile.source import owner_of, profile_source
 from app.providers.base import LatLng
+from app.refine.actions import Edit, SuggestedAction
 from app.refine.engine import refine
 from app.refine.nl import ToolCall
 from app.refine.tools import ToolInputError
@@ -37,13 +39,6 @@ Latitude = Annotated[float, Field(ge=-90, le=90)]
 Longitude = Annotated[float, Field(ge=-180, le=180)]
 Origin = tuple[Latitude, Longitude]
 PositiveId = Annotated[int, Field(ge=1)]
-
-
-class Edit(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    tool: str = Field(min_length=1, max_length=64)
-    args: dict = Field(default_factory=dict, max_length=10)
 
 
 class HospitalSearchIn(BaseModel):
@@ -97,14 +92,17 @@ class HospitalSearchOut(BaseModel):
     resolution: list[ResolutionOut] = Field(default_factory=list)
     show_call_cta: bool = False
     call_reasons: list[str] = Field(default_factory=list)
+    actions: list[SuggestedAction] = Field(default_factory=list)
 
 
-def _reply(changes: list[str], n: int, question: str | None, unknown_hours: int = 0) -> str:
+def _reply(changes: list[str], n: int, question: str | None,
+           unknown_hours: int = 0, has_actions: bool = False) -> str:
     if question:
         return question
     head = " · ".join(changes)
     if not n:
-        return f"{head}. 조건에 맞는 곳이 없어요 — 반경을 넓히거나 필터를 풀어볼까요?"
+        tail = " 아래 제안으로 다시 찾아볼 수 있어요." if has_actions else ""
+        return f"{head}. 조건에 맞는 곳이 없어요.{tail}"
     # '지금 영업중'을 걸었는데 영업시간을 모르는 곳이 섞여 있으면 말해줘야 한다.
     # 안 그러면 전부 확정 영업중으로 읽힌다 (공공데이터엔 영업시간이 없다).
     tail = f" 그중 {unknown_hours}곳은 영업시간 미상이에요 — 전화로 확인해주세요." if unknown_hours else ""
@@ -177,16 +175,22 @@ async def hospital_search(
     must = resolved.search.must
     mp = build_map(must.lat, must.lng, must.radius_m, "hospital", must.open_now,
                    st.target.night_service, results)
+    actions = build_actions(
+        st, result_count=len(results), question=r.question,
+        dropped_by_hard_limit=dropped,
+    )
     return HospitalSearchOut(
         state=st, results=results, map=mp, changes=r.changes, changes_by_policy=r.grouped,
         applied=[Edit(tool=c.tool, args=c.args) for c in r.applied],
         question=r.question,
         reply=_reply(r.changes, len(results), r.question,
-                     sum(1 for x in results if x.open_now is None) if must.open_now else 0)
+                     sum(1 for x in results if x.open_now is None) if must.open_now else 0,
+                     has_actions=bool(actions))
         + (f" ({dropped}곳은 시간 초과로 제외)" if dropped else ""),
         resolution=[ResolutionOut(**vars(entry)) for entry in resolved.trace.entries],
         show_call_cta=resolved.view.show_call_cta,
         call_reasons=list(resolved.view.call_reasons),
+        actions=actions,
     )
 
 
