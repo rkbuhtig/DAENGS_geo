@@ -26,6 +26,8 @@ Sort = Literal["distance", "duration", "open_first"]
 WalkFacility = Literal["underpass", "overpass", "stairs"]
 Specialty = Literal["ortho", "eye", "dental", "derma", "cardio", "rehab"]
 CURRENT_STATE_VERSION = 2
+# undo 스택 깊이. 되돌림 지점은 **턴당 하나**다 (app/refine/engine.py)
+MAX_HISTORY = 10
 PositiveId = Annotated[int, Field(ge=1)]
 ShortTag = Annotated[str, Field(min_length=1, max_length=64)]
 SymptomText = Annotated[str, Field(min_length=1, max_length=200)]
@@ -110,7 +112,7 @@ class EditableState(ContractModel):
     target: TargetPrefs = Field(default_factory=TargetPrefs)
     journey: JourneyPrefs = Field(default_factory=JourneyPrefs)
     sort: Sort = "distance"         # 표시 정책 — 어느 쪽도 아님
-    history: list[dict] = Field(default_factory=list, max_length=10)
+    history: list[dict] = Field(default_factory=list, max_length=MAX_HISTORY)
 
     @model_validator(mode="before")
     @classmethod

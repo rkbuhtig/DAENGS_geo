@@ -18,5 +18,6 @@
 | [journey-view](journey-view.md) | **adopted** | 카드 눌렀을 때 = 공용 `/journey`. companion(dog/none). 큰길 비율이 비교축 |
 | [transport-snapshot](transport-snapshot.md) | exploring | 도보/차량/대중교통을 병원마다 같은 칸에. 도보 장애물은 TMAP, advice는 우리 |
 | [homepage-enrich](homepage-enrich.md) | parked | 병원 홈페이지에서 진료시간·과목 온디맨드 추출 |
+| [session-record](session-record.md) | exploring | 검색 세션을 서버에 남겨 목록·복원. 조건만 저장(레시피), 제목은 LLM 없이 |
 
 갈래끼리 배타적이지 않다. 여러 개가 같이 adopted 될 수 있음. rejected도 지우지 않는다 — 같은 질문을 다시 안 하려고.
