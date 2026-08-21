@@ -6,13 +6,15 @@ from pydantic import ValidationError
 
 from app.core.config import settings
 from app.core.db import get_session
-from app.features.hospital.api import HospitalSearchIn
+from app.features.hospital.api import Edit, HospitalSearchIn, hospital_search
 from app.journey.api import Dest, JourneyIn
 from app.main import app
 from app.planning.state import CURRENT_STATE_VERSION, EditableState, JourneyPrefs
 from app.refine import tools
 from app.refine.engine import refine
+from app.refine.nl import ToolCall
 from app.refine.tools import ToolInputError
+from tests.conftest import TEST_ORIGIN, seeded_places
 
 
 def test_legacy_state_is_migrated_without_silent_loss():
@@ -90,6 +92,49 @@ async def test_request_origin_overrides_round_tripped_state_without_history_entr
     assert (result.state.lat, result.state.lng) == (35.0, 129.0)
     assert result.state.history == []
     assert (old.lat, old.lng) == (37.0, 127.0)
+
+
+async def test_omitting_origin_keeps_the_pinned_search_location():
+    """지도를 끌어 그 지역을 검색한 뒤(pinned), 필터만 바꾸는 턴에서 좌표가 튀면 안 된다.
+
+    **위치는 두 경로로 들어온다.** 앱이 이 둘을 섞으면 사용자가 팬해서 보던 지역이
+    필터 하나 바꿀 때마다 내 위치로 되돌아간다.
+
+        요청 origin 있음  "지금 내 위치" — GPS 갱신. state 좌표를 덮는다
+        요청 origin 생략  "보던 데 그대로" — state 좌표를 유지한다 (pinned)
+
+    앱은 pinned 상태에서 origin 을 **보내지 않아야** 한다. 습관적으로 최신 GPS 를 실으면
+    위 첫 줄이 매 턴 발동한다.
+    """
+    async with seeded_places([]) as db:
+        pinned = EditableState(lat=TEST_ORIGIN[0], lng=TEST_ORIGIN[1])
+        out = await hospital_search(
+            HospitalSearchIn(
+                state=pinned, transport="none", with_evidence=False,
+                edits=[Edit(tool="set_radius", args={"m": 1500})],
+            ),
+            db,
+        )
+
+    assert (out.state.lat, out.state.lng) == TEST_ORIGIN
+    assert out.state.target.radius_m == 1500
+
+
+async def test_map_pan_is_undoable_but_a_gps_refresh_is_not():
+    """같은 좌표 이동이라도 **누가 시켰나**에 따라 되돌림 대상이 갈린다."""
+    at_home = EditableState(lat=37.0, lng=127.0)
+
+    gps = await refine(at_home, edits=[], utterance=None, shown_ids=[], profile=None,
+                       lat=35.0, lng=129.0, default_radius=2000)
+    assert (gps.state.lat, gps.state.lng) == (35.0, 129.0)
+    assert gps.state.history == [], "GPS 갱신은 사용자가 되돌릴 편집이 아니다"
+
+    pan = await refine(at_home, edits=[ToolCall("set_origin", {"lat": 35.0, "lng": 129.0})],
+                       utterance=None, shown_ids=[], profile=None,
+                       lat=37.0, lng=127.0, default_radius=2000)
+    assert (pan.state.lat, pan.state.lng) == (35.0, 129.0)
+    back = tools.undo(pan.state)
+    assert (back.lat, back.lng) == (37.0, 127.0), "지도 팬은 명시적 의도라 되돌릴 수 있어야 한다"
 
 
 def test_legacy_set_time_tool_is_migrated_but_not_advertised():
