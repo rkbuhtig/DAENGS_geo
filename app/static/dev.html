@@ -28,6 +28,8 @@
   .safety { background:#fdecea; border:1px solid #f3b5ae; border-radius:6px; padding:8px; margin:6px 0; }
   .safety b { color:#c62828; }
   .safety button { margin-top:6px; }
+  .call { display:inline-block; border:1px solid #bbb; border-radius:12px; padding:1px 7px; margin-left:5px; color:#333; text-decoration:none; font-size:11px; }
+  .call.urgent { border-color:#c62828; background:#c62828; color:#fff; font-weight:600; }
   .override { background:#fff4d6; border-left:3px solid #b26a00; border-radius:4px; padding:6px 8px; margin:6px 0; font-size:13px; }
   .trace { font-size:12px; color:#666; margin:4px 0 8px; }
   .trace summary { cursor:pointer; }
@@ -126,6 +128,12 @@ const $ = id => document.getElementById(id);
 
 function markerHtml(label, color, size = 22) {
   return `<div style="background:${color};color:#fff;border:2px solid #fff;border-radius:50%;width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;font-size:${size < 18 ? 9 : 12}px;font-weight:600;box-shadow:0 1px 4px #0005">${label}</div>`;
+}
+
+function telHref(raw) {
+  // 인허가 원천의 전화번호를 href 속성에 그대로 넣지 않는다. 숫자와 선행 +만 허용한다.
+  const compact = String(raw || '').replace(/[^\d+]/g, '');
+  return /^\+?\d{7,15}$/.test(compact) ? `tel:${compact}` : null;
 }
 
 function makeLeafletMap(reason = '') {
@@ -320,10 +328,11 @@ function renderSafety(d) {
   const box = $('safety');
   if (d.show_call_cta) {
     const said = (d.call_reasons || []).map(c => CALL_REASON_TEXT[c]).filter(Boolean);
+    const unknownHours = (d.results || []).filter(x => x.open_now === null).length;
     box.style.display = '';
     box.innerHTML = `<b>지금 전화부터 권합니다</b>`
       + (said.length ? `<div class="muted">${said.join(' · ')}</div>` : '')
-      + `<div class="muted">영업시간이 미상인 곳이 많아 전화가 가장 빠릅니다.</div>`;
+      + (unknownHours ? `<div class="muted">${unknownHours}곳은 영업시간 미상 — 전화로 확인하세요.</div>` : '');
   } else { box.style.display = 'none'; box.innerHTML = ''; }
 
   // 2) 상황이 사용자 설정을 눌렀으면 **반드시** 말한다. trace.py 의 존재 이유다 —
@@ -369,20 +378,23 @@ function render(d) {
   d.results.forEach((x, i) => {
     const t = tOf(x), w = t.walk || {}, c = t.car || {}, tr = t.transit;
     const label = String.fromCharCode(65 + i);
+    const callHref = telHref(x.phone);
     geoMap.marker([x.lat, x.lng], markerHtml(label, x.id === selected ? '#c62828' : COLORS[i % COLORS.length]), x.name);
     const card = document.createElement('div'); card.className = 'card' + (x.id === selected ? ' sel' : '');
     const fac = w.facilities || {};
     const advCls = 'adv-' + (w.advice || 'ok');
     card.innerHTML = `
-      <div><span class="name">${label}. ${x.name}</span> <span class="muted">${x.distance_m}m · ${x.open_now === null ? '영업 미상' : x.open_now ? '영업중' : '영업종료'}</span></div>
+      <div><span class="name">${label}. ${x.name}</span> <span class="muted">${x.distance_m}m · ${x.open_now === null ? '영업 미상' : x.open_now ? '영업중' : '영업종료'}</span>${callHref ? `<a class="call${d.show_call_cta ? ' urgent' : ''}" href="${callHref}">전화하기</a>` : ''}</div>
       <div>${(x.tags || []).map(t => `<span class="tag">${t}</span>`).join('')}${x.area_m2 ? `<span class="muted">${x.area_m2}㎡ · ${x.staff_count ?? '?'}인</span>` : ''}</div>
       ${t.walk ? `<div>🚶 <b>${w.min}분</b>${w.provider_min ? `<span class="muted">(성인 ${w.provider_min})</span>` : ''} ${w.m}m <span class="tag">${w.status === 'measured' ? w.source : '약'}</span>${w.status !== 'measured' ? `<span class="tag muted">${w.status_reason || w.status}</span>` : ''}${w.option_label ? `<span class="tag">${w.option_label}</span>` : ''} ${w.advice ? `<span class="${advCls}">${w.advice}</span>` : ''}</div>` : ''}
       ${w.road_mix && w.status === 'measured' ? `<div class="muted">이 길: 큰길 ${Math.round(w.road_mix.big_ratio * 100)}% · 큰길 횡단 ${w.road_mix.big_crossings}회 · 횡단 총 ${fac.crosswalk ?? 0}${fac.stairs ? ` · 계단 ${fac.stairs}` : ''}${fac.underpass ? ` · 지하 ${fac.underpass}` : ''}</div>` : ''}
       ${(w.why || []).length ? `<div class="muted">${w.why.join(' / ')}</div>` : ''}
       ${w.alternatives && w.alternatives.length ? `<div class="muted">다른 길: ${w.alternatives.map(a => `${a.label} ${a.min}분 (Δ${a.delta_min >= 0 ? '+' : ''}${a.delta_min}) 큰길 ${Math.round((a.facilities.big_road_ratio || 0) * 100)}%`).join(', ')}</div>` : ''}
       ${t.car ? `<div>🚗 ${c.min}분 ${c.m}m · 택시 ${c.taxi_fare ?? '-'}원 ${tr ? `· 🚌 ${tr.min}분 ${tr.fare}원` : ''}</div>` : ''}
-      ${x.evidence.map(e => `<div class="ev">[${e.source}] ${e.text}</div>`).join('')}
-      <div class="spots"></div>`;
+       ${x.evidence.map(e => `<div class="ev">[${e.source}] ${e.text}</div>`).join('')}
+       <div class="spots"></div>`;
+    const call = card.querySelector('.call');
+    if (call) call.onclick = e => e.stopPropagation();
     card.onclick = async () => { selected = (selected === x.id ? null : x.id); if (selected && !journeys[selected]) await fetchJourneys([selected]); render(lastSearch); };
     if (x.id === selected && w.spots) {
       const sp = card.querySelector('.spots');
