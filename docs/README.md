@@ -20,6 +20,7 @@ backlog.md           갈래에 안 붙는 미결
 - [병원 찾기](explorations/hospital-search/README.md) — 13갈래, 오늘의 초점은 [community-search](explorations/hospital-search/community-search.md)
 - [지도 제공사](explorations/map-provider/README.md)
 - [산책](explorations/walk/README.md) — 사용자 담당
+- [모바일 셸](explorations/mobile-shell/README.md) — 폰에서의 제품 화면. 공간 표면 vs 에피소드 표면
 
 ## 계약
 - [반려견 프로필](contracts/dog-profile.md) — 외부에서 받는 형태 + 가상 페르소나 8마리 (축: 지도 위 난점)
