@@ -113,13 +113,18 @@ state(`symptoms`·`specialty`)에서 만들면 **같은 state가 같은 근거·
 
 좌표 이동은 한 종류가 아니다. **누가 시켰나**에 따라 계약이 갈린다.
 
-| 사용자 행동 | 앱이 보내는 것 | 서버 동작 | undo |
+| 사용자 행동 | 병원 검색 요청에 싣는 것 | 서버 동작 | undo |
 |---|---|---|---|
 | 내 위치에서 검색 | `origin` = 최신 GPS | state 좌표를 덮는다 | ✗ |
-| 이동해서 GPS 갱신 | `origin` = 최신 GPS | state 좌표를 덮는다 | ✗ |
+| GPS 위치 fix 수신 | **검색 요청 없음**. `deviceLocation`만 기기 안에서 갱신 | — | — |
+| follow_device에서 검색·필터 요청 | `origin` = 최신 `deviceLocation` | state 좌표를 덮는다 | ✗ |
 | 지도 팬 후 재검색 | `edits:[set_origin]`, **`origin` 생략** | 툴이 좌표를 바꾼다 | **○** |
 | 그 상태에서 필터 변경 | **`origin` 생략** | state 좌표 유지 | — |
 | 내 위치 버튼 | `origin` = 최신 GPS | state 좌표를 덮는다 | ✗ |
+
+GPS 센서 이벤트는 병원 검색 API 호출 조건이 아니다. 표의 전송 열은 검색·필터 변경·재검색
+요청이 **이미 발생했을 때** 어느 좌표를 payload에 싣는지를 말한다. 산책 세션의 위치 배치
+업로드와는 별도 계약이다.
 
 `refine()` 초입에서 요청 `origin` 이 state 좌표를 덮는 것은 의도다 — GPS 갱신은 사용자가
 되돌릴 조건 편집이 아니라 사실의 변화다. 그래서 되돌림 지점에도 **새 좌표가 들어간다**.
@@ -131,6 +136,10 @@ state(`symptoms`·`specialty`)에서 만들면 **같은 state가 같은 근거·
 실으면 첫 줄이 매 턴 발동해서, 필터 하나 바꿀 때마다 팬해서 보던 지역이 사라진다. 앱은
 `deviceLocation`(계속 갱신)과 `searchOrigin`(현재 검색 기준점)을 따로 들고,
 `follow_device | pinned` 로 어느 쪽을 보낼지 정한다 (mobile-map-shell.md).
+
+서버의 origin 생략 동작은 `test_omitting_origin_keeps_the_pinned_search_location`가 검증한다.
+클라이언트가 pinned에서 origin 필드 자체를 빼는지는 Android 요청 빌더가 생길 때 별도
+직렬화 테스트로 고정한다.
 
 ## 실행 관문
 

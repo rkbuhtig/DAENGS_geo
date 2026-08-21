@@ -59,17 +59,23 @@ searchOrigin     현재 검색 기준점
 locationMode     follow_device | pinned
 ```
 
-| 행동 | 전송 | 모드 |
+| 행동 | 검색 요청에 싣는 값 | 모드 |
 |---|---|---|
 | 내 위치에서 검색 | `origin` = 최신 GPS | follow_device |
-| GPS 갱신 | `origin` = 최신 GPS | follow_device 유지 |
+| GPS 위치 fix 수신 | **검색 요청 없음**. `deviceLocation`만 기기 안에서 갱신 | 현재 모드 유지 |
+| follow_device에서 검색·필터 요청 | `origin` = 최신 `deviceLocation` | follow_device 유지 |
 | 지도 팬 후 재검색 | `edits:[set_origin]`, **`origin` 생략** | pinned |
 | pinned 에서 필터 변경 | **`origin` 생략** | pinned 유지 |
 | 내 위치 버튼 | `origin` = 최신 GPS | follow_device 복귀 |
 
+센서 이벤트는 병원 검색의 트리거가 아니다. 위 전송 규칙은 사용자가 검색·필터 변경·재검색을
+일으킨 **그 요청의 payload**를 말한다. 산책 세션의 위치 배치 업로드는 아래 소유권 갈래의
+별도 계약이다.
+
 **pinned 에서 `origin` 을 실어 보내면 팬해서 보던 지역이 매 턴 사라진다.** 서버 API 는 안
-바꾼다 — 현재 계약으로 구현되고, 회귀는 테스트가 잡는다
-(`test_omitting_origin_keeps_the_pinned_search_location`).
+바꾼다. 서버 쪽 "origin 생략 시 state 좌표 유지"는
+`test_omitting_origin_keeps_the_pinned_search_location`가 잡는다. 앱 쪽 "pinned 면 origin 필드
+자체를 생략"은 Android 요청 빌더가 생길 때 직렬화 테스트로 따로 고정해야 한다.
 
 ## 안전 표면은 선택이 아니다
 
