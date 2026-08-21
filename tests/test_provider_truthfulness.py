@@ -26,6 +26,26 @@ O, D = LatLng(37.4979, 127.0276), LatLng(37.5145, 127.0316)
 NOW = datetime(2026, 8, 21, 3, 0, tzinfo=UTC)
 
 
+@pytest.fixture(autouse=True)
+def shipped_defaults(monkeypatch):
+    """이 파일은 **출고 기본값의 계약**을 본다 — 이 개발자의 `.env` 가 아니라.
+
+    `settings` 는 `.env` 를 읽는 전역이라, 로컬에 `DAENGS_WALK_ROUTE_PROVIDER=tmap` 이나
+    `DAENGS_COMMUNITY_PROVIDER=fake` 가 있으면 이 파일 전체가 붉어졌다. 남의 기계에서만
+    깨지는 테스트는 계약을 못 지킨다 — 아무도 안 믿게 되니까.
+
+    `Settings.model_fields` 의 선언 기본값으로 되돌려 놓고 시작한다. 특정 설정을 보는
+    테스트는 그 위에 자기가 monkeypatch 한다.
+    """
+    for name in ("walk_route_provider", "car_route_provider", "transit_route_provider",
+                 "community_provider", "map_provider", "static_map_provider",
+                 "dev_console", "tmap_app_key"):
+        monkeypatch.setattr(settings, name, type(settings).model_fields[name].default)
+    route_provider.cache_clear()
+    yield
+    route_provider.cache_clear()
+
+
 async def _walk(measured: bool, profile=PERSONAS["halmae"]):
     facts = RuntimeFacts(now=NOW, profile=profile)
     plan = resolve_request(EditableState(lat=O.lat, lng=O.lng), facts,
