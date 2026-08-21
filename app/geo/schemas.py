@@ -35,7 +35,7 @@ class PlaceOut(BaseModel):
     tags: list[str] = Field(default_factory=list)
     area_m2: float | None = None        # 인허가 면적 — 표시만
     staff_count: int | None = None      # 인허가 종사자수 — 표시만
-    specialty_hit: list[str] = Field(default_factory=list)  # 요청 특화와 태그 교집합 — 부스트 근거
+    prefer_hit: list[str] = Field(default_factory=list)  # 선호 조건과 태그 교집합 — 부스트 근거
 
 
 class MapOut(BaseModel):

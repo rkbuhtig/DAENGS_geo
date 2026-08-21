@@ -13,6 +13,9 @@ from datetime import UTC, datetime
 import pytest
 
 from app.geo.search import find_places
+from app.planning.facts import RuntimeFacts
+from app.planning.resolver import resolve_request
+from app.planning.state import EditableState
 from tests.conftest import TEST_ORIGIN, daily_hours, place_row, seeded_places
 
 # 이 파일이 소유하는 시나리오. 아래 assert 들이 정확히 이 6행에 결합돼 있으므로
@@ -32,10 +35,18 @@ AT_NIGHT = datetime(2026, 8, 20, 12, 0, tzinfo=UTC)   # 한국 21:00
 
 
 async def _search(db, **kw):
-    return await find_places(db, lat=TEST_ORIGIN[0], lng=TEST_ORIGIN[1], radius_m=5000,
-                             kind="hospital", at=kw.pop("at", AT_NIGHT),
-                             open_now=kw.pop("open_now", False),
-                             night=kw.pop("night", False), limit=20, **kw)
+    state = EditableState(lat=TEST_ORIGIN[0], lng=TEST_ORIGIN[1])
+    state.target.radius_m = 5000
+    state.target.limit = 20
+    state.target.open_now = kw.pop("open_now", False)
+    state.target.night_service = kw.pop("night", False)
+    state.target.emergency_service = kw.pop("emergency", False)
+    state.target.require_tags = kw.pop("require_tags", [])
+    assert not kw, kw
+    plan = resolve_request(
+        state, RuntimeFacts(now=AT_NIGHT), kind="hospital", companion="dog", measured=False,
+    )
+    return await find_places(db, plan.search)
 
 
 # --------------------------------------------- 타입 회귀 (이 필터들이 죽어 있었다)
@@ -72,9 +83,26 @@ async def test_open_now_puts_confirmed_before_unknown():
         assert [p.distance_m for p in group] == sorted(p.distance_m for p in group)
 
 
-# --------------------------------------------- night 는 이름 태그로 산다
-async def test_night_falls_back_to_name_tags():
-    """인허가 원천은 is_night/is_24h 를 안 준다 — 이름 태그가 유일한 재료."""
+# --------------------------------------------- 이름 태그는 순위지 필터가 아니다
+async def test_night_prefers_name_tags_without_removing_the_rest():
+    """인허가 원천은 is_night/is_24h 를 안 준다 — 이름 태그가 유일한 재료다.
+
+    그 재료가 너무 얇아서 필터로 쓰면 검색이 죽는다: 실측 2026-08-20 활성 병원
+    5,457곳 중 night 태그 **1곳** · emergency **2곳**. 그래서 거르지 않고 위로 올린다.
+    """
     async with seeded_places(ROWS) as db:
-        names = {p.name for p in await _search(db, night=True)}
-    assert names == {"테헤란24시동물병원", "논현야간동물병원", "대치응급동물의료센터"}, names
+        results = await _search(db, night=True)
+    names = [p.name for p in results]
+    assert "가까운동물병원" in names, "태그 없는 곳이 사라졌다 — 실데이터에선 전멸한다"
+    tagged = {p.name for p in results if p.prefer_hit}
+    assert tagged == {"테헤란24시동물병원", "논현야간동물병원", "대치응급동물의료센터"}, tagged
+
+
+async def test_emergency_does_not_wipe_the_result_set():
+    """"급해요" 한마디에 반경 안 병원이 사라지면 안 된다. 응급일수록 더더욱."""
+    async with seeded_places(ROWS) as db:
+        results = await _search(db, emergency=True)
+    names = [p.name for p in results]
+    assert "가까운동물병원" in names
+    assert {p.name for p in results if p.prefer_hit} == {"테헤란24시동물병원",
+                                                        "대치응급동물의료센터"}

@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from typing import Any, Protocol
 
 from app.core.config import settings
-from app.refine.state import SearchState
+from app.planning.state import EditableState
 from app.refine.tools import TOOL_SPECS
 
 
@@ -22,7 +22,7 @@ class ToolCall:
 
 
 class LLM(Protocol):
-    async def plan(self, utterance: str, state: SearchState, shown_ids: list[int],
+    async def plan(self, utterance: str, state: EditableState, shown_ids: list[int],
                    profile_hint: str) -> list[ToolCall]: ...
 
 
@@ -35,16 +35,29 @@ _RULES: list[tuple[re.Pattern[str], Any]] = [
     (re.compile(r"(더\s*넓|멀어도|범위\s*늘|넓혀|없\s*으면\s*멀리)"), lambda m, s, ids: [ToolCall("widen")]),
     (re.compile(r"(\d+)\s*(m|미터)\b"), lambda m, s, ids: [ToolCall("set_radius", {"m": int(m.group(1))})]),
     (re.compile(r"(\d+(?:\.\d+)?)\s*(km|킬로)"), lambda m, s, ids: [ToolCall("set_radius", {"m": int(float(m.group(1)) * 1000)})]),
-    (re.compile(r"(지금|당장|바로).*(열|하는|영업|진료)|영업\s*중|문\s*연"), lambda m, s, ids: [ToolCall("set_time", {"open_now": True})]),
-    (re.compile(r"야간|밤에|새벽|늦게"), lambda m, s, ids: [ToolCall("set_time", {"night": True})]),
-    (re.compile(r"응급|급해|급하|위급"), lambda m, s, ids: [ToolCall("set_time", {"emergency": True, "open_now": True})]),
+    (re.compile(r"(지금|당장|바로).*(열|하는|영업|진료)|영업\s*중|문\s*연"), lambda m, s, ids: [ToolCall("set_open_now", {"on": True})]),
+    (re.compile(r"야간|밤에|새벽|늦게"), lambda m, s, ids: [ToolCall("set_night_service", {"on": True})]),
+    # "응급 병원"은 병원 능력 요구, "급해"는 이번 상황이다. 긴급 상황이 검색·경로·보기에
+    # 미치는 영향은 resolver가 한 번에 사영하므로 자연어 층은 사실만 적는다.
+    (re.compile(r"응급\s*(병원|진료|센터|실)"),
+     lambda m, s, ids: [ToolCall("set_emergency_service", {"on": True})]),
+    (re.compile(r"응급|급해|급하|위급"),
+     lambda m, s, ids: [ToolCall("set_urgency", {"level": "urgent"})]),
     (re.compile(r"24\s*시"), lambda m, s, ids: [ToolCall("require", {"tags": ["24h"]})]),
     (re.compile(r"큰\s*병원|의료센터|2차|종합"), lambda m, s, ids: [ToolCall("require", {"tags": ["center"]})]),
-    (re.compile(r"관절|정형|다리|절뚝|슬개골|십자인대"), lambda m, s, ids: [ToolCall("set_specialty", {"tags": s.target.specialty + ["ortho"]})]),
-    (re.compile(r"안과|눈이|백내장|눈\s*뿌옇"), lambda m, s, ids: [ToolCall("set_specialty", {"tags": s.target.specialty + ["eye"]})]),
-    (re.compile(r"치과|이빨|치석|잇몸"), lambda m, s, ids: [ToolCall("set_specialty", {"tags": s.target.specialty + ["dental"]})]),
-    (re.compile(r"피부|가려|긁"), lambda m, s, ids: [ToolCall("set_specialty", {"tags": s.target.specialty + ["derma"]})]),
-    (re.compile(r"심장|호흡|숨"), lambda m, s, ids: [ToolCall("set_specialty", {"tags": s.target.specialty + ["cardio"]})]),
+    # **증상에서 과목을 추론하지 않는다.** "숨을 헐떡여요" → 심장은 진단이고, 우리 관할 밖이며
+    # (docs/overview.md), 재료도 없다 — cardio 태그는 전국 16곳, 그것도 간판 이름일 뿐이다.
+    # 증상은 **말 그대로** state.symptoms 에 남는다 (note_symptoms). 과목을 아는 건 우리가 아니라
+    # 커뮤니티 코퍼스다 — 증상 언어로 검색하면 그 증상을 잡으려고 병원이 써둔 FAQ·센터 페이지가
+    # 걸린다 (query-rewrite-experiment.md). 여기서는 사용자가 **과목을 말했을 때만** 선호로 세운다.
+    (re.compile(r"(절뚝|다리를?\s*(절|저는)|눈이?\s*뿌옇|숨을?\s*헐떡|헐떡거|기침|귀를?\s*긁|피부를?\s*긁|자꾸\s*긁|토했|토를|설사)"),
+     lambda m, s, ids: [ToolCall("note_symptoms", {"terms": [m.group(1)]})]),
+    (re.compile(r"정형|관절"), lambda m, s, ids: [ToolCall("set_specialty", {"tags": s.target.specialty + ["ortho"]})]),
+    (re.compile(r"안과"), lambda m, s, ids: [ToolCall("set_specialty", {"tags": s.target.specialty + ["eye"]})]),
+    (re.compile(r"치과"), lambda m, s, ids: [ToolCall("set_specialty", {"tags": s.target.specialty + ["dental"]})]),
+    (re.compile(r"피부과"), lambda m, s, ids: [ToolCall("set_specialty", {"tags": s.target.specialty + ["derma"]})]),
+    (re.compile(r"심장\s*(과|전문|진료|잘)"), lambda m, s, ids: [ToolCall("set_specialty", {"tags": s.target.specialty + ["cardio"]})]),
+    (re.compile(r"재활"), lambda m, s, ids: [ToolCall("set_specialty", {"tags": s.target.specialty + ["rehab"]})]),
     (re.compile(r"걸어|도보|산책\s*겸|걷"), lambda m, s, ids: [ToolCall("set_mode", {"mode": "walk"})]),
     (re.compile(r"차로|차\s*타|운전|택시"), lambda m, s, ids: [ToolCall("set_mode", {"mode": "car"})]),
     (re.compile(r"버스|지하철|대중교통"), lambda m, s, ids: [ToolCall("set_mode", {"mode": "transit"})]),
@@ -58,15 +71,16 @@ _RULES: list[tuple[re.Pattern[str], Any]] = [
 ]
 
 # 같은 툴이 여러 번 나오면 인자를 합쳐야 하는 것들 (툴 -> 리스트 인자 이름)
-ACCUMULATING = {"set_specialty": "tags", "require": "tags", "unrequire": "tags",
-                "set_walk_avoid": "facilities", "unset_walk_avoid": "facilities"}
+ACCUMULATING = {"set_specialty": "tags", "note_symptoms": "terms", "require": "tags",
+                "unrequire": "tags", "set_walk_avoid": "facilities",
+                "unset_walk_avoid": "facilities"}
 
 _EXCL = re.compile(r"(첫번째|두번째|세번째|네번째|다섯번째|[1-5]번|첫|두|세|네|다섯)\s*(번째)?\s*(거|곳|병원|데)?\s*(는|은|말고|빼|제외)")
 _HERE = re.compile(r"(여기|거기|이\s*병원|이\s*데)\s*(는|은)?\s*(말고|빼|제외|싫)")
 
 
 class FakeLLM:
-    async def plan(self, utterance: str, state: SearchState, shown_ids: list[int],
+    async def plan(self, utterance: str, state: EditableState, shown_ids: list[int],
                    profile_hint: str) -> list[ToolCall]:
         u = utterance.strip()
         calls: list[ToolCall] = []
@@ -108,7 +122,7 @@ class OpenAILLM:
     def __init__(self, api_key: str, model: str):
         self._key, self._model = api_key, model
 
-    async def plan(self, utterance: str, state: SearchState, shown_ids: list[int],
+    async def plan(self, utterance: str, state: EditableState, shown_ids: list[int],
                    profile_hint: str) -> list[ToolCall]:
         import httpx
         tools = [{

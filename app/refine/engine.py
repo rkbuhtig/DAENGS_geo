@@ -5,26 +5,26 @@
 
 from dataclasses import dataclass, field
 
+from app.planning.state import EditableState
 from app.profile.contract import DogProfile
 from app.refine import tools
 from app.refine.diff import changes as diff_changes
 from app.refine.diff import changes_by_policy
 from app.refine.nl import ToolCall, llm
-from app.refine.state import SearchState
 
 
 @dataclass
 class RefineResult:
-    state: SearchState
+    state: EditableState
     changes: list[str]
     grouped: dict[str, list[str]] = field(default_factory=dict)   # 정책별 (target/journey/view)
     applied: list[ToolCall] = field(default_factory=list)
     question: str | None = None
 
 
-def draft(lat: float, lng: float, profile: DogProfile | None, radius_m: int) -> SearchState:
+def draft(lat: float, lng: float, profile: DogProfile | None, radius_m: int) -> EditableState:
     """초안. 필터 없음. 프로필은 도보 옵션 '기본값'에만 — 사용자가 끄면 꺼진다."""
-    s = SearchState(lat=lat, lng=lng)
+    s = EditableState(lat=lat, lng=lng)
     s.target.radius_m = radius_m
     if profile and (profile.is_senior or profile.has_joint_issue):
         s.journey.walk.option = "no_stairs"      # journey 기본값만. 결과를 거르지 않는다
@@ -42,10 +42,16 @@ def profile_hint(p: DogProfile | None) -> str:
     return ", ".join(bits)
 
 
-async def refine(state: SearchState | None, edits: list[ToolCall], utterance: str | None,
+async def refine(state: EditableState | None, edits: list[ToolCall], utterance: str | None,
                  shown_ids: list[int], profile: DogProfile | None,
                  lat: float, lng: float, default_radius: int) -> RefineResult:
-    base = state or draft(lat, lng, profile, default_radius)
+    if state is None:
+        base = draft(lat, lng, profile, default_radius)
+    else:
+        # origin은 매 요청의 현재 위치다. 클라이언트 state보다 새 요청 값을 우선한다.
+        # history에는 넣지 않는다 — GPS 갱신은 사용자가 undo할 조건 편집이 아니다.
+        base = state.model_copy(deep=True)
+        base.lat, base.lng = lat, lng
     cur = base
     applied: list[ToolCall] = []
     question = None

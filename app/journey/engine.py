@@ -7,8 +7,6 @@
 
 import asyncio
 import time
-from datetime import UTC, datetime
-from zoneinfo import ZoneInfo
 
 import httpx
 
@@ -23,7 +21,7 @@ from app.journey.advice import (
 from app.journey.handoff import handoff_links
 from app.journey.models import Alt, Companion, Leg, RoadMix, Transport
 from app.journey.spots import spots_out
-from app.profile.contract import DogProfile
+from app.planning.plans import JourneyPlan
 from app.providers.base import LatLng, Mode, RouteResult, WalkOption
 from app.providers.fake import FakeProvider, haversine_m
 from app.providers.registry import route_provider
@@ -62,11 +60,6 @@ async def _route(mode: Mode, o: LatLng, d: LatLng, option: WalkOption, measured:
     return await _fake.route(mode, o, d, option)  # type: ignore[return-value]
 
 
-def is_night(at: datetime | None = None) -> bool:
-    t = (at or datetime.now(UTC)).astimezone(ZoneInfo("Asia/Seoul"))
-    return t.hour >= 20 or t.hour < 6
-
-
 def _leg(r: RouteResult, factor: float, advice: tuple[str, list[str]] | None = None) -> Leg:
     fac = r.facilities
     return Leg(
@@ -82,26 +75,28 @@ def _leg(r: RouteResult, factor: float, advice: tuple[str, list[str]] | None = N
     )
 
 
-async def snapshot(origin: LatLng, dest: LatLng, *, companion: Companion = "dog",
-                   measured: bool = True, mode: Mode | None = None,
-                   walk_option: WalkOption = "recommended", walk_max: int | None = None,  # 도보 상한
-                   avoid: list[str] | None = None, profile: DogProfile | None = None,
-                   temp_c: float | None = None, at: datetime | None = None,
-                   dest_name: str = "", with_polyline: bool = True,
+async def snapshot(plan: JourneyPlan, dest: LatLng, *, dest_name: str = "",
+                   with_polyline: bool = True,
                    arrive_note: str | None = None) -> Transport:
-    avoid = avoid or []
+    origin = LatLng(plan.origin_lat, plan.origin_lng)
+    companion: Companion = plan.companion  # type: ignore[assignment]
+    avoid = list(plan.walk.avoid)
+    profile = plan.profile
     straight = int(haversine_m(origin, dest))
     dog = companion == "dog"
+    walk_option = plan.walk.option
     if not dog and walk_option == "no_stairs":
-        walk_option = "recommended"        # 사람만 갈 땐 프로필 유래 기본값을 안 쓴다
-    night = is_night(at)
-    show_transit = (not dog) or profile is None or profile.size_class == "small"
+        walk_option = "recommended"       # 사람만 갈 땐 프로필 유래 기본값을 안 쓴다
+    show_transit = "transit" in plan.mode_priority
+    measured_mode = plan.mode_priority[0] if plan.measured and plan.mode_priority else None
 
-    walk_measured = measured and mode in (None, "walk")
-    opts = walk_options_to_try(walk_option, avoid, profile, night) if (walk_measured and dog) else [walk_option]
+    walk_measured = measured_mode == "walk"
+    opts = (walk_options_to_try(walk_option, avoid, profile, plan.travel_is_night)
+            if (walk_measured and dog) else [walk_option])
     walk_tasks = [asyncio.create_task(_route("walk", origin, dest, o, walk_measured)) for o in opts]
-    car_task = asyncio.create_task(_route("car", origin, dest, walk_option, measured and mode == "car"))
-    transit_task = (asyncio.create_task(_route("transit", origin, dest, walk_option, measured and mode == "transit"))
+    car_task = asyncio.create_task(_route("car", origin, dest, walk_option, measured_mode == "car"))
+    transit_task = (asyncio.create_task(_route("transit", origin, dest, walk_option,
+                                               measured_mode == "transit"))
                     if show_transit else None)
     walks = [await t for t in walk_tasks]
     car = await car_task
@@ -109,8 +104,12 @@ async def snapshot(origin: LatLng, dest: LatLng, *, companion: Companion = "dog"
 
     factor = dog_time_factor(profile) if dog else 1.0
     if dog:
-        best, choose_why = choose_walk(walks, walk_option, avoid, profile, factor, night)
-        adv_lvl, adv_why = walk_advice(best, profile, walk_max, avoid, temp_c, factor)
+        best, choose_why = choose_walk(
+            walks, walk_option, avoid, profile, factor, plan.travel_is_night,
+        )
+        adv_lvl, adv_why = walk_advice(
+            best, profile, plan.walk.max_walk_min, avoid, plan.temp_c, factor,
+        )
         advice = (adv_lvl, choose_why + adv_why)
     else:
         best, advice = walks[0], None
@@ -136,4 +135,12 @@ async def snapshot(origin: LatLng, dest: LatLng, *, companion: Companion = "dog"
         tl = _leg(transit, 1.0)
         tl.handoff = handoff_links(origin, dest, dest_name, "transit")
 
-    return Transport(as_of=datetime.now(UTC), companion=companion, straight_m=straight, walk=wl, car=cl, transit=tl)
+    return Transport(
+        as_of=plan.resolved_at,
+        companion=companion,
+        straight_m=straight,
+        mode_priority=list(plan.mode_priority),
+        walk=wl,
+        car=cl,
+        transit=tl,
+    )

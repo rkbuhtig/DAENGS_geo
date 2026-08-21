@@ -1,5 +1,10 @@
+from datetime import UTC, datetime
+
 from app.geo.tagging import dog_ok, tags_for
 from app.journey.advice import walk_advice
+from app.planning.facts import RuntimeFacts
+from app.planning.resolver import resolve_request
+from app.planning.state import EditableState
 from app.profile.source import PERSONAS
 from app.providers.base import LatLng
 from app.providers.fake import FakeProvider
@@ -103,9 +108,18 @@ async def test_walk_avoid_changes_walk_leg_only():
     from app.providers.base import LatLng as LL
 
     o, d = LL(37.4979, 127.0276), LL(37.5145, 127.0316)
-    plain = await snapshot(o, d, measured=False, profile=PERSONAS["halmae"], avoid=[])
-    avoided = await snapshot(o, d, measured=False, profile=PERSONAS["halmae"],
-                             avoid=["stairs", "underpass"])
+    facts = RuntimeFacts(now=datetime(2026, 8, 21, 3, 0, tzinfo=UTC), profile=PERSONAS["halmae"])
+    plain_state = EditableState(lat=o.lat, lng=o.lng)
+    avoided_state = EditableState(lat=o.lat, lng=o.lng)
+    avoided_state.journey.walk.avoid = ["stairs", "underpass"]
+    plain_plan = resolve_request(
+        plain_state, facts, kind=None, companion="dog", measured=False,
+    ).journey
+    avoided_plan = resolve_request(
+        avoided_state, facts, kind=None, companion="dog", measured=False,
+    ).journey
+    plain = await snapshot(plain_plan, d)
+    avoided = await snapshot(avoided_plan, d)
 
     assert (plain.car.min, plain.car.m, plain.car.advice, plain.car.why) == \
            (avoided.car.min, avoided.car.m, avoided.car.advice, avoided.car.why), "차량 leg 가 변했다"

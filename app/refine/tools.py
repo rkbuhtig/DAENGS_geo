@@ -10,76 +10,137 @@
 """
 
 from collections.abc import Callable
-from typing import Any
+from datetime import datetime
+from typing import Annotated, Any
 
-from app.refine.state import SearchState
+from pydantic import ConfigDict, Field, ValidationError, validate_call
+
+from app.planning.semantics import TimeIntent, TimeKind, Urgency
+from app.planning.state import EditableState, Sort, WalkFacility
+from app.providers.base import Mode, WalkOption
 
 MAX_HISTORY = 10
+Latitude = Annotated[float, Field(ge=-90, le=90)]
+Longitude = Annotated[float, Field(ge=-180, le=180)]
+RadiusM = Annotated[int, Field(ge=100, le=20000)]
+PositiveMinutes = Annotated[int, Field(ge=1, le=1440)]
+PositiveId = Annotated[int, Field(ge=1)]
+ShortText = Annotated[str, Field(min_length=1, max_length=200)]
+ShortTag = Annotated[str, Field(min_length=1, max_length=64)]
 
 
-def _push(state: SearchState) -> SearchState:
+class ToolInputError(ValueError):
+    """사용자·LLM이 보낸 툴 이름 또는 인자가 계약에 맞지 않는다."""
+
+
+def _push(state: EditableState) -> EditableState:
     s = state.model_copy(deep=True)
     s.history = (s.history + [state.snapshot()])[-MAX_HISTORY:]
     return s
 
 
 # ---------------------------------------------------------------- TARGET (필터)
-def set_origin(state: SearchState, lat: float, lng: float) -> SearchState:
+def set_origin(state: EditableState, lat: Latitude, lng: Longitude) -> EditableState:
     s = _push(state); s.lat, s.lng = lat, lng; return s
 
 
-def set_radius(state: SearchState, m: int) -> SearchState:
+def set_radius(state: EditableState, m: RadiusM) -> EditableState:
     s = _push(state); s.target.radius_m = max(100, min(20000, int(m))); return s
 
 
-def widen(state: SearchState, factor: float = 2.0) -> SearchState:
+def widen(state: EditableState, factor: Annotated[float, Field(gt=0, le=10)] = 2.0) -> EditableState:
     return set_radius(state, int(state.target.radius_m * factor))
 
 
-def narrow(state: SearchState, factor: float = 0.5) -> SearchState:
+def narrow(state: EditableState, factor: Annotated[float, Field(gt=0, le=10)] = 0.5) -> EditableState:
     return set_radius(state, int(state.target.radius_m * factor))
 
 
-def set_time(state: SearchState, open_now: bool | None = None, night: bool | None = None,
-             emergency: bool | None = None) -> SearchState:
-    s = _push(state)
-    if open_now is not None: s.target.open_now = open_now
-    if night is not None: s.target.night = night
-    if emergency is not None: s.target.emergency = emergency
-    return s
+# `set_time(open_now, night, emergency)` 하나였다. 셋은 같은 종류가 아니다 —
+# 영업 여부는 검색 조건, 야간·응급은 병원의 표방, 긴급도는 이번 상황의 사실이다.
+# 한 툴에 묶어두니 정책 라벨이 하나뿐이라 '응급'이 target 변경으로만 보고됐다.
+def set_open_now(state: EditableState, on: bool = True) -> EditableState:
+    s = _push(state); s.target.open_now = on; return s
 
 
-def set_specialty(state: SearchState, tags: list[str]) -> SearchState:
+def set_night_service(state: EditableState, on: bool = True) -> EditableState:
+    """야간진료를 **표방하는** 곳만. 지금이 밤이냐는 `set_time_intent` 다."""
+    s = _push(state); s.target.night_service = on; return s
+
+
+def set_emergency_service(state: EditableState, on: bool = True) -> EditableState:
+    """응급을 **표방하는** 곳만. 이번 상황이 급하냐는 `set_urgency` 다."""
+    s = _push(state); s.target.emergency_service = on; return s
+
+
+def set_specialty(state: EditableState, tags: Annotated[list[str], Field(max_length=6)]) -> EditableState:
     s = _push(state); s.target.specialty = sorted(set(tags)); return s
 
 
-def require(state: SearchState, tags: list[str]) -> SearchState:
+def note_symptoms(state: EditableState,
+                  terms: Annotated[list[ShortText], Field(max_length=20)]) -> EditableState:
+    """증상 표현을 **말 그대로** 남긴다. 커뮤니티 검색 쿼리 재료 — 과목 번역이 아니다."""
+    s = _push(state); s.target.symptoms = sorted(set(s.target.symptoms) | set(terms)); return s
+
+
+def clear_symptoms(state: EditableState,
+                   terms: Annotated[list[ShortText], Field(max_length=20)] | None = None) -> EditableState:
+    s = _push(state)
+    s.target.symptoms = [] if terms is None else [t for t in s.target.symptoms if t not in terms]
+    return s
+
+
+def require(state: EditableState, tags: Annotated[list[ShortTag], Field(max_length=20)]) -> EditableState:
     s = _push(state); s.target.require_tags = sorted(set(s.target.require_tags) | set(tags)); return s
 
 
-def unrequire(state: SearchState, tags: list[str]) -> SearchState:
+def unrequire(state: EditableState, tags: Annotated[list[ShortTag], Field(max_length=20)]) -> EditableState:
     s = _push(state); s.target.require_tags = [t for t in s.target.require_tags if t not in tags]; return s
 
 
-def exclude(state: SearchState, ids: list[int]) -> SearchState:
+def exclude(state: EditableState,
+            ids: Annotated[list[PositiveId], Field(max_length=100)]) -> EditableState:
     s = _push(state); s.target.exclude_ids = sorted(set(s.target.exclude_ids) | set(ids)); return s
 
 
-def pin(state: SearchState, ids: list[int]) -> SearchState:
+def pin(state: EditableState,
+        ids: Annotated[list[PositiveId], Field(max_length=100)]) -> EditableState:
     s = _push(state); s.target.pin_ids = sorted(set(s.target.pin_ids) | set(ids)); return s
 
 
+# ------------------------------------------------------- CONTEXT (상황 — 사실)
+# 여기 값들은 target 과 journey **둘 다**를 먹인다. 그래서 어느 한쪽 상자에 못 들어간다.
+def set_urgency(state: EditableState, level: Urgency) -> EditableState:
+    """이번 상황의 긴급도. **사용자가 말한 것만** 여기 들어온다.
+
+    긴급도는 조건을 좁히지 않는다 — 수단 우선순위·정렬·안내 문구를 바꿀 뿐이다.
+    '응급 병원을 찾겠다'는 요구는 `set_emergency_service` 로 따로 간다.
+    """
+    s = _push(state); s.urgency = level
+    return s
+
+
+def set_time_intent(state: EditableState, kind: TimeKind | None = None,
+                    at: datetime | None = None) -> EditableState:
+    """시각과 그 **뜻**. kind 없이 부르면 해제 (= 지금)."""
+    s = _push(state)
+    if (kind is None) != (at is None):
+        raise ValueError("kind and at must be supplied together")
+    s.time_intent = TimeIntent(kind=kind, at=at) if (kind and at) else None
+    return s
+
+
 # ------------------------------------------------- JOURNEY / 수단 (scope: any)
-def set_mode(state: SearchState, mode: str | None) -> SearchState:
+def set_mode(state: EditableState, mode: Mode | None) -> EditableState:
     """어느 leg 를 앞에 놓을지의 선호. Transport 는 늘 셋 다 반환한다."""
-    s = _push(state); s.journey.preferred_mode = mode  # type: ignore[assignment]
+    s = _push(state); s.journey.preferred_mode = mode
     if mode in ("walk", "car", "transit") and s.sort == "distance":
         s.sort = "duration"
     return s
 
 
-def set_max_total_min(state: SearchState, minutes: int | None,
-                      hard: bool | None = None) -> SearchState:
+def set_max_total_min(state: EditableState, minutes: PositiveMinutes | None,
+                      hard: bool | None = None) -> EditableState:
     """**전체 이동시간** 상한. 수단 무관 — 차든 도보든 같은 잣대다.
 
     개가 걸어도 되는 시간은 `set_walk_max_min` 이다. 둘을 한 값으로 쓰면
@@ -94,20 +155,22 @@ def set_max_total_min(state: SearchState, minutes: int | None,
 # ------------------------------------------------ JOURNEY / 도보 (scope: walk)
 # 이 그룹은 preferred_mode 를 건드리지 않는다. '계단 없는 길로'가 도보를 함의한다면
 # 그건 자연어 층이 set_mode(walk) 를 **따로 내는** 것이지, 툴이 몰래 세울 일이 아니다.
-def set_walk_option(state: SearchState, option: str) -> SearchState:
-    s = _push(state); s.journey.walk.option = option  # type: ignore[assignment]
+def set_walk_option(state: EditableState, option: WalkOption) -> EditableState:
+    s = _push(state); s.journey.walk.option = option
     return s
 
 
-def set_walk_avoid(state: SearchState, facilities: list[str]) -> SearchState:
+def set_walk_avoid(state: EditableState,
+                   facilities: Annotated[list[WalkFacility], Field(max_length=3)]) -> EditableState:
     s = _push(state)
-    s.journey.walk.avoid = sorted(set(s.journey.walk.avoid) | set(facilities))  # type: ignore[arg-type]
+    s.journey.walk.avoid = sorted(set(s.journey.walk.avoid) | set(facilities))
     # option 도 도보 scope 안이라 같이 움직여도 된다 (계층을 넘지 않는다)
     if "stairs" in s.journey.walk.avoid: s.journey.walk.option = "no_stairs"
     return s
 
 
-def unset_walk_avoid(state: SearchState, facilities: list[str]) -> SearchState:
+def unset_walk_avoid(state: EditableState,
+                     facilities: Annotated[list[WalkFacility], Field(max_length=3)]) -> EditableState:
     s = _push(state)
     s.journey.walk.avoid = [f for f in s.journey.walk.avoid if f not in facilities]
     if "stairs" in facilities and s.journey.walk.option == "no_stairs":
@@ -115,52 +178,88 @@ def unset_walk_avoid(state: SearchState, facilities: list[str]) -> SearchState:
     return s
 
 
-def set_walk_max_min(state: SearchState, minutes: int | None) -> SearchState:
+def set_walk_max_min(state: EditableState, minutes: PositiveMinutes | None) -> EditableState:
     """**개가 걸어도 되는 시간** 상한. 전체 이동시간(`set_max_total_min`)과 다르다."""
     s = _push(state); s.journey.walk.max_walk_min = minutes
     return s
 
 
 # ------------------------------------------------------------------ VIEW (표시)
-def set_sort(state: SearchState, sort: str) -> SearchState:
-    s = _push(state); s.sort = sort  # type: ignore[assignment]
+def set_sort(state: EditableState, sort: Sort) -> EditableState:
+    s = _push(state); s.sort = sort
     return s
 
 
-def undo(state: SearchState) -> SearchState:
+def undo(state: EditableState) -> EditableState:
     if not state.history:
         return state
-    prev = SearchState(**state.history[-1])
+    prev = EditableState(**state.history[-1])
     prev.history = state.history[:-1]
     return prev
 
 
-def reset(state: SearchState) -> SearchState:
+def reset(state: EditableState) -> EditableState:
+    """**필터 초기화.** 상황(context)은 남긴다 — 사실은 초기화의 대상이 아니다.
+
+    지금이 밤이고 급한 건 필터를 푼다고 달라지지 않는다. 지우려면 각각 따로 부른다.
+    """
     s = _push(state)
-    return SearchState(lat=s.lat, lng=s.lng, history=s.history)
+    return EditableState(lat=s.lat, lng=s.lng, history=s.history,
+                       time_intent=s.time_intent, urgency=s.urgency)
 
 
-TARGET_TOOLS: dict[str, Callable[..., SearchState]] = {
+TARGET_TOOLS: dict[str, Callable[..., EditableState]] = {
     "set_origin": set_origin, "set_radius": set_radius, "widen": widen, "narrow": narrow,
-    "set_time": set_time, "set_specialty": set_specialty, "require": require, "unrequire": unrequire,
+    "set_open_now": set_open_now, "set_night_service": set_night_service,
+    "set_emergency_service": set_emergency_service,
+    "set_specialty": set_specialty, "note_symptoms": note_symptoms, "clear_symptoms": clear_symptoms,
+    "require": require, "unrequire": unrequire,
     "exclude": exclude, "pin": pin,
 }
+# 상황은 정책이 아니라 **두 정책의 입력**이다. 그래서 네 번째 그룹이 된다.
+CONTEXT_TOOLS: dict[str, Callable[..., EditableState]] = {
+    "set_urgency": set_urgency, "set_time_intent": set_time_intent,
+}
 # 수단 선택은 scope="any", 수단별 설정은 그 수단 scope. 계층이 다르다.
-MODE_TOOLS: dict[str, Callable[..., SearchState]] = {
+MODE_TOOLS: dict[str, Callable[..., EditableState]] = {
     "set_mode": set_mode, "set_max_total_min": set_max_total_min,
 }
-WALK_TOOLS: dict[str, Callable[..., SearchState]] = {
+WALK_TOOLS: dict[str, Callable[..., EditableState]] = {
     "set_walk_option": set_walk_option, "set_walk_avoid": set_walk_avoid,
     "unset_walk_avoid": unset_walk_avoid, "set_walk_max_min": set_walk_max_min,
 }
-JOURNEY_TOOLS: dict[str, Callable[..., SearchState]] = {**MODE_TOOLS, **WALK_TOOLS}
-VIEW_TOOLS: dict[str, Callable[..., SearchState]] = {
+JOURNEY_TOOLS: dict[str, Callable[..., EditableState]] = {**MODE_TOOLS, **WALK_TOOLS}
+VIEW_TOOLS: dict[str, Callable[..., EditableState]] = {
     "set_sort": set_sort, "undo": undo, "reset": reset,
 }
-TOOLS: dict[str, Callable[..., SearchState]] = {**TARGET_TOOLS, **JOURNEY_TOOLS, **VIEW_TOOLS}
+TOOLS: dict[str, Callable[..., EditableState]] = {
+    **CONTEXT_TOOLS, **TARGET_TOOLS, **JOURNEY_TOOLS, **VIEW_TOOLS,
+}
+
+
+def _legacy_set_time(state: EditableState, open_now: bool | None = None,
+                     night: bool | None = None,
+                     emergency: bool | None = None) -> EditableState:
+    """v1 클라이언트의 복합 툴. 새 툴 목록에는 노출하지 않고 입력만 이행한다."""
+    s = _push(state)
+    if open_now is not None:
+        s.target.open_now = open_now
+    if night is not None:
+        s.target.night_service = night
+    if emergency is not None:
+        s.target.emergency_service = emergency
+    return s
+
+
+LEGACY_TOOLS: dict[str, Callable[..., EditableState]] = {"set_time": _legacy_set_time}
+_VALIDATED_TOOLS = {
+    name: validate_call(fn, config=ConfigDict(extra="forbid"))
+    for name, fn in {**TOOLS, **LEGACY_TOOLS}.items()
+}
 
 
 def policy_of(tool: str) -> str:
+    if tool in CONTEXT_TOOLS: return "context"
     if tool in TARGET_TOOLS: return "target"
     if tool in JOURNEY_TOOLS: return "journey"
     if tool in VIEW_TOOLS: return "view"
@@ -181,8 +280,14 @@ TOOL_SPECS: list[dict[str, Any]] = [
     {"policy": "target", "scope": "any", "name": "set_radius", "desc": "검색 반경(m)", "args": {"m": "int"}},
     {"policy": "target", "scope": "any", "name": "widen", "desc": "반경 넓히기(기본 2배)", "args": {"factor": "float?"}},
     {"policy": "target", "scope": "any", "name": "narrow", "desc": "반경 좁히기(기본 절반)", "args": {"factor": "float?"}},
-    {"policy": "target", "scope": "any", "name": "set_time", "desc": "지금 영업중/야간/응급 필터", "args": {"open_now": "bool?", "night": "bool?", "emergency": "bool?"}},
-    {"policy": "target", "scope": "any", "name": "set_specialty", "desc": "진료 특화 (ortho, eye, dental, derma, cardio, rehab)", "args": {"tags": "list[str]"}},
+    {"policy": "target", "scope": "any", "name": "set_open_now", "desc": "지금 영업중인 곳만", "args": {"on": "bool?"}},
+    {"policy": "target", "scope": "any", "name": "set_night_service", "desc": "야간진료를 표방하는 곳만. '지금이 밤이다'가 아니다", "args": {"on": "bool?"}},
+    {"policy": "target", "scope": "any", "name": "set_emergency_service", "desc": "응급을 표방하는 곳만. '지금 급하다'가 아니다", "args": {"on": "bool?"}},
+    {"policy": "context", "scope": "any", "name": "set_urgency", "desc": "이번 상황의 긴급도 normal|urgent. 조건을 좁히지 않는다 — 병원 종류 요구는 set_emergency_service", "args": {"level": "str"}},
+    {"policy": "context", "scope": "any", "name": "set_time_intent", "desc": "시각과 그 뜻. kind=depart_at(출발)|arrive_by(도착기한)|service_at(그 시각에 여는 병원)", "args": {"kind": "str?", "at": "str?"}},
+    {"policy": "target", "scope": "any", "name": "set_specialty", "desc": "진료 특화 선호 (ortho, eye, dental, derma, cardio, rehab). 사용자가 과목을 직접 말했을 때만", "args": {"tags": "list[str]"}},
+    {"policy": "target", "scope": "any", "name": "note_symptoms", "desc": "증상 표현을 말 그대로 기록 (진단 금지, 과목 번역 금지). 커뮤니티 검색 재료", "args": {"terms": "list[str]"}},
+    {"policy": "target", "scope": "any", "name": "clear_symptoms", "desc": "증상 기록 해제. terms 없으면 전부", "args": {"terms": "list[str]?"}},
     {"policy": "target", "scope": "any", "name": "require", "desc": "필수 태그 (24h, center, secondary, surgery)", "args": {"tags": "list[str]"}},
     {"policy": "target", "scope": "any", "name": "unrequire", "desc": "필수 태그 해제", "args": {"tags": "list[str]"}},
     {"policy": "target", "scope": "any", "name": "exclude", "desc": "결과에서 제외할 병원 id (화면 순번→id는 shown_ids로 매핑)", "args": {"ids": "list[int]"}},
@@ -200,8 +305,11 @@ TOOL_SPECS: list[dict[str, Any]] = [
 ]
 
 
-def apply(state: SearchState, tool: str, args: dict[str, Any] | None = None) -> SearchState:
-    fn = TOOLS.get(tool)
+def apply(state: EditableState, tool: str, args: dict[str, Any] | None = None) -> EditableState:
+    fn = _VALIDATED_TOOLS.get(tool)
     if fn is None:
-        raise KeyError(f"unknown tool: {tool}")
-    return fn(state, **(args or {}))
+        raise ToolInputError(f"unknown tool: {tool}")
+    try:
+        return fn(state, **(args or {}))
+    except (KeyError, TypeError, ValueError, ValidationError) as exc:
+        raise ToolInputError(f"invalid args for {tool}: {exc}") from exc
