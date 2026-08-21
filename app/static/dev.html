@@ -24,6 +24,14 @@
   .adv-ok { color:#1a7f37; } .adv-caution { color:#b26a00; } .adv-avoid { color:#c62828; font-weight:600; }
   .changes { background:#f6f6f6; border-radius:6px; padding:6px 8px; margin:6px 0; white-space:pre-wrap; }
   .q { background:#fff4d6; border-radius:6px; padding:6px 8px; margin:6px 0; }
+  /* 안전 표면 — 장식이 아니라 계약이다 (app/planning/trace.py) */
+  .safety { background:#fdecea; border:1px solid #f3b5ae; border-radius:6px; padding:8px; margin:6px 0; }
+  .safety b { color:#c62828; }
+  .safety button { margin-top:6px; }
+  .override { background:#fff4d6; border-left:3px solid #b26a00; border-radius:4px; padding:6px 8px; margin:6px 0; font-size:13px; }
+  .trace { font-size:12px; color:#666; margin:4px 0 8px; }
+  .trace summary { cursor:pointer; }
+  .trace li { margin:2px 0; }
   .spot { display:flex; gap:6px; padding:3px 0; border-top:1px dashed #eee; }
   .spot .n { width:18px; height:18px; border-radius:50%; background:#444; color:#fff; font-size:11px; display:flex; align-items:center; justify-content:center; flex:none; }
   .spot.warn .n { background:#c62828; }
@@ -93,7 +101,10 @@
   <input type="text" id="utt" placeholder="예: 눈이 뿌옇고 걸어서 갈 수 있는 데 / 첫번째 거는 빼줘 / 아까대로">
   <div class="row"><button id="send">보내기</button><span class="muted">Enter로도 전송</span></div>
 
+  <div id="safety" class="safety" style="display:none"></div>
+  <div id="overrides"></div>
   <div id="changes" class="changes"></div>
+  <details id="trace" class="trace" style="display:none"><summary>이 결과가 정해진 과정</summary><ul id="tracelist"></ul></details>
   <div id="question" class="q" style="display:none"></div>
 
   <h3>결과 <span id="count" class="muted"></span></h3>
@@ -295,8 +306,45 @@ function syncChips(st) {
   $('walkmax').value = jn.walk.max_walk_min == null ? '' : jn.walk.max_walk_min;
 }
 
+// call_reasons 는 원시 코드다 (safety_urgency 가 reason 또는 origin 을 그대로 낸다).
+// 사용자에게 코드를 보여주면 안 된다 — 모르는 코드는 문장을 만들지 말고 통째로 생략한다.
+const CALL_REASON_TEXT = {
+  user: '급하다고 하셨어요',
+  breathing_safety_rule: '호흡 이상은 지체하면 위험할 수 있어요',
+  rule: '입력하신 증상이 응급 신호에 걸렸어요',
+};
+const AXIS_TEXT = { context: '상황', target: '찾는 곳', journey: '가는 길', view: '보기' };
+
+function renderSafety(d) {
+  // 1) 전화 CTA — 조건을 좁히는 대신 전화를 권한다 (semantics.safety_urgency)
+  const box = $('safety');
+  if (d.show_call_cta) {
+    const said = (d.call_reasons || []).map(c => CALL_REASON_TEXT[c]).filter(Boolean);
+    box.style.display = '';
+    box.innerHTML = `<b>지금 전화부터 권합니다</b>`
+      + (said.length ? `<div class="muted">${said.join(' · ')}</div>` : '')
+      + `<div class="muted">영업시간이 미상인 곳이 많아 전화가 가장 빠릅니다.</div>`;
+  } else { box.style.display = 'none'; box.innerHTML = ''; }
+
+  // 2) 상황이 사용자 설정을 눌렀으면 **반드시** 말한다. trace.py 의 존재 이유다 —
+  //    "사용자가 걸어둔 조건이 살아 있다고 믿게 두면 안 된다"
+  const res = d.resolution || [];
+  const overrode = res.filter(e => e.overrode);
+  $('overrides').innerHTML = overrode.map(e =>
+    `<div class="override">⚠ ${e.what}<div class="muted">${e.because} → <code>${e.overrode}</code> 무시됨</div></div>`
+  ).join('');
+
+  // 3) 나머지 trace 는 접어둔다. 디버깅·상세용이지 사용자 화면의 주인공이 아니다
+  const rest = res.filter(e => !e.overrode);
+  $('trace').style.display = rest.length ? '' : 'none';
+  $('tracelist').innerHTML = rest.map(e =>
+    `<li><b>${AXIS_TEXT[e.axis] || e.axis}</b> ${e.what}${e.because ? ` <span class="muted">(${e.because})</span>` : ''}</li>`
+  ).join('');
+}
+
 function render(d) {
   syncChips(d.state);
+  renderSafety(d);
   const g = d.changes_by_policy || {};
   const line = (cls, label, arr) => (arr && arr.length) ? `<div class="chg"><span class="pol ${cls}">${label}</span><span>${arr.join(' · ')}</span></div>` : '';
   $('changes').innerHTML = (line('c', '상황', g.context) + line('t', '찾는 곳', g.target) + line('j', '가는 길', g.journey) + line('t', '보기', g.view)
