@@ -81,7 +81,9 @@ class NullCommunitySearch:
 
 def community_search() -> CommunitySearch:
     if settings.community_provider == "fake":
-        return FakeCommunitySearch()
+        # 가짜 근거는 **순위를 바꾼다** (hospital/api.py boost). 운영 응답에 섞이면
+        # 지역과 무관한 시드가 실제 병원 순서를 흔든다 — 검증 콘솔이 켜진 환경으로 한정한다.
+        return FakeCommunitySearch() if settings.dev_console else NullCommunitySearch()
     # TODO: NaverSearch(client_id, secret) — 블로그/카페글/지식iN 엔드포인트
     return NullCommunitySearch()
 

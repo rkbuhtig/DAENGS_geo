@@ -18,6 +18,7 @@ APIGW = "https://maps.apigw.ntruss.com"
 
 class NaverProvider:
     name = "naver"
+    route_modes: frozenset = frozenset()       # 경로 미구현 — 정적지도·지오코딩만
 
     def __init__(self, key_id: str, key: str, client: httpx.AsyncClient | None = None):
         self._headers = {
