@@ -3,13 +3,14 @@
 > 이 문서는 "코드가 존재한다"와 "현재 제품에 꽂혀 있다"를 구분한다. 지도 중심 서비스라
 > 공급자를 바꿔 실험할 수 있게, **현재 조립**, **선택 이유**, **교체 지점**, **검증 결과**를 같이 남긴다.
 
-최종 갱신: 2026-08-21 · 관련 결정: [#11, #13, #21, #39~#44](decisions/README.md)
+최종 갱신: 2026-08-21 · 관련 결정: [#11, #13, #21, #39~#44, #46](decisions/README.md)
 
 ## 현재 조립
 
 | 표면 / capability | 현재 선택 | 상태 | 실패·미설정 시 | 선택 이유 |
 |---|---|---|---|---|
 | 웹 인터랙티브 지도 (`/dev`) | **NAVER Dynamic Map** | 키 입력 후 활성 | 키 누락·SDK 로드 실패 시 OSM 개발 폴백 | 가장 먼저 사람이 만지는 지도 표면을 실물로 검증 |
+| Android 인터랙티브 지도 | **NAVER Android Map SDK 3.23.3** | 앱 조립·APK 빌드 완료, 실기기 smoke 대기 | key id 누락 시 설정 안내 표면 | 현재 위치·pinned 검색 계약의 기준 구현 |
 | 챗봇 카드 정적 지도 | **NAVER Static Map** | 서버 프록시 구현 완료 | `preview_url=null` 또는 프록시 404 | 넉넉한 호출량, 헤더 인증 secret을 서버에 보관 |
 | 시설 반경 검색·거리 | **PostGIS + 자체 적재 데이터** | 활성 | 외부 지도 검색으로 대체하지 않음 | 결과 집합을 공급자 검색 순위와 쿼터에 종속시키지 않음 |
 | 지오코딩·좌표 복구 | `none` | **보류** | 좌표 있는 시설만 검색 | 약 5% 결손은 복구 가능하지만 현재 검증 범위보다 작업이 큼 |
@@ -26,6 +27,9 @@
 ```text
 웹 지도       DAENGS_MAP_PROVIDER=naver
                  └─ GET /map/client-config → 공개 key id만 브라우저 전달
+
+Android 지도  DAENGS_NAVER_NCP_KEY_ID
+                 └─ BuildConfig → NAVER SDK, 패키지 com.daengs.geo 등록 필요
 
 정적 지도     DAENGS_STATIC_MAP_PROVIDER=naver
                  └─ GET /map/static → 서버가 NAVER 호출 → PNG 반환
@@ -78,6 +82,7 @@ OSM으로 조용히 내리지 않고 등록 호스트와 실제 접속 호스트
 |---|---|---|---|---|
 | 2026-08-21 | NAVER Dynamic + Static / PostGIS search | 로컬, 키 미입력 | `/dev` 20곳·마커·지도 클릭 및 OSM 폴백, 브라우저 오류 없음 | 키 입력 후 실제 NAVER 타일·정적 PNG smoke test |
 | 2026-08-21 | NAVER Dynamic + Static / PostGIS search | `127.0.0.1`, 실제 키 | Dynamic 타일·20개 마커와 Static PNG 200(34,344 bytes) 확인 | 운영 도메인 등록 후 같은 smoke test |
+| 2026-08-21 | NAVER Android SDK / PostGIS search | Android SDK 37, JVM 25 | debug APK·요청 계약 테스트 빌드 성공 | Android 패키지 등록 후 실기기 지도·위치 smoke test |
 
 ## 실행 확인
 

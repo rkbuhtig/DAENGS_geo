@@ -1,0 +1,75 @@
+{
+  "state": {
+    "state_version": 2,
+    "lat": 37.5665,
+    "lng": 126.978,
+    "time_intent": null,
+    "urgency": null,
+    "target": {
+      "radius_m": 100,
+      "open_now": false,
+      "night_service": false,
+      "emergency_service": false,
+      "specialty": [],
+      "symptoms": [],
+      "require_tags": [],
+      "exclude_ids": [],
+      "pin_ids": [],
+      "limit": 20
+    },
+    "journey": {
+      "preferred_mode": null,
+      "max_total_min": null,
+      "hard_limit": false,
+      "walk": {"option": "recommended", "avoid": [], "max_walk_min": null}
+    },
+    "sort": "distance",
+    "history": [],
+    "future_server_field": {"must_survive": true}
+  },
+  "results": [
+    {
+      "id": 7,
+      "kind": "hospital",
+      "name": "댕스동물병원",
+      "lat": 37.567,
+      "lng": 126.979,
+      "distance_m": 140,
+      "address": "서울 어딘가",
+      "phone": "02-123-4567",
+      "is_night": false,
+      "is_24h": false,
+      "open_now": null,
+      "hours_today": null,
+      "tags": [],
+      "prefer_hit": ["dental"],
+      "transport": {
+        "walk": {"status": "estimate", "min": 3, "m": 180, "status_reason": "preview"}
+      }
+    }
+  ],
+  "map": {"preview_url": null, "deeplink": "daengs://map", "web_url": "https://example.test"},
+  "changes": [],
+  "changes_by_policy": {},
+  "applied": [],
+  "question": null,
+  "reply": "1곳. 영업시간은 미상이에요.",
+  "resolution": [
+    {"axis": "urgency", "what": "가까운 곳 우선", "because": "급한 상황", "overrode": "거리 설정"}
+  ],
+  "show_call_cta": true,
+  "call_reasons": ["방문 전 전화 확인"],
+  "actions": [
+    {
+      "id": "walk_without_stairs",
+      "label": "계단 없는 길로 보기",
+      "kind": "edits",
+      "source": "policy",
+      "edits": [
+        {"tool": "set_mode", "args": {"mode": "walk"}},
+        {"tool": "set_walk_avoid", "args": {"facilities": ["stairs"]}}
+      ]
+    }
+  ],
+  "future_top_level_field": "ignored by the typed surface"
+}

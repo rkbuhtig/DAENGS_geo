@@ -6,6 +6,12 @@ __pycache__/
 !.env.example
 .idea/
 .vscode/
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/*.jks
+android/*.keystore
 *.log
 .DS_Store
 Thumbs.db

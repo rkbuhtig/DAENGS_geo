@@ -1,6 +1,6 @@
 # DAENGS_geo
 
-댕스(DAENGS) 반려견 케어 서비스의 **지오 백엔드**.
+댕스(DAENGS) 반려견 케어 서비스의 **지오 백엔드 + Android 기준 클라이언트**.
 두 기능이 하나의 위치 인프라(PostGIS 반경 검색 · 좌표 인덱싱 · 영업시간 판정)를 공유한다.
 
 | 기능 | 성격 | 진입 |
@@ -26,6 +26,7 @@ app/
 │   └── walk/      사용자 담당
 ├── api/         GET /places/search · GET /map/static
 └── core/        config · db
+android/         Kotlin/Compose 단일 모듈 — 위치 → 검색 → NAVER 지도 → actions/전화 수직 절단면
 ```
 
 **LLM은 `utterance`가 있을 때만**, 그것도 "말 → 툴 호출" 번역 한 겹. 병원 정보 생성 안 함. UI 필터(`edits`)와 자연어는 같은 툴로 수렴.
@@ -44,6 +45,9 @@ uv sync
 uv run uvicorn app.main:app --reload
 uv run pytest
 ```
+
+Android 앱은 [`android/README.md`](android/README.md)를 따른다. 백엔드와 같은 레포에 있지만
+Gradle 프로젝트는 `android/` 아래에 독립되어 있어 Python 실행·테스트와 섞이지 않는다.
 
 ### 실제 병원·약국 데이터 동기화
 

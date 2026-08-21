@@ -5,4 +5,4 @@
 
 | 갈래 | 상태 | 한 줄 |
 |---|---|---|
-| [mobile-map-shell](mobile-map-shell.md) | exploring | 공간 표면(지도)과 에피소드 표면(브리핑·회고)을 가른다. 위치 계약·안전 표면·불확실성 행렬 |
+| [mobile-map-shell](mobile-map-shell.md) | working-skeleton | Android 위치→검색→지도·카드→action·전화가 착지. 산책 service와 판정 주기는 미결 |
