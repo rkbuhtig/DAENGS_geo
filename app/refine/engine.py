@@ -1,6 +1,11 @@
 """refine: (state | None, edits, utterance) → (new state, changes, question?)
 
-순서: 초안 생성(프로필 기본값) → UI edits 적용 → utterance를 LLM이 툴로 → 적용 → diff.
+순서: 초안 생성(프로필 기본값) → UI edits 적용 → utterance를 LLM이 툴로 → 적용 → 되돌림 지점 → diff.
+
+**undo 의 단위는 턴이다.** 한 마디가 툴을 몇 개 부르든 되돌림 지점은 하나만 찍는다 —
+"계단은 빼줘"는 set_mode(walk) + set_walk_avoid(stairs) 두 개인데, 툴마다 찍으면 undo 한 번이
+"도보는 유지, 계단 제외만 취소"라는 **사용자가 말한 적 없는 중간 상태**를 만든다. 스택 10칸도
+4~5턴이면 찬다.
 """
 
 from dataclasses import dataclass, field
@@ -69,9 +74,29 @@ async def refine(state: EditableState | None, edits: list[ToolCall], utterance: 
             cur = tools.apply(cur, c.tool, c.args)
             applied.append(c)
 
+    cur = _checkpoint_turn(base, cur, applied)
+
     grouped = changes_by_policy(base, cur)
     ch = diff_changes(base, cur)
     if state is None:
         ch = diff_changes(None, base) + ([] if ch == ["변경 없음"] else ch)
         grouped["target"] = changes_by_policy(None, base)["target"] + grouped["target"]
     return RefineResult(state=cur, changes=ch, grouped=grouped, applied=applied, question=question)
+
+
+def _checkpoint_turn(base: EditableState, cur: EditableState,
+                     applied: list[ToolCall]) -> EditableState:
+    """이 턴의 되돌림 지점을 남길지 정한다.
+
+    안 남기는 두 경우:
+      undo 가 낀 턴  스택을 소비하는 턴이다. 지점을 찍으면 자기가 도로 팝한다
+      상태가 그대로  "가까운 순으로"를 이미 거리순인데 또 말한 턴. 빈 칸이 스택을 먹으면 안 된다
+
+    origin(GPS 갱신)은 이미 base 에 반영된 뒤라 지점에 새 좌표가 들어간다 — 위치는 undo 대상이
+    아니라는 뜻이고, 그게 맞다.
+    """
+    if any(c.tool in tools.STACK_TOOLS for c in applied):
+        return cur
+    if cur.snapshot() == base.snapshot():
+        return cur
+    return tools.checkpoint(base, cur)

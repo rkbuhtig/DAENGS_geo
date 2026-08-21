@@ -12,9 +12,15 @@ from app.refine.nl import FakeLLM, ToolCall
 S = EditableState(lat=37.4979, lng=127.0276)
 
 
-def test_tools_are_pure_and_push_history():
+def test_tools_are_pure_and_leave_history_alone():
+    """툴은 편집만 한다. 되돌림 지점은 턴 경계(refine)가 찍는다."""
     s2 = tools.narrow(S)
     assert S.target.radius_m == 2000 and s2.target.radius_m == 1000
+    assert s2.history == [], "툴이 스택을 건드렸다 — 되돌림 지점은 턴당 하나여야 한다"
+
+
+def test_checkpoint_restores_the_whole_turn():
+    s2 = tools.checkpoint(S, tools.narrow(S))
     assert len(s2.history) == 1
     s3 = tools.undo(s2)
     assert s3.target.radius_m == 2000 and s3.history == []
@@ -22,6 +28,64 @@ def test_tools_are_pure_and_push_history():
 
 def test_undo_on_empty_is_noop():
     assert tools.undo(S) is S
+
+
+# ------------------------------------------------------------------ undo 의 단위 = 턴
+async def _turn(state, utterance=None, edits=(), profile=None):
+    r = await refine(state, [ToolCall(t, a) for t, a in edits], utterance, [],
+                     profile, 37.4979, 127.0276, 2000)
+    return r.state
+
+
+async def test_one_utterance_is_one_undo_step():
+    """"계단은 빼줘" 는 툴 2개(set_mode + set_walk_avoid)다. 되돌림은 한 번이어야 한다.
+
+    툴마다 찍으면 undo 1회가 "도보는 유지, 계단 제외만 취소" — 사용자가 말한 적 없는 상태다.
+    """
+    before = await _turn(None)
+    after = await _turn(before, "계단은 빼줘")
+    assert after.journey.preferred_mode == "walk" and after.journey.walk.avoid == ["stairs"]
+    assert len(after.history) == 1, "한 마디가 스택 두 칸을 먹었다"
+
+    back = tools.undo(after)
+    assert back.journey.walk.avoid == [] and back.journey.preferred_mode is None
+
+
+async def test_stack_depth_counts_turns_not_tools():
+    s = await _turn(None)
+    for utterance in ("계단은 빼줘", "안과 잘 보는 데", "너무 멀어"):
+        s = await _turn(s, utterance)
+    assert len(s.history) == 3
+
+
+async def test_undo_turn_does_not_leave_its_own_step():
+    """undo 가 자기 되돌림 지점을 찍으면 그걸 도로 팝해서 아무 일도 안 일어난다."""
+    s = await _turn(await _turn(None), "너무 멀어")
+    narrowed = s.target.radius_m
+    undone = await _turn(s, "아까로 되돌려")
+    assert undone.target.radius_m == 2000 != narrowed
+    assert undone.history == []
+
+
+async def test_turn_that_changes_nothing_keeps_the_stack():
+    """이미 거리순인데 "가까운 순으로" — 빈 칸이 10칸짜리 스택을 먹으면 안 된다."""
+    s = await _turn(await _turn(None), "너무 멀어")
+    same = await _turn(s, "가까운 순으로")
+    assert same.sort == "distance" and len(same.history) == len(s.history)
+
+
+async def test_reset_is_undoable():
+    s = await _turn(await _turn(None), "계단은 빼줘")
+    cleared = await _turn(s, "다 풀어줘")
+    assert cleared.journey.walk.avoid == []
+    assert tools.undo(cleared).journey.walk.avoid == ["stairs"]
+
+
+async def test_origin_refresh_is_not_undone():
+    """GPS 갱신은 조건 편집이 아니다 — 되돌림 지점에 새 좌표가 들어가 있어야 한다."""
+    s = await _turn(None)
+    moved = await refine(s, [], "너무 멀어", [], None, 37.5100, 127.0400, 2000)
+    assert tools.undo(moved.state).lat == 37.5100
 
 
 def test_walk_avoid_stays_inside_walk_scope():
