@@ -4,6 +4,7 @@
 
 ```
 overview.md          컨셉·범위. 거의 안 바뀜
+provider-assembly.md 현재 어떤 공급자가 어느 표면에 조립됐는지 + 교체 실험 로그
 decisions/           확정된 것만. 어느 탐색에서 나왔는지 링크
 contracts/           남과의 약속 (프로필 계약, 검색 응답)
 explorations/        갈래. 주제별 폴더, 갈래마다 파일. status로 상태 표시
@@ -15,6 +16,7 @@ backlog.md           갈래에 안 붙는 미결
 `exploring` 파는 중 · `adopted` 채택 (decisions/에 한 줄 생김) · `parked` 보류 · `rejected` 기각 (지우지 않음 — 같은 질문 다시 안 하려고)
 
 ## 주제
+- [공급자 조립 현황](provider-assembly.md) — 현재 선택·폴백·교체 지점·검증 로그
 - [병원 찾기](explorations/hospital-search/README.md) — 13갈래, 오늘의 초점은 [community-search](explorations/hospital-search/community-search.md)
 - [지도 제공사](explorations/map-provider/README.md)
 - [산책](explorations/walk/README.md) — 사용자 담당

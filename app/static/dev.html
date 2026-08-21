@@ -10,6 +10,7 @@
   body { margin:0; font: 13px/1.4 system-ui, sans-serif; display:grid; grid-template-columns: 420px 1fr; height:100vh; color:#222; }
   #left { overflow:auto; border-right:1px solid #ddd; padding:10px; }
   #map { height:100vh; }
+  #map-provider { position:fixed; z-index:10000; right:10px; top:10px; padding:5px 9px; border-radius:14px; background:#fff; box-shadow:0 1px 5px #0003; font-size:11px; color:#555; }
   h3 { margin:10px 0 4px; font-size:12px; color:#666; text-transform:uppercase; letter-spacing:.04em; }
   .row { display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin:4px 0; }
   .chip { border:1px solid #bbb; border-radius:14px; padding:2px 9px; cursor:pointer; background:#fff; font-size:12px; }
@@ -99,21 +100,124 @@
   <div id="list"></div>
 </div>
 <div id="map"></div>
+<div id="map-provider">지도 준비 중</div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const API = "/hospital/search";
 let state = null, shown = [], selected = null, origin = [37.4979, 127.0276];
 let lastSearch = null, journeys = {};   // journeys[id] = JourneyItem (실측)
+let geoMap = null;
 const companion = () => document.querySelector('input[name=comp]:checked').value;
 const TOP_N = 5;
-const map = L.map('map').setView(origin, 15);
-L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 19, attribution: '© OpenStreetMap (dev only)'}).addTo(map);
-const layer = L.layerGroup().addTo(map);
-let originMarker = L.circleMarker(origin, {radius: 8, color: '#1565c0', fillOpacity: .9}).addTo(map).bindTooltip('출발');
-map.on('click', e => { origin = [e.latlng.lat, e.latlng.lng]; originMarker.setLatLng(origin); document.getElementById('origin').textContent = origin.map(v => v.toFixed(4)).join(', '); run({reset: true}); });
 
 const $ = id => document.getElementById(id);
+
+function markerHtml(label, color, size = 22) {
+  return `<div style="background:${color};color:#fff;border:2px solid #fff;border-radius:50%;width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;font-size:${size < 18 ? 9 : 12}px;font-weight:600;box-shadow:0 1px 4px #0005">${label}</div>`;
+}
+
+function makeLeafletMap(reason = '') {
+  $('map').innerHTML = '';
+  const raw = L.map('map').setView(origin, 15);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 19, attribution: '© OpenStreetMap (dev only)'}).addTo(raw);
+  const layer = L.layerGroup().addTo(raw);
+  const start = L.circleMarker(origin, {radius: 8, color: '#1565c0', fillOpacity: .9}).addTo(raw).bindTooltip('출발');
+  $('map-provider').textContent = `OSM · 개발 폴백${reason ? ' · ' + reason : ''}`;
+  return {
+    onClick(fn) { raw.on('click', e => fn([e.latlng.lat, e.latlng.lng])); },
+    setOrigin(pos) { start.setLatLng(pos); },
+    clear() { layer.clearLayers(); },
+    polyline(pts, style, title) { L.polyline(pts, style).addTo(layer).bindTooltip(title); },
+    marker(pos, html, title, size = 22) {
+      L.marker(pos, {icon: L.divIcon({className: '', html, iconSize: [size, size]})}).addTo(layer).bindTooltip(title);
+    },
+    fit(pts, pad = .15) { if (pts.length) raw.fitBounds(L.latLngBounds(pts).pad(pad)); },
+  };
+}
+
+function makeNaverMap() {
+  const raw = new naver.maps.Map('map', {center: new naver.maps.LatLng(origin[0], origin[1]), zoom: 15});
+  const overlays = [];
+  const start = new naver.maps.Marker({
+    map: raw,
+    position: new naver.maps.LatLng(origin[0], origin[1]),
+    title: '출발',
+    icon: {content: markerHtml('●', '#1565c0', 22), anchor: new naver.maps.Point(11, 11)},
+  });
+  $('map-provider').textContent = 'NAVER Dynamic Map';
+  return {
+    onClick(fn) { naver.maps.Event.addListener(raw, 'click', e => fn([e.coord.lat(), e.coord.lng()])); },
+    setOrigin(pos) { start.setPosition(new naver.maps.LatLng(pos[0], pos[1])); },
+    clear() { overlays.splice(0).forEach(x => x.setMap(null)); },
+    polyline(pts, style) {
+      overlays.push(new naver.maps.Polyline({
+        map: raw,
+        path: pts.map(p => new naver.maps.LatLng(p[0], p[1])),
+        strokeColor: style.color,
+        strokeWeight: style.weight,
+        strokeOpacity: style.opacity,
+      }));
+    },
+    marker(pos, html, title, size = 22) {
+      overlays.push(new naver.maps.Marker({
+        map: raw,
+        position: new naver.maps.LatLng(pos[0], pos[1]),
+        title,
+        icon: {content: html, anchor: new naver.maps.Point(size / 2, size / 2)},
+      }));
+    },
+    fit(pts) {
+      if (!pts.length) return;
+      const lats = pts.map(p => p[0]), lngs = pts.map(p => p[1]);
+      raw.fitBounds(new naver.maps.LatLngBounds(
+        new naver.maps.LatLng(Math.min(...lats), Math.min(...lngs)),
+        new naver.maps.LatLng(Math.max(...lats), Math.max(...lngs)),
+      ));
+    },
+  };
+}
+
+function loadNaverMaps(keyId) {
+  return new Promise((resolve, reject) => {
+    const callback = '__daengsNaverMapReady';
+    const timeout = setTimeout(() => reject(new Error('NAVER SDK timeout')), 8000);
+    window[callback] = () => { clearTimeout(timeout); resolve(); };
+    window.navermap_authFailure = () => { clearTimeout(timeout); reject(new Error('NAVER 인증 실패')); };
+    const script = document.createElement('script');
+    script.src = `https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${encodeURIComponent(keyId)}&callback=${callback}`;
+    script.onerror = () => { clearTimeout(timeout); reject(new Error('NAVER SDK 로드 실패')); };
+    document.head.appendChild(script);
+  });
+}
+
+async function initGeoMap() {
+  let config = null;
+  try {
+    const response = await fetch('/map/client-config');
+    if (response.ok) config = await response.json();
+  } catch (_) { /* 아래 OSM 폴백 */ }
+
+  if (config?.provider === 'naver' && config.naver_key_id) {
+    try {
+      await loadNaverMaps(config.naver_key_id);
+      geoMap = makeNaverMap();
+    } catch (error) {
+      geoMap = makeLeafletMap(error.message);
+    }
+  } else {
+    const reason = config?.provider === 'naver' ? 'NAVER key 없음' : '공급자 미설정';
+    geoMap = makeLeafletMap(reason);
+  }
+
+  geoMap.onClick(pos => {
+    origin = pos;
+    geoMap.setOrigin(origin);
+    $('origin').textContent = origin.map(v => v.toFixed(4)).join(', ');
+    run({reset: true});
+  });
+}
+
 function decodePolyline(str, precision = 5) {
   const f = 10 ** precision; let i = 0, lat = 0, lng = 0; const pts = [];
   while (i < str.length) {
@@ -199,7 +303,7 @@ function render(d) {
      || `<div class="chg">${d.changes.join(' · ')}</div>`) + `<div class="muted">${d.reply}</div>`;
   $('question').style.display = d.question ? '' : 'none'; $('question').textContent = d.question || '';
   $('count').textContent = d.results.length + '곳';
-  layer.clearLayers();
+  geoMap.clear();
   const list = $('list'); list.innerHTML = '';
   // 1) 선이 먼저 — 실측된 모든 경로를 옅게. 카드 안 눌러도 "어느 쪽으로 얼마나"가 보인다
   const allBounds = [];
@@ -208,16 +312,16 @@ function render(d) {
     if (w && w.polyline) {
       const pts = decodePolyline(w.polyline);
       const isSel = x.id === selected;
-      L.polyline(pts, {color: COLORS[i % COLORS.length], weight: isSel ? 6 : 3, opacity: isSel ? .95 : (selected ? .25 : .6)}).addTo(layer)
-        .bindTooltip(`${String.fromCharCode(65 + i)} ${x.name} · 🚶${w.min}분`);
+      geoMap.polyline(pts, {color: COLORS[i % COLORS.length], weight: isSel ? 6 : 3, opacity: isSel ? .95 : (selected ? .25 : .6)},
+        `${String.fromCharCode(65 + i)} ${x.name} · 🚶${w.min}분`);
       if (!selected) allBounds.push(...pts);
     }
   });
-  if (!selected && allBounds.length) map.fitBounds(L.latLngBounds(allBounds).pad(0.15));
+  if (!selected && allBounds.length) geoMap.fit(allBounds, .15);
   d.results.forEach((x, i) => {
     const t = tOf(x), w = t.walk || {}, c = t.car || {}, tr = t.transit;
     const label = String.fromCharCode(65 + i);
-    L.marker([x.lat, x.lng], {icon: L.divIcon({className: '', html: `<div style="background:${x.id === selected ? '#c62828' : COLORS[i % COLORS.length]};color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600">${label}</div>`, iconSize: [22, 22]})}).addTo(layer).bindTooltip(x.name);
+    geoMap.marker([x.lat, x.lng], markerHtml(label, x.id === selected ? '#c62828' : COLORS[i % COLORS.length]), x.name);
     const card = document.createElement('div'); card.className = 'card' + (x.id === selected ? ' sel' : '');
     const fac = w.facilities || {};
     const advCls = 'adv-' + (w.advice || 'ok');
@@ -237,13 +341,16 @@ function render(d) {
       sp.innerHTML = '<details open><summary style="cursor:pointer;color:#666;font-size:12px">걸리는 지점 (지도의 점) — 펼치기</summary>' + w.spots.map((s, j) => `<div class="spot ${s.warn ? 'warn' : ''}"><span class="n">${j + 1}</span><div>${s.text}<div class="muted">${s.note || ''}</div></div></div>`).join('')
         + '</details>' + (w.handoff ? `<div class="hand" style="margin-top:6px">따라가기: <a href="${w.handoff.naver}">네이버</a><a href="${w.handoff.kakao}">카카오</a><a href="${w.handoff.tmap}">TMAP</a></div>` : '');
       // spots는 선 위의 점. warn만 빨강, 나머지는 작게
-      w.spots.forEach((s, j) => L.marker([s.lat, s.lng], {icon: L.divIcon({className: '', html: `<div style="background:${s.warn ? '#c62828' : '#666'};color:#fff;border-radius:50%;width:${s.warn ? 18 : 14}px;height:${s.warn ? 18 : 14}px;display:flex;align-items:center;justify-content:center;font-size:${s.warn ? 11 : 9}px">${j + 1}</div>`, iconSize: [18, 18]})}).addTo(layer).bindTooltip(`${s.text}${s.note ? ' — ' + s.note : ''}`));
-      if (w.polyline) map.fitBounds(L.latLngBounds(decodePolyline(w.polyline)).pad(0.2));
+      w.spots.forEach((s, j) => {
+        const size = s.warn ? 18 : 14;
+        geoMap.marker([s.lat, s.lng], markerHtml(j + 1, s.warn ? '#c62828' : '#666', size), `${s.text}${s.note ? ' — ' + s.note : ''}`, size);
+      });
+      if (w.polyline) geoMap.fit(decodePolyline(w.polyline), .2);
     }
     list.appendChild(card);
   });
 }
-run({reset: true});
+initGeoMap().then(() => run({reset: true}));
 </script>
 </body>
 </html>
