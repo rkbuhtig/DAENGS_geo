@@ -36,8 +36,9 @@ def _state() -> EditableState:
 
 
 async def _search(db, state: EditableState | None = None, **kw):
+    transport = kw.pop("transport", "none")
     return await hospital_search(
-        HospitalSearchIn(state=state or _state(), transport="none", **kw), db,
+        HospitalSearchIn(state=state or _state(), transport=transport, **kw), db,
     )
 
 
@@ -102,3 +103,19 @@ async def test_specialty_still_boosts_within_band():
         st.target.specialty = ["ortho"]
         out = await _search(db, state=st)
     assert _ours(out, (NEAR, ortho)) == [ortho, NEAR]
+
+
+async def test_hospital_request_uses_resolved_journey_and_view_plans():
+    """state를 API가 직접 주워 쓰지 않고 resolver 결정이 응답까지 관통한다."""
+    async with seeded_places(ROWS) as db:
+        state = _state()
+        state.urgency = "urgent"
+        state.journey.preferred_mode = "walk"
+        out = await _search(db, state=state, transport="estimate")
+
+    assert out.show_call_cta is True
+    assert out.call_reasons == ["user"]
+    assert out.results
+    assert all(r.transport.mode_priority[0] == "car" for r in out.results if r.transport)
+    overridden = {entry.overrode for entry in out.resolution if entry.overrode}
+    assert {"journey.preferred_mode", "sort"} <= overridden

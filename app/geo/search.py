@@ -1,6 +1,5 @@
 """반경 검색 — 결정론. 병원/약국 공용, 나중에 산책 랜드마크도 이 함수를 쓴다."""
 
-from datetime import UTC, datetime
 from urllib.parse import urlencode
 
 from geoalchemy2 import Geography, Geometry
@@ -12,6 +11,8 @@ from app.geo.hours import is_open_at, today_ranges
 from app.geo.models import Place
 from app.geo.schemas import MapOut, PlaceOut, SearchOut, SearchParams
 from app.geo.tagging import dog_ok
+from app.planning.facts import SystemClock
+from app.planning.plans import SearchMust, SearchPlan, SearchPrefer
 from app.providers.base import LatLng, MapMarker, StaticMapSpec
 from app.providers.registry import static_map_provider
 
@@ -35,35 +36,34 @@ def _point(lat: float, lng: float):
 
 
 async def find_places(
-    db: AsyncSession, *, lat: float, lng: float, radius_m: int, kind: str | None,
-    open_now: bool, night: bool, emergency: bool = False,
-    specialty: list[str] | None = None, require_tags: list[str] | None = None,
-    exclude_ids: list[int] | None = None, at: datetime | None = None, limit: int = 20,
+    db: AsyncSession,
+    plan: SearchPlan,
+    *,
     only_dog_ok: bool = True,
 ) -> list[PlaceOut]:
-    at = at or datetime.now(UTC)
-    origin = _point(lat, lng)
+    must = plan.must
+    origin = _point(must.lat, must.lng)
     dist = func.ST_Distance(Place.location, origin).label("distance_m")
     geom = cast(Place.location, Geometry)
 
     stmt = (
         select(Place, dist, func.ST_Y(geom).label("lat"), func.ST_X(geom).label("lng"))
         .where(Place.active.is_(True))
-        .where(func.ST_DWithin(Place.location, origin, radius_m))
+        .where(func.ST_DWithin(Place.location, origin, must.radius_m))
     )
-    if kind:
-        stmt = stmt.where(Place.kind == kind)
+    if must.kind:
+        stmt = stmt.where(Place.kind == must.kind)
     # **야간·응급은 거르지 않는다.** 인허가 원천엔 진료 능력이 없어서 이 태그들은 간판 이름
     # 정규식이 전부다 (geo/tagging.py). 실측 2026-08-20, 활성 병원 5,457곳 중
     # night 1곳 · emergency 2곳 · ortho 2곳 — WHERE 로 쓰면 반경 안 결과가 통째로 사라진다.
     # '미상은 제외하지 않는다'(open_now)와 같은 판단이다: 모르는 걸 없는 것으로 취급하지 않는다.
     # 진짜 요구('24시만 보여줘')는 require_tags 로 온다 — 그건 사용자가 명시했으니 거른다.
-    if require_tags:
-        stmt = stmt.where(Place.tags.contains(list(require_tags)))
-    if exclude_ids:
-        stmt = stmt.where(Place.id.notin_(list(exclude_ids)))
-    prefer = _prefer_tags(specialty, night=night, emergency=emergency)
-    fetch = limit * 4 if open_now else limit * 2
+    if must.require_tags:
+        stmt = stmt.where(Place.tags.contains(list(must.require_tags)))
+    if must.exclude_ids:
+        stmt = stmt.where(Place.id.notin_(list(must.exclude_ids)))
+    prefer = set(plan.prefer.tags)
+    fetch = must.limit * 4 if must.open_now else must.limit * 2
     # prefer 를 SQL 정렬로 앞당기지 않는다. 태그 우선 + [:limit] 절단은 사실상 필터가 된다 —
     # 실측(강남역 5km): 태그 10곳이 전부 들어오면 근접 병원 10곳이 집합에서 밀려난다.
     # '빼지 않는다'는 약속은 집합 단위로 지켜야 한다. 희귀 태그가 fetch 창 밖인 문제
@@ -76,31 +76,36 @@ async def find_places(
         tags = list(place.tags or [])
         if only_dog_ok and not dog_ok(tags):
             continue
-        open_flag = is_open_at(place.hours, at, is_24h=place.is_24h)
+        open_flag = is_open_at(place.hours, must.judge_at, is_24h=place.is_24h)
         # **미상은 제외하지 않는다** (condition-schema.md). 확정 '영업종료'만 뺀다.
         # 인허가 원천에 영업시간이 없어 실데이터는 대부분 미상이다 - 여기서 빼면 결과가 통째로 사라진다.
-        if open_now and open_flag is False:
+        if must.open_now and open_flag is False:
             continue
         out.append(PlaceOut(
             id=place.id, kind=place.kind, name=place.name, lat=plat, lng=plng,
             distance_m=int(distance_m), address=place.address, phone=place.phone,
             is_night=place.is_night, is_24h=place.is_24h, open_now=open_flag,
-            hours_today=today_ranges(place.hours, at), tags=tags,
+            hours_today=today_ranges(place.hours, must.judge_at), tags=tags,
             area_m2=float(place.area_m2) if place.area_m2 is not None else None,
             staff_count=place.staff_count,
             prefer_hit=sorted(set(tags) & prefer),
         ))
-    if open_now:
+    if must.open_now:
         # 확정 영업중을 앞으로, 미상은 뒤로 - 빼지는 않는다. 거리순은 각 묶음 안에서 유지.
         out.sort(key=lambda p: (p.open_now is not True, p.distance_m))
-    return out[:limit]
+    return out[:must.limit]
 
 
 async def search_places(db: AsyncSession, p: SearchParams) -> SearchOut:
-    results = await find_places(
-        db, lat=p.lat, lng=p.lng, radius_m=p.radius_m, kind=p.kind,
-        open_now=p.open_now, night=p.night, at=p.at, limit=p.limit,
+    plan = SearchPlan(
+        must=SearchMust(
+            lat=p.lat, lng=p.lng, radius_m=p.radius_m,
+            judge_at=p.at or SystemClock().now(), kind=p.kind,
+            open_now=p.open_now, limit=p.limit,
+        ),
+        prefer=SearchPrefer(tags=tuple(sorted(_prefer_tags(None, night=p.night, emergency=False)))),
     )
+    results = await find_places(db, plan)
     return SearchOut(params=p, results=results, map=build_map(p.lat, p.lng, p.radius_m, p.kind,
                                                                 p.open_now, p.night, results))
 

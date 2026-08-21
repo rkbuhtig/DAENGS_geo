@@ -19,8 +19,11 @@ from app.geo.schemas import MapOut, PlaceOut
 from app.geo.search import build_map, find_places
 from app.journey.engine import snapshot
 from app.journey.models import Companion, Transport
+from app.planning.facts import RuntimeFacts, SystemClock
+from app.planning.plans import JourneyPlan, ViewPlan
+from app.planning.resolver import resolve_request
 from app.planning.state import EditableState
-from app.profile.source import profile_source
+from app.profile.source import owner_of, profile_source
 from app.providers.base import LatLng
 from app.refine.engine import refine
 from app.refine.nl import ToolCall
@@ -75,6 +78,13 @@ class ResultOut(PlaceOut):
     boost: int = 0                     # prefer_hit 만. 정렬 부스트 근거 (표시용)
 
 
+class ResolutionOut(BaseModel):
+    axis: str
+    what: str
+    because: str = ""
+    overrode: str = ""
+
+
 class HospitalSearchOut(BaseModel):
     state: EditableState
     results: list[ResultOut]
@@ -84,6 +94,9 @@ class HospitalSearchOut(BaseModel):
     applied: list[Edit]
     question: str | None = None
     reply: str
+    resolution: list[ResolutionOut] = Field(default_factory=list)
+    show_call_cta: bool = False
+    call_reasons: list[str] = Field(default_factory=list)
 
 
 def _reply(changes: list[str], n: int, question: str | None, unknown_hours: int = 0) -> str:
@@ -104,6 +117,7 @@ async def hospital_search(
     db: Annotated[AsyncSession, Depends(get_session)],
 ) -> HospitalSearchOut:
     profile = await profile_source().get(body.dog_id) if body.dog_id else None
+    owner = await owner_of(body.dog_id) if body.dog_id else None
     lat, lng = body.origin or (body.state.lat, body.state.lng)  # type: ignore[union-attr]
 
     try:
@@ -114,35 +128,28 @@ async def hospital_search(
     except ToolInputError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     st = r.state
-
-    # --- target 정책: 결과 집합 결정. journey 값은 절대 여기 들어오지 않는다 (state.py 참조)
-    tg = st.target
-    # time_intent → 영업 판정 시각. **이 사영은 resolver 자리다** (step 4): 지금은 한 줄이지만
-    # journey 의 야간 판정도 같은 값을 봐야 하고, 그걸 각자 주워 쓰다 어긋난 게 이 사달이었다.
-    service_at = (st.time_intent.at
-                  if st.time_intent and st.time_intent.kind == "service_at" else None)
-    places = await find_places(
-        db, lat=st.lat, lng=st.lng, radius_m=tg.radius_m, kind="hospital",
-        open_now=tg.open_now, night=tg.night_service, emergency=tg.emergency_service,
-        specialty=tg.specialty, require_tags=tg.require_tags, exclude_ids=tg.exclude_ids,
-        at=service_at, limit=tg.limit,
+    resolved = resolve_request(
+        st,
+        RuntimeFacts(now=SystemClock().now(), profile=profile, owner=owner),
+        kind="hospital",
+        companion=body.companion,
+        measured=False,
+        transport_available=body.transport == "estimate",
     )
 
+    # 각 엔진에는 자기 plan만 준다. state·facts를 다시 주워 읽는 우회로는 없다.
+    places = await find_places(db, resolved.search)
+
     # 근거는 state 가 시킨다 — 그 턴에 말을 했는지가 아니라. utterance 는 여기 못 들어온다.
-    ev = (await attach_evidence(tg.symptoms, tg.specialty, profile, places)
+    ev = (await attach_evidence(st.target.symptoms, st.target.specialty, profile, places)
           if body.with_evidence else {})
-    origin_pt = LatLng(st.lat, st.lng)
     results: list[ResultOut] = []
     for p in places:
         t = None
         if body.transport == "estimate":
-            # --- journey 정책: 경로·advice만. 결과를 빼지 않는다. 여기선 휴리스틱만(호출 0)
-            jn = st.journey
             t = await snapshot(
-                origin_pt, LatLng(p.lat, p.lng), companion=body.companion, measured=False,
-                mode=jn.preferred_mode, walk_option=jn.walk.option,
-                walk_max=jn.walk.max_walk_min,          # 개가 걸어도 되는 시간 (전체 이동시간 아님)
-                avoid=jn.walk.avoid, profile=profile, dest_name=p.name, with_polyline=False,
+                resolved.journey, LatLng(p.lat, p.lng),
+                dest_name=p.name, with_polyline=False,
                 arrive_note=ARRIVE_NOTE,
             )
         e = [EvidenceOut(source=x.source, text=x.text, url=x.url) for x in ev.get(p.id, [])]
@@ -155,37 +162,41 @@ async def hospital_search(
 
     # journey.hard_limit: 정책 경계를 넘는 유일한 스위치. 사용자가 명시적으로 켤 때만
     dropped = 0
-    if st.journey.hard_limit and st.journey.max_total_min is not None:
-        keep, mode = [], st.journey.preferred_mode or "walk"
+    if resolved.journey.hard_limit and resolved.journey.max_total_min is not None:
+        keep, mode = [], resolved.journey.mode_priority[0]
         for res in results:
             leg = getattr(res.transport, mode, None) if res.transport else None
-            if leg and leg.min > st.journey.max_total_min:
+            if leg and leg.min > resolved.journey.max_total_min:
                 dropped += 1
                 continue
             keep.append(res)
         results = keep
 
-    results = _sort(results, st)
-    mp = build_map(st.lat, st.lng, tg.radius_m, "hospital", tg.open_now, tg.night_service,
-                   results)
+    results = _sort(results, resolved.view, resolved.journey)
+    must = resolved.search.must
+    mp = build_map(must.lat, must.lng, must.radius_m, "hospital", must.open_now,
+                   st.target.night_service, results)
     return HospitalSearchOut(
         state=st, results=results, map=mp, changes=r.changes, changes_by_policy=r.grouped,
         applied=[Edit(tool=c.tool, args=c.args) for c in r.applied],
         question=r.question,
         reply=_reply(r.changes, len(results), r.question,
-                     sum(1 for x in results if x.open_now is None) if tg.open_now else 0)
+                     sum(1 for x in results if x.open_now is None) if must.open_now else 0)
         + (f" ({dropped}곳은 시간 초과로 제외)" if dropped else ""),
+        resolution=[ResolutionOut(**vars(entry)) for entry in resolved.trace.entries],
+        show_call_cta=resolved.view.show_call_cta,
+        call_reasons=list(resolved.view.call_reasons),
     )
 
 
-def _sort(results: list[ResultOut], st: EditableState) -> list[ResultOut]:
+def _sort(results: list[ResultOut], view: ViewPlan, journey: JourneyPlan) -> list[ResultOut]:
     """부스트는 '살짝 위' — 같은 밴드(500m / 5분) 안에서만 순서를 바꾼다. 거리·시간을 뒤집진 않는다."""
     def key(r: ResultOut):
-        pinned = 0 if r.id in st.target.pin_ids else 1
-        if st.sort == "open_first":
+        pinned = 0 if r.id in view.pin_ids else 1
+        if view.sort == "open_first":
             primary, band = (0 if r.open_now else 1), (0 if r.open_now else 1)
-        elif st.sort == "duration" and r.transport and st.journey.preferred_mode:
-            leg = getattr(r.transport, st.journey.preferred_mode)
+        elif view.sort == "duration" and r.transport and journey.mode_priority:
+            leg = getattr(r.transport, journey.mode_priority[0])
             primary = leg.min if leg else 10**6
             band = primary // 5
         else:

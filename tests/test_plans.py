@@ -6,13 +6,15 @@
 """
 
 import dataclasses
+from datetime import UTC, datetime
 
 import pytest
 
 from app.planning.plans import JourneyPlan, SearchMust, SearchPlan, SearchPrefer, ViewPlan
 from app.planning.trace import ResolutionTrace
 
-MUST = SearchMust(lat=37.4979, lng=127.0276, radius_m=2000)
+NOW = datetime(2026, 8, 21, 3, 0, tzinfo=UTC)
+MUST = SearchMust(lat=37.4979, lng=127.0276, radius_m=2000, judge_at=NOW)
 
 
 def _fields(cls) -> set[str]:

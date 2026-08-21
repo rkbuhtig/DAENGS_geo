@@ -31,9 +31,9 @@ class SearchMust:
     lat: float
     lng: float
     radius_m: int
+    judge_at: datetime                         # 영업 판정 시각 (TimeIntent.service_at 사영)
     kind: str | None = None
     open_now: bool = False
-    judge_at: datetime | None = None            # 영업 판정 시각 (TimeIntent.service_at 사영)
     require_tags: tuple[str, ...] = field(default_factory=tuple)
     exclude_ids: tuple[int, ...] = field(default_factory=tuple)
     limit: int = 20
@@ -78,11 +78,12 @@ class JourneyPlan:
 
     origin_lat: float
     origin_lng: float
+    resolved_at: datetime
+    departure_at: datetime
     companion: Companion = "dog"
     measured: bool = False
 
     # --- resolver 가 정한 시각. **엔진은 datetime.now() 를 부르지 않는다**
-    departure_at: datetime | None = None
     travel_is_night: bool = False
 
     mode_priority: tuple[Mode, ...] = field(default_factory=tuple)
@@ -93,7 +94,6 @@ class JourneyPlan:
     # --- 상황이 먹인 것
     profile: DogProfile | None = None
     temp_c: float | None = None
-    suppress_leisure_advice: bool = False   # 급할 때 '노령이라 20분은 과함'은 만류가 아니라 방해다
 
 
 # ------------------------------------------------------------------ 표시

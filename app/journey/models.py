@@ -9,6 +9,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from app.providers.base import Mode
+
 Companion = Literal["dog", "none"]
 
 
@@ -74,6 +76,7 @@ class Transport(BaseModel):
     as_of: datetime
     companion: Companion
     straight_m: int
+    mode_priority: list[Mode] = Field(default_factory=list)
     walk: Leg | None = None
     car: Leg | None = None
     transit: Leg | None = None

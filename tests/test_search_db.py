@@ -13,6 +13,9 @@ from datetime import UTC, datetime
 import pytest
 
 from app.geo.search import find_places
+from app.planning.facts import RuntimeFacts
+from app.planning.resolver import resolve_request
+from app.planning.state import EditableState
 from tests.conftest import TEST_ORIGIN, daily_hours, place_row, seeded_places
 
 # 이 파일이 소유하는 시나리오. 아래 assert 들이 정확히 이 6행에 결합돼 있으므로
@@ -32,10 +35,18 @@ AT_NIGHT = datetime(2026, 8, 20, 12, 0, tzinfo=UTC)   # 한국 21:00
 
 
 async def _search(db, **kw):
-    return await find_places(db, lat=TEST_ORIGIN[0], lng=TEST_ORIGIN[1], radius_m=5000,
-                             kind="hospital", at=kw.pop("at", AT_NIGHT),
-                             open_now=kw.pop("open_now", False),
-                             night=kw.pop("night", False), limit=20, **kw)
+    state = EditableState(lat=TEST_ORIGIN[0], lng=TEST_ORIGIN[1])
+    state.target.radius_m = 5000
+    state.target.limit = 20
+    state.target.open_now = kw.pop("open_now", False)
+    state.target.night_service = kw.pop("night", False)
+    state.target.emergency_service = kw.pop("emergency", False)
+    state.target.require_tags = kw.pop("require_tags", [])
+    assert not kw, kw
+    plan = resolve_request(
+        state, RuntimeFacts(now=AT_NIGHT), kind="hospital", companion="dog", measured=False,
+    )
+    return await find_places(db, plan.search)
 
 
 # --------------------------------------------- 타입 회귀 (이 필터들이 죽어 있었다)

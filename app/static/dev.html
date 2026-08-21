@@ -163,7 +163,7 @@ async function run({reset = false, edits = [], utterance = null} = {}) {
 async function fetchJourneys(ids) {
   if (!ids.length) return;
   const body = {origin, dests: ids.map(id => ({id})), companion: companion(), dog_id: $('dog').value || null,
-                prefs: state ? state.journey : undefined, measured: true, with_polyline: true};
+                state: state || undefined, measured: true, with_polyline: true};
   const r = await fetch('/journey', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
   if (!r.ok) return;
   const j = await r.json();

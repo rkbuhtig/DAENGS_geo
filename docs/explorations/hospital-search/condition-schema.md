@@ -35,3 +35,22 @@ status: exploring
 - 반경 `100..20,000m`, 결과 `1..100`
 - 편집 20개, 화면 ID 100개, undo history 10개
 - 새 요청의 `origin`은 왕복된 state 좌표보다 우선하고, 그 뒤 명시적 `set_origin` 편집이 우선한다
+
+`urgency`는 `null | normal | urgent`다. `null`은 사용자가 긴급도를 말하지 않은 상태,
+`normal`은 사용자가 명시적으로 "급하지 않다"고 정한 상태다. 둘을 합치면 서버 안전 규칙이
+기본값 `normal`에 항상 눌리므로 구분한다.
+
+## 실행 관문
+
+병원 검색과 카드 선택 journey는 모두 다음 관문을 지난다.
+
+```text
+EditableState + RuntimeFacts(profile, owner, temp, clock, safety signals)
+                             ↓
+                       resolve_request()
+                 ┌───────────┼───────────┐
+             SearchPlan  JourneyPlan  ViewPlan
+```
+
+검색·경로 엔진은 state나 서버 시각을 직접 읽지 않는다. 긴급 상황에서도 도보 제한을
+해제하지 않고 차량을 우선해 제약을 만족시키며, 도보 대안의 경고는 그대로 유지한다.

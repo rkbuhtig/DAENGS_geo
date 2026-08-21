@@ -37,9 +37,12 @@ _RULES: list[tuple[re.Pattern[str], Any]] = [
     (re.compile(r"(\d+(?:\.\d+)?)\s*(km|킬로)"), lambda m, s, ids: [ToolCall("set_radius", {"m": int(float(m.group(1)) * 1000)})]),
     (re.compile(r"(지금|당장|바로).*(열|하는|영업|진료)|영업\s*중|문\s*연"), lambda m, s, ids: [ToolCall("set_open_now", {"on": True})]),
     (re.compile(r"야간|밤에|새벽|늦게"), lambda m, s, ids: [ToolCall("set_night_service", {"on": True})]),
-    # "급해"는 **상황**이고 "응급 병원"은 **요구**다. 지금은 한 규칙이 셋을 다 내지만,
-    # urgency → emergency_service 사영은 resolver 로 옮긴다 (step 4). 그때 이 규칙은 urgency 만 낸다.
-    (re.compile(r"응급|급해|급하|위급"), lambda m, s, ids: [ToolCall("set_urgency", {"level": "urgent"}), ToolCall("set_emergency_service", {"on": True}), ToolCall("set_open_now", {"on": True})]),
+    # "응급 병원"은 병원 능력 요구, "급해"는 이번 상황이다. 긴급 상황이 검색·경로·보기에
+    # 미치는 영향은 resolver가 한 번에 사영하므로 자연어 층은 사실만 적는다.
+    (re.compile(r"응급\s*(병원|진료|센터|실)"),
+     lambda m, s, ids: [ToolCall("set_emergency_service", {"on": True})]),
+    (re.compile(r"응급|급해|급하|위급"),
+     lambda m, s, ids: [ToolCall("set_urgency", {"level": "urgent"})]),
     (re.compile(r"24\s*시"), lambda m, s, ids: [ToolCall("require", {"tags": ["24h"]})]),
     (re.compile(r"큰\s*병원|의료센터|2차|종합"), lambda m, s, ids: [ToolCall("require", {"tags": ["center"]})]),
     # **증상에서 과목을 추론하지 않는다.** "숨을 헐떡여요" → 심장은 진단이고, 우리 관할 밖이며

@@ -16,8 +16,10 @@ from app.core.db import get_session
 from app.geo.models import Place
 from app.journey.engine import snapshot
 from app.journey.models import Companion, Transport
-from app.planning.state import JourneyPrefs
-from app.profile.source import profile_source
+from app.planning.facts import RuntimeFacts, SystemClock
+from app.planning.resolver import resolve_request
+from app.planning.state import EditableState, JourneyPrefs
+from app.profile.source import owner_of, profile_source
 from app.providers.base import LatLng
 
 router = APIRouter(prefix="/journey", tags=["journey"])
@@ -50,10 +52,17 @@ class JourneyIn(BaseModel):
     dests: list[Dest] = Field(min_length=1, max_length=10)
     companion: Companion = "dog"
     dog_id: str | None = Field(None, max_length=128)
-    prefs: JourneyPrefs = Field(default_factory=JourneyPrefs)
+    state: EditableState | None = None
+    prefs: JourneyPrefs | None = None       # v1 호환. 새 클라이언트는 state 전체를 보낸다
     measured: bool = True
     with_polyline: bool = True
     arrive_note: str | None = Field(None, max_length=500)
+
+    @model_validator(mode="after")
+    def one_state_contract(self) -> "JourneyIn":
+        if self.state is not None and self.prefs is not None:
+            raise ValueError("send state or legacy prefs, not both")
+        return self
 
 
 class JourneyItem(BaseModel):
@@ -72,7 +81,20 @@ class JourneyOut(BaseModel):
 @router.post("", response_model=JourneyOut)
 async def journey(body: JourneyIn, db: Annotated[AsyncSession, Depends(get_session)]) -> JourneyOut:
     profile = await profile_source().get(body.dog_id) if (body.dog_id and body.companion == "dog") else None
-    origin = LatLng(*body.origin)
+    owner = await owner_of(body.dog_id) if body.dog_id else None
+    if body.state is not None:
+        state = body.state.model_copy(deep=True)
+        state.lat, state.lng = body.origin
+    else:
+        state = EditableState(lat=body.origin[0], lng=body.origin[1],
+                              journey=body.prefs or JourneyPrefs())
+    resolved = resolve_request(
+        state,
+        RuntimeFacts(now=SystemClock().now(), profile=profile, owner=owner),
+        kind=None,
+        companion=body.companion,
+        measured=body.measured,
+    )
 
     # id → 좌표·이름
     ids = [d.id for d in body.dests if d.id is not None]
@@ -94,10 +116,8 @@ async def journey(body: JourneyIn, db: Annotated[AsyncSession, Depends(get_sessi
         else:
             raise HTTPException(422, "dest needs id or lat/lng")
         t = await snapshot(
-            origin, LatLng(lat, lng), companion=body.companion, measured=body.measured,
-            mode=body.prefs.preferred_mode, walk_option=body.prefs.walk.option,
-            walk_max=body.prefs.walk.max_walk_min, avoid=body.prefs.walk.avoid,
-            profile=profile, dest_name=name, with_polyline=body.with_polyline,
+            resolved.journey, LatLng(lat, lng), dest_name=name,
+            with_polyline=body.with_polyline,
             arrive_note=body.arrive_note,
         )
         items.append(JourneyItem(id=d.id, name=name, lat=lat, lng=lng, transport=t))

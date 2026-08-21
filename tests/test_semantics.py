@@ -63,3 +63,5 @@ def test_time_intent_requires_a_known_kind():
     """`at` 하나로 뭉쳐 있던 것을 가른 이유가 kind 다. 아무 값이나 받으면 도로아미타불."""
     with pytest.raises(ValidationError):
         TimeIntent(kind="whenever", at="2026-08-20T15:00:00Z")
+    with pytest.raises(ValidationError):
+        TimeIntent(kind="depart_at", at="2026-08-20T15:00:00")

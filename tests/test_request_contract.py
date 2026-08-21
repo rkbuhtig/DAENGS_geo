@@ -8,7 +8,7 @@ from app.core.db import get_session
 from app.features.hospital.api import HospitalSearchIn
 from app.journey.api import Dest, JourneyIn
 from app.main import app
-from app.planning.state import CURRENT_STATE_VERSION, EditableState
+from app.planning.state import CURRENT_STATE_VERSION, EditableState, JourneyPrefs
 from app.refine import tools
 from app.refine.engine import refine
 from app.refine.tools import ToolInputError
@@ -129,6 +129,13 @@ def test_api_input_models_reject_invalid_coordinates_and_unbounded_lists():
         HospitalSearchIn(origin=(37.5, 127.0), shown_ids=list(range(1, 102)))
     with pytest.raises(ValidationError):
         JourneyIn(origin=(999, -999), dests=[Dest(lat=37.5, lng=127.0)])
+    with pytest.raises(ValidationError):
+        JourneyIn(
+            origin=(37.5, 127.0),
+            dests=[Dest(lat=37.5, lng=127.0)],
+            state=EditableState(lat=37.5, lng=127.0),
+            prefs=JourneyPrefs(),
+        )
     with pytest.raises(ValidationError):
         Dest(name="missing coordinates")
 

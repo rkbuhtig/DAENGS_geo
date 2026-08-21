@@ -85,7 +85,8 @@ def choose_walk(walks: list[RouteResult], prefer: WalkOption, avoid: list[str],
 
 
 def walk_advice(r: RouteResult, profile: DogProfile | None, max_min: int | None,
-                avoid: list[str], temp_c: float | None = None, factor: float = 1.0) -> tuple[str, list[str]]:
+                avoid: list[str], temp_c: float | None = None,
+                factor: float = 1.0) -> tuple[str, list[str]]:
     why: list[str] = []
     level = 0  # 0 ok, 1 caution, 2 avoid
     minutes = r.duration_s * factor / 60

@@ -101,7 +101,9 @@ class EditableState(ContractModel):
 
     # --- 상황(context): 사실이지 요구가 아니다. target 과 journey **둘 다**의 입력이다
     time_intent: TimeIntent | None = None    # 시각의 뜻. 없으면 "지금"
-    urgency: Urgency = "normal"              # **사용자가 말한 것만**
+    # None = 사용자가 긴급도를 말하지 않음. "normal"은 사용자가 명시적으로 진정시킨 것.
+    # 둘을 합치면 규칙 긴급도가 기본값 normal에 항상 눌린다.
+    urgency: Urgency | None = None
     # 규칙이 파생한 긴급도는 여기 안 남는다 — 턴마다 RuntimeFacts 에서 다시 뽑는다.
     # state 에 눌어붙으면 undo 도 안 되고, 증상 정규식 오탐 하나가 세션을 응급 모드에 가둔다.
 

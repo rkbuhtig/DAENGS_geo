@@ -12,7 +12,7 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 
 TimeKind = Literal["depart_at", "arrive_by", "service_at"]
 
@@ -32,6 +32,13 @@ class TimeIntent(BaseModel):
 
     kind: TimeKind
     at: datetime
+
+    @field_validator("at")
+    @classmethod
+    def timezone_is_required(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("time intent must include a timezone")
+        return value
 
 
 # --------------------------------------------------------------------- 긴급도
