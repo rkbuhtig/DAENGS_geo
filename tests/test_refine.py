@@ -117,7 +117,7 @@ async def test_refine_edits_then_utterance():
 
 
 async def test_refine_question_leaves_state():
-    r = await refine(S, [], "글쎄", [], None, 37.5, 127.0, 2000)
+    r = await refine(S, [], "글쎄", [], None, S.lat, S.lng, 2000)
     assert r.question and r.state.snapshot() == S.snapshot()
 
 

@@ -12,7 +12,7 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 TimeKind = Literal["depart_at", "arrive_by", "service_at"]
 
@@ -27,6 +27,8 @@ class TimeIntent(BaseModel):
     합치면 안 되는 이유: `arrive_by` 에서 출발 시각을 구하려면 후보별 이동시간이 필요한데,
     그건 후보를 뽑고 경로를 계산한 **다음에야** 나온다. 요청 단위로 확정할 수 있는 값이 아니다.
     """
+
+    model_config = ConfigDict(extra="forbid", validate_assignment=True)
 
     kind: TimeKind
     at: datetime

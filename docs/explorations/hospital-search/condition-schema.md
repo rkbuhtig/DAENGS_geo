@@ -22,3 +22,16 @@ status: exploring
 | 세션 | exclude_ids, pin_ids, sort, history | 대화 | 편집 | — |
 
 원칙: 데이터 없는 병원을 **결과에서 빼지 않는다.** 미상은 미상으로 표시.
+
+## 요청 계약 v2
+
+클라이언트가 왕복시키는 `EditableState`에는 `state_version: 2`가 붙는다. 서버는
+버전 없는 v1 state의 `target.night`, `target.emergency`, `target.at`을 각각
+`night_service`, `emergency_service`, `time_intent(kind=service_at)`으로 이행한다.
+옛 `set_time(open_now, night, emergency)` 편집도 입력 호환용으로만 받으며 새 툴
+목록에는 노출하지 않는다. 알 수 없는 버전·필드·툴·인자는 조용히 버리지 않고 422다.
+
+- 위도 `-90..90`, 경도 `-180..180`
+- 반경 `100..20,000m`, 결과 `1..100`
+- 편집 20개, 화면 ID 100개, undo history 10개
+- 새 요청의 `origin`은 왕복된 state 좌표보다 우선하고, 그 뒤 명시적 `set_origin` 편집이 우선한다

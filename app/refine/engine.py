@@ -45,7 +45,13 @@ def profile_hint(p: DogProfile | None) -> str:
 async def refine(state: EditableState | None, edits: list[ToolCall], utterance: str | None,
                  shown_ids: list[int], profile: DogProfile | None,
                  lat: float, lng: float, default_radius: int) -> RefineResult:
-    base = state or draft(lat, lng, profile, default_radius)
+    if state is None:
+        base = draft(lat, lng, profile, default_radius)
+    else:
+        # origin은 매 요청의 현재 위치다. 클라이언트 state보다 새 요청 값을 우선한다.
+        # history에는 넣지 않는다 — GPS 갱신은 사용자가 undo할 조건 편집이 아니다.
+        base = state.model_copy(deep=True)
+        base.lat, base.lng = lat, lng
     cur = base
     applied: list[ToolCall] = []
     question = None

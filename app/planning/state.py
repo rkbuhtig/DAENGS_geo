@@ -14,18 +14,30 @@ journey 값을 find_places에 넘기거나, target 값으로 경로를 바꾸지
 docs/explorations/hospital-search/refine-loop.md, condition-schema.md
 """
 
-from typing import Literal
+from copy import deepcopy
+from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.planning.semantics import TimeIntent, Urgency
 from app.providers.base import Mode, WalkOption
 
 Sort = Literal["distance", "duration", "open_first"]
 WalkFacility = Literal["underpass", "overpass", "stairs"]
+Specialty = Literal["ortho", "eye", "dental", "derma", "cardio", "rehab"]
+CURRENT_STATE_VERSION = 2
+PositiveId = Annotated[int, Field(ge=1)]
+ShortTag = Annotated[str, Field(min_length=1, max_length=64)]
+SymptomText = Annotated[str, Field(min_length=1, max_length=200)]
 
 
-class TargetPrefs(BaseModel):
+class ContractModel(BaseModel):
+    """클라이언트와 왕복하는 계약. 모르는 값은 조용히 버리지 않는다."""
+
+    model_config = ConfigDict(extra="forbid", validate_assignment=True)
+
+
+class TargetPrefs(ContractModel):
     """어디를 갈까 — **필터**. 결과 집합을 바꾼다.
 
     시각은 여기 없다 → `EditableState.time_intent`. 영업 판정 시각과 이동의 야간 판정
@@ -35,22 +47,22 @@ class TargetPrefs(BaseModel):
     `EditableState.time_intent`, "지금 급하다"는 `EditableState.urgency` 다.
     """
 
-    radius_m: int = 2000
+    radius_m: int = Field(2000, ge=100, le=20000)
     open_now: bool = False
     night_service: bool = False        # 야간진료를 표방하는 곳만
     emergency_service: bool = False    # 응급을 표방하는 곳만
-    specialty: list[str] = Field(default_factory=list)      # ortho, eye, dental, derma, cardio, rehab — 부스트용
+    specialty: list[Specialty] = Field(default_factory=list, max_length=6)  # 부스트용
     # 증상은 **진단이 아니라 사용자의 말 그대로**다. 과목으로 번역하지 않는다 — 그건 진단이고
     # 관할 밖이다 (docs/overview.md). 이 말이 커뮤니티 검색 쿼리가 되고, 걸린 병원이 부스트된다
     # (query-rewrite-experiment.md). state 에 있으니 턴이 바뀌어도 유지되고, 칩으로 해제된다.
-    symptoms: list[str] = Field(default_factory=list)
-    require_tags: list[str] = Field(default_factory=list)   # 24h, center, secondary ... — 필수
-    exclude_ids: list[int] = Field(default_factory=list)
-    pin_ids: list[int] = Field(default_factory=list)
-    limit: int = 20
+    symptoms: list[SymptomText] = Field(default_factory=list, max_length=20)
+    require_tags: list[ShortTag] = Field(default_factory=list, max_length=20)  # 필수
+    exclude_ids: list[PositiveId] = Field(default_factory=list, max_length=100)
+    pin_ids: list[PositiveId] = Field(default_factory=list, max_length=100)
+    limit: int = Field(20, ge=1, le=100)
 
 
-class WalkPrefs(BaseModel):
+class WalkPrefs(ContractModel):
     """**도보로 갈 때만** 의미 있는 하위 설정.
 
     preferred_mode 가 car 로 바뀌어도 **지우지 않는다.** Transport 는 언제나 walk/car/transit 를
@@ -58,11 +70,11 @@ class WalkPrefs(BaseModel):
     """
 
     option: WalkOption = "recommended"
-    avoid: list[WalkFacility] = Field(default_factory=list)
-    max_walk_min: int | None = None     # **개가 걸어도 되는 시간.** journey.max_total_min 과 다르다
+    avoid: list[WalkFacility] = Field(default_factory=list, max_length=3)
+    max_walk_min: int | None = Field(None, ge=1, le=1440)
 
 
-class JourneyPrefs(BaseModel):
+class JourneyPrefs(ContractModel):
     """어떻게 갈까 — **판정**. 결과를 빼지 않는다 (hard_limit 예외).
 
     **수단과 수단별 설정은 계층이 다르다.**
@@ -76,15 +88,16 @@ class JourneyPrefs(BaseModel):
     """
 
     preferred_mode: Mode | None = None
-    max_total_min: int | None = None    # 전체 이동시간 상한. 기본은 advice=avoid 표시만
+    max_total_min: int | None = Field(None, ge=1, le=1440)
     hard_limit: bool = False            # True면 상한 초과를 결과에서 제외 — 경계를 넘는 유일한 스위치
 
     walk: WalkPrefs = Field(default_factory=WalkPrefs)
 
 
-class EditableState(BaseModel):
-    lat: float
-    lng: float
+class EditableState(ContractModel):
+    state_version: Literal[CURRENT_STATE_VERSION] = CURRENT_STATE_VERSION
+    lat: float = Field(ge=-90, le=90)
+    lng: float = Field(ge=-180, le=180)
 
     # --- 상황(context): 사실이지 요구가 아니다. target 과 journey **둘 다**의 입력이다
     time_intent: TimeIntent | None = None    # 시각의 뜻. 없으면 "지금"
@@ -95,7 +108,45 @@ class EditableState(BaseModel):
     target: TargetPrefs = Field(default_factory=TargetPrefs)
     journey: JourneyPrefs = Field(default_factory=JourneyPrefs)
     sort: Sort = "distance"         # 표시 정책 — 어느 쪽도 아님
-    history: list[dict] = Field(default_factory=list)
+    history: list[dict] = Field(default_factory=list, max_length=10)
+
+    @model_validator(mode="before")
+    @classmethod
+    def migrate_legacy_state(cls, value: Any) -> Any:
+        """v1(`target.night/emergency/at`)을 v2 의미로 명시적으로 옮긴다.
+
+        버전 없는 payload는 v1 클라이언트와 PR 전환 중인 v2 클라이언트 양쪽을
+        받아야 한다. 알려진 옛 필드만 옮기고, 그 밖의 오타는 extra=forbid가 잡는다.
+        """
+        if not isinstance(value, dict):
+            return value
+        data = deepcopy(value)
+        version = data.get("state_version", 1)
+        if version not in (1, CURRENT_STATE_VERSION):
+            raise ValueError(f"unsupported state_version: {version}")
+
+        target = data.get("target")
+        if isinstance(target, dict):
+            if "night" in target:
+                target.setdefault("night_service", target.pop("night"))
+            if "emergency" in target:
+                target.setdefault("emergency_service", target.pop("emergency"))
+            legacy_at = target.pop("at", None)
+            if legacy_at is not None and data.get("time_intent") is None:
+                data["time_intent"] = {"kind": "service_at", "at": legacy_at}
+        data["state_version"] = CURRENT_STATE_VERSION
+        return data
+
+    @field_validator("history")
+    @classmethod
+    def validate_history_snapshots(cls, value: list[dict]) -> list[dict]:
+        """undo용 과거 상태도 현재 상태와 같은 계약으로 검증·이행한다."""
+        normalized: list[dict] = []
+        for snapshot in value:
+            candidate = dict(snapshot)
+            candidate["history"] = []
+            normalized.append(cls.model_validate(candidate).snapshot())
+        return normalized
 
     def snapshot(self) -> dict:
         return self.model_dump(exclude={"history"})

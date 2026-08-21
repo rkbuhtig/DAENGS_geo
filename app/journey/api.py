@@ -8,7 +8,7 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sqlalchemy import cast, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,24 +21,39 @@ from app.profile.source import profile_source
 from app.providers.base import LatLng
 
 router = APIRouter(prefix="/journey", tags=["journey"])
+Latitude = Annotated[float, Field(ge=-90, le=90)]
+Longitude = Annotated[float, Field(ge=-180, le=180)]
+Origin = tuple[Latitude, Longitude]
 
 
 class Dest(BaseModel):
-    id: int | None = None            # 우리 place id (있으면 좌표·이름을 DB에서)
-    lat: float | None = None
-    lng: float | None = None
-    name: str = ""
+    model_config = ConfigDict(extra="forbid")
+
+    id: int | None = Field(None, ge=1)   # 우리 place id (있으면 좌표·이름을 DB에서)
+    lat: Latitude | None = None
+    lng: Longitude | None = None
+    name: str = Field("", max_length=200)
+
+    @model_validator(mode="after")
+    def id_or_coordinates(self) -> "Dest":
+        if self.id is None and (self.lat is None or self.lng is None):
+            raise ValueError("dest needs id or lat/lng")
+        if (self.lat is None) != (self.lng is None):
+            raise ValueError("dest lat and lng must be supplied together")
+        return self
 
 
 class JourneyIn(BaseModel):
-    origin: tuple[float, float]
+    model_config = ConfigDict(extra="forbid")
+
+    origin: Origin
     dests: list[Dest] = Field(min_length=1, max_length=10)
     companion: Companion = "dog"
-    dog_id: str | None = None
+    dog_id: str | None = Field(None, max_length=128)
     prefs: JourneyPrefs = Field(default_factory=JourneyPrefs)
     measured: bool = True
     with_polyline: bool = True
-    arrive_note: str | None = None    # 도착 지점 한마디. 도메인이 넘긴다 (journey 는 병원을 모른다)
+    arrive_note: str | None = Field(None, max_length=500)
 
 
 class JourneyItem(BaseModel):

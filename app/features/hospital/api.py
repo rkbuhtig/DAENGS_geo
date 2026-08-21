@@ -8,8 +8,8 @@ transport는 휴리스틱(호출 0)만 실어 리스트 비교용. 실측 경로
 
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -24,28 +24,43 @@ from app.profile.source import profile_source
 from app.providers.base import LatLng
 from app.refine.engine import refine
 from app.refine.nl import ToolCall
+from app.refine.tools import ToolInputError
 
 router = APIRouter(prefix="/hospital", tags=["hospital"])
 
 # 병원 도메인이 소유하는 문구. 공용 journey/spots 는 "진료"를 몰라야 한다.
 ARRIVE_NOTE = "도착 — 간판·층수 확인, 진료 전 전화 권장"
+Latitude = Annotated[float, Field(ge=-90, le=90)]
+Longitude = Annotated[float, Field(ge=-180, le=180)]
+Origin = tuple[Latitude, Longitude]
+PositiveId = Annotated[int, Field(ge=1)]
 
 
 class Edit(BaseModel):
-    tool: str
-    args: dict = Field(default_factory=dict)
+    model_config = ConfigDict(extra="forbid")
+
+    tool: str = Field(min_length=1, max_length=64)
+    args: dict = Field(default_factory=dict, max_length=10)
 
 
 class HospitalSearchIn(BaseModel):
-    dog_id: str | None = None
-    origin: tuple[float, float] | None = None       # (lat, lng). state 없을 때 필수
+    model_config = ConfigDict(extra="forbid")
+
+    dog_id: str | None = Field(None, max_length=128)
+    origin: Origin | None = None                    # (lat, lng). state 없을 때 필수
     state: EditableState | None = None
-    edits: list[Edit] = Field(default_factory=list)
-    utterance: str | None = None
-    shown_ids: list[int] = Field(default_factory=list)
+    edits: list[Edit] = Field(default_factory=list, max_length=20)
+    utterance: str | None = Field(None, max_length=2000)
+    shown_ids: list[PositiveId] = Field(default_factory=list, max_length=100)
     transport: Literal["none", "estimate"] = "estimate"   # 검색 응답은 휴리스틱까지만. 실측은 /journey
     companion: Companion = "dog"              # 병원은 개 동반이 기본. "나만 감"이면 none
     with_evidence: bool = True
+
+    @model_validator(mode="after")
+    def location_is_required(self) -> "HospitalSearchIn":
+        if self.state is None and self.origin is None:
+            raise ValueError("origin or state required")
+        return self
 
 
 class EvidenceOut(BaseModel):
@@ -89,14 +104,15 @@ async def hospital_search(
     db: Annotated[AsyncSession, Depends(get_session)],
 ) -> HospitalSearchOut:
     profile = await profile_source().get(body.dog_id) if body.dog_id else None
-    if body.state is None and body.origin is None:
-        raise ValueError("origin or state required")
     lat, lng = body.origin or (body.state.lat, body.state.lng)  # type: ignore[union-attr]
 
-    r = await refine(
-        body.state, [ToolCall(e.tool, e.args) for e in body.edits], body.utterance,
-        body.shown_ids, profile, lat, lng, settings.default_radius_m,
-    )
+    try:
+        r = await refine(
+            body.state, [ToolCall(e.tool, e.args) for e in body.edits], body.utterance,
+            body.shown_ids, profile, lat, lng, settings.default_radius_m,
+        )
+    except ToolInputError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     st = r.state
 
     # --- target 정책: 결과 집합 결정. journey 값은 절대 여기 들어오지 않는다 (state.py 참조)
