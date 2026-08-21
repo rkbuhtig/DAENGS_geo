@@ -10,7 +10,10 @@ import httpx
 
 from app.providers.base import LatLng, Mode, RouteResult, StaticMapSpec, WalkOption
 
-APIGW = "https://naveropenapi.apigw.ntruss.com"
+# Application Services > Maps 게이트웨이. 구 "AI·NAVER API > 지도"(naveropenapi.apigw.ntruss.com)는
+# 2025-03 신규 차단됐고, 현행 키로 부르면 401 "A subscription to the API is required" 가 온다.
+# 실측 2026-08-20: 같은 키·같은 헤더·같은 경로에서 호스트만 바꾸면 200 (docs/research/…-pricing.md).
+APIGW = "https://maps.apigw.ntruss.com"
 
 
 class NaverProvider:
