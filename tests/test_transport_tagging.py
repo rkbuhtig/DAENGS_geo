@@ -43,13 +43,20 @@ def test_advice_avoid_request_flags_caution():
     assert lvl == "caution" and "지하 통로" in why[0]
 
 
-async def test_fake_route_is_deterministic_and_no_stairs_longer():
+async def test_fake_route_gives_numbers_but_never_facilities():
+    """추정은 거리·시간·요금까지다. **시설은 지어내지 않는다** (결정 #21, #38).
+
+    예전엔 "400m마다 횡단보도 1 · 1.5km 넘으면 계단 1" 을 만들어 냈고, 그게 walk_advice 로
+    흘러 노령견 경로에 실측된 적 없는 계단 경고를 붙였다.
+    """
     f = FakeProvider()
     o, d = LatLng(37.4979, 127.0276), LatLng(37.5145, 127.0316)
     a = await f.route("walk", o, d, "recommended")
     b = await f.route("walk", o, d, "no_stairs")
-    assert a.facilities.stairs == 1 and b.facilities.stairs == 0
-    assert b.distance_m > a.distance_m
+    assert a.facilities is None and b.facilities is None
+    assert a.distance_m > 0 and a.duration_s > 0
+    # 계단이 있는지도 모르는데 "계단을 피해 돌아간다" 고 할 수 없다 — 옵션이 숫자를 안 바꾼다
+    assert (b.distance_m, b.duration_s) == (a.distance_m, a.duration_s)
     c = await f.route("car", o, d)
     assert c.taxi_fare and c.taxi_fare >= 4800
 
@@ -123,7 +130,12 @@ async def test_walk_avoid_changes_walk_leg_only():
 
     assert (plain.car.min, plain.car.m, plain.car.advice, plain.car.why) == \
            (avoided.car.min, avoided.car.m, avoided.car.advice, avoided.car.why), "차량 leg 가 변했다"
-    assert plain.walk.why != avoided.walk.why, "도보 leg 에는 반영돼야 한다"
+    # 설정은 도보 plan 에만 실린다 — 범위가 새지 않는다
+    assert avoided_plan.walk.avoid == ("stairs", "underpass") and plain_plan.walk.avoid == ()
+    # **추정에서는 avoid 가 경고를 못 만든다.** 시설을 모르니 "계단 있음" 이라 말할 재료가 없다.
+    # 재료가 있을 때 경고가 뜨는지는 test_advice_avoid_request_flags_caution 이 본다.
+    assert plain.walk.why == avoided.walk.why
+    assert plain.walk.status == "estimate" and plain.walk.facilities is None
 
 
 def test_arrive_note_is_injected_not_hardcoded():

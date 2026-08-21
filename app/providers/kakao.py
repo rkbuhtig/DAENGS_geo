@@ -13,6 +13,7 @@ LOCAL_BASE = "https://dapi.kakao.com/v2/local"
 
 class KakaoProvider:
     name = "kakao"
+    route_modes: frozenset = frozenset()       # 경로 미구현 — 로컬(지오코딩)만
 
     def __init__(self, rest_key: str, client: httpx.AsyncClient | None = None):
         self._headers = {"Authorization": f"KakaoAK {rest_key}"}

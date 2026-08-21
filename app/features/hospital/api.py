@@ -166,7 +166,8 @@ async def hospital_search(
         keep, mode = [], resolved.journey.mode_priority[0]
         for res in results:
             leg = getattr(res.transport, mode, None) if res.transport else None
-            if leg and leg.min > resolved.journey.max_total_min:
+            # 시간을 모르는 곳(unavailable)은 **빼지 않는다.** 모름은 초과가 아니다
+            if leg and leg.min is not None and leg.min > resolved.journey.max_total_min:
                 dropped += 1
                 continue
             keep.append(res)
@@ -197,7 +198,7 @@ def _sort(results: list[ResultOut], view: ViewPlan, journey: JourneyPlan) -> lis
             primary, band = (0 if r.open_now else 1), (0 if r.open_now else 1)
         elif view.sort == "duration" and r.transport and journey.mode_priority:
             leg = getattr(r.transport, journey.mode_priority[0])
-            primary = leg.min if leg else 10**6
+            primary = leg.min if (leg and leg.min is not None) else 10**6
             band = primary // 5
         else:
             primary = r.distance_m

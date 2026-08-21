@@ -10,6 +10,12 @@ from typing import Literal, Protocol
 Mode = Literal["walk", "car", "transit"]
 WalkOption = Literal["recommended", "main_road", "shortest", "no_stairs"]
 
+# 이 leg 의 숫자가 어디서 왔나. **source(누가) 와 다른 축이다 — status 는 얼마나 믿을 수 있나.**
+#   measured     제공사가 실제로 준 값
+#   estimate     직선거리 × 우회계수 ÷ 속도. 호출자가 요청했거나(목록 미리보기) 실측이 실패해 강등됐거나
+#   unavailable  이 수단을 안 쓰기로 설정했다. **숫자를 만들지 않는다** (min·m 이 null)
+RouteStatus = Literal["measured", "estimate", "unavailable"]
+
 
 @dataclass(frozen=True)
 class LatLng:
@@ -97,6 +103,9 @@ class RouteResult:
 
 class MapProvider(Protocol):
     name: str
+    # **실제로 구현한** 경로 모드. 설정만 받고 None 을 돌려주면 사용자에겐 조용한 추정으로 보인다
+    # (kakao 자동차가 그랬다) — 그래서 능력을 선언하게 하고 시작 시 설정과 대조한다.
+    route_modes: frozenset[Mode]
 
     def static_map_url(self, spec: StaticMapSpec) -> str | None: ...
     async def geocode(self, address: str) -> LatLng | None: ...
@@ -109,6 +118,7 @@ class NullProvider:
     """제공사 미설정. 지도·경로 없이도 검색은 동작해야 한다."""
 
     name = "none"
+    route_modes: frozenset[Mode] = frozenset()
 
     def static_map_url(self, spec: StaticMapSpec) -> str | None:
         return None

@@ -8,6 +8,12 @@ from app.core.config import settings
 from app.features.hospital import api as hospital
 from app.features.pharmacy import api as pharmacy
 from app.journey import api as journey
+from app.providers.registry import route_capability_problems
+
+_problems = route_capability_problems()
+if _problems:
+    # 설정만 받고 런타임에 추정으로 흘려보내면 장애와 구분이 안 된다. 여기서 세운다.
+    raise RuntimeError("경로 제공사 설정 오류: " + " / ".join(_problems))
 
 app = FastAPI(title="DAENGS_geo", version="0.1.0")
 app.include_router(places.router)

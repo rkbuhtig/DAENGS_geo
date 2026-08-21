@@ -20,6 +20,7 @@ OPTION = {"recommended": 0, "main_road": 4, "shortest": 10, "no_stairs": 30}
 
 class TmapProvider:
     name = "tmap"
+    route_modes = frozenset({"walk"})          # 보행자 경로만. 자동차·대중교통 없음
 
     def __init__(self, app_key: str, client: httpx.AsyncClient | None = None):
         self._headers = {"appKey": app_key, "Content-Type": "application/json"}

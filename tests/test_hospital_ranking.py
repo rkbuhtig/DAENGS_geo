@@ -12,6 +12,9 @@ boost 에 섞이면서 순위가 state 밖의 값에 흔들렸다. 함수별 테
 남의 행이 사이에 끼어도 계약은 그대로 검증된다.
 """
 
+import pytest
+
+from app.core.config import settings
 from app.features.hospital.api import HospitalSearchIn, hospital_search
 from app.planning.state import EditableState
 from tests.conftest import TEST_ORIGIN, place_row, seeded_places
@@ -29,6 +32,13 @@ ROWS = [
 # 규칙에 하나도 안 걸리는 발화 → FakeLLM 이 ask 만 낸다 → **state 는 그대로**.
 # 그런데 예전엔 이것만으로 want_ev 가 켜져서 순위가 바뀌었다.
 NO_OP_UTTERANCE = "음 글쎄요"
+
+
+@pytest.fixture
+def fake_community(monkeypatch):
+    """가짜 근거는 이제 기본값이 아니다 (운영 순위를 흔들어서). 근거 계약을 보는 테스트만 켠다."""
+    monkeypatch.setattr(settings, "community_provider", "fake")
+    monkeypatch.setattr(settings, "dev_console", True)
 
 
 def _state() -> EditableState:
@@ -59,7 +69,7 @@ async def test_utterance_presence_does_not_reorder_results():
     assert quiet == spoken == [NEAR, FAR]
 
 
-async def test_evidence_boosts_when_the_state_says_so():
+async def test_evidence_boosts_when_the_state_says_so(fake_community):
     """근거가 과목 신호의 본체다 — 단, **state 가 시킬 때만** (query-rewrite-experiment.md).
 
     증상이 state 에 있으면: 쿼리 재작성 → 스니펫 → 병원명 매칭 → 같은 밴드 안에서 앞선다.
@@ -81,7 +91,7 @@ async def test_evidence_boosts_when_the_state_says_so():
     assert hit.evidence and hit.boost >= len(hit.evidence)
 
 
-async def test_same_state_same_evidence_regardless_of_utterance():
+async def test_same_state_same_evidence_regardless_of_utterance(fake_community):
     """증상이 state 에 있으면, 그 턴에 말을 했든 안 했든 근거·순위가 같다."""
     async with seeded_places(ROWS) as db:
         st = _state(); st.target.symptoms = ["숨을 헐떡"]

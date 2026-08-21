@@ -9,7 +9,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from app.providers.base import Mode
+from app.providers.base import Mode, RouteStatus
 
 Companion = Literal["dog", "none"]
 
@@ -53,10 +53,14 @@ class RoadMix(BaseModel):
 
 
 class Leg(BaseModel):
-    min: int                        # companion=dog면 개 계수 적용, none이면 제공사 원값
+    """**status 를 먼저 읽어라.** unavailable 이면 min·m 이 null 이다 — 0 이 아니라 없음이다."""
+
+    status: RouteStatus = "estimate"
+    status_reason: str | None = None   # estimate 로 강등된 이유, unavailable 인 이유
+    min: int | None = None          # companion=dog면 개 계수 적용, none이면 제공사 원값
     provider_min: int | None = None
-    m: int
-    source: str                     # estimate | tmap | naver | kakaomobility
+    m: int | None = None
+    source: str = "none"            # estimate | tmap | naver | kakaomobility
     option: str | None = None
     option_label: str | None = None
     facilities: dict[str, int | float] | None = None

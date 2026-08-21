@@ -26,7 +26,9 @@ class Settings(BaseSettings):
     openai_model: str = "gpt-4o-mini"
 
     # 커뮤니티 근거 (네이버 검색 API). fake = 시드 스니펫
-    community_provider: Literal["fake", "naver", "none"] = "fake"
+    # 기본은 none. fake 는 지역과 무관한 강남 시드 6개를 늘 돌려주므로 부산에서 검색해도
+    # 순위를 바꾼다 — 개발 콘솔이 켜져 있을 때만 쓴다 (app/enrich/community.py).
+    community_provider: Literal["fake", "naver", "none"] = "none"
     naver_search_client_id: str = ""
     naver_search_client_secret: str = ""
 

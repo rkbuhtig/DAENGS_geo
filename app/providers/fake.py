@@ -1,11 +1,19 @@
 """결정론 가짜 제공사. 키 없이 끝까지 돌리기 위한 것.
 
-경로 = 직선 × 우회계수 ÷ 속도. 시설은 거리·좌표에서 규칙으로 흉내낸다 (테스트 가능하게 결정론).
+경로 = 직선 × 우회계수 ÷ 속도. **시설(횡단보도·계단·지하보도)은 만들지 않는다.**
+
+거리·시간·요금은 모델이다 — "약 12분"은 정직하게 라벨을 붙이면 쓸모가 있다. 시설은 모델이
+아니라 자리채우기였다 ("400m마다 횡단보도 1개"). 그게 `walk_advice` 로 흘러 들어가서,
+TMAP 이 죽은 날 노령·관절견의 경로에 **실측된 적 없는 "계단 1회 — 노령" 경고**가 붙었다.
+결정 #21 이 "폴백은 시간·거리만, 틀린 시설정보는 없는 것보다 나쁨" 이라 못박은 그 지점이다.
+
+같은 이유로 옵션(no_stairs·main_road)이 거리를 바꾸지 않는다. 계단이 있는지도 모르는데
+"계단을 피해서 8% 돌아간다"고 할 수 없다. 옵션 비교는 실측일 때만 의미가 있다.
 """
 
 import math
 
-from app.providers.base import Facilities, LatLng, Mode, RouteResult, StaticMapSpec, WalkOption
+from app.providers.base import LatLng, Mode, RouteResult, StaticMapSpec, WalkOption
 
 DETOUR = {"walk": 1.3, "car": 1.4, "transit": 1.5}
 SPEED_MPS = {"walk": 1.0, "car": 5.5, "transit": 4.0}   # 도보 3.6km/h(횡단 대기 포함), 차 도심 20km/h
@@ -21,6 +29,7 @@ def haversine_m(a: LatLng, b: LatLng) -> float:
 
 class FakeProvider:
     name = "fake"
+    route_modes = frozenset({"walk", "car", "transit"})
 
     def static_map_url(self, spec: StaticMapSpec) -> str | None:
         return None
@@ -36,30 +45,13 @@ class FakeProvider:
         straight = haversine_m(origin, dest)
         dist = straight * DETOUR[mode]
         dur = dist / SPEED_MPS[mode]
-        fac = None
-        taxi = None
-        fare = None
-        if mode == "walk":
-            # 규칙: 400m마다 횡단보도 1, 1km 넘으면 지하도 1, 1.5km 넘으면 계단 1 (no_stairs면 0, 대신 +8% 거리)
-            crosswalk = max(1, int(dist // 400))
-            underpass = 1 if dist > 1000 else 0
-            stairs = 1 if dist > 1500 else 0
-            if option == "no_stairs" and stairs:
-                stairs = 0
-                dist *= 1.08
-                dur = dist / SPEED_MPS[mode]
-            ratio = 0.7 if option == "main_road" else 0.4
-            if option == "main_road":
-                dist *= 1.05; dur = dist / SPEED_MPS[mode]
-            fac = Facilities(crosswalk=crosswalk, stairs=stairs, underpass=underpass, underpass_m=80 * underpass,
-                             big_road_m=int(dist * ratio), total_m=int(dist), big_road_ratio=ratio,
-                             big_crossings=max(0, crosswalk - 1) if ratio > 0.5 else 1 if crosswalk else 0)
-        elif mode == "car":
+        taxi = fare = None
+        if mode == "car":
             taxi = 4800 + max(0, int((dist - 1600) / 131)) * 100   # 서울 기본요금 근사
         elif mode == "transit":
             fare = 1500
         return RouteResult(
             mode=mode, distance_m=int(dist), duration_s=int(dur), source="estimate",
-            polyline=(origin, dest), facilities=fac, taxi_fare=taxi, fare=fare,
+            polyline=(origin, dest), facilities=None, taxi_fare=taxi, fare=fare,
             option=option if mode == "walk" else None,
         )
