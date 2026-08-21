@@ -4,11 +4,26 @@ from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query, Response
 
+from app.core.config import settings
 from app.providers.base import LatLng, MapMarker, StaticMapSpec
 from app.providers.naver import NaverProvider
 from app.providers.registry import static_map_provider
 
 router = APIRouter(prefix="/map", tags=["map"])
+
+
+@router.get("/client-config")
+async def map_client_config():
+    """웹 지도 부팅 정보. key id는 브라우저 SDK용 공개 식별자이고 secret은 내보내지 않는다."""
+    return {
+        "provider": settings.map_provider,
+        "naver_key_id": (
+            settings.naver_ncp_key_id
+            if settings.map_provider == "naver" and settings.naver_ncp_key_id
+            else None
+        ),
+        "fallback": "osm",
+    }
 
 
 @router.get("/static")

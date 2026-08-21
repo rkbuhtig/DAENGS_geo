@@ -4,6 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
+from app.core.config import settings
 from app.core.db import get_session
 from app.features.hospital.api import HospitalSearchIn
 from app.journey.api import Dest, JourneyIn
@@ -167,3 +168,20 @@ def test_static_map_rejects_bad_query_before_provider_call():
         bad_marker = client.get("/map/static?lat=37.5&lng=127&m=999:127:A:0")
     assert bad_origin.status_code == 422
     assert bad_marker.status_code == 422
+
+
+def test_map_client_config_exposes_only_browser_key_id(monkeypatch):
+    monkeypatch.setattr(settings, "map_provider", "naver")
+    monkeypatch.setattr(settings, "naver_ncp_key_id", "public-key-id")
+    monkeypatch.setattr(settings, "naver_ncp_key", "server-secret")
+
+    with TestClient(app) as client:
+        response = client.get("/map/client-config")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "provider": "naver",
+        "naver_key_id": "public-key-id",
+        "fallback": "osm",
+    }
+    assert "server-secret" not in response.text

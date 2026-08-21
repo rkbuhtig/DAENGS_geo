@@ -30,7 +30,9 @@ app/
 
 **LLM은 `utterance`가 있을 때만**, 그것도 "말 → 툴 호출" 번역 한 겹. 병원 정보 생성 안 함. UI 필터(`edits`)와 자연어는 같은 툴로 수렴.
 
-진짜 vs 가짜: PostGIS 검색·영업시간·태깅·상태 편집·diff·스냅샷 조립·advice 규칙은 진짜 / LLM·경로·커뮤니티 검색·프로필·정적지도는 가짜(설정 한 줄로 교체).
+진짜 vs 가짜: PostGIS 검색·영업시간·태깅·상태 편집·diff·스냅샷 조립·advice 규칙은 진짜 /
+LLM·경로·커뮤니티 검색·프로필은 기본 가짜 또는 미설정. 지도 표면은 키를 넣으면 NAVER
+Dynamic Map + Static Map, 없으면 `/dev`에서만 OSM으로 내려간다.
 
 ## 실행
 
@@ -75,7 +77,11 @@ uv run python -m app.ingest full --kind pharmacy
 - 좌표가 없거나 변환 후 대한민국 범위를 벗어난 신규 레코드는 저장하지 않는다. 기존 레코드는 좌표가
   사라져도 폐업 등 상태 변경을 반영한다.
 
-**검증 콘솔**: `http://localhost:8000/dev` — 페르소나·출발지(지도 클릭)·필터 칩·자연어 입력, 카드 클릭하면 도보 폴리라인 + 반려견 관심 지점(spots) + 따라가기 딥링크.
+**검증 콘솔**: `http://127.0.0.1:8000/dev` — 페르소나·출발지(지도 클릭)·필터 칩·자연어 입력, 카드 클릭하면 도보 폴리라인 + 반려견 관심 지점(spots) + 따라가기 딥링크. NAVER Web 서비스 URL은 포트 없이 `http://127.0.0.1`을 등록한다.
+
+현재 공급자 선택·폴백·교체 실험 방법은 [`docs/provider-assembly.md`](docs/provider-assembly.md)에
+한 표로 관리한다. 현재 실제 조립 범위는 NAVER Dynamic Map + Static Map이고, 검색은 PostGIS,
+지오코딩과 실제 경로 공급자는 보류다.
 
 ```
 POST /hospital/search
