@@ -21,6 +21,7 @@ backlog.md           갈래에 안 붙는 미결
 - [지도 제공사](explorations/map-provider/README.md)
 - [산책](explorations/walk/README.md) — 사용자 담당
 - [모바일 셸](explorations/mobile-shell/README.md) — 폰에서의 제품 화면. 공간 표면 vs 에피소드 표면
+- [병원은 산책의 모드, 산책이 척추](decisions/2026-08-22-walk-as-spine.md) — 08-19 → 08-22 의 사슬. 왜 그렇게 이어졌나 (proposed)
 
 ## 계약
 - [반려견 프로필](contracts/dog-profile.md) — 외부에서 받는 형태 + 가상 페르소나 8마리 (축: 지도 위 난점)
@@ -39,6 +40,7 @@ backlog.md           갈래에 안 붙는 미결
 - [국내 반려견 앱 경쟁 조사 — 서비스 유형 × 리뷰 불만, 우리 설계와 연결](research/2026-08-19-competitor-reviews.md)
 - [산책 데이터 — 논문 근거와 신뢰도 등급 (GPS 오차·목걸이 가속도계·활동량 표준)](research/2026-08-19-walk-data-evidence.md)
 - [dev 콘솔 + spots(반려견 관심 지점)](research/2026-08-19-dev-console.md)
+- [TMAP 보행자 옵션 조사 — 288경로, 계단 0, 옵션 71~91% 동일, 단발 99% 일치](research/2026-08-22-tmap-option-survey.md)
 
 ## 새 갈래 만들 때
 `explorations/<주제>/<갈래>.md`, 상단에
