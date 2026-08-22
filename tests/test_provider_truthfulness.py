@@ -38,8 +38,8 @@ def shipped_defaults(monkeypatch):
     테스트는 그 위에 자기가 monkeypatch 한다.
     """
     for name in ("walk_route_provider", "car_route_provider", "transit_route_provider",
-                 "community_provider", "map_provider", "static_map_provider",
-                 "dev_console", "tmap_app_key"):
+                 "community_provider", "allow_fake_evidence", "map_provider",
+                 "static_map_provider", "dev_console", "tmap_app_key"):
         monkeypatch.setattr(settings, name, type(settings).model_fields[name].default)
     route_provider.cache_clear()
     yield
@@ -174,11 +174,33 @@ async def test_tmap_refuses_modes_it_did_not_declare(mode):
 def test_fake_community_evidence_is_not_the_default():
     """가짜 근거는 순위를 바꾼다 — 부산에서 검색해도 강남 시드가 돌아온다."""
     assert settings.community_provider == "none"
+    assert settings.allow_fake_evidence is False
 
 
-def test_fake_community_is_refused_outside_the_dev_console(monkeypatch):
+def test_fake_community_is_refused_unless_explicitly_allowed(monkeypatch):
     from app.enrich.community import NullCommunitySearch, community_search
 
     monkeypatch.setattr(settings, "community_provider", "fake")
-    monkeypatch.setattr(settings, "dev_console", False)
+    monkeypatch.setattr(settings, "allow_fake_evidence", False)
     assert isinstance(community_search(), NullCommunitySearch)
+
+
+def test_dev_console_does_not_decide_whether_fake_evidence_ranks(monkeypatch):
+    """#19: 한 플래그가 표면(/dev)과 순위 데이터를 동시에 결정하면 안 된다.
+
+    콘솔을 보려고 `dev_console` 을 올린 사람이, 지역과 무관한 강남 시드가 순위에
+    들어가는 것까지 켤 의도였을 리 없다. 두 축은 각자 움직인다.
+    """
+    from app.enrich.community import FakeCommunitySearch, NullCommunitySearch, community_search
+
+    monkeypatch.setattr(settings, "community_provider", "fake")
+
+    # 콘솔만 켠 상태 — 근거는 따라 켜지지 않는다 (이슈에서 지적된 경로)
+    monkeypatch.setattr(settings, "dev_console", True)
+    monkeypatch.setattr(settings, "allow_fake_evidence", False)
+    assert isinstance(community_search(), NullCommunitySearch)
+
+    # 반대 방향도 독립이다 — 콘솔 없이도 근거만 켤 수 있다 (테스트·계약 검증용)
+    monkeypatch.setattr(settings, "dev_console", False)
+    monkeypatch.setattr(settings, "allow_fake_evidence", True)
+    assert isinstance(community_search(), FakeCommunitySearch)
