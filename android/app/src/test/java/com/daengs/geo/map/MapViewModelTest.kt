@@ -9,6 +9,7 @@ import com.daengs.geo.location.LocationUpdateConfig
 import com.daengs.geo.map.layers.trail.TrackingState
 import com.daengs.geo.territory.InMemoryTerritoryRepository
 import com.daengs.geo.territory.LocalHexCellIndexer
+import com.daengs.geo.walk.WalkFactSource
 import java.io.IOException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
@@ -140,6 +141,28 @@ class MapViewModelTest {
     }
 
     @Test
+    fun `stopping a recording exposes local walk facts preview`() = runTest {
+        val source = FakeLocationSource(fix = fix(37.5665, 126.9780))
+        val viewModel = viewModel(source)
+        viewModel.onAppForeground()
+        viewModel.useDeviceLocation()
+        advanceUntilIdle()
+        viewModel.startTracking()
+
+        source.updates.emit(fix(37.0, 127.0, isMock = true, capturedAtMillis = 1_000, elapsedMillis = 0))
+        source.updates.emit(
+            fix(37.000117, 127.0, isMock = true, capturedAtMillis = 11_000, elapsedMillis = 10_000),
+        )
+        advanceUntilIdle()
+        viewModel.stopTracking()
+
+        val preview = requireNotNull(viewModel.uiState.value.walkFactsPreview)
+        assertEquals(10, preview.durationSeconds)
+        assertEquals(2, preview.fixCount)
+        assertEquals(WalkFactSource.MOCK, preview.source)
+    }
+
+    @Test
     fun `territory preview is only computed while the layer is on`() = runTest {
         val source = FakeLocationSource(fix = fix(37.5665, 126.9780))
         val viewModel = viewModel(source)
@@ -173,9 +196,12 @@ class MapViewModelTest {
         latitude: Double,
         longitude: Double,
         isMock: Boolean = false,
+        capturedAtMillis: Long = 1L,
+        elapsedMillis: Long? = null,
     ) = LocationSample(
         point = GeoPoint(latitude, longitude),
-        capturedAtMillis = 1L,
+        capturedAtMillis = capturedAtMillis,
+        elapsedRealtimeNanos = elapsedMillis?.times(1_000_000),
         accuracyMeters = 6f,
         isMock = isMock,
     )

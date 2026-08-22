@@ -2,10 +2,7 @@ package com.daengs.geo.map.layers.trail
 
 import com.daengs.geo.location.GeoPoint
 import com.daengs.geo.location.LocationSample
-import kotlin.math.atan2
-import kotlin.math.cos
-import kotlin.math.sin
-import kotlin.math.sqrt
+import com.daengs.geo.location.distanceToMeters
 
 enum class TrackingState { OFF, RECORDING, PAUSED }
 
@@ -76,7 +73,7 @@ class TrailRecorder(
         }
 
         val previous = snapshot.lastSample
-        val delta = previous?.point?.distanceTo(sample.point) ?: 0.0
+        val delta = previous?.point?.distanceToMeters(sample.point) ?: 0.0
         if (previous != null && !breakBeforeNext && delta < minDistanceMeters) {
             snapshot = snapshot.copy(skippedLowAccuracy = 0)
             return snapshot
@@ -113,15 +110,4 @@ class TrailRecorder(
         }
         return kept
     }
-}
-
-internal fun GeoPoint.distanceTo(other: GeoPoint): Double {
-    val earthRadiusMeters = 6_371_000.0
-    val lat1 = Math.toRadians(latitude)
-    val lat2 = Math.toRadians(other.latitude)
-    val latDelta = lat2 - lat1
-    val lngDelta = Math.toRadians(other.longitude - longitude)
-    val a = sin(latDelta / 2) * sin(latDelta / 2) +
-        cos(lat1) * cos(lat2) * sin(lngDelta / 2) * sin(lngDelta / 2)
-    return 2 * earthRadiusMeters * atan2(sqrt(a), sqrt(1 - a))
 }

@@ -21,6 +21,8 @@ import com.daengs.geo.territory.ClaimRejectReason
 import com.daengs.geo.territory.ClaimResult
 import com.daengs.geo.territory.TerritoryCell
 import com.daengs.geo.territory.TerritoryRepository
+import com.daengs.geo.walk.WalkFactsPreview
+import com.daengs.geo.walk.WalkFactsRecorder
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -54,6 +56,7 @@ data class MapUiState(
     val response: HospitalSearchResponse? = null,
     val selectedHospitalId: Long? = null,
     val trail: TrailSnapshot = TrailSnapshot(),
+    val walkFactsPreview: WalkFactsPreview? = null,
     val layers: MapLayerPreferences = MapLayerPreferences(),
     val territoryCells: List<TerritoryCell> = emptyList(),
     val currentTerritoryCell: TerritoryCell? = null,
@@ -72,6 +75,7 @@ class MapViewModel(
 
     private val locationTracker = LocationTracker(viewModelScope)
     private val trailRecorder = TrailRecorder()
+    private val walkFactsRecorder = WalkFactsRecorder()
 
     /** The subscription may only run while the Activity is on screen: there is no service yet. */
     private var isForeground = false
@@ -173,19 +177,33 @@ class MapViewModel(
     }
 
     fun startTracking() {
-        _uiState.update { it.copy(trail = trailRecorder.start()) }
+        walkFactsRecorder.start()
+        _uiState.update {
+            it.copy(
+                trail = trailRecorder.start(),
+                walkFactsPreview = null,
+            )
+        }
     }
 
     fun pauseTracking() {
+        walkFactsRecorder.pause()
         _uiState.update { it.copy(trail = trailRecorder.pause()) }
     }
 
     fun resumeTracking() {
+        walkFactsRecorder.resume()
         _uiState.update { it.copy(trail = trailRecorder.resume()) }
     }
 
     fun stopTracking() {
-        _uiState.update { it.copy(trail = trailRecorder.stop()) }
+        val preview = walkFactsRecorder.stop()
+        _uiState.update {
+            it.copy(
+                trail = trailRecorder.stop(),
+                walkFactsPreview = preview,
+            )
+        }
     }
 
     fun toggleTrail() {
@@ -247,7 +265,10 @@ class MapViewModel(
         statusMessage: String?,
     ) {
         locationTracker.stop()
-        if (_uiState.value.locationFeed != feed) trailRecorder.breakSegment()
+        if (_uiState.value.locationFeed != feed) {
+            trailRecorder.breakSegment()
+            walkFactsRecorder.breakSegment()
+        }
         activeSource = source
         _uiState.update {
             it.copy(
@@ -279,6 +300,7 @@ class MapViewModel(
 
     private fun acceptLocation(sample: LocationSample) {
         val trail = trailRecorder.add(sample)
+        walkFactsRecorder.add(sample)
         _uiState.update { state ->
             state.copy(
                 feedSample = sample,

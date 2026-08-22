@@ -18,9 +18,10 @@ class ReplayLocationSourceTest {
         val source = ReplayLocationSource(
             points = points,
             speedMultiplier = 5.0,
-            tickMillis = 1_000,
             sleeper = { delays += it },
             nowMillis = { 123L },
+            elapsedRealtimeNanos = { 456L },
+            segmentDurationMillis = { _, _ -> 1_000L },
         )
 
         val samples = source.locationUpdates().toList()
@@ -28,7 +29,12 @@ class ReplayLocationSourceTest {
         assertEquals(points, samples.map { it.point })
         assertEquals(listOf(200L, 200L), delays)
         assertTrue(samples.all { it.isMock })
-        assertTrue(samples.all { it.capturedAtMillis == 123L })
+        assertEquals(listOf(123L, 1_123L, 2_123L), samples.map { it.capturedAtMillis })
+        assertEquals(
+            listOf(456L, 1_000_000_456L, 2_000_000_456L),
+            samples.map { it.elapsedRealtimeNanos },
+        )
+        assertTrue(samples.all { it.speedMetersPerSecond == 1.3f })
     }
 
     @Test

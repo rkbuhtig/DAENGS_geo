@@ -50,6 +50,9 @@ import com.daengs.geo.map.layers.trail.TrackingState
 import com.daengs.geo.map.layers.trail.TrailLayerState
 import com.daengs.geo.map.shell.MapHost
 import com.daengs.geo.map.shell.MapScene
+import com.daengs.geo.walk.WalkFactQuality
+import com.daengs.geo.walk.WalkFactSource
+import com.daengs.geo.walk.WalkFactsPreview
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -324,6 +327,9 @@ private fun MapToolsPanel(
             }
 
             if (BuildConfig.DEBUG) {
+                state.walkFactsPreview?.let { preview ->
+                    item { WalkFactsPreviewCard(preview) }
+                }
                 item {
                     Text("가상 이동", fontWeight = FontWeight.Bold)
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -340,6 +346,64 @@ private fun MapToolsPanel(
         }
     }
 }
+
+@Composable
+private fun WalkFactsPreviewCard(preview: WalkFactsPreview) {
+    Surface(
+        color = MaterialTheme.colorScheme.secondaryContainer,
+        shape = RoundedCornerShape(12.dp),
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(3.dp),
+        ) {
+            Text("WalkFacts 미리보기 · v${preview.calculationVersion}", fontWeight = FontWeight.Bold)
+            Text(
+                "${walkSourceLabel(preview.source)} · ${walkQualityLabel(preview.quality)}",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Text("기록 ${preview.durationSeconds}초 · 거리 ${preview.distanceMeters}m")
+            Text(
+                "이동 ${preview.movingSeconds}초/${preview.movingDistanceMeters}m · " +
+                    "평균 ${formatSpeed(preview.averageSpeedMetersPerSecond)}m/s",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Text(
+                "정지 ${preview.stopCount}회/${preview.stopSeconds}초",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Text(
+                "fix ${preview.fixCount}개 · 구간 ${preview.segmentCount}개 · " +
+                    "정확도 제외 ${preview.droppedLowAccuracy}개",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Text(
+                if (preview.source == WalkFactSource.DEVICE) {
+                    "로컬 미리보기 전용 · 아직 저장하거나 업로드하지 않음"
+                } else {
+                    "mock 포함 · 로컬 미리보기 전용 · 저장/업로드 금지"
+                },
+                style = MaterialTheme.typography.labelSmall,
+                color = Color(0xFF8A5A00),
+            )
+        }
+    }
+}
+
+private fun walkSourceLabel(source: WalkFactSource): String = when (source) {
+    WalkFactSource.DEVICE -> "device source"
+    WalkFactSource.MOCK -> "mock source"
+    WalkFactSource.MIXED -> "mixed source"
+}
+
+private fun walkQualityLabel(quality: WalkFactQuality): String = when (quality) {
+    WalkFactQuality.GOOD -> "품질 양호"
+    WalkFactQuality.LIMITED -> "품질 제한"
+    WalkFactQuality.INSUFFICIENT -> "자료 부족"
+}
+
+private fun formatSpeed(speedMetersPerSecond: Double?): String =
+    speedMetersPerSecond?.let { "%.2f".format(it) } ?: "-"
 
 @Composable
 private fun SearchPanel(
