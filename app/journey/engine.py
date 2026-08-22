@@ -6,7 +6,6 @@
 """
 
 import asyncio
-import time
 from dataclasses import dataclass
 
 import httpx
@@ -25,22 +24,13 @@ from app.journey.spots import spots_out
 from app.planning.plans import JourneyPlan
 from app.providers.base import LatLng, Mode, RouteResult, RouteStatus, WalkOption
 from app.providers.fake import FakeProvider, haversine_m
-from app.providers.registry import route_provider, route_provider_name
+from app.providers.registry import route_cache_stats, route_provider, route_provider_name
+from app.usage.models import UsageDenied
 
 _fake = FakeProvider()
 
-# 경로 캐시 — (출발 ~11m 격자, 도착, 모드, 옵션). 도보는 길이 안 변하니 오래, 차량은 교통 반영 위해 짧게.
-_TTL = {"walk": 6 * 3600, "car": 600, "transit": 1800}
-_cache: dict[tuple, tuple[float, RouteResult]] = {}
-_CACHE_MAX = 5000
-
-
-def _ckey(mode: Mode, o: LatLng, d: LatLng, option: WalkOption) -> tuple:
-    return (mode, round(o.lat, 4), round(o.lng, 4), round(d.lat, 4), round(d.lng, 4), option if mode == "walk" else "")
-
-
 def cache_stats() -> dict:
-    return {"size": len(_cache)}
+    return route_cache_stats()
 
 
 def can_measure(mode: Mode) -> bool:
@@ -82,11 +72,6 @@ async def _route(mode: Mode, o: LatLng, d: LatLng, option: WalkOption,
         # 결과로 부르는 게 이 계약이 없애려는 거짓말이다. measured 는 진짜 제공사만 준다.
         return RouteOutcome(await _fake.route(mode, o, d, option), "estimate", "provider_is_fake")
 
-    k = _ckey(mode, o, d, option)
-    hit = _cache.get(k)
-    if hit and time.monotonic() - hit[0] < _TTL[mode]:
-        return RouteOutcome(hit[1], "measured")
-
     provider = route_provider(mode)
     if provider.name == "none":
         reason = "provider_unconfigured"          # 키 없음 — 시작 검증이 잡았어야 한다
@@ -96,13 +81,13 @@ async def _route(mode: Mode, o: LatLng, d: LatLng, option: WalkOption,
         reason = None
         try:
             r = await provider.route(mode, o, d, option)
+        except UsageDenied:
+            r = None
+            reason = "usage_denied"
         except (httpx.HTTPError, ValueError, KeyError):
             r = None
             reason = "provider_error"
         if r:
-            if len(_cache) >= _CACHE_MAX:
-                _cache.pop(next(iter(_cache)))
-            _cache[k] = (time.monotonic(), r)
             return RouteOutcome(r, "measured")
         reason = reason or "provider_no_route"
     # 강등해도 거리·시간은 준다 — 그건 모델이고, 라벨이 붙어 있으면 쓸모가 있다.

@@ -9,6 +9,7 @@ from app.features.hospital import api as hospital
 from app.features.pharmacy import api as pharmacy
 from app.journey import api as journey
 from app.providers.registry import route_capability_problems
+from app.usage.gate import usage_request_scope
 
 _problems = route_capability_problems()
 if _problems:
@@ -23,6 +24,13 @@ app.include_router(journey.router)
 app.include_router(static_map.router)
 
 
+@app.middleware("http")
+async def bind_usage_request_scope(request, call_next):
+    """요청당 사용량 카운터만 만든다. 허용·소비 집행은 실제 외부 호출 Gate 한 곳에서 한다."""
+    async with usage_request_scope():
+        return await call_next(request)
+
+
 if settings.dev_console:
     _DEV = Path(__file__).parent / "static" / "dev.html"
 
@@ -34,4 +42,8 @@ if settings.dev_console:
 
 @app.get("/health")
 async def health():
-    return {"ok": True, "map_provider": settings.map_provider}
+    return {
+        "ok": True,
+        "map_provider": settings.map_provider,
+        "usage_policy": settings.usage_policy,
+    }

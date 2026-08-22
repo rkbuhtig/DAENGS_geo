@@ -25,6 +25,7 @@ app/
 │   ├── pharmacy/  GET /pharmacy/search (얇음, companion 기본 none)
 │   └── walk/      사용자 담당
 ├── api/         GET /places/search · GET /map/static
+├── usage/       실제 외부 호출 Gate — 기본 거부, 제한형 dev 정책, 요청/시간당 사용량
 └── core/        config · db
 android/         Kotlin/Compose 단일 모듈 — 위치 → 검색 → NAVER 지도 → actions/전화 수직 절단면
 ```
@@ -48,6 +49,22 @@ uv run pytest
 
 Android 앱은 [`android/README.md`](android/README.md)를 따른다. 백엔드와 같은 레포에 있지만
 Gradle 프로젝트는 `android/` 아래에 독립되어 있어 Python 실행·테스트와 섞이지 않는다.
+
+### 실제 외부 호출 사용량 Gate
+
+NAVER Static Map, TMAP 실측 경로, OpenAI 자연어 파싱은 모두 같은 Usage Gate를 통과한다.
+코드 기본값 `DAENGS_USAGE_POLICY=deny-all`에서는 실제 provider를 호출하지 않는다. 로컬에서
+실제 키를 검증할 때만 `dev`를 명시한다. `dev_console`과는 독립된 설정이다.
+
+| operation | dev 요청당 | dev 시간당 | 거부 시 |
+|---|---:|---:|---|
+| Static Map | 1 | 100 | HTTP 403/429 |
+| 실측 경로 | 4 | 60 | `estimate`, `status_reason=usage_denied` |
+| OpenAI 파싱 | 1 | 30 | HTTP 403/429 |
+
+dev 누적량은 프로세스 메모리에 있어 재시작하면 초기화되고 여러 worker가 공유하지 않는다.
+팀 서비스에 합칠 때 `UsagePolicy`와 `UsageLedger` 조립만 인증 컨텍스트·공유 저장소 구현으로
+교체한다. provider와 실행 Gate는 그대로 둔다.
 
 ### 실제 병원·약국 데이터 동기화
 
