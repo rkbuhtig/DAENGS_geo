@@ -1,17 +1,27 @@
 package com.daengs.geo.map.provider.naver
 
 import android.graphics.Color
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -26,8 +36,13 @@ import com.naver.maps.map.NaverMap
 import com.naver.maps.map.overlay.LocationOverlay
 import com.naver.maps.map.overlay.Marker
 import com.naver.maps.map.overlay.OverlayImage
+import com.naver.maps.map.overlay.PathOverlay
 import com.naver.maps.map.overlay.PolygonOverlay
-import com.naver.maps.map.overlay.PolylineOverlay
+import java.util.Locale
+import kotlin.math.roundToInt
+
+private const val TRAIL_WIDTH_METERS = 3.0
+private const val MIN_TRAIL_WIDTH_PX = 1
 
 @Composable
 fun NaverMapSurface(
@@ -43,6 +58,9 @@ fun NaverMapSurface(
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     val mapView = remember { MapView(context) }
     var naverMap by remember { mutableStateOf<NaverMap?>(null) }
+    var cameraZoom by remember { mutableDoubleStateOf(14.5) }
+    var trailWidthPx by remember { mutableIntStateOf(MIN_TRAIL_WIDTH_PX) }
+    val trailOverlays = remember { mutableListOf<PathOverlay>() }
     val latestCameraCallback by rememberUpdatedState(onCameraIdle)
     val latestGestureCallback by rememberUpdatedState(onCameraGesture)
     // Idle fires for our own moveCamera calls too. Without the reason, following the device
@@ -68,27 +86,50 @@ fun NaverMapSurface(
         }
     }
 
-    AndroidView(
-        factory = {
-            mapView.apply {
-                getMapAsync { map ->
-                    naverMap = map
-                    map.uiSettings.isLocationButtonEnabled = false
-                    map.uiSettings.isZoomControlEnabled = false
-                    map.addOnCameraChangeListener { reason, _ ->
-                        lastCameraReason.intValue = reason
-                        if (reason == CameraUpdate.REASON_GESTURE) latestGestureCallback()
-                    }
-                    map.addOnCameraIdleListener {
-                        if (!lastCameraReason.intValue.isUserDriven()) return@addOnCameraIdleListener
-                        val target = map.cameraPosition.target
-                        latestCameraCallback(GeoPoint(target.latitude, target.longitude))
+    Box(modifier = modifier) {
+        AndroidView(
+            factory = {
+                mapView.apply {
+                    getMapAsync { map ->
+                        naverMap = map
+                        cameraZoom = map.cameraPosition.zoom
+                        trailWidthPx = trailWidthPixels(map.projection.metersPerPixel)
+                        map.uiSettings.isLocationButtonEnabled = false
+                        map.uiSettings.isZoomControlEnabled = true
+                        map.addOnCameraChangeListener { reason, _ ->
+                            lastCameraReason.intValue = reason
+                            cameraZoom = map.cameraPosition.zoom
+                            val nextTrailWidth = trailWidthPixels(map.projection.metersPerPixel)
+                            if (nextTrailWidth != trailWidthPx) {
+                                trailWidthPx = nextTrailWidth
+                                trailOverlays.forEach { it.width = nextTrailWidth }
+                            }
+                            if (reason == CameraUpdate.REASON_GESTURE) latestGestureCallback()
+                        }
+                        map.addOnCameraIdleListener {
+                            if (!lastCameraReason.intValue.isUserDriven()) return@addOnCameraIdleListener
+                            val target = map.cameraPosition.target
+                            latestCameraCallback(GeoPoint(target.latitude, target.longitude))
+                        }
                     }
                 }
-            }
-        },
-        modifier = modifier,
-    )
+            },
+            modifier = Modifier.fillMaxSize(),
+        )
+
+        Surface(
+            modifier = Modifier.align(Alignment.TopEnd).padding(12.dp),
+            shape = RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+            shadowElevation = 2.dp,
+        ) {
+            Text(
+                text = String.format(Locale.US, "줌 %.1f · 선 %dpx", cameraZoom, trailWidthPx),
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                style = MaterialTheme.typography.labelLarge,
+            )
+        }
+    }
 
     LaunchedEffect(naverMap, searchOrigin) {
         val map = naverMap ?: return@LaunchedEffect
@@ -153,15 +194,22 @@ fun NaverMapSurface(
             emptyList()
         } else {
             scene.trail.paths.filter { it.size >= 2 }.map { path ->
-                PolylineOverlay().apply {
+                PathOverlay().apply {
                     coords = path.map(GeoPoint::toLatLng)
-                    width = 12
+                    width = trailWidthPx
                     color = Color.rgb(34, 108, 74)
+                    passedColor = color
+                    outlineWidth = 0
+                    progress = 1.0
                     this.map = map
                 }
             }
         }
-        onDispose { lines.forEach { it.map = null } }
+        trailOverlays.addAll(lines)
+        onDispose {
+            lines.forEach { it.map = null }
+            trailOverlays.removeAll(lines.toSet())
+        }
     }
 
     // Claimed cells and the preview cell change on different clocks: rebuilding every claimed
@@ -209,5 +257,10 @@ private fun hexPolygon(boundary: List<GeoPoint>, fill: Int, outline: Int) = Poly
 
 private fun Int.isUserDriven(): Boolean =
     this == CameraUpdate.REASON_GESTURE || this == CameraUpdate.REASON_CONTROL
+
+private fun trailWidthPixels(metersPerPixel: Double): Int =
+    (TRAIL_WIDTH_METERS / metersPerPixel)
+        .roundToInt()
+        .coerceAtLeast(MIN_TRAIL_WIDTH_PX)
 
 private fun GeoPoint.toLatLng(): LatLng = LatLng(latitude, longitude)
