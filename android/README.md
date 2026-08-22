@@ -26,15 +26,18 @@ app        DaengsApplication 조립점. DI 프레임워크 없음
 `pinned` 검색은 `set_origin` edit만 보내고 top-level `origin`을 생략한다. 이 규칙은
 `SearchRequestBuilderTest`가 고정한다.
 
-연속 위치 갱신은 `deviceLocation`·트레일·현재 territory 셀만 바꾸고 병원 검색을 자동으로
-실행하지 않는다. 트레일의 기록 상태(`OFF/RECORDING/PAUSED`)와 선 표시 설정은 별개라서 선을
+연속 위치 갱신은 `feedSample`·트레일·현재 territory 셀만 바꾸고 병원 검색을 자동으로
+실행하지 않는다. `deviceLocation`은 실제 기기 fix만 쓰기 때문에 가상 이동 중에도 검색
+`origin`은 마지막 실제 위치를 유지한다. 트레일의 기록 상태(`OFF/RECORDING/PAUSED`)와 선 표시 설정은 별개라서 선을
 숨겨도 사용자가 시작한 기록은 계속된다. territory도 기본 비표시이며 표시를 꺼도 로컬 claim은
 지워지지 않는다. 현재 연속 위치 구독은 Activity가 화면을 벗어나면 중단하며, background 기록은
 후속 foreground service가 소유한다.
 
 debug 빌드의 `지도 기능` 탭에서 1×/5×/10× 가상 경로를 재생할 수 있다. 재생 source는 실제
 Fused source와 같은 `LocationSource`를 구현하므로 실제로 걷지 않고 현재점·트레일·육각 셀을
-관통 검증한다. 로컬 격자는 H3가 아니며 공개 소유권이나 서버 동기화의 계약으로 보지 않는다.
+관통 검증한다. 재생은 검증 도구라서 사용자가 시작한 기록을 지우지 않고, 피드가 바뀌면 트레일
+세그먼트가 끊겨 가짜 좌표와 실제 좌표가 한 선으로 이어지지 않으며, 가상 좌표로는 영역을
+마킹할 수 없다. 재생이 끝나거나 실패하면 피드는 실제 위치로 돌아온다. 로컬 격자는 H3가 아니며 공개 소유권이나 서버 동기화의 계약으로 보지 않는다.
 
 ## 로컬 설정
 
