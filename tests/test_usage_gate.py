@@ -241,7 +241,8 @@ def test_llm_denial_is_explicit_http_403_not_silent_fake_fallback(monkeypatch):
 def test_shipped_usage_policy_is_deny_all_and_independent_of_dev_console():
     fields = type(settings).model_fields
     assert fields["usage_policy"].default == "deny-all"
-    assert fields["dev_console"].default is True
+    # 두 값은 서로 독립이다. dev_console 이 닫혀 있다는 것이 usage_policy 를 대신하지 않는다.
+    assert fields["dev_console"].default is False
 
 
 def test_real_provider_factories_install_metered_adapters(monkeypatch):
