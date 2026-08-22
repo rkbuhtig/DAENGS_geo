@@ -23,7 +23,7 @@ app/
 ├── features/
 │   ├── hospital/  POST /hospital/search (편집+검색, transport=estimate만)
 │   ├── pharmacy/  GET /pharmacy/search (얇음, companion 기본 none)
-│   └── walk/      사용자 담당
+│   └── walk/      수집만 — WalkFacts (contracts/walk-record.md). 판정·서술 없음, 테스트로 고정
 ├── api/         GET /places/search · GET /map/static
 ├── usage/       실제 외부 호출 Gate — 기본 거부, 제한형 dev 정책, 요청/시간당 사용량
 └── core/        config · db

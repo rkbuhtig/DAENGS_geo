@@ -6,6 +6,7 @@ from typing import Protocol
 from app.usage.models import (
     LanguageParseIntent,
     MeasuredRouteIntent,
+    RouteSurveyIntent,
     StaticMapIntent,
     UsageIntent,
     UsagePermit,
@@ -28,6 +29,9 @@ class OperationLimit:
 class DevUsageLimits:
     static_map: OperationLimit = field(default_factory=lambda: OperationLimit(1, 100))
     measured_route: OperationLimit = field(default_factory=lambda: OperationLimit(4, 60))
+    route_survey: OperationLimit = field(
+        default_factory=lambda: OperationLimit(300, 300, window_seconds=86400)
+    )
     language_parse: OperationLimit = field(default_factory=lambda: OperationLimit(1, 30))
 
 
@@ -61,6 +65,8 @@ class BoundedDevPolicy:
             return self._limits.static_map
         if isinstance(intent, MeasuredRouteIntent):
             return self._limits.measured_route
+        if isinstance(intent, RouteSurveyIntent):
+            return self._limits.route_survey
         if isinstance(intent, LanguageParseIntent):
             return self._limits.language_parse
         raise TypeError(f"unsupported usage intent: {type(intent).__name__}")

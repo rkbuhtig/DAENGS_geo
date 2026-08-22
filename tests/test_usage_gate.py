@@ -14,7 +14,7 @@ from app.refine.nl import MeteredLLM, ToolCall
 from app.usage.gate import UsageGate, usage_request_scope
 from app.usage.ledger import InMemoryLedger
 from app.usage.metered import MeteredRouteProvider, MeteredStaticMapFetcher
-from app.usage.models import MeasuredRouteIntent, UsageDenied
+from app.usage.models import MeasuredRouteIntent, RouteSurveyIntent, UsageDenied
 from app.usage.policy import (
     BoundedDevPolicy,
     DenyAllPolicy,
@@ -77,6 +77,7 @@ def small_dev_gate(*, request_units: int = 2, window_units: int = 3) -> UsageGat
     limits = DevUsageLimits(
         static_map=OperationLimit(request_units, window_units),
         measured_route=OperationLimit(request_units, window_units),
+        route_survey=OperationLimit(request_units, window_units),
         language_parse=OperationLimit(request_units, window_units),
     )
     return UsageGate(BoundedDevPolicy(limits), InMemoryLedger())
@@ -123,6 +124,26 @@ async def test_dev_policy_enforces_request_and_window_limits_without_refund():
         with pytest.raises(UsageDenied) as usage_denied:
             await gate.consume(intent, permit)
     assert usage_denied.value.code == "usage_limit"
+
+
+async def test_route_survey_has_a_separate_bounded_dev_budget():
+    limits = DevUsageLimits(
+        route_survey=OperationLimit(request_units=2, window_units=2, window_seconds=86400)
+    )
+    gate = UsageGate(BoundedDevPolicy(limits), InMemoryLedger())
+    intent = RouteSurveyIntent(option="recommended")
+
+    async with usage_request_scope():
+        for _ in range(2):
+            permit = await gate.check(intent)
+            assert permit.window is not None
+            assert permit.window.bucket == "dev:route.research_survey"
+            await gate.consume(intent, permit)
+        permit = await gate.check(intent)
+        with pytest.raises(UsageDenied) as denied:
+            await gate.consume(intent, permit)
+
+    assert denied.value.code == "request_limit"
 
 
 async def test_route_cache_hit_consumes_neither_request_nor_window_units():

@@ -1,0 +1,98 @@
+"""산책 패키지는 수집만 한다 — 이 약속을 테스트로 고정한다.
+
+문구는 또 읽힌다. 타입은 안 읽히면 깨진다. 필드 하나를 더하면 여기가 깨지고,
+깨뜨리는 것이 **보이는 결정**이 된다. docs/contracts/walk-record.md
+"""
+
+import inspect
+from datetime import UTC, datetime, timedelta
+from pathlib import Path
+
+import pytest
+from pydantic import BaseModel, ValidationError
+
+from app.features import walk
+from app.features.walk import models
+from app.features.walk.models import WalkFacts, WalkFix, WalkSession
+
+T0 = datetime(2026, 8, 22, 7, 0, tzinfo=UTC)
+
+
+def _models() -> list[type[BaseModel]]:
+    return [m for _, m in inspect.getmembers(models, inspect.isclass)
+            if issubclass(m, BaseModel) and m.__module__ == models.__name__
+            and m is not models.ContractModel]
+
+
+# ------------------------------------------------------------------ 집합 고정
+def test_field_sets_are_pinned():
+    """계약의 필드 집합 그대로. 늘리려면 walk-record.md 와 record_version 을 같이 올려라."""
+    assert set(WalkFix.model_fields) == {"at", "lat", "lng", "accuracy_m"}
+    assert set(WalkSession.model_fields) == {"id", "dog_id", "started_at", "ended_at", "fix_count"}
+    assert set(WalkFacts.model_fields) == {
+        "record_version", "session_id", "dog_id", "started_at", "ended_at",
+        "duration_s", "distance_m", "moving_distance_m", "moving_s",
+        "stop_count", "stop_s", "avg_speed_mps", "fix_count",
+    }
+    assert {m.__name__ for m in _models()} == {"WalkFix", "WalkSession", "WalkFacts"}
+
+
+# ------------------------------------------------------------------ 의미 없음
+def test_no_field_carries_meaning():
+    """목표·보상·트리거·서술… 은 사실이 아니다. 이름에 그 토큰이 보이면 경계를 넘은 것이다."""
+    for m in _models():
+        for name in m.model_fields:
+            hit = [t for t in walk.OUT_OF_SCOPE_TOKENS if t in name.lower()]
+            assert not hit, f"{m.__name__}.{name} 은 수집이 아니라 의미다: {hit}"
+
+
+def test_no_text_for_display():
+    """문자열 필드는 식별자뿐이다. 사용자에게 보여줄 문장은 소비자가 만든다."""
+    allowed = {"id", "dog_id", "session_id"}
+    for m in _models():
+        for name, f in m.model_fields.items():
+            if f.annotation is str:
+                assert name in allowed, f"{m.__name__}.{name} — 문장 필드는 여기 없다"
+
+
+def test_walk_package_has_no_judgment_modules():
+    """advice.py · reward.py · narration.py 같은 파일이 이 패키지에 생기면 경계가 무너진 것이다."""
+    pkg = Path(walk.__file__).parent
+    names = {p.stem for p in pkg.glob("*.py")} - {"__init__", "models"}
+    bad = [n for n in names if any(t in n for t in walk.OUT_OF_SCOPE_TOKENS)]
+    assert not bad, f"수집 패키지에 판정 모듈: {bad}"
+    # 엔드포인트·사실 계산이 생기면 여기 허용 목록에 이름을 **명시적으로** 더한다
+    assert names <= {"api", "facts"}, f"예상 밖 모듈: {names}"
+
+
+# ------------------------------------------------------------------ 계약 검증
+def test_timestamps_require_timezone():
+    naive = datetime(2026, 8, 22, 7, 0)  # noqa: DTZ001 — 일부러 naive. 거부돼야 한다
+    with pytest.raises(ValidationError, match="timezone"):
+        WalkFix(at=naive, lat=37.5, lng=127.0)
+    with pytest.raises(ValidationError, match="timezone"):
+        WalkSession(id="s1", dog_id="halmae", started_at=naive)
+
+
+def test_session_cannot_end_before_it_starts():
+    with pytest.raises(ValidationError, match="precede"):
+        WalkSession(id="s1", dog_id="halmae", started_at=T0, ended_at=T0 - timedelta(minutes=1))
+
+
+def test_facts_are_internally_consistent():
+    ok = {"session_id": "s1", "dog_id": "halmae", "started_at": T0, "ended_at": T0 + timedelta(minutes=20),
+          "duration_s": 1200, "distance_m": 1500, "moving_distance_m": 1380, "moving_s": 1000,
+          "stop_count": 3, "stop_s": 200, "avg_speed_mps": 1.38, "fix_count": 240}
+    f = WalkFacts(**ok)
+    assert f.record_version == models.RECORD_VERSION
+
+    with pytest.raises(ValidationError, match="exceed distance_m"):
+        WalkFacts(**{**ok, "moving_distance_m": 1600})
+    with pytest.raises(ValidationError, match="exceed duration_s"):
+        WalkFacts(**{**ok, "stop_s": 300})
+
+
+def test_unknown_fields_are_rejected_not_dropped():
+    """소비자가 `goal_min` 을 실어 보내도 조용히 버리지 않는다 — 계약 위반은 보여야 한다."""
+    with pytest.raises(ValidationError, match="extra"):
+        WalkFix(at=T0, lat=37.5, lng=127.0, goal_min=30)
