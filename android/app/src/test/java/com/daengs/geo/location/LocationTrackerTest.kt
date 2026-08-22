@@ -1,12 +1,15 @@
 package com.daengs.geo.location
 
+import java.io.IOException
 import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.yield
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class LocationTrackerTest {
@@ -14,10 +17,8 @@ class LocationTrackerTest {
     fun `starting a new feed cancels the previous subscription`() = runBlocking {
         val active = AtomicInteger(0)
         val starts = AtomicInteger(0)
-        val source = object : LocationSource {
-            override suspend fun currentLocation() = sample()
-
-            override fun locationUpdates(config: LocationUpdateConfig): Flow<LocationSample> = flow {
+        val source = sourceOf(
+            flow {
                 starts.incrementAndGet()
                 active.incrementAndGet()
                 try {
@@ -25,8 +26,8 @@ class LocationTrackerTest {
                 } finally {
                     active.decrementAndGet()
                 }
-            }
-        }
+            },
+        )
         val tracker = LocationTracker(this)
 
         tracker.start(source)
@@ -41,6 +42,47 @@ class LocationTrackerTest {
         tracker.stop()
         yield()
         assertEquals(0, active.get())
+    }
+
+    @Test
+    fun `a failing feed is reported instead of crashing the scope`() = runBlocking {
+        val tracker = LocationTracker(this)
+        val failure = IOException("play services unavailable")
+
+        tracker.start(sourceOf(flow { throw failure }))
+        yield()
+
+        val status = tracker.status.value
+        assertTrue(status is FeedStatus.Failed)
+        assertEquals(failure, (status as FeedStatus.Failed).cause)
+    }
+
+    @Test
+    fun `a finite feed reports completion so the caller can leave it`() = runBlocking {
+        val tracker = LocationTracker(this)
+
+        tracker.start(sourceOf(flowOf(sample())))
+        yield()
+
+        assertEquals(FeedStatus.Completed, tracker.status.value)
+    }
+
+    @Test
+    fun `stopping a feed reports idle rather than completion`() = runBlocking {
+        val tracker = LocationTracker(this)
+        tracker.start(sourceOf(flow { awaitCancellation() }))
+        yield()
+
+        tracker.stop()
+        yield()
+
+        assertEquals(FeedStatus.Idle, tracker.status.value)
+    }
+
+    private fun sourceOf(updates: Flow<LocationSample>) = object : LocationSource {
+        override suspend fun currentLocation() = sample()
+
+        override fun locationUpdates(config: LocationUpdateConfig): Flow<LocationSample> = updates
     }
 
     private fun sample() = LocationSample(
