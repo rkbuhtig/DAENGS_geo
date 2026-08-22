@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     openai_model: str = "gpt-4o-mini"
 
+    # 실제 외부 호출은 기본 거부. dev는 같은 Usage Gate 안에서 작은 프로세스별 한도만 허용한다.
+    usage_policy: Literal["deny-all", "dev"] = "deny-all"
+
     # 커뮤니티 근거 (네이버 검색 API). fake = 시드 스니펫
     # 기본은 none. fake 는 지역과 무관한 강남 시드 6개를 늘 돌려주므로 부산에서 검색해도
     # 순위를 바꾼다 — 개발 콘솔이 켜져 있을 때만 쓴다 (app/enrich/community.py).

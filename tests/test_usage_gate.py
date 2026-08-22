@@ -1,0 +1,231 @@
+"""실제 유료 provider는 허용·요청 한도·누적 사용량 영수증 없이 호출할 수 없다."""
+
+import pytest
+from fastapi.testclient import TestClient
+
+from app.core.config import settings
+from app.core.db import get_session
+from app.journey import engine
+from app.main import app
+from app.planning.state import EditableState
+from app.providers import registry as provider_registry
+from app.providers.base import LatLng, RouteResult, StaticMapSpec
+from app.refine.nl import MeteredLLM, ToolCall
+from app.usage.gate import UsageGate, usage_request_scope
+from app.usage.ledger import InMemoryLedger
+from app.usage.metered import MeteredRouteProvider, MeteredStaticMapFetcher
+from app.usage.models import MeasuredRouteIntent, UsageDenied
+from app.usage.policy import (
+    BoundedDevPolicy,
+    DenyAllPolicy,
+    DevUsageLimits,
+    OperationLimit,
+)
+from app.usage.registry import usage_gate
+
+
+class SpyRouteProvider:
+    name = "spy-route"
+    route_modes = frozenset({"walk"})
+
+    def __init__(self):
+        self.calls = 0
+
+    def static_map_url(self, spec):
+        return None
+
+    async def geocode(self, address):
+        return None
+
+    async def reverse_geocode(self, pos):
+        return None
+
+    async def route(self, mode, origin, dest, option="recommended"):
+        self.calls += 1
+        return RouteResult(
+            mode=mode,
+            distance_m=100,
+            duration_s=60,
+            source=self.name,
+            option=option,
+        )
+
+
+class SpyStaticMapFetcher:
+    def __init__(self):
+        self.calls = 0
+
+    async def fetch_static_png(self, spec):
+        self.calls += 1
+        return b"png"
+
+
+class SpyLLM:
+    def __init__(self):
+        self.calls = 0
+
+    async def plan(self, utterance, state, shown_ids, profile_hint):
+        self.calls += 1
+        return [ToolCall("ask", {"question": "q"})]
+
+
+def deny_gate() -> UsageGate:
+    return UsageGate(DenyAllPolicy(), InMemoryLedger())
+
+
+def small_dev_gate(*, request_units: int = 2, window_units: int = 3) -> UsageGate:
+    limits = DevUsageLimits(
+        static_map=OperationLimit(request_units, window_units),
+        measured_route=OperationLimit(request_units, window_units),
+        language_parse=OperationLimit(request_units, window_units),
+    )
+    return UsageGate(BoundedDevPolicy(limits), InMemoryLedger())
+
+
+async def test_default_policy_denies_all_three_real_call_edges():
+    route_spy = SpyRouteProvider()
+    static_spy = SpyStaticMapFetcher()
+    llm_spy = SpyLLM()
+    gate = deny_gate()
+    route = MeteredRouteProvider(route_spy, gate)
+    static = MeteredStaticMapFetcher(static_spy, gate)
+    llm = MeteredLLM(llm_spy, gate)
+    state = EditableState(lat=37.5, lng=127.0)
+
+    async with usage_request_scope():
+        with pytest.raises(UsageDenied, match="not configured"):
+            await route.route("walk", LatLng(37.5, 127.0), LatLng(37.51, 127.01))
+        with pytest.raises(UsageDenied, match="not configured"):
+            await static.fetch_static_png(StaticMapSpec(LatLng(37.5, 127.0)))
+        with pytest.raises(UsageDenied, match="not configured"):
+            await llm.plan("가까운 곳", state, [], "없음")
+
+    assert (route_spy.calls, static_spy.calls, llm_spy.calls) == (0, 0, 0)
+
+
+async def test_dev_policy_enforces_request_and_window_limits_without_refund():
+    gate = small_dev_gate(request_units=2, window_units=3)
+    intent = MeasuredRouteIntent(mode="walk", option="recommended")
+
+    async with usage_request_scope():
+        for _ in range(2):
+            permit = await gate.check(intent)
+            await gate.consume(intent, permit)
+        with pytest.raises(UsageDenied) as request_denied:
+            await gate.check(intent)
+    assert request_denied.value.code == "request_limit"
+
+    async with usage_request_scope():
+        permit = await gate.check(intent)
+        await gate.consume(intent, permit)  # 누적 3 — 마지막 허용
+        permit = await gate.check(intent)
+        with pytest.raises(UsageDenied) as usage_denied:
+            await gate.consume(intent, permit)
+    assert usage_denied.value.code == "usage_limit"
+
+
+async def test_route_denial_degrades_to_labelled_estimate_without_call(monkeypatch):
+    spy = SpyRouteProvider()
+    provider = MeteredRouteProvider(spy, deny_gate())
+    monkeypatch.setattr(engine, "route_provider_name", lambda mode: "tmap")
+    monkeypatch.setattr(engine, "route_provider", lambda mode: provider)
+
+    async with usage_request_scope():
+        outcome = await engine._route(
+            "walk", LatLng(37.5, 127.0), LatLng(37.51, 127.01), "recommended", True
+        )
+
+    assert outcome.status == "estimate" and outcome.reason == "usage_denied"
+    assert spy.calls == 0
+
+
+def test_static_map_denial_is_http_403_and_never_calls_provider(monkeypatch):
+    from app.api import static_map as static_map_api
+
+    spy = SpyStaticMapFetcher()
+    fetcher = MeteredStaticMapFetcher(spy, deny_gate())
+    monkeypatch.setattr(static_map_api, "static_map_fetcher", lambda: fetcher)
+
+    with TestClient(app) as client:
+        response = client.get("/map/static?lat=37.5&lng=127")
+
+    assert response.status_code == 403
+    assert response.json()["detail"]["code"] == "policy_denied"
+    assert spy.calls == 0
+
+
+def test_static_map_dev_limit_returns_429_and_success_is_cacheable(monkeypatch):
+    from app.api import static_map as static_map_api
+
+    spy = SpyStaticMapFetcher()
+    fetcher = MeteredStaticMapFetcher(spy, small_dev_gate(request_units=1, window_units=1))
+    monkeypatch.setattr(static_map_api, "static_map_fetcher", lambda: fetcher)
+
+    with TestClient(app) as client:
+        allowed = client.get("/map/static?lat=37.5&lng=127")
+        denied = client.get("/map/static?lat=37.5&lng=127")
+
+    assert allowed.status_code == 200 and allowed.content == b"png"
+    assert allowed.headers["cache-control"] == "public, max-age=86400"
+    assert denied.status_code == 429
+    assert denied.json()["detail"]["code"] == "usage_limit"
+    assert spy.calls == 1
+
+
+async def _no_db():
+    yield None
+
+
+def test_llm_denial_is_explicit_http_403_not_silent_fake_fallback(monkeypatch):
+    from app.refine import engine as refine_engine
+
+    spy = SpyLLM()
+    metered = MeteredLLM(spy, deny_gate())
+    monkeypatch.setattr(refine_engine, "llm", lambda: metered)
+    app.dependency_overrides[get_session] = _no_db
+    try:
+        with TestClient(app) as client:
+            response = client.post("/hospital/search", json={
+                "origin": [37.5, 127.0],
+                "utterance": "가까운 곳",
+                "transport": "none",
+                "with_evidence": False,
+            })
+    finally:
+        app.dependency_overrides.pop(get_session, None)
+
+    assert response.status_code == 403
+    assert response.json()["detail"]["code"] == "policy_denied"
+    assert spy.calls == 0
+
+
+def test_shipped_usage_policy_is_deny_all_and_independent_of_dev_console():
+    fields = type(settings).model_fields
+    assert fields["usage_policy"].default == "deny-all"
+    assert fields["dev_console"].default is True
+
+
+def test_real_provider_factories_install_metered_adapters(monkeypatch):
+    from app.refine.nl import llm
+
+    monkeypatch.setattr(settings, "usage_policy", "deny-all")
+    monkeypatch.setattr(settings, "walk_route_provider", "tmap")
+    monkeypatch.setattr(settings, "tmap_app_key", "test-key")
+    monkeypatch.setattr(settings, "static_map_provider", "naver")
+    monkeypatch.setattr(settings, "naver_ncp_key_id", "test-id")
+    monkeypatch.setattr(settings, "naver_ncp_key", "test-secret")
+    monkeypatch.setattr(settings, "llm_provider", "openai")
+    monkeypatch.setattr(settings, "openai_api_key", "test-openai-key")
+    usage_gate.cache_clear()
+    provider_registry.route_provider.cache_clear()
+    provider_registry.static_map_provider.cache_clear()
+    provider_registry.static_map_fetcher.cache_clear()
+    try:
+        assert isinstance(provider_registry.route_provider("walk"), MeteredRouteProvider)
+        assert isinstance(provider_registry.static_map_fetcher(), MeteredStaticMapFetcher)
+        assert isinstance(llm(), MeteredLLM)
+    finally:
+        provider_registry.route_provider.cache_clear()
+        provider_registry.static_map_fetcher.cache_clear()
+        provider_registry.static_map_provider.cache_clear()
+        usage_gate.cache_clear()
