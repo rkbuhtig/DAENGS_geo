@@ -51,8 +51,12 @@ import com.daengs.geo.map.layers.trail.TrailLayerState
 import com.daengs.geo.map.shell.MapHost
 import com.daengs.geo.map.shell.MapScene
 import kotlin.math.abs
+import kotlin.math.roundToInt
 
 private enum class AppSection { HOSPITAL, MAP_TOOLS }
+
+/** Consecutive dropped fixes before we admit on screen that recording is going nowhere. */
+private const val LOW_ACCURACY_STREAK_TO_WARN = 3
 
 @Composable
 fun MapScreen(
@@ -78,26 +82,48 @@ fun MapScreen(
     onUseDeviceLocation: () -> Unit,
 ) {
     var section by remember { mutableStateOf(AppSection.HOSPITAL) }
-    val scene = MapScene(
-        deviceLocation = state.deviceLocation,
-        places = state.response?.results.orEmpty().map { hospital ->
+    val places = remember(state.response, state.selectedHospitalId) {
+        state.response?.results.orEmpty().map { hospital ->
             PlaceMarkerState(
                 id = hospital.id.toString(),
                 point = hospital.point,
                 label = hospital.name,
                 selected = hospital.id == state.selectedHospitalId,
             )
-        },
-        trail = TrailLayerState(
-            points = state.trail.samples.map { it.point },
-            visible = state.layers.showTrail,
-        ),
-        territory = TerritoryLayerState(
-            claimedCells = state.territoryCells,
-            previewCell = state.currentTerritoryCell,
-            visible = state.layers.showTerritory,
-        ),
-    )
+        }
+    }
+    // A hidden layer hands the renderer nothing, so it cannot draw what is switched off.
+    val trailLayer = remember(state.trail.segments, state.layers.showTrail) {
+        TrailLayerState(
+            paths = if (state.layers.showTrail) {
+                state.trail.segments.map { segment -> segment.map { it.point } }
+            } else {
+                emptyList()
+            },
+        )
+    }
+    val territoryLayer = remember(
+        state.territoryCells,
+        state.currentTerritoryCell,
+        state.layers.showTerritory,
+    ) {
+        if (state.layers.showTerritory) {
+            TerritoryLayerState(
+                claimedCells = state.territoryCells,
+                previewCell = state.currentTerritoryCell,
+            )
+        } else {
+            TerritoryLayerState()
+        }
+    }
+    val scene = remember(state.feedSample, places, trailLayer, territoryLayer) {
+        MapScene(
+            currentPosition = state.feedSample?.point,
+            places = places,
+            trail = trailLayer,
+            territory = territoryLayer,
+        )
+    }
 
     Column(Modifier.fillMaxSize().statusBarsPadding()) {
         SectionTabs(section = section, onSection = { section = it })
@@ -116,21 +142,26 @@ fun MapScreen(
                 MissingMapConfiguration()
             }
 
-            Row(
+            Column(
                 modifier = Modifier.align(Alignment.TopCenter).padding(top = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                if (section == AppSection.HOSPITAL && canSearchMovedArea(state)) {
-                    Button(onClick = onSearchArea) { Text("이 지역 검색") }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (section == AppSection.HOSPITAL && canSearchMovedArea(state)) {
+                        Button(onClick = onSearchArea) { Text("이 지역 검색") }
+                    }
+                    OutlinedButton(onClick = onMyLocation) { Text("내 위치") }
                 }
-                OutlinedButton(onClick = onMyLocation) { Text("내 위치") }
+                // Errors belong to the app, not to one tab: a location failure raised from the
+                // map tools used to be invisible until the user wandered back to the hospital tab.
+                state.error?.let { error -> ErrorNotice(error = error, onRetry = onRetry) }
             }
 
             if (section == AppSection.HOSPITAL) {
                 SearchPanel(
                     state = state,
                     onAction = onAction,
-                    onRetry = onRetry,
                     onHundredMeters = onHundredMeters,
                     onSelectHospital = onSelectHospital,
                     onCall = onCall,
@@ -165,6 +196,21 @@ fun MapScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun ErrorNotice(error: String, onRetry: () -> Unit) {
+    Surface(
+        modifier = Modifier.padding(horizontal = 16.dp),
+        color = MaterialTheme.colorScheme.errorContainer,
+        shape = RoundedCornerShape(12.dp),
+        shadowElevation = 4.dp,
+    ) {
+        Column(Modifier.padding(12.dp)) {
+            Text(error, maxLines = 3, overflow = TextOverflow.Ellipsis)
+            TextButton(onClick = onRetry) { Text("다시 시도") }
         }
     }
 }
@@ -218,7 +264,8 @@ private fun MapToolsPanel(
                     Spacer(Modifier.height(10.dp))
                     Text("지도 레이어", style = MaterialTheme.typography.titleMedium)
                     Text(
-                        "${feedLabel(state.locationFeed)} · ${state.trail.samples.size}개 점 · ${formatMeters(state.trail.distanceMeters)}",
+                        "${feedLabel(state.locationFeed)} · ${state.trail.sampleCount}개 점 · " +
+                            formatMeters(state.trail.distanceMeters),
                         color = MaterialTheme.colorScheme.secondary,
                     )
                 }
@@ -241,6 +288,17 @@ private fun MapToolsPanel(
                         Text(if (state.layers.showTrail) "꼬리 숨기기" else "꼬리 보기")
                     }
                 }
+                if (
+                    state.trail.state == TrackingState.RECORDING &&
+                    state.trail.skippedLowAccuracy >= LOW_ACCURACY_STREAK_TO_WARN
+                ) {
+                    Text(
+                        "위치 정확도가 낮아 동선을 기록하지 못하고 있어요. " +
+                            "설정에서 정확한 위치를 허용했는지 확인해주세요.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFF8A5A00),
+                    )
+                }
             }
 
             item {
@@ -249,7 +307,7 @@ private fun MapToolsPanel(
                         Text(if (state.layers.showTerritory) "영역 끄기" else "영역 켜기")
                     }
                     if (state.layers.showTerritory) {
-                        Button(onClick = onClaimTerritory, enabled = state.deviceLocation != null) {
+                        Button(onClick = onClaimTerritory, enabled = state.feedSample != null) {
                             Text("현재 영역 마킹")
                         }
                     }
@@ -287,7 +345,6 @@ private fun MapToolsPanel(
 private fun SearchPanel(
     state: MapUiState,
     onAction: (SuggestedAction) -> Unit,
-    onRetry: () -> Unit,
     onHundredMeters: () -> Unit,
     onSelectHospital: (Long) -> Unit,
     onCall: (String) -> Unit,
@@ -318,21 +375,6 @@ private fun SearchPanel(
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.secondary,
                     )
-                }
-            }
-
-            state.error?.let { error ->
-                item {
-                    Surface(
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                        color = MaterialTheme.colorScheme.errorContainer,
-                        shape = RoundedCornerShape(12.dp),
-                    ) {
-                        Column(Modifier.padding(12.dp)) {
-                            Text(error, maxLines = 3, overflow = TextOverflow.Ellipsis)
-                            TextButton(onClick = onRetry) { Text("다시 시도") }
-                        }
-                    }
                 }
             }
 
@@ -491,8 +533,7 @@ private fun openLabel(openNow: Boolean?): String = when (openNow) {
 private fun formatMeters(meters: Int): String =
     if (meters >= 1_000) "%.1fkm".format(meters / 1_000.0) else "${meters}m"
 
-private fun formatMeters(meters: Double): String =
-    if (meters >= 1_000) "%.2fkm".format(meters / 1_000.0) else "%.0fm".format(meters)
+private fun formatMeters(meters: Double): String = formatMeters(meters.roundToInt())
 
 private fun feedLabel(feed: LocationFeed): String = when (feed) {
     LocationFeed.DEVICE -> "실제 위치"

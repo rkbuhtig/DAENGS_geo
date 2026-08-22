@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -44,6 +45,9 @@ fun NaverMapSurface(
     var naverMap by remember { mutableStateOf<NaverMap?>(null) }
     val latestCameraCallback by rememberUpdatedState(onCameraIdle)
     val latestGestureCallback by rememberUpdatedState(onCameraGesture)
+    // Idle fires for our own moveCamera calls too. Without the reason, following the device
+    // would look exactly like the user panning the map.
+    val lastCameraReason = remember { mutableIntStateOf(CameraUpdate.REASON_DEVELOPER) }
 
     DisposableEffect(mapView, lifecycle) {
         val observer = LifecycleEventObserver { _, event ->
@@ -72,9 +76,11 @@ fun NaverMapSurface(
                     map.uiSettings.isLocationButtonEnabled = false
                     map.uiSettings.isZoomControlEnabled = false
                     map.addOnCameraChangeListener { reason, _ ->
+                        lastCameraReason.intValue = reason
                         if (reason == CameraUpdate.REASON_GESTURE) latestGestureCallback()
                     }
                     map.addOnCameraIdleListener {
+                        if (!lastCameraReason.intValue.isUserDriven()) return@addOnCameraIdleListener
                         val target = map.cameraPosition.target
                         latestCameraCallback(GeoPoint(target.latitude, target.longitude))
                     }
@@ -93,21 +99,26 @@ fun NaverMapSurface(
         )
     }
 
-    LaunchedEffect(naverMap, scene.deviceLocation, followDevice) {
+    LaunchedEffect(naverMap, scene.currentPosition, followDevice) {
         val map = naverMap ?: return@LaunchedEffect
-        val point = scene.deviceLocation ?: return@LaunchedEffect
-        if (followDevice) {
-            map.moveCamera(CameraUpdate.scrollTo(LatLng(point.latitude, point.longitude)))
-        }
+        val point = scene.currentPosition ?: return@LaunchedEffect
+        if (followDevice) map.moveCamera(CameraUpdate.scrollTo(point.toLatLng()))
     }
 
-    DisposableEffect(naverMap, scene.deviceLocation) {
+    DisposableEffect(naverMap) {
         val overlay: LocationOverlay? = naverMap?.locationOverlay
-        if (overlay != null && scene.deviceLocation != null) {
-            overlay.position = LatLng(scene.deviceLocation.latitude, scene.deviceLocation.longitude)
+        onDispose { overlay?.isVisible = false }
+    }
+
+    LaunchedEffect(naverMap, scene.currentPosition) {
+        val overlay = naverMap?.locationOverlay ?: return@LaunchedEffect
+        val point = scene.currentPosition
+        if (point == null) {
+            overlay.isVisible = false
+        } else {
+            overlay.position = point.toLatLng()
             overlay.isVisible = true
         }
-        onDispose { overlay?.isVisible = false }
     }
 
     DisposableEffect(naverMap, scene.places) {
@@ -138,54 +149,65 @@ fun NaverMapSurface(
 
     DisposableEffect(naverMap, scene.trail) {
         val map = naverMap
-        val line = if (
-            map != null && scene.trail.visible && scene.trail.points.size >= 2
-        ) {
-            PolylineOverlay().apply {
-                coords = scene.trail.points.map(GeoPoint::toLatLng)
-                width = 12
-                color = Color.rgb(34, 108, 74)
-                this.map = map
-            }
-        } else {
-            null
-        }
-        onDispose { line?.map = null }
-    }
-
-    DisposableEffect(naverMap, scene.territory) {
-        val map = naverMap
-        val polygons = if (map == null || !scene.territory.visible) {
+        val lines = if (map == null) {
             emptyList()
         } else {
-            buildList {
-                scene.territory.claimedCells.forEach { cell ->
-                    add(
-                        PolygonOverlay().apply {
-                            coords = cell.boundary.map(GeoPoint::toLatLng)
-                            color = Color.argb(105, 34, 108, 74)
-                            outlineColor = Color.rgb(34, 108, 74)
-                            outlineWidth = 3
-                            this.map = map
-                        },
-                    )
+            scene.trail.paths.filter { it.size >= 2 }.map { path ->
+                PolylineOverlay().apply {
+                    coords = path.map(GeoPoint::toLatLng)
+                    width = 12
+                    color = Color.rgb(34, 108, 74)
+                    this.map = map
                 }
-                val preview = scene.territory.previewCell
-                if (preview != null && scene.territory.claimedCells.none { it.id == preview.id }) {
-                    add(
-                        PolygonOverlay().apply {
-                            coords = preview.boundary.map(GeoPoint::toLatLng)
-                            color = Color.argb(70, 255, 174, 0)
-                            outlineColor = Color.rgb(214, 125, 0)
-                            outlineWidth = 3
-                            this.map = map
-                        },
-                    )
-                }
+            }
+        }
+        onDispose { lines.forEach { it.map = null } }
+    }
+
+    // Claimed cells and the preview cell change on different clocks: rebuilding every claimed
+    // polygon each time the walker crosses a hex would churn the whole layer.
+    DisposableEffect(naverMap, scene.territory.claimedCells) {
+        val map = naverMap
+        val polygons = if (map == null) {
+            emptyList()
+        } else {
+            scene.territory.claimedCells.map { cell ->
+                hexPolygon(
+                    cell.boundary,
+                    fill = Color.argb(105, 34, 108, 74),
+                    outline = Color.rgb(34, 108, 74),
+                ).apply { this.map = map }
             }
         }
         onDispose { polygons.forEach { it.map = null } }
     }
+
+    DisposableEffect(naverMap, scene.territory.previewCell, scene.territory.claimedCells) {
+        val map = naverMap
+        val preview = scene.territory.previewCell
+        val polygon = if (
+            map != null && preview != null && scene.territory.claimedCells.none { it.id == preview.id }
+        ) {
+            hexPolygon(
+                preview.boundary,
+                fill = Color.argb(70, 255, 174, 0),
+                outline = Color.rgb(214, 125, 0),
+            ).apply { this.map = map }
+        } else {
+            null
+        }
+        onDispose { polygon?.map = null }
+    }
 }
+
+private fun hexPolygon(boundary: List<GeoPoint>, fill: Int, outline: Int) = PolygonOverlay().apply {
+    coords = boundary.map(GeoPoint::toLatLng)
+    color = fill
+    outlineColor = outline
+    outlineWidth = 3
+}
+
+private fun Int.isUserDriven(): Boolean =
+    this == CameraUpdate.REASON_GESTURE || this == CameraUpdate.REASON_CONTROL
 
 private fun GeoPoint.toLatLng(): LatLng = LatLng(latitude, longitude)

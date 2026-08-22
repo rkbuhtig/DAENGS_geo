@@ -9,5 +9,6 @@ interface TerritoryRepository {
 
     fun cellAt(point: GeoPoint): TerritoryCell
 
-    suspend fun claim(sample: LocationSample?): ClaimResult
+    /** Callers hold a fix before claiming; "no location yet" is a UI state, not a claim outcome. */
+    suspend fun claim(sample: LocationSample): ClaimResult
 }
