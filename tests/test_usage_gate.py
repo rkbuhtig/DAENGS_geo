@@ -111,8 +111,9 @@ async def test_dev_policy_enforces_request_and_window_limits_without_refund():
         for _ in range(2):
             permit = await gate.check(intent)
             await gate.consume(intent, permit)
+        permit = await gate.check(intent)          # 허용 여부는 통과 — 세는 건 consume 이다
         with pytest.raises(UsageDenied) as request_denied:
-            await gate.check(intent)
+            await gate.consume(intent, permit)
     assert request_denied.value.code == "request_limit"
 
     async with usage_request_scope():
@@ -122,6 +123,23 @@ async def test_dev_policy_enforces_request_and_window_limits_without_refund():
         with pytest.raises(UsageDenied) as usage_denied:
             await gate.consume(intent, permit)
     assert usage_denied.value.code == "usage_limit"
+
+
+async def test_route_cache_hit_consumes_neither_request_nor_window_units():
+    """hit 는 상류 호출이 아니다. 요청당 한도도 누적 장부도 올리면 안 된다."""
+    spy = SpyRouteProvider()
+    provider = MeteredRouteProvider(spy, small_dev_gate(request_units=1, window_units=1))
+    origin, dest = LatLng(37.5, 127.0), LatLng(37.51, 127.01)
+
+    async with usage_request_scope():
+        first = await provider.route("walk", origin, dest)          # miss — 요청 1, 누적 1
+        second = await provider.route("walk", origin, dest)         # hit — 한도 1 인데 통과해야 한다
+        with pytest.raises(UsageDenied) as denied:
+            await provider.route("walk", origin, LatLng(37.52, 127.02))   # miss — 요청 한도 초과
+
+    assert first is second
+    assert denied.value.code == "request_limit"
+    assert spy.calls == 1
 
 
 async def test_route_denial_degrades_to_labelled_estimate_without_call(monkeypatch):

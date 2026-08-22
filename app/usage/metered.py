@@ -39,7 +39,7 @@ class MeteredStaticMapFetcher:
 
 
 class MeteredRouteProvider:
-    """인가를 캐시보다 먼저 확인하고, cache miss만 누적 사용량으로 소비한다."""
+    """인가는 캐시보다 먼저 확인하고, 요청당·누적 사용량은 cache miss 에서만 소비한다."""
 
     def __init__(self, inner: MapProvider, gate: UsageGate):
         self._inner = inner

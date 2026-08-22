@@ -36,32 +36,38 @@ class UsageGate:
         self._ledger = ledger
 
     async def check(self, intent: UsageIntent) -> UsagePermit:
-        """허용 여부와 요청 단위 한도를 먼저 고정한다. 캐시 hit도 이 검사는 통과한다."""
+        """허용 여부만 고정한다. 캐시 hit도 이 검사는 통과하지만 **아무것도 세지 않는다.**
+
+        요청당·누적 한도는 둘 다 상류 호출을 세는 것이다. 여기서 올리면 캐시 hit 가
+        비용 0인데도 요청 한도를 먹는다 — 목적지 10곳이 전부 캐시에 있어도 5번째부터 거부된다.
+        """
         permit = await self._policy.decide(intent)
         if not permit.allowed:
             raise UsageDenied("policy_denied", permit.reason)
-
-        limit = permit.max_units_per_request
-        if limit is None:
-            return permit
-        scope = _request_usage.get()
-        if scope is None:
-            raise UsageDenied(
-                "request_scope_missing",
-                "metered usage requires an explicit request scope",
-            )
-        async with scope.lock:
-            used = scope.units.get(intent.operation, 0)
-            if used + intent.units > limit:
-                raise UsageDenied(
-                    "request_limit",
-                    f"{intent.operation.value} request limit exceeded",
-                )
-            scope.units[intent.operation] = used + intent.units
         return permit
 
     async def consume(self, intent: UsageIntent, permit: UsagePermit) -> None:
-        """캐시 miss에서 실제 provider 호출 직전에 예약한다. 실패해도 환불하지 않는다."""
+        """캐시 miss에서 실제 provider 호출 직전에 요청당 한도와 누적 사용량을 **함께** 소비한다.
+
+        실패해도 환불하지 않는다.
+        """
+        limit = permit.max_units_per_request
+        if limit is not None:
+            scope = _request_usage.get()
+            if scope is None:
+                raise UsageDenied(
+                    "request_scope_missing",
+                    "metered usage requires an explicit request scope",
+                )
+            async with scope.lock:
+                used = scope.units.get(intent.operation, 0)
+                if used + intent.units > limit:
+                    raise UsageDenied(
+                        "request_limit",
+                        f"{intent.operation.value} request limit exceeded",
+                    )
+                scope.units[intent.operation] = used + intent.units
+
         if permit.window is None:
             return
         if not await self._ledger.reserve(permit.window, intent.units):
