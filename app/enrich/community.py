@@ -3,7 +3,8 @@
 프로필+발화 → 주인 말투 쿼리 → 검색 API 스니펫 → 반경 안 병원명과 매칭 → evidence.
 필터 아님. 부스트 + 표시. 저장 안 함.
 
-Fake: 시드 스니펫. Naver: 검색 API(블로그/카페/지식iN) — 키 있을 때 (미구현 스텁).
+Fake: 시드 스니펫 — `DAENGS_ALLOW_FAKE_EVIDENCE=true` 일 때만. Naver: 검색 API(블로그/
+카페/지식iN) — 키 있을 때 (미구현 스텁).
 """
 
 from dataclasses import dataclass
@@ -82,8 +83,9 @@ class NullCommunitySearch:
 def community_search() -> CommunitySearch:
     if settings.community_provider == "fake":
         # 가짜 근거는 **순위를 바꾼다** (hospital/api.py boost). 운영 응답에 섞이면
-        # 지역과 무관한 시드가 실제 병원 순서를 흔든다 — 검증 콘솔이 켜진 환경으로 한정한다.
-        return FakeCommunitySearch() if settings.dev_console else NullCommunitySearch()
+        # 지역과 무관한 시드가 실제 병원 순서를 흔든다 — 이 값을 직접 켠 환경으로 한정한다.
+        # `dev_console` 을 보지 않는다: /dev 를 여는 것과 순위를 흔드는 건 다른 결정이다.
+        return FakeCommunitySearch() if settings.allow_fake_evidence else NullCommunitySearch()
     # TODO: NaverSearch(client_id, secret) — 블로그/카페글/지식iN 엔드포인트
     return NullCommunitySearch()
 

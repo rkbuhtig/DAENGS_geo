@@ -38,7 +38,7 @@ NO_OP_UTTERANCE = "음 글쎄요"
 def fake_community(monkeypatch):
     """가짜 근거는 이제 기본값이 아니다 (운영 순위를 흔들어서). 근거 계약을 보는 테스트만 켠다."""
     monkeypatch.setattr(settings, "community_provider", "fake")
-    monkeypatch.setattr(settings, "dev_console", True)
+    monkeypatch.setattr(settings, "allow_fake_evidence", True)
 
 
 def _state() -> EditableState:
