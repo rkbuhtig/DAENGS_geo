@@ -8,12 +8,14 @@
 지금의 전부-받아서-점수 방식과 **호출 수 · 일치율**을 비교한다.
 
 쌍은 DB 의 실제 활성 병원끼리 (출발도 병원 — 병원은 주거·상가 가로변에 있어 출발지로도 자연스럽다).
-Usage Gate 를 타지 않는다 — registry 를 거치지 않고 TMAP 을 직접 부른다. 원본 JSON 은 out/raw/ 에
-남겨 재실행이 공짜고, 파서가 바뀌면 `--reparse` 로 호출 없이 다시 집계한다.
+실제 TMAP 호출은 Usage Gate 의 별도 조사 작업으로 계량한다. 기본 provider 는 fake 이며, 실호출은
+dev 정책과 명시적인 배치 상한을 둘 다 요구한다. 원본 JSON 은 out/raw/ 에 남겨 재실행이 공짜고,
+파서가 바뀌면 `--reparse` 로 호출 없이 다시 집계한다.
 
-    DAENGS_TMAP_APP_KEY=... uv run python scripts/tmap_option_survey.py --dry-run     # 호출 수만
-    DAENGS_TMAP_APP_KEY=... uv run python scripts/tmap_option_survey.py               # 실행
-    uv run python scripts/tmap_option_survey.py --provider fake                      # 키 없이 파이프라인 점검
+    uv run python scripts/tmap_option_survey.py                                      # fake 파이프라인 점검
+    uv run python scripts/tmap_option_survey.py --provider tmap --dry-run             # 호출 수만
+    DAENGS_USAGE_POLICY=dev DAENGS_TMAP_APP_KEY=... uv run python \
+      scripts/tmap_option_survey.py --provider tmap --max-live-calls 288              # 실호출
 """
 
 import argparse
@@ -38,6 +40,9 @@ from app.providers.fake import haversine_m
 from app.providers.tmap import OPTION as TMAP_OPTION
 from app.providers.tmap import URL as TMAP_URL
 from app.providers.tmap_parse import parse_tmap
+from app.usage.gate import UsageGate, usage_request_scope
+from app.usage.models import RouteSurveyIntent, UsageDenied
+from app.usage.registry import usage_gate
 
 # 지역: (설명, 위도0, 위도1, 경도0, 경도1). 활성 병원 수 2026-08-22 기준.
 REGIONS: dict[str, tuple[str, float, float, float, float]] = {
@@ -48,6 +53,7 @@ REGIONS: dict[str, tuple[str, float, float, float, float]] = {
 }
 DIST_BANDS_M = ((300, 900), (900, 1600), (1600, 2500))   # 목적지는 거리 밴드별로 하나씩
 MATERIAL_MIN_DELTA = 3          # 옵션 간 "실질적으로 다르다" — 시간 3분 또는 시설 1개
+MAX_SURVEY_LIVE_CALLS = 300
 
 
 @dataclass(frozen=True)
@@ -124,10 +130,23 @@ def _pick_dests(region: str, origin: Node, cands, k: int) -> list[Pair]:
 class Fetcher:
     """원본 JSON 을 raw/ 에 남긴다. 있으면 호출 안 함."""
 
-    def __init__(self, provider: str, raw_dir: Path, sleep_s: float):
+    def __init__(
+        self,
+        provider: str,
+        raw_dir: Path,
+        sleep_s: float,
+        *,
+        max_live_calls: int | None = None,
+        gate: UsageGate | None = None,
+        client: httpx.AsyncClient | None = None,
+    ):
         self.provider, self.raw_dir, self.sleep_s = provider, raw_dir, sleep_s
         self.calls = self.cached = self.errors = 0
-        self._client = httpx.AsyncClient(timeout=10.0)
+        self.live_attempts = 0
+        self.max_live_calls = max_live_calls
+        self._gate = gate if gate is not None else (usage_gate() if provider == "tmap" else None)
+        self._client = client or httpx.AsyncClient(timeout=10.0)
+        self._owns_client = client is None
         self._key = settings.tmap_app_key
 
     def path(self, pair: Pair, option: WalkOption) -> Path:
@@ -153,6 +172,13 @@ class Fetcher:
     async def _tmap(self, pair: Pair, option: WalkOption) -> dict:
         if not self._key:
             sys.exit("DAENGS_TMAP_APP_KEY 가 없다. --provider fake 로 파이프라인만 점검하거나 키를 넣어라.")
+        if self.max_live_calls is None or self.live_attempts >= self.max_live_calls:
+            raise UsageDenied("request_limit", "explicit TMAP survey live-call limit exceeded")
+        if self._gate is None:
+            raise RuntimeError("TMAP survey requires a Usage Gate")
+        intent = RouteSurveyIntent(option=option)
+        permit = await self._gate.check(intent)
+        await self._gate.consume(intent, permit)
         body = {
             "startX": pair.origin.pos.lng, "startY": pair.origin.pos.lat,
             "endX": pair.dest.pos.lng, "endY": pair.dest.pos.lat,
@@ -160,6 +186,7 @@ class Fetcher:
             "startName": "출발", "endName": "도착",
             "searchOption": TMAP_OPTION[option],
         }
+        self.live_attempts += 1
         r = await self._client.post(TMAP_URL, json=body, params={"version": 1},
                                     headers={"appKey": self._key, "Content-Type": "application/json"})
         r.raise_for_status()
@@ -184,7 +211,8 @@ class Fetcher:
         return {"features": feats}
 
     async def close(self):
-        await self._client.aclose()
+        if self._owns_client:
+            await self._client.aclose()
 
 
 # ------------------------------------------------------------------ 집계
@@ -322,7 +350,7 @@ def _material(a: RouteResult, b: RouteResult) -> bool:
 # ------------------------------------------------------------------ main
 async def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--provider", choices=["tmap", "fake"], default="tmap")
+    ap.add_argument("--provider", choices=["tmap", "fake"], default="fake")
     ap.add_argument("--regions", default=",".join(REGIONS), help="쉼표 구분. 기본 전부")
     ap.add_argument("--origins-per-region", type=int, default=8)
     ap.add_argument("--dests-per-origin", type=int, default=3)
@@ -330,6 +358,11 @@ async def main() -> None:
     ap.add_argument("--out", default="docs/research/tmap-option-survey")
     ap.add_argument("--seed", default="2026-08-22")
     ap.add_argument("--sleep", type=float, default=0.25, help="호출 간격(초). free 키 예의")
+    ap.add_argument(
+        "--max-live-calls",
+        type=int,
+        help=f"이번 TMAP 배치의 실호출 상한. 필수, 최대 {MAX_SURVEY_LIVE_CALLS}",
+    )
     ap.add_argument("--dry-run", action="store_true", help="표본만 뽑고 호출 수를 출력")
     ap.add_argument("--reparse", action="store_true", help="raw/ 만 다시 집계. 호출 없음")
     a = ap.parse_args()
@@ -343,6 +376,13 @@ async def main() -> None:
     bad = [o for o in options if o not in TMAP_OPTION]
     if bad:
         sys.exit(f"모르는 옵션: {bad}. 가능: {list(TMAP_OPTION)}")
+    live_tmap = a.provider == "tmap" and not a.dry_run and not a.reparse
+    if live_tmap and settings.usage_policy != "dev":
+        sys.exit("실제 TMAP 조사는 DAENGS_USAGE_POLICY=dev 를 명시해야 한다.")
+    if live_tmap and (
+        a.max_live_calls is None or not 1 <= a.max_live_calls <= MAX_SURVEY_LIVE_CALLS
+    ):
+        sys.exit(f"실제 TMAP 조사는 --max-live-calls 1..{MAX_SURVEY_LIVE_CALLS} 를 명시해야 한다.")
 
     out = Path(a.out)
     raw = out / "raw"
@@ -350,35 +390,47 @@ async def main() -> None:
 
     pairs = await sample_pairs(regions, a.origins_per_region, a.dests_per_origin, a.seed)
     by_region = {r: sum(p.region == r for p in pairs) for r in regions}
-    print(f"표본 {len(pairs)}쌍 {by_region} × 옵션 {len(options)} = 호출 {len(pairs) * len(options)}")
+    planned = len(pairs) * len(options)
+    cache_misses = sum(
+        not (raw / f"{pair.origin.id}-{pair.dest.id}-{option}.json").exists()
+        for pair in pairs
+        for option in options
+    )
+    print(f"표본 {len(pairs)}쌍 {by_region} × 옵션 {len(options)} = {planned}건 · 실호출 후보 {cache_misses}")
     if a.dry_run:
         for p in pairs[:6]:
             print(f"  {p.region:14} {p.origin.name} → {p.dest.name} ({p.straight_m}m)")
         print("  ...")
         return
+    if live_tmap and cache_misses > a.max_live_calls:
+        sys.exit(
+            f"캐시 miss {cache_misses}건이 명시한 실호출 상한 {a.max_live_calls}건을 넘는다. "
+            "표본을 줄이거나 상한을 의식적으로 다시 정하라."
+        )
 
-    fetcher = Fetcher(a.provider, raw, a.sleep)
+    fetcher = Fetcher(a.provider, raw, a.sleep, max_live_calls=a.max_live_calls)
     results: Results = {}
     rows: list[dict] = []
     t0 = time.monotonic()
     try:
-        for i, pair in enumerate(pairs, 1):
-            for opt in options:
-                if a.reparse:
-                    p = fetcher.path(pair, opt)
-                    data = json.loads(p.read_text(encoding="utf-8")) if p.exists() else None
-                else:
-                    data = await fetcher.fetch(pair, opt)
-                if data is None:
-                    continue
-                r = parse_tmap(data, opt)
-                if r.distance_m == 0:
-                    continue                      # 경로 없음 응답
-                results.setdefault((pair.origin.id, pair.dest.id), {})[opt] = (pair, r)
-                rows.append(row_of(pair, opt, r))
-            if i % 10 == 0:
-                print(f"  {i}/{len(pairs)} 쌍 · 호출 {fetcher.calls} · 캐시 {fetcher.cached}"
-                      f" · 오류 {fetcher.errors} · {time.monotonic() - t0:.0f}s", flush=True)
+        async with usage_request_scope():
+            for i, pair in enumerate(pairs, 1):
+                for opt in options:
+                    if a.reparse:
+                        p = fetcher.path(pair, opt)
+                        data = json.loads(p.read_text(encoding="utf-8")) if p.exists() else None
+                    else:
+                        data = await fetcher.fetch(pair, opt)
+                    if data is None:
+                        continue
+                    r = parse_tmap(data, opt)
+                    if r.distance_m == 0:
+                        continue                      # 경로 없음 응답
+                    results.setdefault((pair.origin.id, pair.dest.id), {})[opt] = (pair, r)
+                    rows.append(row_of(pair, opt, r))
+                if i % 10 == 0:
+                    print(f"  {i}/{len(pairs)} 쌍 · 호출 {fetcher.calls} · 캐시 {fetcher.cached}"
+                          f" · 오류 {fetcher.errors} · {time.monotonic() - t0:.0f}s", flush=True)
     finally:
         await fetcher.close()
 
