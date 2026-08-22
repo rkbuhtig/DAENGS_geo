@@ -23,7 +23,7 @@ app/
 ├── features/
 │   ├── hospital/  POST /hospital/search (편집+검색, transport=estimate만)
 │   ├── pharmacy/  GET /pharmacy/search (얇음, companion 기본 none)
-│   └── walk/      사용자 담당
+│   └── walk/      수집만 — WalkFacts (contracts/walk-record.md). 판정·서술 없음, 테스트로 고정
 ├── api/         GET /places/search · GET /map/static
 └── core/        config · db
 android/         Kotlin/Compose 단일 모듈 — 위치 → 검색 → NAVER 지도 → actions/전화 수직 절단면

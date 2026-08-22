@@ -4,6 +4,10 @@ owner: 사용자
 ---
 # 산책 세션 엔진 (초안)
 
+> **2026-08-22** — 세션 API 흐름(start/locations/finish)은 수집 코어와 맞는다. 그러나 아래 **판정 트리거 · 서술 · 진행도** 절은
+> 코어가 아니라 `WalkFacts` 의 소비자 후보다. 확정된 건 [`contracts/walk-record.md`](../../contracts/walk-record.md) 뿐이다.
+> `POST /walks` 의 "오늘 목표 계산, 출발 전 메시지" 도 마찬가지 — 목표는 옵션이다 ([loop-and-balance](loop-and-balance.md)).
+
 ## 왜 요청-응답 구조에 안 들어가나
 
 팀 아키텍처(Agent Router → Agent N)는 전부 "질문 → 답"이다. 산책은:
