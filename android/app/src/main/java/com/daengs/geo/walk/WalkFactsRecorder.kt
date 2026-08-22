@@ -15,7 +15,9 @@ data class WalkFactsPreview(
     val endedAtMillis: Long,
     /** Sum of recorded segment time. Pauses and feed-switch gaps are deliberately excluded. */
     val durationSeconds: Long,
+    /** Raw cumulative fix-to-fix distance, including sub-threshold stationary jitter. */
     val distanceMeters: Int,
+    /** Distance retained by the movement filter; this is the usable walking-distance fact. */
     val movingDistanceMeters: Int,
     val movingSeconds: Long,
     val stopCount: Int,
@@ -163,7 +165,7 @@ class WalkFactsRecorder(
                 val speed = filteredDistance / (intervalMillis / 1_000.0)
 
                 durationMillis += intervalMillis
-                distanceMeters += filteredDistance
+                distanceMeters += rawDistance
                 if (speed >= policy.movingSpeedMetersPerSecond) {
                     flushStopRun()
                     movingMillis += intervalMillis

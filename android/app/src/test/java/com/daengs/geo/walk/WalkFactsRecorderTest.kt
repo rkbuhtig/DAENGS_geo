@@ -51,6 +51,23 @@ class WalkFactsRecorderTest {
     }
 
     @Test
+    fun `raw distance preserves stationary jitter while moving distance filters it`() {
+        val recorder = WalkFactsRecorder()
+        recorder.start()
+        recorder.add(sample(37.0, 0))
+        recorder.add(sample(37.00001, 5_000))
+        recorder.add(sample(37.00002, 15_000))
+
+        val facts = requireNotNull(recorder.stop())
+
+        assertEquals(2, facts.distanceMeters)
+        assertEquals(0, facts.movingDistanceMeters)
+        assertEquals(0, facts.movingSeconds)
+        assertEquals(1, facts.stopCount)
+        assertEquals(15, facts.stopSeconds)
+    }
+
+    @Test
     fun `pause and resume exclude the gap and start a new fact segment`() {
         val recorder = WalkFactsRecorder()
         recorder.start()
