@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -43,15 +44,22 @@ import com.daengs.geo.hospital.HospitalResult
 import com.daengs.geo.hospital.LocationMode
 import com.daengs.geo.hospital.SuggestedAction
 import com.daengs.geo.location.GeoPoint
+import com.daengs.geo.map.layers.places.PlaceMarkerState
+import com.daengs.geo.map.layers.territory.TerritoryLayerState
+import com.daengs.geo.map.layers.trail.TrackingState
+import com.daengs.geo.map.layers.trail.TrailLayerState
+import com.daengs.geo.map.shell.MapHost
+import com.daengs.geo.map.shell.MapScene
 import kotlin.math.abs
 
-private enum class AppSection { HOSPITAL, WALK }
+private enum class AppSection { HOSPITAL, MAP_TOOLS }
 
 @Composable
-fun HospitalMapScreen(
-    state: HospitalMapUiState,
+fun MapScreen(
+    state: MapUiState,
     mapConfigured: Boolean,
     onCameraIdle: (GeoPoint) -> Unit,
+    onCameraGesture: () -> Unit,
     onSearchArea: () -> Unit,
     onMyLocation: () -> Unit,
     onAction: (SuggestedAction) -> Unit,
@@ -59,25 +67,49 @@ fun HospitalMapScreen(
     onHundredMeters: () -> Unit,
     onSelectHospital: (Long) -> Unit,
     onCall: (String) -> Unit,
+    onStartTracking: () -> Unit,
+    onPauseTracking: () -> Unit,
+    onResumeTracking: () -> Unit,
+    onStopTracking: () -> Unit,
+    onToggleTrail: () -> Unit,
+    onToggleTerritory: () -> Unit,
+    onClaimTerritory: () -> Unit,
+    onStartReplay: (Double) -> Unit,
+    onUseDeviceLocation: () -> Unit,
 ) {
     var section by remember { mutableStateOf(AppSection.HOSPITAL) }
+    val scene = MapScene(
+        deviceLocation = state.deviceLocation,
+        places = state.response?.results.orEmpty().map { hospital ->
+            PlaceMarkerState(
+                id = hospital.id.toString(),
+                point = hospital.point,
+                label = hospital.name,
+                selected = hospital.id == state.selectedHospitalId,
+            )
+        },
+        trail = TrailLayerState(
+            points = state.trail.samples.map { it.point },
+            visible = state.layers.showTrail,
+        ),
+        territory = TerritoryLayerState(
+            claimedCells = state.territoryCells,
+            previewCell = state.currentTerritoryCell,
+            visible = state.layers.showTerritory,
+        ),
+    )
 
-    Column(Modifier.fillMaxSize()) {
+    Column(Modifier.fillMaxSize().statusBarsPadding()) {
         SectionTabs(section = section, onSection = { section = it })
-        if (section == AppSection.WALK) {
-            WalkPlaceholder()
-            return@Column
-        }
-
         Box(Modifier.fillMaxSize()) {
             if (mapConfigured) {
-                NaverMapSurface(
-                    hospitals = state.response?.results.orEmpty(),
-                    deviceLocation = state.deviceLocation,
+                MapHost(
+                    scene = scene,
                     searchOrigin = state.searchOrigin,
-                    selectedHospitalId = state.selectedHospitalId,
+                    followDevice = state.followDevice,
                     onCameraIdle = onCameraIdle,
-                    onSelectHospital = onSelectHospital,
+                    onCameraGesture = onCameraGesture,
+                    onSelectPlace = { id -> id.toLongOrNull()?.let(onSelectHospital) },
                     modifier = Modifier.fillMaxSize(),
                 )
             } else {
@@ -88,21 +120,37 @@ fun HospitalMapScreen(
                 modifier = Modifier.align(Alignment.TopCenter).padding(top = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                if (canSearchMovedArea(state)) {
+                if (section == AppSection.HOSPITAL && canSearchMovedArea(state)) {
                     Button(onClick = onSearchArea) { Text("이 지역 검색") }
                 }
                 OutlinedButton(onClick = onMyLocation) { Text("내 위치") }
             }
 
-            SearchPanel(
-                state = state,
-                onAction = onAction,
-                onRetry = onRetry,
-                onHundredMeters = onHundredMeters,
-                onSelectHospital = onSelectHospital,
-                onCall = onCall,
-                modifier = Modifier.align(Alignment.BottomCenter),
-            )
+            if (section == AppSection.HOSPITAL) {
+                SearchPanel(
+                    state = state,
+                    onAction = onAction,
+                    onRetry = onRetry,
+                    onHundredMeters = onHundredMeters,
+                    onSelectHospital = onSelectHospital,
+                    onCall = onCall,
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                )
+            } else {
+                MapToolsPanel(
+                    state = state,
+                    onStartTracking = onStartTracking,
+                    onPauseTracking = onPauseTracking,
+                    onResumeTracking = onResumeTracking,
+                    onStopTracking = onStopTracking,
+                    onToggleTrail = onToggleTrail,
+                    onToggleTerritory = onToggleTerritory,
+                    onClaimTerritory = onClaimTerritory,
+                    onStartReplay = onStartReplay,
+                    onUseDeviceLocation = onUseDeviceLocation,
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                )
+            }
 
             if (state.loading) {
                 Surface(
@@ -125,7 +173,7 @@ fun HospitalMapScreen(
 private fun SectionTabs(section: AppSection, onSection: (AppSection) -> Unit) {
     Surface(shadowElevation = 3.dp) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)) {
-            listOf(AppSection.HOSPITAL to "병원", AppSection.WALK to "산책").forEach { (item, label) ->
+            listOf(AppSection.HOSPITAL to "병원", AppSection.MAP_TOOLS to "지도 기능").forEach { (item, label) ->
                 TextButton(onClick = { onSection(item) }, modifier = Modifier.weight(1f)) {
                     Text(
                         label,
@@ -139,8 +187,105 @@ private fun SectionTabs(section: AppSection, onSection: (AppSection) -> Unit) {
 }
 
 @Composable
+private fun MapToolsPanel(
+    state: MapUiState,
+    onStartTracking: () -> Unit,
+    onPauseTracking: () -> Unit,
+    onResumeTracking: () -> Unit,
+    onStopTracking: () -> Unit,
+    onToggleTrail: () -> Unit,
+    onToggleTerritory: () -> Unit,
+    onClaimTerritory: () -> Unit,
+    onStartReplay: (Double) -> Unit,
+    onUseDeviceLocation: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth().heightIn(min = 180.dp, max = 370.dp),
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+        shadowElevation = 12.dp,
+    ) {
+        LazyColumn(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            item {
+                Column(Modifier.padding(top = 14.dp)) {
+                    Box(
+                        Modifier.width(42.dp).height(4.dp).clip(RoundedCornerShape(4.dp))
+                            .background(Color(0xFFCBD3CD)).align(Alignment.CenterHorizontally),
+                    )
+                    Spacer(Modifier.height(10.dp))
+                    Text("지도 레이어", style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        "${feedLabel(state.locationFeed)} · ${state.trail.samples.size}개 점 · ${formatMeters(state.trail.distanceMeters)}",
+                        color = MaterialTheme.colorScheme.secondary,
+                    )
+                }
+            }
+
+            item {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    when (state.trail.state) {
+                        TrackingState.OFF -> Button(onClick = onStartTracking) { Text("동선 기록 시작") }
+                        TrackingState.RECORDING -> {
+                            Button(onClick = onPauseTracking) { Text("일시정지") }
+                            OutlinedButton(onClick = onStopTracking) { Text("종료") }
+                        }
+                        TrackingState.PAUSED -> {
+                            Button(onClick = onResumeTracking) { Text("계속 기록") }
+                            OutlinedButton(onClick = onStopTracking) { Text("종료") }
+                        }
+                    }
+                    OutlinedButton(onClick = onToggleTrail) {
+                        Text(if (state.layers.showTrail) "꼬리 숨기기" else "꼬리 보기")
+                    }
+                }
+            }
+
+            item {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilledTonalButton(onClick = onToggleTerritory) {
+                        Text(if (state.layers.showTerritory) "영역 끄기" else "영역 켜기")
+                    }
+                    if (state.layers.showTerritory) {
+                        Button(onClick = onClaimTerritory, enabled = state.deviceLocation != null) {
+                            Text("현재 영역 마킹")
+                        }
+                    }
+                }
+                if (state.layers.showTerritory) {
+                    Text(
+                        "내 영역 ${state.territoryCells.size}개 · 주황색은 현재 위치",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+                state.statusMessage?.let {
+                    Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                }
+            }
+
+            if (BuildConfig.DEBUG) {
+                item {
+                    Text("가상 이동", fontWeight = FontWeight.Bold)
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        listOf(1.0, 5.0, 10.0).forEach { speed ->
+                            OutlinedButton(onClick = { onStartReplay(speed) }) {
+                                Text("${speed.toInt()}×")
+                            }
+                        }
+                        TextButton(onClick = onUseDeviceLocation) { Text("실제 위치") }
+                    }
+                }
+            }
+            item { Spacer(Modifier.height(8.dp)) }
+        }
+    }
+}
+
+@Composable
 private fun SearchPanel(
-    state: HospitalMapUiState,
+    state: MapUiState,
     onAction: (SuggestedAction) -> Unit,
     onRetry: () -> Unit,
     onHundredMeters: () -> Unit,
@@ -250,7 +395,7 @@ private fun SearchPanel(
 }
 
 @Composable
-private fun SafetyNotice(state: HospitalMapUiState) {
+private fun SafetyNotice(state: MapUiState) {
     val response = state.response ?: return
     val overrides = response.resolution.filter { it.overrode.isNotBlank() }
     Surface(
@@ -330,19 +475,7 @@ private fun MissingMapConfiguration() {
     }
 }
 
-@Composable
-private fun WalkPlaceholder() {
-    Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("산책", style = MaterialTheme.typography.headlineMedium)
-            Spacer(Modifier.height(8.dp))
-            Text("이번 워킹 스켈레톤은 진입점만 둡니다.")
-            Text("백그라운드 추적과 판정 주기는 후속 결정입니다.")
-        }
-    }
-}
-
-private fun canSearchMovedArea(state: HospitalMapUiState): Boolean {
+private fun canSearchMovedArea(state: MapUiState): Boolean {
     val candidate = state.cameraCandidate ?: return false
     val origin = state.searchOrigin ?: return false
     return abs(candidate.latitude - origin.latitude) > 0.0005 ||
@@ -357,3 +490,11 @@ private fun openLabel(openNow: Boolean?): String = when (openNow) {
 
 private fun formatMeters(meters: Int): String =
     if (meters >= 1_000) "%.1fkm".format(meters / 1_000.0) else "${meters}m"
+
+private fun formatMeters(meters: Double): String =
+    if (meters >= 1_000) "%.2fkm".format(meters / 1_000.0) else "%.0fm".format(meters)
+
+private fun feedLabel(feed: LocationFeed): String = when (feed) {
+    LocationFeed.DEVICE -> "실제 위치"
+    LocationFeed.REPLAY -> "가상 이동"
+}

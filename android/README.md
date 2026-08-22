@@ -1,15 +1,19 @@
 # DAENGS Android 워킹 스켈레톤
 
 `android/app` 단일 모듈이 실제 위치에서 `POST /hospital/search`를 호출하고 NAVER 지도,
-마커, 하단 병원 카드, `actions[]`, 안전 통지, 전화 동작을 렌더링한다. 산책은 진입점만
-있으며 백그라운드 위치 추적은 아직 구현하지 않는다.
+마커, 하단 병원 카드, `actions[]`, 안전 통지, 전화 동작을 렌더링한다. 같은 지도에서 연속
+현재 위치, 선택형 트레일과 로컬 territory 레이어도 실행한다. 백그라운드 위치 추적은 아직
+구현하지 않는다.
 
 ## 경계
 
 ```text
-location/  기기 위치. 지금은 foreground 단발 조회, 나중에 산책 tracker가 같은 경계 뒤에 붙음
+location/  단발·연속 위치 계약, Fused 제공자, 가상 경로 재생, 연속 구독 하나를 소유하는 tracker
 hospital/  HTTP 계약. state와 actions[].edits는 JsonObject/JsonArray로 불투명 왕복
-map/       follow_device/pinned 상태와 NAVER 지도 + 하단 카드
+map/shell  단일 MapHost와 제공사 독립 MapScene
+map/layers 장소·트레일·territory의 구체적인 렌더 상태
+map/provider/naver  MapScene을 NAVER SDK 오버레이로 변환
+territory/ 서버 없는 개인 마킹 저장소와 순수 Kotlin 로컬 육각 격자
 app        DaengsApplication 조립점. DI 프레임워크 없음
 ```
 
@@ -21,6 +25,16 @@ app        DaengsApplication 조립점. DI 프레임워크 없음
 `follow_device` 검색은 요청 시점의 최신 위치를 top-level `origin`에 붙인다. 지도 이동 후
 `pinned` 검색은 `set_origin` edit만 보내고 top-level `origin`을 생략한다. 이 규칙은
 `SearchRequestBuilderTest`가 고정한다.
+
+연속 위치 갱신은 `deviceLocation`·트레일·현재 territory 셀만 바꾸고 병원 검색을 자동으로
+실행하지 않는다. 트레일의 기록 상태(`OFF/RECORDING/PAUSED`)와 선 표시 설정은 별개라서 선을
+숨겨도 사용자가 시작한 기록은 계속된다. territory도 기본 비표시이며 표시를 꺼도 로컬 claim은
+지워지지 않는다. 현재 연속 위치 구독은 Activity가 화면을 벗어나면 중단하며, background 기록은
+후속 foreground service가 소유한다.
+
+debug 빌드의 `지도 기능` 탭에서 1×/5×/10× 가상 경로를 재생할 수 있다. 재생 source는 실제
+Fused source와 같은 `LocationSource`를 구현하므로 실제로 걷지 않고 현재점·트레일·육각 셀을
+관통 검증한다. 로컬 격자는 H3가 아니며 공개 소유권이나 서버 동기화의 계약으로 보지 않는다.
 
 ## 로컬 설정
 
@@ -62,8 +76,8 @@ debug 화면의 `CTA 확인용 · 반경 100m`는 결과 0곳 상태를 만들�
 
 ## 아직 하지 않은 것
 
-- 실기기 UI·NAVER 인증 smoke test
+- 실기기 UI smoke test
 - 산책 foreground service, 업로드 주기와 판정 소유권
-- 로그인, 로컬 DB, 오프라인 큐, push
+- territory 영속 저장·공개 소유권·사진, 로그인, 오프라인 큐, push
 - `/journey` 실측 상세와 지도앱 handoff
 - release 배포 설정과 CI

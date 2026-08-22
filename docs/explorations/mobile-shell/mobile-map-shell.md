@@ -174,5 +174,11 @@ PR #12 의 웹 지도는 병원 검색과 실험 표면으로 남는다.
 `POST /hospital/search`, 마커·카드, `actions[]` 재요청, 전화와 안전 통지를 끝까지 연결했다.
 `state`와 action edits는 불투명 JSON으로 왕복하며 요청 빌더 테스트가 pinned origin 생략을 고정한다.
 
-산책 탭은 자리만 있다. 이 스켈레톤은 판정 소유권·업로드 주기·foreground service를 결정한
-것으로 보지 않는다.
+후속 절단면에서 병원 전용 화면을 단일 `MapHost`로 바꾸고 장소·트레일·territory를 명시적
+레이어로 조립했다. 실제 Fused 위치와 가상 재생 경로가 같은 연속 `LocationSource` 계약을 쓰며,
+트레일 기록과 표시 여부는 독립이다. territory는 기본으로 꺼져 있고 사용자가 켰을 때만 현재
+육각 셀과 로컬 마킹을 그린다. 이 실험은 서버 소유권·공개 경쟁·사진·H3를 결정하지 않는다.
+
+산책 foreground service도 여전히 미구현이다. 현재 연속 구독의 소유자는 ViewModel 범위의
+`LocationTracker`이며 Activity가 화면을 벗어나면 구독을 끊는다. service 착수 시 tracker의
+생명주기 소유자만 옮기고 MapHost 소비 계약은 유지한다.
