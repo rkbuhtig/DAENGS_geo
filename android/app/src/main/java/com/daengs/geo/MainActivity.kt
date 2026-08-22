@@ -36,13 +36,17 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.daengs.geo.map.HospitalMapScreen
-import com.daengs.geo.map.HospitalMapViewModel
+import com.daengs.geo.map.MapScreen
+import com.daengs.geo.map.MapViewModel
 
 class MainActivity : ComponentActivity() {
-    private val viewModel: HospitalMapViewModel by viewModels {
+    private val viewModel: MapViewModel by viewModels {
         val graph = (application as DaengsApplication).graph
-        HospitalMapViewModel.Factory(graph.hospitalRepository, graph.locationSource)
+        MapViewModel.Factory(
+            graph.hospitalRepository,
+            graph.locationSource,
+            graph.territoryRepository,
+        )
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -67,10 +71,11 @@ class MainActivity : ComponentActivity() {
                 }
 
                 if (hasLocationPermission) {
-                    HospitalMapScreen(
+                    MapScreen(
                         state = state,
                         mapConfigured = BuildConfig.NAVER_MAP_NCP_KEY_ID.isNotBlank(),
                         onCameraIdle = viewModel::onCameraIdle,
+                        onCameraGesture = viewModel::onCameraGesture,
                         onSearchArea = viewModel::searchPinnedArea,
                         onMyLocation = viewModel::followMyLocation,
                         onAction = viewModel::execute,
@@ -78,6 +83,15 @@ class MainActivity : ComponentActivity() {
                         onHundredMeters = viewModel::searchAtHundredMeters,
                         onSelectHospital = viewModel::selectHospital,
                         onCall = { phone -> dial(context = context, phone = phone) },
+                        onStartTracking = viewModel::startTracking,
+                        onPauseTracking = viewModel::pauseTracking,
+                        onResumeTracking = viewModel::resumeTracking,
+                        onStopTracking = viewModel::stopTracking,
+                        onToggleTrail = viewModel::toggleTrail,
+                        onToggleTerritory = viewModel::toggleTerritory,
+                        onClaimTerritory = viewModel::claimCurrentCell,
+                        onStartReplay = viewModel::startReplay,
+                        onUseDeviceLocation = viewModel::useDeviceLocation,
                     )
                 } else {
                     LocationPermissionScreen(
@@ -93,6 +107,16 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        viewModel.onAppForeground()
+    }
+
+    override fun onStop() {
+        viewModel.onAppBackground()
+        super.onStop()
     }
 }
 

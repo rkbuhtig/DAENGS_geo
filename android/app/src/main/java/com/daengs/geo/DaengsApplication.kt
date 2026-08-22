@@ -5,6 +5,9 @@ import com.daengs.geo.hospital.HospitalApi
 import com.daengs.geo.hospital.HospitalRepository
 import com.daengs.geo.location.FusedLocationSource
 import com.daengs.geo.location.LocationSource
+import com.daengs.geo.territory.InMemoryTerritoryRepository
+import com.daengs.geo.territory.LocalHexCellIndexer
+import com.daengs.geo.territory.TerritoryRepository
 import com.naver.maps.map.NaverMapSdk
 
 class DaengsApplication : Application() {
@@ -17,9 +20,11 @@ class DaengsApplication : Application() {
             NaverMapSdk.getInstance(this).client =
                 NaverMapSdk.NcpKeyClient(BuildConfig.NAVER_MAP_NCP_KEY_ID)
         }
+        val territoryRepository = InMemoryTerritoryRepository(LocalHexCellIndexer())
         graph = AppGraph(
             hospitalRepository = HospitalRepository(HospitalApi(BuildConfig.API_BASE_URL)),
             locationSource = FusedLocationSource(this),
+            territoryRepository = territoryRepository,
         )
     }
 }
@@ -27,4 +32,5 @@ class DaengsApplication : Application() {
 data class AppGraph(
     val hospitalRepository: HospitalRepository,
     val locationSource: LocationSource,
+    val territoryRepository: TerritoryRepository,
 )

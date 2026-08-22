@@ -30,6 +30,8 @@ from app.refine.actions import Edit, SuggestedAction
 from app.refine.engine import refine
 from app.refine.nl import ToolCall
 from app.refine.tools import ToolInputError
+from app.usage.http import usage_http_exception
+from app.usage.models import UsageDenied
 
 router = APIRouter(prefix="/hospital", tags=["hospital"])
 
@@ -125,6 +127,8 @@ async def hospital_search(
         )
     except ToolInputError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except UsageDenied as exc:
+        raise usage_http_exception(exc) from exc
     st = r.state
     resolved = resolve_request(
         st,

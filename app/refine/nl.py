@@ -13,6 +13,9 @@ from typing import Any, Protocol
 from app.core.config import settings
 from app.planning.state import EditableState
 from app.refine.tools import TOOL_SPECS
+from app.usage.gate import UsageGate
+from app.usage.models import LanguageParseIntent
+from app.usage.registry import usage_gate
 
 
 @dataclass
@@ -148,6 +151,21 @@ class OpenAILLM:
                 for tc in msg.get("tool_calls", [])]
 
 
+class MeteredLLM:
+    """실제 LLM 호출만 Usage Gate 뒤에 둔다. 거부를 FakeLLM으로 조용히 바꾸지 않는다."""
+
+    def __init__(self, inner: LLM, gate: UsageGate):
+        self._inner = inner
+        self._gate = gate
+
+    async def plan(self, utterance: str, state: EditableState, shown_ids: list[int],
+                   profile_hint: str) -> list[ToolCall]:
+        intent = LanguageParseIntent(input_chars=len(utterance))
+        permit = await self._gate.check(intent)
+        await self._gate.consume(intent, permit)
+        return await self._inner.plan(utterance, state, shown_ids, profile_hint)
+
+
 def _jt(t: str) -> str:
     t = t.rstrip("?")
     return {"int": "integer", "float": "number", "bool": "boolean", "str": "string"}.get(t, "array" if t.startswith("list") else "string")
@@ -155,5 +173,8 @@ def _jt(t: str) -> str:
 
 def llm() -> LLM:
     if settings.llm_provider == "openai" and settings.openai_api_key:
-        return OpenAILLM(settings.openai_api_key, settings.openai_model)
+        return MeteredLLM(
+            OpenAILLM(settings.openai_api_key, settings.openai_model),
+            usage_gate(),
+        )
     return FakeLLM()

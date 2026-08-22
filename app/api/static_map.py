@@ -6,8 +6,9 @@ from fastapi import APIRouter, HTTPException, Query, Response
 
 from app.core.config import settings
 from app.providers.base import LatLng, MapMarker, StaticMapSpec
-from app.providers.naver import NaverProvider
-from app.providers.registry import static_map_provider
+from app.providers.registry import static_map_fetcher
+from app.usage.http import usage_http_exception
+from app.usage.models import UsageDenied
 
 router = APIRouter(prefix="/map", tags=["map"])
 
@@ -51,8 +52,15 @@ async def static_map(
     except (TypeError, ValueError) as exc:
         raise HTTPException(status_code=422, detail=f"invalid markers: {exc}") from exc
     spec = StaticMapSpec(LatLng(lat, lng), zoom, w, h, tuple(markers))
-    provider = static_map_provider()
-
-    if isinstance(provider, NaverProvider):
-        return Response(await provider.fetch_static_png(spec), media_type="image/png")
-    raise HTTPException(404, "static map provider not configured")
+    fetcher = static_map_fetcher()
+    if fetcher is None:
+        raise HTTPException(404, "static map provider not configured")
+    try:
+        png = await fetcher.fetch_static_png(spec)
+    except UsageDenied as exc:
+        raise usage_http_exception(exc) from exc
+    return Response(
+        png,
+        media_type="image/png",
+        headers={"Cache-Control": "public, max-age=86400"},
+    )

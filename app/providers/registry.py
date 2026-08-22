@@ -8,6 +8,8 @@ from app.providers.fake import FakeProvider
 from app.providers.kakao import KakaoProvider
 from app.providers.naver import NaverProvider
 from app.providers.tmap import TmapProvider
+from app.usage.metered import MeteredRouteProvider, MeteredStaticMapFetcher, StaticMapFetcher
+from app.usage.registry import usage_gate
 
 
 def _build(name: str) -> MapProvider:
@@ -28,6 +30,14 @@ def static_map_provider() -> MapProvider:
 
 
 @lru_cache
+def static_map_fetcher() -> StaticMapFetcher | None:
+    provider = static_map_provider()
+    if isinstance(provider, NaverProvider):
+        return MeteredStaticMapFetcher(provider, usage_gate())
+    return None
+
+
+@lru_cache
 def geocode_provider() -> MapProvider:
     return _build(settings.geocode_provider or settings.map_provider)
 
@@ -41,7 +51,19 @@ def route_provider_name(mode: Mode) -> str:
 
 @lru_cache
 def route_provider(mode: Mode) -> MapProvider:
-    return _build(route_provider_name(mode))
+    provider = _build(route_provider_name(mode))
+    if provider.name in ("none", "fake"):
+        return provider
+    return MeteredRouteProvider(provider, usage_gate())
+
+
+def route_cache_stats() -> dict:
+    size = 0
+    for mode in ("walk", "car", "transit"):
+        provider = route_provider(mode)
+        if isinstance(provider, MeteredRouteProvider):
+            size += provider.cache_size()
+    return {"size": size}
 
 
 def route_capability_problems() -> list[str]:

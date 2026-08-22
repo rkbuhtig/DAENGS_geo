@@ -38,6 +38,9 @@ Android 지도  DAENGS_NAVER_NCP_KEY_ID
 
 지오코딩       DAENGS_GEOCODE_PROVIDER=none
 경로           *_ROUTE_PROVIDER=fake
+
+실제 외부 호출 DAENGS_USAGE_POLICY=deny-all | dev
+                 └─ 기본 거부. dev도 요청·시간당 고정 한도 안에서만 호출
 ```
 
 네이버 브라우저 지도에는 `DAENGS_NAVER_NCP_KEY_ID`만 노출된다. 이 값은 SDK URL에 들어가는
@@ -94,6 +97,7 @@ Naver Cloud 애플리케이션에서 Dynamic Map과 Static Map을 활성화하�
 DAENGS_MAP_PROVIDER=naver
 DAENGS_STATIC_MAP_PROVIDER=naver
 DAENGS_GEOCODE_PROVIDER=none
+DAENGS_USAGE_POLICY=dev
 DAENGS_NAVER_NCP_KEY_ID=...
 DAENGS_NAVER_NCP_KEY=...
 ```
@@ -106,5 +110,9 @@ GET http://127.0.0.1:8000/dev
                          NAVER 배지와 실제 지도, 클릭 시 출발지 변경
 GET /map/static?...      image/png과 검색 결과 마커
 ```
+
+`DAENGS_USAGE_POLICY`를 생략하면 실제 Static Map·TMAP·OpenAI 호출은 기본 거부된다. `dev`는
+무제한 우회가 아니라 프로세스별 제한 정책이다. Static Map 100회/시간, 실측 경로 60회/시간,
+OpenAI 파싱 30회/시간이며 요청 하나의 실측 경로는 최대 4회다.
 
 키가 없으면 `/dev` 상단에 `OSM · NAVER key 없음`이 표시되어야 한다.
