@@ -23,13 +23,16 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
+import java.util.UUID
 
 /**
  * Owns the user-started walk recording lifecycle independently from any Activity/ViewModel.
  *
- * This is intentionally collection-only: no Room persistence, upload, scoring or WalkFacts live
- * here yet. Those consumers can be added behind the same service-owned session boundary later.
+ * Collection only: scoring, WalkFacts and upload do not live here. What the device reports is
+ * written to [WalkFixLog] as it arrives — raw, before TrailRecorder filtering — so a walk survives
+ * process death. A session left without a close is the recovery signal, not a bug.
  */
 class WalkTrackingService : Service() {
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -38,12 +41,20 @@ class WalkTrackingService : Service() {
     private lateinit var locationSource: LocationSource
     private lateinit var tracker: LocationTracker
     private lateinit var store: WalkTrackingStore
+    private lateinit var writer: WalkFixWriter
+
+    /** Non-null exactly while a walk owns a stored session. Late fixes after stop are dropped. */
+    private val sessionLock = Any()
+    private var sessionId: String? = null
+    private var nextClientSeq = 0
+    private var chainIndex = 0
 
     override fun onCreate() {
         super.onCreate()
         val graph = (application as DaengsApplication).graph
         locationSource = graph.locationSource
         store = graph.walkTrackingStore
+        writer = graph.walkFixWriter
         tracker = LocationTracker(serviceScope)
         createNotificationChannel()
 
@@ -52,6 +63,9 @@ class WalkTrackingService : Service() {
         }
         serviceScope.launch {
             tracker.status.collect(::acceptFeedStatus)
+        }
+        serviceScope.launch {
+            writer.failure.filterNotNull().collect(::acceptStorageFailure)
         }
     }
 
@@ -63,7 +77,7 @@ class WalkTrackingService : Service() {
             ACTION_STOP -> stopRecording()
             else -> Unit
         }
-        // Without local session persistence we must not invent a restarted walk after process death.
+        // Without an approved recovery policy we must not invent a restarted walk after process death.
         return START_NOT_STICKY
     }
 
@@ -90,7 +104,9 @@ class WalkTrackingService : Service() {
             promote(recorder.snapshot(), store.state.value.errorMessage)
             return
         }
+        writer.clearFailure()
         val trail = recorder.start()
+        openSession()
         store.publish(WalkTrackingState(trail = trail))
         // Android 14+ checks the location FGS permission at promotion time. Promote before the
         // LocationSource is collected so location access begins under the declared FGS type.
@@ -114,6 +130,7 @@ class WalkTrackingService : Service() {
     private fun resumeRecording() {
         if (recorder.snapshot().state != TrackingState.PAUSED) return
         val trail = recorder.resume()
+        synchronized(sessionLock) { chainIndex += 1 }
         store.publish(
             WalkTrackingState(
                 trail = trail,
@@ -125,7 +142,9 @@ class WalkTrackingService : Service() {
     }
 
     private fun stopRecording() {
+        if (recorder.snapshot().state == TrackingState.OFF) return
         tracker.stop()
+        closeSession()
         val trail = recorder.stop()
         store.publish(
             WalkTrackingState(
@@ -133,11 +152,36 @@ class WalkTrackingService : Service() {
                 lastSample = store.state.value.lastSample,
             ),
         )
-        stopForeground(STOP_FOREGROUND_REMOVE)
-        stopSelf()
+        serviceScope.launch {
+            try {
+                // closeSession was submitted after every accepted fix under sessionLock.
+                writer.flush()
+            } finally {
+                stopForeground(STOP_FOREGROUND_REMOVE)
+                stopSelf()
+            }
+        }
     }
 
     private fun acceptLocation(sample: LocationSample) {
+        // Stored before the recorder sees it. The recorder drops jitter and bad accuracy to draw a
+        // clean line; those thresholds are provisional, and a dropped fix cannot be recovered.
+        synchronized(sessionLock) {
+            sessionId?.let { id ->
+                writer.append(
+                    id,
+                    RecordedFix(
+                        clientSeq = nextClientSeq++,
+                        chainIndex = chainIndex,
+                        atMillis = sample.capturedAtMillis,
+                        lat = sample.point.latitude,
+                        lng = sample.point.longitude,
+                        accuracyM = sample.accuracyMeters,
+                        isMock = sample.isMock,
+                    ),
+                )
+            }
+        }
         val trail = recorder.add(sample)
         store.publish(
             WalkTrackingState(
@@ -146,6 +190,27 @@ class WalkTrackingService : Service() {
             ),
         )
     }
+
+    private fun openSession() {
+        val id = UUID.randomUUID().toString()
+        synchronized(sessionLock) {
+            sessionId = id
+            nextClientSeq = 0
+            chainIndex = 0
+            // dogId stays null: this repo does not own a dog profile (decision #4).
+            writer.openSession(RecordedSession(id = id, dogId = null, startedAtMillis = now()))
+        }
+    }
+
+    /** Only an explicit stop closes a session. Process death deliberately leaves it open. */
+    private fun closeSession() {
+        synchronized(sessionLock) {
+            sessionId?.let { writer.closeSession(it, now()) }
+            sessionId = null
+        }
+    }
+
+    private fun now(): Long = System.currentTimeMillis()
 
     private fun acceptFeedStatus(status: FeedStatus) {
         when (status) {
@@ -162,6 +227,19 @@ class WalkTrackingService : Service() {
     private fun pauseAfterFeedProblem(message: String) {
         tracker.stop()
         val trail = recorder.pause()
+        store.publish(
+            WalkTrackingState(
+                trail = trail,
+                lastSample = store.state.value.lastSample,
+                errorMessage = message,
+            ),
+        )
+        promote(trail, errorMessage = message)
+    }
+
+    private fun acceptStorageFailure(message: String) {
+        val trail = recorder.snapshot()
+        if (trail.state == TrackingState.OFF) return
         store.publish(
             WalkTrackingState(
                 trail = trail,

@@ -10,11 +10,12 @@
 - [ ] 팀 레포 구조(모노/멀티) — 병원 에이전트를 팀 FastAPI에 넣을지, 이 레포가 별도 서비스인지
 
 ## 이 레포에서 정할 것
-- [ ] **위치 프라이버시 정책** — 시작/종료 좌표뿐 아니라 시설 encounter 순서의 재식별,
-      원본·파생 사실별 보관 기간, 동의·세션 삭제
+- [ ] **위치 프라이버시 정책** — 기기 로컬 원본도 포함. 시작/종료 좌표뿐 아니라 시설
+      encounter 순서의 재식별, 원본·파생 사실별 보관 기간, 동의·삭제 UI
 - [x] 산책 세션 API·저장·`WalkFacts`·시설 occurrence 집계 구현
 - [x] Android foreground service가 위치수집 생명주기 소유
-- [ ] Android Room 영속 저장·위치 배치 업로드·process-death 복구 주기 (배터리 vs 유실)
+- [x] Android Room 원본 fix 영속 저장·세션 cascade 삭제 경계
+- [ ] Android 위치 배치 업로드·process-death 복구 주기 (배터리 vs 유실)
 - [ ] GPS 품질·어뷰징 검증 임계값 (accuracy, 속도, 점프, 가속도)
 - [ ] 병원 **영업시간 데이터 출처** — 공공데이터에 없음. 수기·제휴 또는 parked `homepage-enrich.md`
 - [ ] 검색 후처리로 후보가 빠질 때 반경 안의 다음 후보를 refill하는 방식

@@ -14,7 +14,7 @@
 3. **텍스트 없음.** 사용자에게 보여줄 문장 필드가 없다. 문자열은 식별자뿐이다.
 4. **버전.** `record_version`은 형태, `calculation_version`은 계산 정책을 식별한다.
    필드나 문턱값이 달라지면 해당 버전이 오른다.
-   새 occurrence 응답은 record/calculation v3이며, purge된 기존 record v2는 읽기 호환한다.
+   새 응답은 record/calculation v4이며, purge된 기존 record v2·v3는 읽기 호환한다.
 
 코드: `app/features/walk/models.py`. 필드 집합과 금지 이름은 `tests/test_walk_contract.py` 가 고정한다 —
 필드 하나를 더하면 테스트가 깨지고, 깨뜨리는 것이 **보이는 결정**이 된다.
@@ -24,6 +24,7 @@
 ```
 WalkFix      수신 원본 한 점. 앱이 배치로 올린다
   client_seq    세션 안의 클라이언트 측정 순서. 재전송 안정 키
+  chain_index   명시적 pause/resume 뒤 증가. 다른 chain 사이에는 segment가 없다
   at            tz 필수
   lat, lng
   accuracy_m    있으면. 필터 재료
@@ -84,7 +85,8 @@ FacilityEncounter   동선 주변에 시설 좌표가 있었다는 관측 — �
 판정 v2는 occurrence v2만 받는다. 원좌표 삭제로 분할할 수 없는 legacy v1 집계행은 읽기
 호환만 하고 `unjudgeable`로 격리한다.
 
-동선 계산의 최소 방향 계약은 시간순 `Segment(a → b)`다. gap·jump·거부 지점은 별도
+동선 계산의 최소 방향 계약은 시간순 `Segment(a → b)`다. 명시적 pause/resume와
+gap·jump·거부 지점은 별도
 연속 chain으로 끊고, occurrence는 **한 chain에서 50m 원과 겹치는 최대 연속 시간구간**이다.
 같은 시설을 왕복하면 서로 다른 occurrence 두 행이 된다. `Leg`·corridor는 이 관측 계약의
 선행 조건이 아니며, 가는 길/오는 길 또는 교차 세션 학습이 필요할 때 별도로 정의한다.
@@ -104,8 +106,8 @@ GET  /walk/sessions/{id}           세션 + 사실
 encounter)는 PURGED 앞 DERIVED 단계에 들어와야 한다. 실패하면 트랜잭션 전체가
 롤백되므로 파생 전 삭제 상태는 생기지 않는다.
 
-서버 계산 정책 v3 (`app/features/walk/facts.py`): 이동 임계 0.5m/s · 정지 최소 10초 ·
-accuracy 50m 컷 · 200m 튐 단절 · 60초 수집 공백 단절. 문턱값은 실기기 반복 측정
+서버 계산 정책 v4 (`app/features/walk/facts.py`): 명시적 chain 단절 · 이동 임계 0.5m/s ·
+정지 최소 10초 · accuracy 50m 컷 · 200m 튐 단절 · 60초 수집 공백 단절. 문턱값은 실기기 반복 측정
 전의 잠정값이다. 결과에 `calculation_version`을 남겨 정책 변경 전후를 섞지 않는다.
 Android 미리보기 동기화는 앱 수집기가 이 계약을 채택할 때 같은 버전으로 구현한다.
 

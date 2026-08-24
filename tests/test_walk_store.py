@@ -112,6 +112,10 @@ async def test_fix_batch_retry_is_idempotent_and_conflict_is_visible():
             changed = [fix(0, 99, client_seq=batch[0].client_seq)]
             with pytest.raises(store.FixSequenceConflictError):
                 await store.append_fixes(db, sid, changed)
+
+            changed_chain = [fix(0, 0, client_seq=batch[0].client_seq, chain_index=1)]
+            with pytest.raises(store.FixSequenceConflictError):
+                await store.append_fixes(db, sid, changed_chain)
         finally:
             await _cleanup(db)
 

@@ -1,10 +1,11 @@
 """WalkFix 열 → WalkFacts. 순수함수 — DB·시계·난수 없음, 같은 입력은 같은 사실.
 
-계산 정책 v3. 문턱값은 실기기 반복 측정 전의 잠정값이며 계산 버전으로 결과에 남긴다.
+계산 정책 v4. 문턱값은 실기기 반복 측정 전의 잠정값이며 계산 버전으로 결과에 남긴다.
 Android 미리보기와 서버 확정치를 맞추는 작업은 앱 수집기가 이 계약을 채택할 때 한다.
 
 분류 규칙 (연속한 수용 점 쌍마다):
   dt <= 0            → out_of_order 거부. 시각 역행을 이동으로 만들지 않는다
+  chain 변경         → 명시적 단절. pause 중 이동을 가상의 segment로 만들지 않는다
   dt > 60s           → gap. 수집 공백을 정지로 만들지 않는다
   dist > 200m        → jump. 구간 단절 — 시간·거리 어디에도 안 쌓는다 (GPS 튐/차량)
   speed >= 0.5 m/s   → moving:  moving_s += dt, moving_distance += dist
@@ -45,6 +46,7 @@ class FixQuality:
     unknown_accuracy: int = 0
     jump_breaks: int = 0
     gap_breaks: int = 0
+    explicit_breaks: int = 0
     dropped_at_capacity: int = 0
     mock_fixes: int = 0
 
@@ -164,6 +166,12 @@ def compute_facts(
             continue
         q.accepted += 1
         if prev is None:
+            prev = cur
+            continue
+        if cur.chain_index != prev.chain_index:
+            q.explicit_breaks += 1
+            close_still_run()
+            break_chain()
             prev = cur
             continue
         dt = (cur.at - prev.at).total_seconds()

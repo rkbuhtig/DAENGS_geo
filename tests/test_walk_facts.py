@@ -20,11 +20,12 @@ def fix(
     accuracy: float | None = 10.0,
     client_seq: int | None = None,
     is_mock: bool = False,
+    chain_index: int = 0,
 ) -> WalkFix:
     lng = ORIGIN[1] + east_m / (111_320 * math.cos(math.radians(ORIGIN[0])))
     return WalkFix(client_seq=round((t_s + 86_400) * 1000) if client_seq is None else client_seq,
                    at=T0 + timedelta(seconds=t_s), lat=ORIGIN[0], lng=lng,
-                   accuracy_m=accuracy, is_mock=is_mock)
+                   accuracy_m=accuracy, is_mock=is_mock, chain_index=chain_index)
 
 
 def walk_then_stop_then_walk() -> list[WalkFix]:
@@ -100,6 +101,21 @@ def test_collection_gap_is_not_a_stop():
     assert r.quality.gap_breaks == 1
     assert r.facts.stop_count == 0
     assert r.facts.stop_s == 0
+
+
+def test_pause_resume_chain_is_never_joined_as_movement():
+    """Pause 중 80m 이동 후 재개해도 그 공백은 산책 거리나 segment가 아니다."""
+    r = compute([
+        fix(0, 0, chain_index=0),
+        fix(5, 7, chain_index=0),
+        fix(35, 87, chain_index=1),
+        fix(40, 94, chain_index=1),
+    ], 40)
+    assert r.quality.explicit_breaks == 1
+    assert r.facts.distance_m == 14
+    assert r.facts.moving_s == 10
+    assert len(r.segments) == 2
+    assert [s.chain_index for s in r.segments] == [0, 1]
 
 
 def test_fixes_outside_session_are_rejected_and_break_segments():
