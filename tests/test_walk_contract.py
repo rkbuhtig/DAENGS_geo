@@ -51,7 +51,10 @@ def test_field_sets_are_pinned():
         "lat", "lng", "route_offset_m", "accuracy_p50_m", "fix_count",
     }
     assert set(FacilityEncounter.model_fields) == {
-        "session_id", "event_index", "facility_source", "facility_ref", "kind",
+        "session_id", "event_index", "occurrence_version", "occurrence_index",
+        "entered_at", "exited_at", "entry_observed", "exit_observed",
+        "entered_offset_m", "exited_offset_m",
+        "facility_source", "facility_ref", "kind",
         "lat", "lng", "place_active", "as_of", "min_lateral_m", "offset_m",
         "dwell_s_10m", "dwell_s_30m", "dwell_s_50m", "pass_count",
         "stop_overlap_10m", "stop_overlap_30m", "stop_overlap_50m", "stop_s_10m",
@@ -124,3 +127,18 @@ def test_unknown_fields_are_rejected_not_dropped():
     """소비자가 `goal_min` 을 실어 보내도 조용히 버리지 않는다 — 계약 위반은 보여야 한다."""
     with pytest.raises(ValidationError, match="extra"):
         WalkFix(client_seq=0, at=T0, lat=37.5, lng=127.0, goal_min=30)
+
+
+def test_legacy_aggregate_encounter_is_readable_but_new_rows_require_occurrence_bounds():
+    old_fields = {
+        "session_id": "old", "event_index": 0,
+        "facility_source": "kcisa", "facility_ref": "legacy", "kind": "cafe",
+        "lat": 37.5, "lng": 127.0, "min_lateral_m": 5, "offset_m": 100,
+        "dwell_s_10m": 5, "dwell_s_30m": 20, "dwell_s_50m": 40,
+        "pass_count": 2,
+    }
+    legacy = FacilityEncounter(occurrence_version=1, **old_fields)
+    assert legacy.occurrence_index is None       # purge된 v1 합계행은 분할한 척하지 않는다
+
+    with pytest.raises(ValidationError, match="occurrence v2 requires"):
+        FacilityEncounter(**old_fields)

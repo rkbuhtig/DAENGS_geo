@@ -12,8 +12,9 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-RECORD_VERSION = 2
-CALCULATION_VERSION = 2
+RECORD_VERSION = 3
+CALCULATION_VERSION = 3
+ENCOUNTER_OCCURRENCE_VERSION = 2
 
 EvidenceOrigin = Literal["device", "mock", "mixed", "unknown"]
 SessionState = Literal["open", "sealed", "derived", "purged"]
@@ -70,7 +71,8 @@ class WalkSession(ContractModel):
 class WalkFacts(ContractModel):
     """세션이 끝난 뒤 코드가 계산한 사실. 바깥에 나가는 것은 이것이다."""
 
-    record_version: Literal[RECORD_VERSION] = RECORD_VERSION
+    # record v2 세션도 purge 뒤 계속 읽혀야 한다. 새 응답 기본값만 최신 버전이다.
+    record_version: Literal[2, RECORD_VERSION] = RECORD_VERSION
     calculation_version: int = Field(CALCULATION_VERSION, ge=1)
     session_id: str = Field(min_length=1, max_length=128)
     dog_id: str = Field(min_length=1, max_length=128)
@@ -142,6 +144,14 @@ class FacilityEncounter(ContractModel):
 
     session_id: str = Field(min_length=1, max_length=128)
     event_index: int = Field(ge=0)
+    occurrence_version: int = Field(ENCOUNTER_OCCURRENCE_VERSION, ge=1)
+    occurrence_index: int | None = Field(None, ge=0)  # 같은 시설의 세션 내 n번째 연속 진입
+    entered_at: datetime | None = None                # 관측된 원 내부 구간 시작
+    exited_at: datetime | None = None                 # 관측된 원 내부 구간 끝
+    entry_observed: bool | None = None                # 실제 원 경계를 통과하며 시작했나
+    exit_observed: bool | None = None                 # 실제 원 경계를 통과하며 끝났나
+    entered_offset_m: float | None = Field(None, ge=0)
+    exited_offset_m: float | None = Field(None, ge=0)
     facility_source: str = Field(min_length=1, max_length=64)   # kcisa | kto | ...
     facility_ref: str = Field(min_length=1, max_length=128)     # 안정 키. facility.id 아님
     kind: str = Field(min_length=1, max_length=32)
@@ -161,3 +171,31 @@ class FacilityEncounter(ContractModel):
     stop_overlap_50m: bool = False
     stop_s_10m: int = Field(0, ge=0)       # 10m 원 안 정지 이벤트 지속시간 합
     accuracy_p50_m: float | None = Field(None, ge=0)   # 50m 원 안 관측점 정확도 중앙값
+
+    _occurrence_tz = field_validator("entered_at", "exited_at")(
+        lambda v: v if v is None else _tz_required(v)
+    )
+
+    @model_validator(mode="after")
+    def occurrence_is_complete_in_v2(self) -> "FacilityEncounter":
+        if self.occurrence_version < ENCOUNTER_OCCURRENCE_VERSION:
+            return self                              # v1 집계행은 원좌표 삭제로 backfill 불가
+        required = {
+            "occurrence_index": self.occurrence_index,
+            "entered_at": self.entered_at,
+            "exited_at": self.exited_at,
+            "entry_observed": self.entry_observed,
+            "exit_observed": self.exit_observed,
+            "entered_offset_m": self.entered_offset_m,
+            "exited_offset_m": self.exited_offset_m,
+        }
+        missing = [name for name, value in required.items() if value is None]
+        if missing:
+            raise ValueError(f"occurrence v2 requires {', '.join(missing)}")
+        if self.exited_at < self.entered_at:
+            raise ValueError("exited_at must not precede entered_at")
+        if self.exited_offset_m < self.entered_offset_m:
+            raise ValueError("exited_offset_m must not precede entered_offset_m")
+        if self.pass_count != 1:
+            raise ValueError("occurrence v2 represents exactly one pass")
+        return self

@@ -9,14 +9,14 @@
   passed          원을 스치듯 통과했다 (체류 짧음, 정지 없음)
   lingered        원 안에 머물렀다 (체류 김 또는 원 안 정지)
   visited_guess   작은 원 안에서 충분히 멈췄다 — 그래도 추정이다. 출입구를 모른다
-  unjudgeable     그 구간 GPS 오차가 판정 반지름보다 크다
+  unjudgeable     legacy 집계행이거나 그 구간 GPS 오차가 판정 반지름보다 크다
 """
 
 from typing import Literal
 
-from app.features.walk.models import FacilityEncounter
+from app.features.walk.models import ENCOUNTER_OCCURRENCE_VERSION, FacilityEncounter
 
-JUDGMENT_VERSION = 1
+JUDGMENT_VERSION = 2
 
 # ---- 잠정 상수. 실측(같은 길 반복 보행) 후 확정한다 ----
 BAND_M: Literal[10, 30, 50] = 30       # 기본 판정 반지름
@@ -36,6 +36,10 @@ def _stop_overlap(e: FacilityEncounter, band: int) -> bool:
 
 def judge(e: FacilityEncounter, band: int = BAND_M) -> Judgment:
     """encounter 하나의 판정. 순수함수 — 같은 사실, 같은 상수, 같은 판정."""
+    if e.occurrence_version < ENCOUNTER_OCCURRENCE_VERSION:
+        # v1은 시설별 세션 합계라 왕복·반복 통과가 한 행에 섞였다. 읽기 호환은 하되
+        # 하나의 occurrence인 척 판정하면 안 된다. 원좌표 purge 뒤라 분할 backfill도 불가하다.
+        return "unjudgeable"
     if e.accuracy_p50_m is not None and e.accuracy_p50_m > band:
         return "unjudgeable"           # 오차 40m 로 30m 원을 판정하는 건 소음이다
     if e.stop_s_10m >= VISIT_MIN_STOP_S:

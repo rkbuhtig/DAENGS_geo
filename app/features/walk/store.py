@@ -233,12 +233,18 @@ async def finalize(
     if encounters:
         await db.execute(text("""
             INSERT INTO walk_encounter
-                (session_id, event_index, facility_source, facility_ref, kind, lat, lng,
+                (session_id, event_index, occurrence_version, occurrence_index,
+                 entered_at, exited_at, entry_observed, exit_observed,
+                 entered_offset_m, exited_offset_m,
+                 facility_source, facility_ref, kind, lat, lng,
                  place_active, as_of, min_lateral_m, offset_m,
                  dwell_s_10m, dwell_s_30m, dwell_s_50m, pass_count,
                  stop_overlap_10m, stop_overlap_30m, stop_overlap_50m, stop_s_10m,
                  accuracy_p50_m)
-            VALUES (:session_id, :event_index, :facility_source, :facility_ref, :kind,
+            VALUES (:session_id, :event_index, :occurrence_version, :occurrence_index,
+                    :entered_at, :exited_at, :entry_observed, :exit_observed,
+                    :entered_offset_m, :exited_offset_m,
+                    :facility_source, :facility_ref, :kind,
                     :lat, :lng, :place_active, :as_of, :min_lateral_m, :offset_m,
                     :dwell_s_10m, :dwell_s_30m, :dwell_s_50m, :pass_count,
                     :stop_overlap_10m, :stop_overlap_30m, :stop_overlap_50m, :stop_s_10m,
@@ -281,7 +287,10 @@ async def get_events(db: AsyncSession, session_id: str) -> list[MotionEventOccur
 
 async def get_encounters(db: AsyncSession, session_id: str) -> list[FacilityEncounter]:
     rows = await db.execute(text("""
-        SELECT session_id, event_index, facility_source, facility_ref, kind, lat, lng,
+        SELECT session_id, event_index, occurrence_version, occurrence_index,
+               entered_at, exited_at, entry_observed, exit_observed,
+               entered_offset_m, exited_offset_m,
+               facility_source, facility_ref, kind, lat, lng,
                place_active, as_of, min_lateral_m, offset_m,
                dwell_s_10m, dwell_s_30m, dwell_s_50m, pass_count,
                stop_overlap_10m, stop_overlap_30m, stop_overlap_50m, stop_s_10m,

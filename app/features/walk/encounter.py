@@ -10,14 +10,15 @@
 
 import math
 import statistics
-from dataclasses import dataclass
-from datetime import date
+from dataclasses import dataclass, field
+from datetime import date, datetime
 
 from app.features.walk.facts import Segment
 from app.features.walk.models import FacilityEncounter, MotionEventOccurrence
 
 BANDS_M = (10.0, 30.0, 50.0)
 MAX_BAND_M = max(BANDS_M)
+BOUNDARY_EPSILON = 1e-9
 
 
 @dataclass(frozen=True)
@@ -31,6 +32,22 @@ class FacilityCandidate:
     lng: float
     place_active: bool | None
     as_of: date | None
+
+
+@dataclass
+class _OpenOccurrence:
+    """한 연속 segment chain에서 열린 50m 원 진입. 함수 밖 계약은 아니다."""
+
+    occurrence_index: int
+    entered_at: datetime
+    entered_offset_m: float
+    entry_observed: bool
+    exited_at: datetime
+    exited_offset_m: float
+    min_lateral_m: float = math.inf
+    offset_at_min_m: float = 0.0
+    dwell: dict[float, float] = field(default_factory=lambda: dict.fromkeys(BANDS_M, 0.0))
+    accuracies: dict[int, float] = field(default_factory=dict)
 
 
 def _projector(origin_lat: float, origin_lng: float):
@@ -68,6 +85,41 @@ def _closest(ax, ay, bx, by) -> tuple[float, float]:
     return math.hypot(px, py), t
 
 
+def _at(seg: Segment, t: float) -> datetime:
+    return seg.a.at + (seg.b.at - seg.a.at) * t
+
+
+def _offset(seg: Segment, t: float) -> float:
+    # 정지 구간은 위치가 흔들려도 이동거리 자가 진행하지 않는다.
+    return seg.offset_m + (seg.dist * t if seg.moving else 0.0)
+
+
+def _stop_facts(
+    events: list[MotionEventOccurrence],
+    project,
+    fx: float,
+    fy: float,
+    entered_at: datetime,
+    exited_at: datetime,
+) -> tuple[dict[float, bool], int]:
+    """같은 시설의 다른 통과에 정지를 복제하지 않도록 시간과 공간을 함께 겹친다."""
+    overlap = dict.fromkeys(BANDS_M, False)
+    stop_s_10 = 0.0
+    for ev in events:
+        overlap_start = max(entered_at, ev.started_at)
+        overlap_end = min(exited_at, ev.ended_at)
+        if overlap_end <= overlap_start:
+            continue
+        ex, ey = project(ev.lat, ev.lng)
+        distance = math.hypot(ex - fx, ey - fy)
+        for radius in BANDS_M:
+            if distance <= radius:
+                overlap[radius] = True
+        if distance <= BANDS_M[0]:
+            stop_s_10 += (overlap_end - overlap_start).total_seconds()
+    return overlap, round(stop_s_10)
+
+
 def compute_encounters(
     session_id: str,
     segments: list[Segment],
@@ -81,71 +133,111 @@ def compute_encounters(
     found: list[FacilityEncounter] = []
     for cand in candidates:
         fx, fy = project(cand.lat, cand.lng)
-        min_lateral = math.inf
-        offset_at_min = 0.0
-        dwell = dict.fromkeys(BANDS_M, 0.0)
-        pass_count = 0
-        was_inside_max = False
-        accuracies: list[float] = []
+        occurrence_index = 0
+        current: _OpenOccurrence | None = None
+        previous_chain: int | None = None
+        seen_segment_in_chain = False
+
+        def close_current(
+            *,
+            exit_observed: bool,
+            candidate: FacilityCandidate = cand,
+            facility_x: float = fx,
+            facility_y: float = fy,
+        ) -> None:
+            nonlocal current, occurrence_index
+            if current is None:
+                return
+            overlap, stop_s_10 = _stop_facts(
+                events, project, facility_x, facility_y,
+                current.entered_at, current.exited_at,
+            )
+            found.append(FacilityEncounter(
+                session_id=session_id,
+                event_index=0,                       # 전체 시간순 정렬 뒤 채운다
+                occurrence_index=current.occurrence_index,
+                entered_at=current.entered_at,
+                exited_at=current.exited_at,
+                entry_observed=current.entry_observed,
+                exit_observed=exit_observed,
+                entered_offset_m=round(current.entered_offset_m, 1),
+                exited_offset_m=round(current.exited_offset_m, 1),
+                facility_source=candidate.facility_source,
+                facility_ref=candidate.facility_ref,
+                kind=candidate.kind,
+                lat=candidate.lat, lng=candidate.lng,
+                place_active=candidate.place_active,
+                as_of=candidate.as_of,
+                min_lateral_m=round(current.min_lateral_m, 1),
+                offset_m=round(current.offset_at_min_m, 1),
+                dwell_s_10m=round(current.dwell[10.0]),
+                dwell_s_30m=round(current.dwell[30.0]),
+                dwell_s_50m=round(current.dwell[50.0]),
+                pass_count=1,
+                stop_overlap_10m=overlap[10.0],
+                stop_overlap_30m=overlap[30.0],
+                stop_overlap_50m=overlap[50.0],
+                stop_s_10m=stop_s_10,
+                accuracy_p50_m=(
+                    round(statistics.median(current.accuracies.values()), 2)
+                    if current.accuracies else None
+                ),
+            ))
+            occurrence_index += 1
+            current = None
 
         for seg in segments:
+            if previous_chain is None or seg.chain_index != previous_chain:
+                close_current(exit_observed=False)
+                previous_chain = seg.chain_index
+                seen_segment_in_chain = False
+
             ax, ay = project(seg.a.lat, seg.a.lng)
             bx, by = project(seg.b.lat, seg.b.lng)
             ax, ay, bx, by = ax - fx, ay - fy, bx - fx, by - fy
 
+            iv_max = _inside_interval(ax, ay, bx, by, MAX_BAND_M)
+            if iv_max is None:
+                # 직전 segment가 경계에서 끝났고 이번 segment가 밖으로 나가면 이탈은 관측됐다.
+                close_current(exit_observed=True)
+                seen_segment_in_chain = True
+                continue
+
+            if current is None:
+                entered_t = iv_max[0]
+                current = _OpenOccurrence(
+                    occurrence_index=occurrence_index,
+                    entered_at=_at(seg, entered_t),
+                    entered_offset_m=_offset(seg, entered_t),
+                    # chain 첫 segment가 이미 원 안이면 실제 진입 경계는 수집되지 않았다.
+                    entry_observed=(
+                        entered_t > BOUNDARY_EPSILON or seen_segment_in_chain
+                    ),
+                    exited_at=_at(seg, iv_max[1]),
+                    exited_offset_m=_offset(seg, iv_max[1]),
+                )
+
             d, t = _closest(ax, ay, bx, by)
-            if d < min_lateral:
-                min_lateral = d
-                # 정지 구간(moving=False)에선 이동거리가 안 자라므로 offset 은 구간 시작값
-                offset_at_min = seg.offset_m + (seg.dist * t if seg.moving else 0.0)
+            if d < current.min_lateral_m:
+                current.min_lateral_m = d
+                current.offset_at_min_m = _offset(seg, t)
 
             for r in BANDS_M:
                 iv = _inside_interval(ax, ay, bx, by, r)
                 if iv:
-                    dwell[r] += (iv[1] - iv[0]) * seg.dt
-            iv_max = _inside_interval(ax, ay, bx, by, MAX_BAND_M)
-            if iv_max and not was_inside_max:
-                pass_count += 1
-            was_inside_max = bool(iv_max) and iv_max[1] >= 1.0
+                    current.dwell[r] += (iv[1] - iv[0]) * seg.dt
+            for fix in (seg.a, seg.b):
+                if fix.accuracy_m is not None:
+                    current.accuracies[fix.client_seq] = fix.accuracy_m
 
-            if math.hypot(bx, by) <= MAX_BAND_M and seg.b.accuracy_m is not None:
-                accuracies.append(seg.b.accuracy_m)
+            current.exited_at = _at(seg, iv_max[1])
+            current.exited_offset_m = _offset(seg, iv_max[1])
+            if iv_max[1] < 1.0 - BOUNDARY_EPSILON:
+                close_current(exit_observed=True)
+            seen_segment_in_chain = True
 
-        if min_lateral > MAX_BAND_M:
-            continue
+        # 수집 종료 또는 마지막 chain 단절 시점까지 원 안이었다.
+        close_current(exit_observed=False)
 
-        overlap = dict.fromkeys(BANDS_M, False)
-        stop_s_10 = 0
-        for ev in events:
-            ex, ey = project(ev.lat, ev.lng)
-            d = math.hypot(ex - fx, ey - fy)
-            for r in BANDS_M:
-                if d <= r:
-                    overlap[r] = True
-            if d <= BANDS_M[0]:
-                stop_s_10 += ev.duration_s
-
-        found.append(FacilityEncounter(
-            session_id=session_id,
-            event_index=0,                       # 정렬 뒤 채운다
-            facility_source=cand.facility_source,
-            facility_ref=cand.facility_ref,
-            kind=cand.kind,
-            lat=cand.lat, lng=cand.lng,
-            place_active=cand.place_active,
-            as_of=cand.as_of,
-            min_lateral_m=round(min_lateral, 1),
-            offset_m=round(offset_at_min, 1),
-            dwell_s_10m=round(dwell[10.0]),
-            dwell_s_30m=round(dwell[30.0]),
-            dwell_s_50m=round(dwell[50.0]),
-            pass_count=pass_count,
-            stop_overlap_10m=overlap[10.0],
-            stop_overlap_30m=overlap[30.0],
-            stop_overlap_50m=overlap[50.0],
-            stop_s_10m=stop_s_10,
-            accuracy_p50_m=round(statistics.median(accuracies), 2) if accuracies else None,
-        ))
-
-    found.sort(key=lambda e: (e.offset_m, e.min_lateral_m, e.facility_ref))
+    found.sort(key=lambda e: (e.entered_at, e.offset_m, e.facility_ref))
     return [e.model_copy(update={"event_index": i}) for i, e in enumerate(found)]

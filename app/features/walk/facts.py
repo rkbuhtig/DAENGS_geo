@@ -1,6 +1,6 @@
 """WalkFix 열 → WalkFacts. 순수함수 — DB·시계·난수 없음, 같은 입력은 같은 사실.
 
-계산 정책 v2. 문턱값은 실기기 반복 측정 전의 잠정값이며 계산 버전으로 결과에 남긴다.
+계산 정책 v3. 문턱값은 실기기 반복 측정 전의 잠정값이며 계산 버전으로 결과에 남긴다.
 Android 미리보기와 서버 확정치를 맞추는 작업은 앱 수집기가 이 계약을 채택할 때 한다.
 
 분류 규칙 (연속한 수용 점 쌍마다):
@@ -64,6 +64,7 @@ class Segment:
     dist: float
     offset_m: float
     moving: bool
+    chain_index: int
 
 
 @dataclass
@@ -106,6 +107,16 @@ def compute_facts(
     still_offset_m = 0.0
     events: list[MotionEventOccurrence] = []
     segments: list[Segment] = []
+    chain_index = 0
+
+    def break_chain() -> None:
+        """다음 유효 segment를 새 연속열로 시작한다.
+
+        gap/jump/거부 지점 너머는 공간적으로 이어 보이면 안 된다. encounter 같은
+        소비자가 이 경계를 보지 못하면 수집 공백 양쪽의 원 진입을 한 번으로 합친다.
+        """
+        nonlocal chain_index
+        chain_index += 1
 
     def close_still_run() -> None:
         nonlocal still_run, still_points
@@ -134,11 +145,13 @@ def compute_facts(
         if cur.at < started_at:
             q.rejected_before_start += 1
             close_still_run()
+            break_chain()
             prev = None
             continue
         if cur.at > ended_at:
             q.rejected_after_end += 1
             close_still_run()
+            break_chain()
             prev = None
             continue
         if cur.accuracy_m is None:
@@ -146,6 +159,7 @@ def compute_facts(
         elif cur.accuracy_m > MAX_ACCURACY_M:
             q.rejected_low_accuracy += 1
             close_still_run()
+            break_chain()
             prev = None                  # 거부 지점 양쪽을 가상의 직선으로 잇지 않는다
             continue
         q.accepted += 1
@@ -156,24 +170,28 @@ def compute_facts(
         if dt <= 0:
             q.rejected_out_of_order += 1
             close_still_run()
+            break_chain()
             prev = cur                   # 역행 지점에서 segment를 끊고 새로 시작
             continue
         if dt > MAX_GAP_S:
             q.gap_breaks += 1
             close_still_run()
+            break_chain()
             prev = cur
             continue
         dist = _haversine_m(prev, cur)
         if dist > MAX_JUMP_M:
             q.jump_breaks += 1
             close_still_run()            # 단절 너머로 정지 구간을 잇지 않는다
+            break_chain()
             prev = cur
             continue
         duration += dt
         distance += dist
         segments.append(Segment(a=prev, b=cur, dt=dt, dist=dist,
                                 offset_m=moving_distance,
-                                moving=dist / dt >= MOVING_SPEED_MPS))
+                                moving=dist / dt >= MOVING_SPEED_MPS,
+                                chain_index=chain_index))
         if dist / dt >= MOVING_SPEED_MPS:
             close_still_run()
             moving_s += dt

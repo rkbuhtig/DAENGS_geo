@@ -10,6 +10,7 @@ import pytest
 from sqlalchemy import text
 
 from app.features.walk import store
+from app.features.walk.encounter import FacilityCandidate, compute_encounters
 from app.features.walk.facts import compute_facts
 from app.features.walk.models import WalkSession
 from tests.conftest import db_session
@@ -44,7 +45,17 @@ async def test_full_session_lifecycle():
 
             ended = T0 + timedelta(seconds=60)
             computed = compute_facts(SID, "halmae", T0, ended, loaded)
-            await store.finalize(db, computed.facts, computed.quality, computed.events)
+            nearby = fix(30, 35)
+            encounters = compute_encounters(
+                SID, computed.segments, computed.events,
+                [FacilityCandidate(
+                    facility_source="test", facility_ref="nearby", kind="cafe",
+                    lat=nearby.lat, lng=nearby.lng, place_active=None, as_of=None,
+                )],
+            )
+            await store.finalize(
+                db, computed.facts, computed.quality, computed.events, encounters,
+            )
             await db.commit()
 
             # 사실은 남고, fix 는 없다
@@ -63,6 +74,7 @@ async def test_full_session_lifecycle():
             assert ended_session.state == "purged"
             assert computed.events
             assert await store.get_events(db, SID) == computed.events
+            assert await store.get_encounters(db, SID) == encounters
         finally:
             await _cleanup(db)
 

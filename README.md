@@ -6,14 +6,14 @@
 | 기능 | 성격 | 진입 |
 |---|---|---|
 | **병원/약국 찾기** | 요청-응답 (검색 + 자연어 파싱) | 챗봇 대화 / 일반 메뉴 |
-| **산책 기록** | Android foreground service가 GPS/트레일 생명주기 소유. 서버 API·저장은 아직 없음 | Android 지도 기능 |
+| **산책 기록** | Android foreground service + 서버 세션·사실·시설 occurrence. 앱 업로드는 아직 없음 | Android 지도 기능 / `/walk` |
 
 ## 상태
 
 **기존 스냅샷 검증: 2026-08-24.** 병원/약국 검색 백엔드와 Android 지도 셸이 동작한다.
-Python 테스트 200개와 Android 단위 테스트 32개, debug APK 빌드가 통과했다. 산책은 Android에서
-Activity와 독립된 location foreground service 기록까지 구현했고, 서버 세션 API·저장·집계와
-process-death 복구는 아직 구현하지 않았다.
+산책은 Android에서 Activity와 독립된 location foreground service를, 서버에서 세션 API·원순서
+fix·`WalkFacts`·정지/시설 occurrence 파생과 원좌표 purge를 구현했다. Android Room 영속 저장,
+서버 배치 업로드와 process-death 복구는 아직 구현하지 않았다.
 
 ```
 app/
