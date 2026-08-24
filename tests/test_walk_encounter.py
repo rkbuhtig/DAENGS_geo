@@ -8,7 +8,7 @@ from datetime import timedelta
 from app.features.walk.encounter import FacilityCandidate, compute_encounters
 from app.features.walk.facts import compute_facts
 from app.features.walk.models import WalkFix
-from app.scene.judgment import judge
+from app.scene.judgment import JUDGMENT_VERSION, judge
 from tests.test_walk_facts import ORIGIN, T0, fix
 
 
@@ -156,3 +156,11 @@ def test_judgment_unjudgeable_when_accuracy_exceeds_band():
     enc, _ = compute(fixes, [cand("blurry", 210, 12)])
     assert judge(enc[0], band=30) == "unjudgeable"   # 오차 45m 로 30m 원 판정은 소음
     assert judge(enc[0], band=50) != "unjudgeable"
+
+
+def test_judgment_does_not_treat_legacy_aggregate_as_one_occurrence():
+    enc, _ = compute(straight_walk(300), [cand("legacy", 210, 12)])
+    legacy = enc[0].model_copy(update={"occurrence_version": 1, "pass_count": 2})
+
+    assert JUDGMENT_VERSION == 2
+    assert judge(legacy) == "unjudgeable"

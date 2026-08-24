@@ -81,6 +81,8 @@ FacilityEncounter   동선 주변에 시설 좌표가 있었다는 관측 — �
 "지나쳤다/봤다/들렀다"는 여기 없다. 그 판정은 `app/scene/judgment.py` 가 규칙표
 (JUDGMENT_VERSION, 상수 잠정)로 한다 — 사실은 안 바뀌고 판정 상수만 바뀔 수 있게
 층을 가른 것. 틱은 GPS 점이고 원 경계 통과는 선분 위 보간이라 체류가 점 간격보다 정밀하다.
+판정 v2는 occurrence v2만 받는다. 원좌표 삭제로 분할할 수 없는 legacy v1 집계행은 읽기
+호환만 하고 `unjudgeable`로 격리한다.
 
 동선 계산의 최소 방향 계약은 시간순 `Segment(a → b)`다. gap·jump·거부 지점은 별도
 연속 chain으로 끊고, occurrence는 **한 chain에서 50m 원과 겹치는 최대 연속 시간구간**이다.
