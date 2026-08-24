@@ -18,9 +18,6 @@ import com.daengs.geo.location.FeedStatus
 import com.daengs.geo.location.LocationSample
 import com.daengs.geo.location.LocationSource
 import com.daengs.geo.location.LocationTracker
-import com.daengs.geo.map.layers.trail.TrackingState
-import com.daengs.geo.map.layers.trail.TrailRecorder
-import com.daengs.geo.map.layers.trail.TrailSnapshot
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
