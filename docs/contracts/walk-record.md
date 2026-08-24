@@ -59,6 +59,23 @@ MotionEventOccurrence   원좌표를 지우기 전에 확정한 공간 상태 �
   accuracy_p50_m, fix_count
 ```
 
+FacilityEncounter   동선 주변에 시설 좌표가 있었다는 관측 — 기하값까지만
+  session_id, event_index
+  facility_source, facility_ref   시설 안정 키. facility.id 아님
+  kind, lat, lng                  대표점(건물 중심)이지 출입구가 아니다
+  place_active                    의료 오버레이 상태 — 필터가 아니라 데이터. 폐업 앞을 지나는 것도 사실
+  as_of
+  min_lateral_m, offset_m         동선이 가장 가까웠던 거리와 그 지점의 동선상 위치
+  dwell_s_10m/30m/50m             판정 원 후보 3개의 체류 시간. 원좌표는 지워지므로
+                                  반지름 선택(실측 후)을 위해 밴드를 전부 저장한다
+  pass_count                      50m 원 진입 횟수
+  stop_overlap_10m/30m/50m, stop_s_10m   원 안 정지 이벤트 겹침
+  accuracy_p50_m                  50m 원 안 관측 정확도 — 판정 가능성의 근거
+
+"지나쳤다/봤다/들렀다"는 여기 없다. 그 판정은 `app/scene/judgment.py` 가 규칙표
+(JUDGMENT_VERSION, 상수 잠정)로 한다 — 사실은 안 바뀌고 판정 상수만 바뀔 수 있게
+층을 가른 것. 틱은 GPS 점이고 원 경계 통과는 선분 위 보간이라 체류가 점 간격보다 정밀하다.
+
 ## 수집 API (2026-08-24)
 
 ```

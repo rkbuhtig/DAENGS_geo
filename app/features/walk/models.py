@@ -7,7 +7,7 @@
 필드 집합은 tests/test_walk_contract.py 가 고정한다. 하나 더하면 깨진다. 깨뜨리는 것이 보이는 결정이다.
 """
 
-from datetime import datetime
+from datetime import date, datetime
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -125,3 +125,39 @@ class MotionEventOccurrence(ContractModel):
         if self.ended_at < self.started_at:
             raise ValueError("ended_at must not precede started_at")
         return self
+
+
+class FacilityEncounter(ContractModel):
+    """동선 주변에 시설 좌표가 있었다는 관측 — 기하값까지만.
+
+    "지나쳤다/봤다/들렀다"는 여기 없다. 그 판정은 이 사실을 소비하는 쪽(app/scene)이
+    규칙표+버전으로 한다. 시설 좌표는 대표점(건물 중심)이지 출입구가 아니다.
+
+    밴드(10/30/50m)를 전부 저장하는 이유: 원좌표는 finish에서 지워지므로, 판정 반지름을
+    실측(반복 보행) 후 정하려면 후보 반지름들의 답이 미리 계산돼 있어야 한다.
+
+    폐업·인허가 상태는 거르는 조건이 아니라 싣는 데이터다(place_active) — 관측층은
+    큐레이션하지 않는다. 폐업한 병원 앞을 지나는 것도 사실이다.
+    """
+
+    session_id: str = Field(min_length=1, max_length=128)
+    event_index: int = Field(ge=0)
+    facility_source: str = Field(min_length=1, max_length=64)   # kcisa | kto | ...
+    facility_ref: str = Field(min_length=1, max_length=128)     # 안정 키. facility.id 아님
+    kind: str = Field(min_length=1, max_length=32)
+    lat: float = Field(ge=-90, le=90)                           # 시설 대표점 (공개 장소)
+    lng: float = Field(ge=-180, le=180)
+    place_active: bool | None = None       # 의료 오버레이 상태. 비의료·미링크는 None
+    as_of: date | None = None              # 시설 원천 기준일
+
+    min_lateral_m: float = Field(ge=0)     # 동선이 시설에 가장 가까웠던 거리
+    offset_m: float = Field(ge=0)          # 그 순간의 동선상 위치 (이동거리 기준)
+    dwell_s_10m: int = Field(ge=0)         # 반지름별 체류 시간 — 판정 원 후보 3개
+    dwell_s_30m: int = Field(ge=0)
+    dwell_s_50m: int = Field(ge=0)
+    pass_count: int = Field(ge=0)          # 50m 원 진입 횟수 (왕복이면 2)
+    stop_overlap_10m: bool = False         # 그 원 안에서 정지 이벤트가 있었나
+    stop_overlap_30m: bool = False
+    stop_overlap_50m: bool = False
+    stop_s_10m: int = Field(0, ge=0)       # 10m 원 안 정지 이벤트 지속시간 합
+    accuracy_p50_m: float | None = Field(None, ge=0)   # 50m 원 안 관측점 정확도 중앙값

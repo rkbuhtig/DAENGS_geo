@@ -52,11 +52,26 @@ class FixQuality:
         return dict(vars(self))
 
 
+@dataclass(frozen=True)
+class Segment:
+    """수용된 연속 두 점 사이의 유효 구간. encounter 계산이 같은 진실을 쓴다.
+
+    offset_m 은 구간 시작 시점의 이동거리(moving_distance) — 이벤트의 route_offset 과 같은 자."""
+
+    a: WalkFix
+    b: WalkFix
+    dt: float
+    dist: float
+    offset_m: float
+    moving: bool
+
+
 @dataclass
 class ComputedFacts:
     facts: WalkFacts
     quality: FixQuality = field(default_factory=FixQuality)
     events: list[MotionEventOccurrence] = field(default_factory=list)
+    segments: list[Segment] = field(default_factory=list)
 
 
 def _haversine_m(a: WalkFix, b: WalkFix) -> float:
@@ -90,6 +105,7 @@ def compute_facts(
     still_points: list[WalkFix] = []
     still_offset_m = 0.0
     events: list[MotionEventOccurrence] = []
+    segments: list[Segment] = []
 
     def close_still_run() -> None:
         nonlocal still_run, still_points
@@ -155,6 +171,9 @@ def compute_facts(
             continue
         duration += dt
         distance += dist
+        segments.append(Segment(a=prev, b=cur, dt=dt, dist=dist,
+                                offset_m=moving_distance,
+                                moving=dist / dt >= MOVING_SPEED_MPS))
         if dist / dt >= MOVING_SPEED_MPS:
             close_still_run()
             moving_s += dt
@@ -188,4 +207,4 @@ def compute_facts(
         avg_speed_mps=round(moving_distance / moving_s, 3) if moving_s > 0 else None,
         fix_count=q.accepted,
     )
-    return ComputedFacts(facts=facts, quality=q, events=events)
+    return ComputedFacts(facts=facts, quality=q, events=events, segments=segments)
