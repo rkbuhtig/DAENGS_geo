@@ -1,7 +1,6 @@
 package com.daengs.geo.walk
 
 import com.daengs.geo.location.LocationSample
-import com.daengs.geo.map.layers.trail.TrailSnapshot
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
