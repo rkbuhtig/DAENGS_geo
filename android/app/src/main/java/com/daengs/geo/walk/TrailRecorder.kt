@@ -1,4 +1,4 @@
-package com.daengs.geo.map.layers.trail
+package com.daengs.geo.walk
 
 import com.daengs.geo.location.GeoPoint
 import com.daengs.geo.location.LocationSample
@@ -10,9 +10,8 @@ import kotlin.math.sqrt
 enum class TrackingState { OFF, RECORDING, PAUSED }
 
 /**
- * The trail is a list of segments, not one flat point list. A pause, a feed switch or an
- * implausible jump ends the current segment: the gap is neither drawn as a line nor counted
- * as walked distance, because the dog did not walk it.
+ * The trail is a list of segments, not one flat point list. A pause or an implausible jump ends
+ * the current segment: the gap is neither drawn as a line nor counted as walked distance.
  */
 data class TrailSnapshot(
     val state: TrackingState = TrackingState.OFF,
@@ -61,11 +60,6 @@ class TrailRecorder(
     fun stop(): TrailSnapshot {
         snapshot = snapshot.copy(state = TrackingState.OFF)
         return snapshot
-    }
-
-    /** The next accepted fix starts a new segment. Used when the location feed changes. */
-    fun breakSegment() {
-        breakBeforeNext = true
     }
 
     fun add(sample: LocationSample): TrailSnapshot {

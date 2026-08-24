@@ -1,4 +1,4 @@
-package com.daengs.geo.map.layers.trail
+package com.daengs.geo.walk
 
 import com.daengs.geo.location.GeoPoint
 import com.daengs.geo.location.LocationSample
@@ -52,16 +52,18 @@ class TrailRecorderTest {
     }
 
     @Test
-    fun `a feed switch breaks the segment so mock and real fixes are not stitched`() {
+    fun `starting a new walk resets the previous trail`() {
         val recorder = TrailRecorder(minDistanceMeters = 1.0)
         recorder.start()
         recorder.add(sample(37.0, 127.0, 1L))
+        recorder.add(sample(37.0002, 127.0, 2L))
+        assertTrue(recorder.snapshot().distanceMeters > 0.0)
 
-        recorder.breakSegment()
-        val snapshot = recorder.add(sample(37.0002, 127.0, 2L))
+        val next = recorder.start()
 
-        assertEquals(2, snapshot.segments.size)
-        assertEquals(0.0, snapshot.distanceMeters, 0.001)
+        assertEquals(TrackingState.RECORDING, next.state)
+        assertEquals(0, next.sampleCount)
+        assertEquals(0.0, next.distanceMeters, 0.001)
     }
 
     @Test

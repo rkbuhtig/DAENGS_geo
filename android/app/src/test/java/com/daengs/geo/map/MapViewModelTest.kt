@@ -7,14 +7,20 @@ import com.daengs.geo.location.LocationSample
 import com.daengs.geo.location.LocationSource
 import com.daengs.geo.location.LocationUpdateConfig
 import com.daengs.geo.map.layers.trail.TrackingState
+import com.daengs.geo.map.layers.trail.TrailSnapshot
 import com.daengs.geo.territory.InMemoryTerritoryRepository
 import com.daengs.geo.territory.LocalHexCellIndexer
+import com.daengs.geo.walk.WalkTrackingController
+import com.daengs.geo.walk.WalkTrackingState
 import java.io.IOException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -58,7 +64,7 @@ class MapViewModelTest {
     }
 
     @Test
-    fun `a fix that arrives after the app is backgrounded does not revive the feed`() = runTest {
+    fun `a fix that arrives after the app is backgrounded does not revive the screen feed`() = runTest {
         val source = FakeLocationSource(fix = fix(37.5665, 126.9780))
         source.gate = CompletableDeferred()
         val viewModel = viewModel(source)
@@ -86,7 +92,7 @@ class MapViewModelTest {
     }
 
     @Test
-    fun `a failing feed surfaces an error instead of taking down the scope`() = runTest {
+    fun `a failing screen feed surfaces an error instead of taking down the scope`() = runTest {
         val source = FakeLocationSource(
             fix = fix(37.5665, 126.9780),
             updatesFailure = IOException("play services unavailable"),
@@ -118,25 +124,25 @@ class MapViewModelTest {
     }
 
     @Test
-    fun `replay does not clear what the user recorded and is not stitched onto it`() = runTest {
+    fun `walk recording belongs to the controller and app background does not stop it`() = runTest {
         val source = FakeLocationSource(fix = fix(37.5665, 126.9780))
-        val viewModel = viewModel(source)
+        val walk = FakeWalkTrackingController()
+        val viewModel = viewModel(source, walk)
         viewModel.onAppForeground()
         viewModel.useDeviceLocation()
         advanceUntilIdle()
-        viewModel.startTracking()
-        source.updates.emit(fix(37.5670, 126.9780))
-        advanceUntilIdle()
-        val recorded = viewModel.uiState.value.trail.sampleCount
-        assertTrue(recorded > 0)
 
+        viewModel.startTracking()
+        advanceUntilIdle()
+        viewModel.onAppBackground()
         viewModel.startReplay(10.0)
         advanceUntilIdle()
 
-        val trail = viewModel.uiState.value.trail
-        assertEquals(TrackingState.RECORDING, trail.state)
-        assertTrue(trail.sampleCount > recorded)
-        assertTrue(trail.segments.size >= 2)
+        assertEquals(1, walk.startCalls)
+        assertEquals(0, walk.stopCalls)
+        assertEquals(TrackingState.RECORDING, viewModel.uiState.value.trail.state)
+        assertEquals(LocationFeed.DEVICE, viewModel.uiState.value.locationFeed)
+        assertEquals("동선 기록 중에는 가상 이동을 시작할 수 없어요.", viewModel.uiState.value.statusMessage)
     }
 
     @Test
@@ -163,10 +169,14 @@ class MapViewModelTest {
         assertEquals("현재 위치를 확인한 뒤 다시 시도해주세요.", viewModel.uiState.value.statusMessage)
     }
 
-    private fun viewModel(source: LocationSource) = MapViewModel(
+    private fun viewModel(
+        source: LocationSource,
+        walk: WalkTrackingController = FakeWalkTrackingController(),
+    ) = MapViewModel(
         hospitalRepository = HospitalRepository(HospitalApi("http://127.0.0.1:1")),
         deviceLocationSource = source,
         territoryRepository = InMemoryTerritoryRepository(LocalHexCellIndexer()),
+        walkTrackingController = walk,
     )
 
     private fun fix(
@@ -179,6 +189,42 @@ class MapViewModelTest {
         accuracyMeters = 6f,
         isMock = isMock,
     )
+}
+
+private class FakeWalkTrackingController : WalkTrackingController {
+    private val mutableState = MutableStateFlow(WalkTrackingState())
+    override val state: StateFlow<WalkTrackingState> = mutableState.asStateFlow()
+
+    var startCalls = 0
+        private set
+    var stopCalls = 0
+        private set
+
+    override fun start() {
+        startCalls++
+        mutableState.value = WalkTrackingState(
+            trail = TrailSnapshot(state = TrackingState.RECORDING),
+        )
+    }
+
+    override fun pause() {
+        mutableState.value = mutableState.value.copy(
+            trail = mutableState.value.trail.copy(state = TrackingState.PAUSED),
+        )
+    }
+
+    override fun resume() {
+        mutableState.value = mutableState.value.copy(
+            trail = mutableState.value.trail.copy(state = TrackingState.RECORDING),
+        )
+    }
+
+    override fun stop() {
+        stopCalls++
+        mutableState.value = mutableState.value.copy(
+            trail = mutableState.value.trail.copy(state = TrackingState.OFF),
+        )
+    }
 }
 
 private class FakeLocationSource(

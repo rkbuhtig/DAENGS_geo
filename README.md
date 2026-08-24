@@ -6,14 +6,14 @@
 | 기능 | 성격 | 진입 |
 |---|---|---|
 | **병원/약국 찾기** | 요청-응답 (검색 + 자연어 파싱) | 챗봇 대화 / 일반 메뉴 |
-| **산책 기록** | 수집 계약(`WalkFix`·`WalkSession`·`WalkFacts`). API·저장은 아직 없음 | Android foreground service 구현 예정 |
+| **산책 기록** | Android foreground service가 GPS/트레일 생명주기 소유. 서버 API·저장은 아직 없음 | Android 지도 기능 |
 
 ## 상태
 
-**현재 스냅샷 검증: 2026-08-24.** 병원/약국 검색 백엔드와 Android 지도 셸이 동작한다.
-Python 테스트 200개와 Android 단위 테스트 32개, debug APK 빌드가 통과한다. 산책은 outbound
-계약까지만 있고 세션 API·저장·집계와
-Android 백그라운드 기록은 아직 구현하지 않았다.
+**기존 스냅샷 검증: 2026-08-24.** 병원/약국 검색 백엔드와 Android 지도 셸이 동작한다.
+Python 테스트 200개와 Android 단위 테스트 32개, debug APK 빌드가 통과했다. 산책은 Android에서
+Activity와 독립된 location foreground service 기록까지 구현했고, 서버 세션 API·저장·집계와
+process-death 복구는 아직 구현하지 않았다.
 
 ```
 app/
@@ -30,7 +30,7 @@ app/
 ├── api/         GET /places/search · GET /map/static
 ├── usage/       실제 외부 호출 Gate — 기본 거부, 제한형 dev 정책, 요청/시간당 사용량
 └── core/        config · db
-android/         Kotlin/Compose 단일 모듈 — 위치 → 검색 → NAVER 지도 → actions/전화 수직 절단면
+android/         Kotlin/Compose — 위치→검색→NAVER 지도 + walk foreground service
 ```
 
 ## 현재 코어와 parked 구현
@@ -132,7 +132,8 @@ POST /hospital/search
 
 - 백엔드: **FastAPI / Python**, DB: **PostgreSQL + PostGIS** (팀 pgvector와 동거)
 - 기준 클라이언트: **Android(Kotlin) 전용** 앱. iOS 없음. `/dev`는 제품 웹이 아니라 검증 콘솔
-- 산책은 백그라운드 위치가 필요하므로 네이티브 앱에서만. foreground service는 아직 미구현
+- 산책 기록의 런타임 소유자는 Android location foreground service. 시작은 보이는 Activity에서만 하며 `ACCESS_BACKGROUND_LOCATION`은 아직 요청하지 않는다
+- 산책 세션의 Room/SQLite 영속 저장·서버 업로드·process-death 복구는 아직 미구현
 - 반려견 프로필은 이 레포가 소유하지 않는다 → 외부 계약으로 소비 (`docs/contracts/dog-profile.md`)
 - 산책 코어는 `WalkFacts`까지의 사실 수집. 목표·보상·개의 목소리·서술은 선택적 소비자
 - 판정이 추가되면 코드를 사용하고 LLM은 확정된 사실의 서술이나 자연어 파싱만 담당
