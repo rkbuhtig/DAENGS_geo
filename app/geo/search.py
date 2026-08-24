@@ -10,26 +10,13 @@ from app.core.config import settings
 from app.geo.facility_hours import attach_facility_hours
 from app.geo.hours import is_open_at, today_ranges
 from app.geo.models import Place
+from app.geo.ranking import band_boost_sorted, prefer_boost, preference_tags
 from app.geo.schemas import MapOut, PlaceOut, SearchOut, SearchParams
 from app.geo.tagging import dog_ok
 from app.planning.facts import SystemClock
 from app.planning.plans import SearchMust, SearchPlan, SearchPrefer
 from app.providers.base import LatLng, MapMarker, StaticMapSpec
 from app.providers.registry import static_map_provider
-
-
-def _prefer_tags(specialty: list[str] | None, *, night: bool, emergency: bool) -> set[str]:
-    """**순위만** 바꾸는 태그들. 결과 집합은 안 건드린다.
-
-    특화(specialty)와 야간·응급이 한 자리에 있는 건 셋 다 같은 재료 — 간판 이름 —
-    이기 때문이다. 신뢰도가 같으니 권한도 같아야 한다.
-    """
-    prefer = set(specialty or [])
-    if night:
-        prefer |= {"night", "24h", "emergency"}
-    if emergency:
-        prefer |= {"emergency", "24h"}
-    return prefer
 
 
 def _point(lat: float, lng: float):
@@ -90,10 +77,14 @@ async def find_places(
             area_m2=float(place.area_m2) if place.area_m2 is not None else None,
             staff_count=place.staff_count,
             prefer_hit=sorted(set(tags) & prefer),
+            boost=prefer_boost(sorted(set(tags) & prefer)),
         ))
+    # 선호 부스트는 거리 밴드(500m) 안에서만 순서를 바꾼다 — 결정 #20, geo/ranking.py.
+    # 이전에는 prefer_hit 을 계산해 놓고 정렬에 쓰지 않아 `night=true` 가 순서를 안 바꿨다 (#24).
+    out = band_boost_sorted(out, distance_of=lambda p: p.distance_m, boost_of=lambda p: p.boost)
     if must.open_now:
-        # 확정 영업중을 앞으로, 미상은 뒤로 - 빼지는 않는다. 거리순은 각 묶음 안에서 유지.
-        out.sort(key=lambda p: (p.open_now is not True, p.distance_m))
+        # 확정 영업중을 앞으로, 미상은 뒤로 - 빼지는 않는다. 위 밴드 순서는 각 묶음 안에서 유지.
+        out.sort(key=lambda p: (p.open_now is not True,))
     out = out[:must.limit]
     # 표시 보강만 - 존재·정렬·open_now 판정엔 관여하지 않는다 (facility_hours.py).
     await attach_facility_hours(db, out)
@@ -107,7 +98,7 @@ async def search_places(db: AsyncSession, p: SearchParams) -> SearchOut:
             judge_at=p.at or SystemClock().now(), kind=p.kind,
             open_now=p.open_now, limit=p.limit,
         ),
-        prefer=SearchPrefer(tags=tuple(sorted(_prefer_tags(None, night=p.night, emergency=False)))),
+        prefer=SearchPrefer(tags=preference_tags(night=p.night, emergency=p.emergency)),
     )
     results = await find_places(db, plan)
     return SearchOut(params=p, results=results, map=build_map(p.lat, p.lng, p.radius_m, p.kind,

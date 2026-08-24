@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+from app.geo.ranking import preference_tags
 from app.journey.models import Companion
 from app.planning.facts import RuntimeFacts
 from app.planning.plans import (
@@ -87,11 +88,14 @@ def resolve_request(
         else:
             trace.note("context", "도착 기한은 후보별 경로 계산 후 판정", because="time_intent.arrive_by")
 
-    prefer = set(state.target.specialty)
-    if state.target.night_service:
-        prefer.update(("night", "24h", "emergency"))
-    if state.target.emergency_service or plan_urgency == "urgent":
-        prefer.update(("emergency", "24h"))
+    # 의미 규칙은 공용(geo/ranking.preference_tags) — 두 진입 경로가 같은 해석을 쓴다 (#24).
+    # 상황 정책(긴급도가 응급 선호를 켠다)은 여기 남는다: 무엇을 선호로 볼지와
+    # 언제 그것을 켤지는 다른 결정이다.
+    prefer = set(preference_tags(
+        state.target.specialty,
+        night=state.target.night_service,
+        emergency=state.target.emergency_service or plan_urgency == "urgent",
+    ))
 
     open_now = state.target.open_now or plan_urgency == "urgent"
     search = SearchPlan(
