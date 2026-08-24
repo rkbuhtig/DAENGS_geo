@@ -52,11 +52,16 @@ parked된 LLM 경계는 `utterance`가 있을 때만 “말 → 툴 호출” �
 ```bash
 cp .env.example .env
 docker compose up -d            # PostGIS 16-3.4, migrations/ 자동 적용
+docker compose ps               # db/api 모두 healthy인지 확인
 docker compose exec -T db psql -U daengs -d daengs < migrations/dev_seed.sql   # 개발용 시드
 uv sync
 uv run uvicorn app.main:app --reload
 uv run pytest
 ```
+
+`GET /health`는 프로세스 liveness라 DB를 조회하지 않는다. `GET /health/ready`는 DB에
+`SELECT 1`을 실행하며 연결할 수 없으면 503을 반환한다. 외부 지도·경로 provider 장애는 컨테이너
+재시작 사유가 아니므로 readiness에서 제외한다.
 
 Android 앱은 [`android/README.md`](android/README.md)를 따른다. 백엔드와 같은 레포에 있지만
 Gradle 프로젝트는 `android/` 아래에 독립되어 있어 Python 실행·테스트와 섞이지 않는다.
