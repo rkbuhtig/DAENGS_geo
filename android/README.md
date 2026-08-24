@@ -113,4 +113,4 @@ debug 화면의 `CTA 확인용 · 반경 100m`는 결과 0곳 상태를 만들�
 - 산책 Room/SQLite 영속 저장, 서버 업로드 주기, process-death 복구
 - territory 영속 저장·공개 소유권·사진, 로그인, 오프라인 큐, push
 - `/journey` 실측 상세와 지도앱 handoff
-- release 배포 설정과 CI
+- release 배포 설정 (CI 의 unit test + assembleDebug 는 `.github/workflows/ci.yml`)

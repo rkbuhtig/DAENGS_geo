@@ -1,0 +1,112 @@
+# 두 스택이 한 레포에 있으므로 잡도 둘이다. 서로 막지 않게 병렬로 돈다.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# 같은 브랜치에 새 푸시가 오면 진행 중인 실행을 버린다. main 은 끝까지 돌린다.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: 백엔드 (ruff + pytest, PostGIS 포함)
+    runs-on: ubuntu-latest
+
+    # 실제 PostGIS 를 띄운다. tags && / @> 같은 연산자 불일치는 순수 파이썬 테스트로
+    # 절대 안 잡힌다 — 실제로 단위 테스트 68개가 통과하는 동안 필터가 죽어 있었다
+    # (tests/test_search_db.py 주석). DB 없이 도는 CI 는 그 구멍을 그대로 둔다.
+    services:
+      db:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: daengs
+          POSTGRES_PASSWORD: daengs
+          POSTGRES_DB: daengs
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U daengs -d daengs"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+
+    env:
+      DAENGS_DATABASE_URL: postgresql+asyncpg://daengs:daengs@localhost:5432/daengs
+      PGPASSWORD: daengs
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: astral-sh/setup-uv@v10
+        with:
+          enable-cache: true
+
+      - name: 의존성 설치
+        run: uv sync --frozen
+
+      - name: psql 준비
+        run: |
+          if ! command -v psql > /dev/null; then
+            sudo apt-get update && sudo apt-get install -y postgresql-client
+          fi
+
+      # docker-compose 는 migrations/ 를 initdb 에 마운트하지만 서비스 컨테이너는 그럴 수
+      # 없다. 순서대로 직접 적용한다. dev_seed.sql 은 넣지 않는다 — 테스트는 좌표로 격리한다.
+      - name: 마이그레이션 적용
+        run: |
+          for file in migrations/0*.sql; do
+            echo "-- $file"
+            psql -h localhost -U daengs -d daengs -v ON_ERROR_STOP=1 -q -f "$file"
+          done
+
+      - name: ruff
+        run: uv run ruff check .
+
+      # 위 마이그레이션이 성공했다는 것이 DB 가 살아 있다는 증거다. conftest 는 DB 에 못 붙으면
+      # skip 하므로, 이 단계 없이 pytest 만 돌리면 DB 테스트가 조용히 빠진 채 초록이 뜬다.
+      - name: pytest
+        run: uv run pytest -q -rs
+
+  android:
+    name: 안드로이드 (unit test + assembleDebug)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: android
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+          cache-dependency-path: |
+            android/*.gradle.kts
+            android/app/*.gradle.kts
+            android/gradle/wrapper/gradle-wrapper.properties
+
+      # compileSdk 는 러너에 미리 깔린 것보다 앞설 수 있다. 라이선스를 받아두면 AGP 가
+      # 부족한 플랫폼을 직접 내려받는다.
+      - uses: android-actions/setup-android@v4
+
+      # local.properties 와 ../.env 는 커밋되지 않는다. build.gradle.kts 가 둘 다 없을 때의
+      # 기본값으로 떨어지므로 CI 에서 키 없이 빌드된다 — 그 경로를 여기서 같이 검증한다.
+      - name: 단위 테스트와 debug 빌드
+        run: ./gradlew --no-daemon :app:testDebugUnitTest :app:assembleDebug
+
+      - name: 실패한 테스트 리포트 업로드
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-test-report
+          path: android/app/build/reports/tests/
+          retention-days: 7

@@ -19,7 +19,7 @@
 - [ ] 병원 **영업시간 데이터 출처** — 공공데이터에 없음. 수기·제휴 또는 parked `homepage-enrich.md`
 - [ ] 검색 후처리로 후보가 빠질 때 반경 안의 다음 후보를 refill하는 방식
 - [ ] Android 실기기 위치·지도·백그라운드 smoke test와 release 서버 설정
-- [ ] PostGIS 통합 테스트를 포함한 CI
+- [x] PostGIS 통합 테스트를 포함한 CI (`.github/workflows/ci.yml`)
 - [ ] 딥링크 스킴 이름 (`daengs://` 가안)
 
 ## 현재 코어에 필요한 키·환경
