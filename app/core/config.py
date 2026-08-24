@@ -49,6 +49,10 @@ class Settings(BaseSettings):
     mois_page_size: int = Field(100, ge=1, le=100)
     mois_sync_overlap_days: int = Field(3, ge=0, le=30)
 
+    # 한국관광공사 반려동물 동반여행 (KorPetTourService2) — 기반층 두 번째 원천
+    kto_service_key: str = ""              # 일반(Decoding) 인증키
+    kto_page_size: int = Field(100, ge=1, le=1000)
+
     # 검색 기본값
     default_radius_m: int = Field(2000, ge=100, le=20000)
     max_radius_m: int = 10000

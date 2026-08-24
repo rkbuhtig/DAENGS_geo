@@ -10,5 +10,15 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./migrations:/docker-entrypoint-initdb.d:ro
+  api:
+    build: .
+    env_file: .env
+    environment:
+      # .env 의 localhost 를 컨테이너 네트워크용으로 덮는다 (environment > env_file)
+      DAENGS_DATABASE_URL: postgresql+asyncpg://daengs:daengs@db:5432/daengs
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
 volumes:
   pgdata:

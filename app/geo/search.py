@@ -7,6 +7,7 @@ from sqlalchemy import cast, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.geo.facility_hours import attach_facility_hours
 from app.geo.hours import is_open_at, today_ranges
 from app.geo.models import Place
 from app.geo.schemas import MapOut, PlaceOut, SearchOut, SearchParams
@@ -93,7 +94,10 @@ async def find_places(
     if must.open_now:
         # 확정 영업중을 앞으로, 미상은 뒤로 - 빼지는 않는다. 거리순은 각 묶음 안에서 유지.
         out.sort(key=lambda p: (p.open_now is not True, p.distance_m))
-    return out[:must.limit]
+    out = out[:must.limit]
+    # 표시 보강만 - 존재·정렬·open_now 판정엔 관여하지 않는다 (facility_hours.py).
+    await attach_facility_hours(db, out)
+    return out
 
 
 async def search_places(db: AsyncSession, p: SearchParams) -> SearchOut:
