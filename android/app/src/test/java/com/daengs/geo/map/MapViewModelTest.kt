@@ -92,6 +92,20 @@ class MapViewModelTest {
     }
 
     @Test
+    fun `a duplicate foreground event does not restart the current subscription`() = runTest {
+        val source = FakeLocationSource(fix = fix(37.5665, 126.9780))
+        val viewModel = viewModel(source)
+        viewModel.onAppForeground()
+        viewModel.useDeviceLocation()
+        advanceUntilIdle()
+
+        viewModel.onAppForeground()
+        advanceUntilIdle()
+
+        assertEquals(1, source.subscriptions)
+    }
+
+    @Test
     fun `a failing screen feed surfaces an error instead of taking down the scope`() = runTest {
         val source = FakeLocationSource(
             fix = fix(37.5665, 126.9780),
@@ -143,6 +157,56 @@ class MapViewModelTest {
         assertEquals(TrackingState.RECORDING, viewModel.uiState.value.trail.state)
         assertEquals(LocationFeed.DEVICE, viewModel.uiState.value.locationFeed)
         assertEquals("동선 기록 중에는 가상 이동을 시작할 수 없어요.", viewModel.uiState.value.statusMessage)
+    }
+
+    @Test
+    fun `pausing a visible walk returns the device feed to the screen`() = runTest {
+        val source = FakeLocationSource(fix = fix(37.5665, 126.9780))
+        val walk = FakeWalkTrackingController()
+        val viewModel = viewModel(source, walk)
+        viewModel.onAppForeground()
+        viewModel.useDeviceLocation()
+        advanceUntilIdle()
+
+        viewModel.startTracking()
+        viewModel.pauseTracking()
+        advanceUntilIdle()
+
+        assertEquals(2, source.subscriptions)
+        assertEquals(TrackingState.PAUSED, viewModel.uiState.value.trail.state)
+    }
+
+    @Test
+    fun `pausing a background walk does not start a screen feed`() = runTest {
+        val source = FakeLocationSource(fix = fix(37.5665, 126.9780))
+        val walk = FakeWalkTrackingController()
+        val viewModel = viewModel(source, walk)
+        viewModel.onAppForeground()
+        viewModel.useDeviceLocation()
+        advanceUntilIdle()
+
+        viewModel.startTracking()
+        viewModel.onAppBackground()
+        viewModel.pauseTracking()
+        advanceUntilIdle()
+
+        assertEquals(1, source.subscriptions)
+        assertEquals(TrackingState.PAUSED, viewModel.uiState.value.trail.state)
+    }
+
+    @Test
+    fun `a production walk cannot start while replay owns the screen feed`() = runTest {
+        val source = FakeLocationSource(fix = fix(37.5665, 126.9780))
+        val walk = FakeWalkTrackingController()
+        val viewModel = viewModel(source, walk)
+        viewModel.onAppForeground()
+
+        viewModel.startReplay(10.0)
+        viewModel.startTracking()
+
+        assertEquals(0, walk.startCalls)
+        assertEquals(LocationFeed.REPLAY, viewModel.uiState.value.locationFeed)
+        assertEquals("실제 위치로 돌아온 뒤 동선 기록을 시작해주세요.", viewModel.uiState.value.statusMessage)
     }
 
     @Test
