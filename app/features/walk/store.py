@@ -12,8 +12,15 @@ from dataclasses import dataclass
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.features.walk.encounter import FacilityCandidate
 from app.features.walk.facts import FixQuality
-from app.features.walk.models import MotionEventOccurrence, WalkFacts, WalkFix, WalkSession
+from app.features.walk.models import (
+    FacilityEncounter,
+    MotionEventOccurrence,
+    WalkFacts,
+    WalkFix,
+    WalkSession,
+)
 
 
 class WalkSessionNotFoundError(Exception):
@@ -156,11 +163,48 @@ async def load_fixes_ordered(db: AsyncSession, session_id: str) -> list[WalkFix]
                     accuracy_m=r.accuracy_m, is_mock=r.is_mock) for r in rows]
 
 
+async def facility_candidates(db: AsyncSession, session_id: str) -> list[FacilityCandidate]:
+    """궤적 50m 버퍼 안의 시설 전부. 존재 필터 없음 — 폐업도 관측 대상이다.
+
+    fix 가 살아 있는 DERIVED 이전에만 부를 수 있다. 교차 원천 중복(같은 가게가
+    kcisa·kto 양쪽)만 링크로 접는다 — 그건 판정이 아니라 동일성이다. 후보는 넉넉히
+    뽑고 정밀 기하(체류·횡거리)는 encounter 계산이 수용 세그먼트로 다시 잰다.
+    """
+    rows = await db.execute(text("""
+        WITH trail AS (
+            SELECT ST_MakeLine(ST_SetSRID(ST_MakePoint(lng, lat), 4326) ORDER BY at, seq)
+                       AS line,
+                   count(*) AS n
+            FROM walk_fix WHERE session_id = :id
+        )
+        SELECT f.source, f.source_ref, f.kind,
+               ST_Y(f.location::geometry) AS lat, ST_X(f.location::geometry) AS lng,
+               f.last_written AS as_of, p.active AS place_active
+        FROM facility f, trail
+        LEFT JOIN LATERAL (
+            SELECT pl.active
+            FROM facility_link l JOIN place pl ON pl.id = l.source_ref::bigint
+            WHERE l.source = 'mois:place' AND l.facility_id = f.id
+            LIMIT 1
+        ) p ON true
+        WHERE trail.n >= 2
+          AND f.source_ref IS NOT NULL
+          AND ST_DWithin(f.location, trail.line::geography, 50)
+          AND NOT EXISTS (SELECT 1 FROM facility_link l
+                          WHERE l.source = 'facility' AND l.source_ref = f.id::text)
+    """), {"id": session_id})
+    return [FacilityCandidate(facility_source=r.source, facility_ref=r.source_ref,
+                              kind=r.kind, lat=r.lat, lng=r.lng,
+                              place_active=r.place_active, as_of=r.as_of)
+            for r in rows]
+
+
 async def finalize(
     db: AsyncSession,
     facts: WalkFacts,
     quality: FixQuality,
     events: list[MotionEventOccurrence],
+    encounters: list[FacilityEncounter] = (),
 ) -> None:
     """SEALED → DERIVED → PURGED. 파생 사실을 쓴 뒤에만 원좌표를 지운다."""
     await db.execute(text("""
@@ -186,6 +230,20 @@ async def finalize(
                     ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography,
                     :route_offset_m, :accuracy_p50_m, :fix_count)
         """), [e.model_dump() for e in events])
+    if encounters:
+        await db.execute(text("""
+            INSERT INTO walk_encounter
+                (session_id, event_index, facility_source, facility_ref, kind, lat, lng,
+                 place_active, as_of, min_lateral_m, offset_m,
+                 dwell_s_10m, dwell_s_30m, dwell_s_50m, pass_count,
+                 stop_overlap_10m, stop_overlap_30m, stop_overlap_50m, stop_s_10m,
+                 accuracy_p50_m)
+            VALUES (:session_id, :event_index, :facility_source, :facility_ref, :kind,
+                    :lat, :lng, :place_active, :as_of, :min_lateral_m, :offset_m,
+                    :dwell_s_10m, :dwell_s_30m, :dwell_s_50m, :pass_count,
+                    :stop_overlap_10m, :stop_overlap_30m, :stop_overlap_50m, :stop_s_10m,
+                    :accuracy_p50_m)
+        """), [e.model_dump() for e in encounters])
     await db.execute(text("""
         UPDATE walk_session SET state = 'derived', updated_at = now() WHERE id = :id
     """), {"id": facts.session_id})
@@ -219,3 +277,15 @@ async def get_events(db: AsyncSession, session_id: str) -> list[MotionEventOccur
         FROM walk_motion_event WHERE session_id = :id ORDER BY event_index
     """), {"id": session_id})
     return [MotionEventOccurrence(**dict(r._mapping)) for r in rows]
+
+
+async def get_encounters(db: AsyncSession, session_id: str) -> list[FacilityEncounter]:
+    rows = await db.execute(text("""
+        SELECT session_id, event_index, facility_source, facility_ref, kind, lat, lng,
+               place_active, as_of, min_lateral_m, offset_m,
+               dwell_s_10m, dwell_s_30m, dwell_s_50m, pass_count,
+               stop_overlap_10m, stop_overlap_30m, stop_overlap_50m, stop_s_10m,
+               accuracy_p50_m
+        FROM walk_encounter WHERE session_id = :id ORDER BY event_index
+    """), {"id": session_id})
+    return [FacilityEncounter(**dict(r._mapping)) for r in rows]
