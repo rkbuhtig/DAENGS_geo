@@ -76,7 +76,7 @@ class MapViewModel(
     /** Screen-only live feed. Walk recording itself is owned by WalkTrackingService. */
     private val locationTracker = LocationTracker(viewModelScope)
 
-    private var isForeground = false
+    private var appVisibility = AppVisibility.BACKGROUND
     private var activeSource: LocationSource? = null
     private var observedWalkState = TrackingState.OFF
     private var lastWalkError: String? = null
@@ -123,7 +123,7 @@ class MapViewModel(
     }
 
     fun startReplay(speedMultiplier: Double) {
-        if (_uiState.value.trail.state != TrackingState.OFF) {
+        if (!LocationOwnershipPolicy.canStartReplay(currentWalkState())) {
             _uiState.update { it.copy(statusMessage = "동선 기록 중에는 가상 이동을 시작할 수 없어요.") }
             return
         }
@@ -150,14 +150,14 @@ class MapViewModel(
     }
 
     fun onAppForeground() {
-        isForeground = true
-        if (walkTrackingController.state.value.trail.state == TrackingState.RECORDING) return
+        if (appVisibility == AppVisibility.FOREGROUND) return
+        appVisibility = AppVisibility.FOREGROUND
         val source = activeSource ?: return
-        if (_uiState.value.locationFeed == LocationFeed.DEVICE) locationTracker.start(source)
+        if (currentLocationOwner().isScreenOwner) locationTracker.start(source)
     }
 
     fun onAppBackground() {
-        isForeground = false
+        appVisibility = AppVisibility.BACKGROUND
         // This stops only the screen-owned feed. A running WalkTrackingService keeps its own
         // location subscription and recording state alive after the Activity leaves the screen.
         locationTracker.stop()
@@ -187,7 +187,7 @@ class MapViewModel(
     }
 
     fun startTracking() {
-        if (_uiState.value.locationFeed != LocationFeed.DEVICE) {
+        if (!LocationOwnershipPolicy.canStartWalk(_uiState.value.locationFeed)) {
             _uiState.update { it.copy(statusMessage = "실제 위치로 돌아온 뒤 동선 기록을 시작해주세요.") }
             return
         }
@@ -275,10 +275,7 @@ class MapViewModel(
                 statusMessage = statusMessage,
             )
         }
-        if (
-            isForeground &&
-            walkTrackingController.state.value.trail.state != TrackingState.RECORDING
-        ) {
+        if (currentLocationOwner().isScreenOwner) {
             locationTracker.start(source)
         }
     }
@@ -356,16 +353,34 @@ class MapViewModel(
         }
 
         if (previousWalkState == walk.trail.state) return
-        when (walk.trail.state) {
-            TrackingState.RECORDING -> locationTracker.stop()
-            TrackingState.PAUSED, TrackingState.OFF -> {
-                if (isForeground && _uiState.value.locationFeed == LocationFeed.DEVICE) {
-                    val source = activeSource ?: deviceLocationSource.also { activeSource = it }
-                    locationTracker.start(source)
-                }
+        when (currentLocationOwner(walk.trail.state)) {
+            LocationOwner.WALK_SERVICE, LocationOwner.NONE -> locationTracker.stop()
+            LocationOwner.SCREEN_DEVICE -> {
+                val source = activeSource ?: deviceLocationSource.also { activeSource = it }
+                locationTracker.start(source)
             }
+            // REPLAY 소유자에게 device source 를 쥐어주지 않는다. feed 가 REPLAY 라는 것은
+            // switchFeed 가 replay source 를 넣었다는 뜻이라 activeSource 는 이미 그것이다.
+            LocationOwner.SCREEN_REPLAY -> activeSource?.let(locationTracker::start)
         }
     }
+
+    /**
+     * The controller, never `uiState.trail`. The screen state is a mirror filled by the collector,
+     * so between `walkTrackingController.start()` and the next emission it still reads OFF — and an
+     * ownership decision taken in that window starts a second subscription.
+     */
+    private fun currentWalkState(): TrackingState = walkTrackingController.state.value.trail.state
+
+    private fun currentLocationOwner(
+        walk: TrackingState = currentWalkState(),
+    ): LocationOwner = LocationOwnershipPolicy.owner(
+        LocationOwnershipState(
+            visibility = appVisibility,
+            feed = _uiState.value.locationFeed,
+            walk = walk,
+        ),
+    )
 
     private fun search(edits: JsonArray = JsonArray(emptyList())) {
         val before = _uiState.value
