@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -192,6 +193,27 @@ class MapViewModelTest {
 
         assertEquals(1, source.subscriptions)
         assertEquals(TrackingState.PAUSED, viewModel.uiState.value.trail.state)
+    }
+
+    @Test
+    fun `replay stays blocked when the screen mirror of the walk state lags`() = runTest {
+        // 기본 @Before 는 Unconfined 라 컨트롤러 emit 이 곧바로 uiState 에 반영된다. 여기서만
+        // 지연 디스패처를 써서, 화면 미러가 아직 OFF 인 창을 만든다. 소유권 판정이 uiState 를
+        // 읽으면 그 창에서 산책 중에 replay 가 켜진다.
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        val source = FakeLocationSource(fix = fix(37.5665, 126.9780))
+        val walk = FakeWalkTrackingController()
+        val viewModel = viewModel(source, walk)
+        viewModel.onAppForeground()
+        viewModel.useDeviceLocation()
+        advanceUntilIdle()
+
+        viewModel.startTracking()
+        assertEquals(TrackingState.OFF, viewModel.uiState.value.trail.state)   // 미러는 아직 뒤처짐
+        viewModel.startReplay(10.0)
+
+        assertEquals(LocationFeed.DEVICE, viewModel.uiState.value.locationFeed)
+        assertEquals("동선 기록 중에는 가상 이동을 시작할 수 없어요.", viewModel.uiState.value.statusMessage)
     }
 
     @Test

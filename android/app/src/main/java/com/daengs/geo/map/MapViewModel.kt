@@ -123,7 +123,7 @@ class MapViewModel(
     }
 
     fun startReplay(speedMultiplier: Double) {
-        if (!LocationOwnershipPolicy.canStartReplay(_uiState.value.trail.state)) {
+        if (!LocationOwnershipPolicy.canStartReplay(currentWalkState())) {
             _uiState.update { it.copy(statusMessage = "동선 기록 중에는 가상 이동을 시작할 수 없어요.") }
             return
         }
@@ -355,15 +355,25 @@ class MapViewModel(
         if (previousWalkState == walk.trail.state) return
         when (currentLocationOwner(walk.trail.state)) {
             LocationOwner.WALK_SERVICE, LocationOwner.NONE -> locationTracker.stop()
-            LocationOwner.SCREEN_DEVICE, LocationOwner.SCREEN_REPLAY -> {
+            LocationOwner.SCREEN_DEVICE -> {
                 val source = activeSource ?: deviceLocationSource.also { activeSource = it }
                 locationTracker.start(source)
             }
+            // REPLAY 소유자에게 device source 를 쥐어주지 않는다. feed 가 REPLAY 라는 것은
+            // switchFeed 가 replay source 를 넣었다는 뜻이라 activeSource 는 이미 그것이다.
+            LocationOwner.SCREEN_REPLAY -> activeSource?.let(locationTracker::start)
         }
     }
 
+    /**
+     * The controller, never `uiState.trail`. The screen state is a mirror filled by the collector,
+     * so between `walkTrackingController.start()` and the next emission it still reads OFF — and an
+     * ownership decision taken in that window starts a second subscription.
+     */
+    private fun currentWalkState(): TrackingState = walkTrackingController.state.value.trail.state
+
     private fun currentLocationOwner(
-        walk: TrackingState = walkTrackingController.state.value.trail.state,
+        walk: TrackingState = currentWalkState(),
     ): LocationOwner = LocationOwnershipPolicy.owner(
         LocationOwnershipState(
             visibility = appVisibility,
