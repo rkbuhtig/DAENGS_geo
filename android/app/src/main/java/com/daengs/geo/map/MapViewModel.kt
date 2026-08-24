@@ -15,12 +15,12 @@ import com.daengs.geo.location.LocationSample
 import com.daengs.geo.location.LocationSource
 import com.daengs.geo.location.LocationTracker
 import com.daengs.geo.location.ReplayLocationSource
-import com.daengs.geo.map.layers.trail.TrackingState
-import com.daengs.geo.map.layers.trail.TrailSnapshot
 import com.daengs.geo.territory.ClaimRejectReason
 import com.daengs.geo.territory.ClaimResult
 import com.daengs.geo.territory.TerritoryCell
 import com.daengs.geo.territory.TerritoryRepository
+import com.daengs.geo.walk.TrackingState
+import com.daengs.geo.walk.TrailSnapshot
 import com.daengs.geo.walk.WalkTrackingController
 import com.daengs.geo.walk.WalkTrackingState
 import kotlinx.coroutines.flow.MutableStateFlow
