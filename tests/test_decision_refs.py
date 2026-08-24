@@ -26,8 +26,16 @@ def known_decisions() -> set[int]:
 
 
 def citations() -> list[tuple[Path, int]]:
+    """이 파일 자신은 제외한다.
+
+    형식을 설명하려면 여기에 예시(`Decision: #35`)를 적어야 하는데, 그걸 세면 **다른
+    테스트의 인용이 전부 사라져도 가드가 통과한다.** 자기 자신으로 만족하는 검사는
+    검사가 아니다.
+    """
     found: list[tuple[Path, int]] = []
     for path in sorted(TESTS_DIR.rglob("test_*.py")):
+        if path.resolve() == Path(__file__).resolve():
+            continue
         text = path.read_text(encoding="utf-8")
         for block in _CITATION.findall(text):
             found += [(path, int(n)) for n in _NUMBER.findall(block)]

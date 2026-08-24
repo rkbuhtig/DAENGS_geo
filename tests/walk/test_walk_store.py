@@ -4,7 +4,7 @@
 """
 
 import asyncio
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 
 import pytest
 from sqlalchemy import text
@@ -13,9 +13,8 @@ from app.features.walk import store
 from app.features.walk.encounter import FacilityCandidate, compute_encounters
 from app.features.walk.facts import compute_facts
 from app.features.walk.models import WalkSession
-from tests.conftest import db_session, walk_fix
+from tests.conftest import WALK_T0, db_session, walk_fix
 
-WALK_T0 = datetime(2026, 8, 24, 7, 0, tzinfo=UTC)
 SID = "test:walk:store"
 
 
