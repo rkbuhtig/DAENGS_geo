@@ -1,6 +1,7 @@
 """산책 — **수집한다.** 판정 · 보상 · 서술 · 알림은 하지 않는다.
 
-이 패키지가 만드는 건 `WalkFacts` 하나다 (models.py, docs/contracts/walk-record.md). 그 위에 무엇을
+이 패키지가 만드는 건 `WalkFacts`와 좌표가 붙은 `MotionEventOccurrence`까지다
+(models.py, docs/contracts/walk-record.md). 그 위에 무엇을
 얹을지 — 케어 밸런스, 개의 목소리, 출발 전 목표, 응급 모드 — 는 전부 이 사실을 **소비하는** 별도 결정이고
 전부 옵션이다. 이 레포 안에 생길 수도, 바깥 팀원이 만들 수도 있다.
 

@@ -7,6 +7,7 @@ from app.api import facility, places, static_map
 from app.core.config import settings
 from app.features.hospital import api as hospital
 from app.features.pharmacy import api as pharmacy
+from app.features.walk import api as walk
 from app.journey import api as journey
 from app.providers.registry import route_capability_problems
 from app.usage.gate import usage_request_scope
@@ -21,6 +22,7 @@ app.include_router(places.router)
 app.include_router(facility.router)
 app.include_router(hospital.router)
 app.include_router(pharmacy.router)
+app.include_router(walk.router)
 app.include_router(journey.router)
 app.include_router(static_map.router)
 

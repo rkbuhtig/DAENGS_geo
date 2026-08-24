@@ -13,7 +13,7 @@ from pydantic import BaseModel, ValidationError
 
 from app.features import walk
 from app.features.walk import models
-from app.features.walk.models import WalkFacts, WalkFix, WalkSession
+from app.features.walk.models import MotionEventOccurrence, WalkFacts, WalkFix, WalkSession
 
 T0 = datetime(2026, 8, 22, 7, 0, tzinfo=UTC)
 
@@ -27,14 +27,26 @@ def _models() -> list[type[BaseModel]]:
 # ------------------------------------------------------------------ 집합 고정
 def test_field_sets_are_pinned():
     """계약의 필드 집합 그대로. 늘리려면 walk-record.md 와 record_version 을 같이 올려라."""
-    assert set(WalkFix.model_fields) == {"at", "lat", "lng", "accuracy_m"}
-    assert set(WalkSession.model_fields) == {"id", "dog_id", "started_at", "ended_at", "fix_count"}
+    assert set(WalkFix.model_fields) == {
+        "client_seq", "at", "lat", "lng", "accuracy_m", "is_mock",
+    }
+    assert set(WalkSession.model_fields) == {
+        "id", "dog_id", "started_at", "ended_at", "fix_count", "state",
+        "evidence_origin",
+    }
     assert set(WalkFacts.model_fields) == {
-        "record_version", "session_id", "dog_id", "started_at", "ended_at",
+        "record_version", "calculation_version", "session_id", "dog_id",
+        "evidence_origin", "started_at", "ended_at",
         "duration_s", "distance_m", "moving_distance_m", "moving_s",
         "stop_count", "stop_s", "avg_speed_mps", "fix_count",
     }
-    assert {m.__name__ for m in _models()} == {"WalkFix", "WalkSession", "WalkFacts"}
+    assert set(MotionEventOccurrence.model_fields) == {
+        "session_id", "event_index", "type", "started_at", "ended_at", "duration_s",
+        "lat", "lng", "route_offset_m", "accuracy_p50_m", "fix_count",
+    }
+    assert {m.__name__ for m in _models()} == {
+        "WalkFix", "WalkSession", "WalkFacts", "MotionEventOccurrence",
+    }
 
 
 # ------------------------------------------------------------------ 의미 없음
@@ -62,14 +74,14 @@ def test_walk_package_has_no_judgment_modules():
     bad = [n for n in names if any(t in n for t in walk.OUT_OF_SCOPE_TOKENS)]
     assert not bad, f"수집 패키지에 판정 모듈: {bad}"
     # 엔드포인트·사실 계산이 생기면 여기 허용 목록에 이름을 **명시적으로** 더한다
-    assert names <= {"api", "facts"}, f"예상 밖 모듈: {names}"
+    assert names <= {"api", "facts", "store"}, f"예상 밖 모듈: {names}"
 
 
 # ------------------------------------------------------------------ 계약 검증
 def test_timestamps_require_timezone():
     naive = datetime(2026, 8, 22, 7, 0)  # noqa: DTZ001 — 일부러 naive. 거부돼야 한다
     with pytest.raises(ValidationError, match="timezone"):
-        WalkFix(at=naive, lat=37.5, lng=127.0)
+        WalkFix(client_seq=0, at=naive, lat=37.5, lng=127.0)
     with pytest.raises(ValidationError, match="timezone"):
         WalkSession(id="s1", dog_id="halmae", started_at=naive)
 
@@ -80,7 +92,8 @@ def test_session_cannot_end_before_it_starts():
 
 
 def test_facts_are_internally_consistent():
-    ok = {"session_id": "s1", "dog_id": "halmae", "started_at": T0, "ended_at": T0 + timedelta(minutes=20),
+    ok = {"session_id": "s1", "dog_id": "halmae", "evidence_origin": "device",
+          "started_at": T0, "ended_at": T0 + timedelta(minutes=20),
           "duration_s": 1200, "distance_m": 1500, "moving_distance_m": 1380, "moving_s": 1000,
           "stop_count": 3, "stop_s": 200, "avg_speed_mps": 1.38, "fix_count": 240}
     f = WalkFacts(**ok)
@@ -95,4 +108,4 @@ def test_facts_are_internally_consistent():
 def test_unknown_fields_are_rejected_not_dropped():
     """소비자가 `goal_min` 을 실어 보내도 조용히 버리지 않는다 — 계약 위반은 보여야 한다."""
     with pytest.raises(ValidationError, match="extra"):
-        WalkFix(at=T0, lat=37.5, lng=127.0, goal_min=30)
+        WalkFix(client_seq=0, at=T0, lat=37.5, lng=127.0, goal_min=30)
