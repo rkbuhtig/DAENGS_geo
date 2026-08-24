@@ -20,6 +20,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_session
+from app.geo.icons import IconGroup, icon_group
 
 router = APIRouter(prefix="/facility", tags=["facility"])
 
@@ -44,6 +45,7 @@ class FacilityOut(BaseModel):
     source_ref: str | None
     name: str
     kind: str
+    icon_group: IconGroup      # 지도 마커 그룹. kind 가 늘어도 앱은 이 값만 본다
     category3: str
     lat: float
     lng: float
@@ -127,7 +129,8 @@ async def facility_search(
         values, borrowed = _merge(r)
         results.append(FacilityOut(
             id=r.id, source_ref=r.source_ref, name=r.name, kind=r.kind,
-            category3=r.category3, lat=r.lat, lng=r.lng, distance_m=int(r.distance_m),
+            icon_group=icon_group(r.kind), category3=r.category3,
+            lat=r.lat, lng=r.lng, distance_m=int(r.distance_m),
             address=r.address, phone=r.phone,
             homepage=values["homepage"], hours_text=values["hours_text"],
             closed_days=values["closed_days"], parking=values["parking"],

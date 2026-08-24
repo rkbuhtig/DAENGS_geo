@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 시설 아이콘 그룹 색. drawable 의 fillColor 가 이 이름을 참조한다 —
+     색을 바꿀 때 벡터 8개가 아니라 여기 한 곳만 고친다. -->
+<resources>
+    <color name="facility_medical">#E5484D</color>
+    <color name="facility_supply">#F76B15</color>
+    <color name="facility_food">#7C5CFA</color>
+    <color name="facility_stay">#0A84D8</color>
+    <color name="facility_culture">#D6409F</color>
+    <color name="facility_outdoor">#12A150</color>
+    <color name="facility_care">#C2820A</color>
+    <color name="facility_etc">#6B7280</color>
+</resources>
