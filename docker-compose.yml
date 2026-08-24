@@ -14,8 +14,9 @@ services:
       retries: 10
       start_period: 5s
     volumes:
+      # migrations/ 를 initdb 에 마운트하지 않는다. 그건 볼륨 최초 생성 때만 돌아서
+      # 두 번째 변경부터 조용히 건너뛴다 — 스키마 적용은 alembic 한 경로로 모았다.
       - pgdata:/var/lib/postgresql/data
-      - ./migrations:/docker-entrypoint-initdb.d:ro
   api:
     build: .
     env_file: .env
