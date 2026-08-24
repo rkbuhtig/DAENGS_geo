@@ -46,6 +46,7 @@ class MainActivity : ComponentActivity() {
             graph.hospitalRepository,
             graph.locationSource,
             graph.territoryRepository,
+            graph.walkTrackingController,
         )
     }
 
