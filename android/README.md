@@ -47,9 +47,27 @@ foreground 상태를 내리고 화면용 구독이 다시 주인이 된다. UI�
 `ACCESS_BACKGROUND_LOCATION`을 요청하지 않는다. 지속 알림에는 일시정지/계속 기록/종료 액션이
 있다.
 
-현재 store는 **프로세스 메모리**다. `START_NOT_STICKY`라 프로세스가 죽은 뒤 근거 없이 산책을
-자동 복원하지 않는다. Room/SQLite 저장과 서버 세션 업로드가 붙기 전까지는 process-death 복구를
-보장하지 않는다는 뜻이다.
+### 산책 원본 fix의 로컬 저장
+
+UI 상태(`WalkTrackingStore`)는 여전히 프로세스 메모리지만, **기기가 보고한 원본 fix는 Room/SQLite에
+남는다** (`walk/store`, DB 파일 `daengs.db`). 서비스는 받은 점을 `TrailRecorder` 에 넣기 **전에**
+`WalkFixWriter` 로 넘긴다 — 기록기는 지터와 저정확도를 버려 선을 깨끗하게 그리지만 그 문턱값은
+실기기 측정 전의 잠정값이고, 버려진 점은 되살릴 수 없기 때문이다. 컬럼 이름은 서버 계약
+(`docs/contracts/walk-record.md`)을 그대로 따른다.
+
+쓰기는 `WalkFixWriter` 한 곳을 통과한다. 제출 순서대로 한 번에 하나씩 실행해 fix 가 자기 세션 행보다
+먼저 도착하지 않게 하고, 스코프는 서비스가 아니라 **애플리케이션**이다 — `stopRecording()` 이 마지막
+쓰기를 큐에 넣자마자 `stopSelf()` 를 부르기 때문에 서비스 스코프면 그 쓰기가 취소된다.
+
+`START_NOT_STICKY`는 그대로다. 프로세스가 죽어도 산책을 자동 복원하지 않는다. 대신 **닫히지 않은
+세션**(`endedAtMillis IS NULL`)이 그 산책의 증거로 남고, `unfinishedSessions()` 로 조회된다. 이 세션을
+사용자에게 어떻게 보여주고 이어붙일지(복구 UI)와 서버 업로드는 아직 없다.
+
+`dogId` 는 null 로 저장한다 — 반려견 프로필은 이 레포가 소유하지 않는다 (결정 #4). 가짜 id 를 넣어
+baseline 을 오염시키지 않는다.
+
+스키마 JSON 은 `app/schemas/` 에 export 되어 커밋된다. 테이블이 바뀌면 diff 로 보이고, 다음
+마이그레이션을 알려진 이전 버전에 대고 쓸 수 있다.
 
 트레일의 기록 상태(`OFF/RECORDING/PAUSED`)와 선 표시 설정은 별개라서 선을 숨겨도 서비스 기록은
 계속된다. territory도 기본 비표시이며 표시를 꺼도 로컬 claim은 지워지지 않는다.
@@ -110,7 +128,8 @@ debug 화면의 `CTA 확인용 · 반경 100m`는 결과 0곳 상태를 만들�
 ## 아직 하지 않은 것
 
 - 이 변경의 실기기 화면 OFF/다른 앱 전환 smoke
-- 산책 Room/SQLite 영속 저장, 서버 업로드 주기, process-death 복구
+- 닫히지 않은 세션의 복구 UI, 서버 업로드 주기 (원본 fix 저장 자체는 구현됨)
+- Room 마이그레이션 테스트 (`room-testing` + androidTest 소스셋). 지금은 v1 뿐이라 대상이 없다
 - territory 영속 저장·공개 소유권·사진, 로그인, 오프라인 큐, push
 - `/journey` 실측 상세와 지도앱 handoff
 - release 배포 설정과 CI

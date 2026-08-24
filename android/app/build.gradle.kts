@@ -3,6 +3,7 @@ import java.util.Properties
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.plugin.compose")
+    id("com.google.devtools.ksp")
 }
 
 val localProperties = Properties().apply {
@@ -48,6 +49,16 @@ android {
             "NAVER_MAP_NCP_KEY_ID",
             quoted(configured("DAENGS_NAVER_NCP_KEY_ID", "")),
         )
+    }
+
+    // Room writes the schema JSON here and it is committed. A table change then shows up as a
+    // diff in review, and a migration can be written against a known previous version.
+    ksp {
+        arg("room.schemaLocation", "$projectDir/schemas")
+    }
+
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
     }
 
     buildTypes {
@@ -102,8 +113,14 @@ dependencies {
     implementation("com.google.android.gms:play-services-location:21.4.0")
     implementation("com.naver.maps:map-sdk:3.23.3")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
+    implementation("androidx.room:room-runtime:2.8.4")
+    implementation("androidx.room:room-ktx:2.8.4")
+    ksp("androidx.room:room-compiler:2.8.4")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
+    // Runs the real SQLite/Room stack in JVM unit tests — no emulator, no androidTest source set.
+    testImplementation("org.robolectric:robolectric:4.16.1")
+    testImplementation("androidx.test:core:1.7.0")
 }
