@@ -13,10 +13,18 @@ T0 = datetime(2026, 8, 24, 7, 0, tzinfo=UTC)
 ORIGIN = (37.4979, 130.9000)
 
 
-def fix(t_s: float, east_m: float, *, accuracy: float | None = 10.0) -> WalkFix:
+def fix(
+    t_s: float,
+    east_m: float,
+    *,
+    accuracy: float | None = 10.0,
+    client_seq: int | None = None,
+    is_mock: bool = False,
+) -> WalkFix:
     lng = ORIGIN[1] + east_m / (111_320 * math.cos(math.radians(ORIGIN[0])))
-    return WalkFix(at=T0 + timedelta(seconds=t_s), lat=ORIGIN[0], lng=lng,
-                   accuracy_m=accuracy)
+    return WalkFix(client_seq=round((t_s + 86_400) * 1000) if client_seq is None else client_seq,
+                   at=T0 + timedelta(seconds=t_s), lat=ORIGIN[0], lng=lng,
+                   accuracy_m=accuracy, is_mock=is_mock)
 
 
 def walk_then_stop_then_walk() -> list[WalkFix]:
@@ -65,8 +73,8 @@ def test_jump_breaks_do_not_accumulate():
 
 def test_time_going_backwards_is_rejected():
     fixes = [fix(0, 0), fix(5, 7)]
-    fixes.append(WalkFix(at=fixes[1].at, lat=fixes[1].lat, lng=fixes[1].lng,
-                         accuracy_m=10.0))      # 같은 시각 재전송
+    fixes.append(WalkFix(client_seq=6000, at=fixes[1].at, lat=fixes[1].lat,
+                         lng=fixes[1].lng, accuracy_m=10.0))  # 같은 시각의 별도 관측
     r = compute(fixes, 10)
     assert r.quality.rejected_out_of_order == 1
     assert r.facts.distance_m == 7
@@ -85,3 +93,35 @@ def test_short_pause_is_not_a_stop():
     f = compute(fixes, 15).facts
     assert f.stop_count == 0
     assert f.moving_s + f.stop_s <= f.duration_s
+
+
+def test_collection_gap_is_not_a_stop():
+    r = compute([fix(0, 0), fix(600, 0)], 600)
+    assert r.quality.gap_breaks == 1
+    assert r.facts.stop_count == 0
+    assert r.facts.stop_s == 0
+
+
+def test_fixes_outside_session_are_rejected_and_break_segments():
+    fixes = [fix(-60, 0), fix(0, 0), fix(60, 10), fix(120, 20)]
+    r = compute(fixes, 60)
+    assert r.quality.rejected_before_start == 1
+    assert r.quality.rejected_after_end == 1
+    assert r.facts.duration_s == 60
+
+
+def test_mock_origin_is_visible_in_facts_and_quality():
+    r = compute([fix(0, 0, is_mock=True), fix(5, 7, is_mock=True)], 5)
+    assert r.facts.evidence_origin == "mock"
+    assert r.quality.mock_fixes == 2
+
+
+def test_stop_event_keeps_time_and_spatial_anchor():
+    r = compute(walk_then_stop_then_walk())
+    assert len(r.events) == 1
+    event = r.events[0]
+    assert event.type == "stop"
+    assert event.duration_s == r.facts.stop_s
+    assert event.started_at < event.ended_at
+    assert abs(event.lng - fix(60, 84).lng) < 1e-8
+    assert event.route_offset_m > 70

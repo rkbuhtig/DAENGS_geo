@@ -12,7 +12,11 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-RECORD_VERSION = 1
+RECORD_VERSION = 2
+CALCULATION_VERSION = 2
+
+EvidenceOrigin = Literal["device", "mock", "mixed", "unknown"]
+SessionState = Literal["open", "sealed", "derived", "purged"]
 
 
 class ContractModel(BaseModel):
@@ -30,6 +34,8 @@ def _tz_required(value: datetime) -> datetime:
 class WalkFix(ContractModel):
     """수신 원본 한 점. 앱이 배치로 올린다. 속도는 여기 없다 — 점 둘 사이에서 계산한다."""
 
+    # 네트워크 재전송과 업로드 순서가 측정열을 바꾸지 않게 클라이언트가 부여한다.
+    client_seq: int = Field(ge=0)
     at: datetime
     lat: float = Field(ge=-90, le=90)
     lng: float = Field(ge=-180, le=180)
@@ -47,6 +53,8 @@ class WalkSession(ContractModel):
     started_at: datetime
     ended_at: datetime | None = None          # None = 진행 중
     fix_count: int = Field(0, ge=0)
+    state: SessionState = "open"
+    evidence_origin: EvidenceOrigin = "unknown"
 
     _tz = field_validator("started_at", "ended_at")(
         lambda v: v if v is None else _tz_required(v)
@@ -63,8 +71,10 @@ class WalkFacts(ContractModel):
     """세션이 끝난 뒤 코드가 계산한 사실. 바깥에 나가는 것은 이것이다."""
 
     record_version: Literal[RECORD_VERSION] = RECORD_VERSION
+    calculation_version: int = Field(CALCULATION_VERSION, ge=1)
     session_id: str = Field(min_length=1, max_length=128)
     dog_id: str = Field(min_length=1, max_length=128)
+    evidence_origin: EvidenceOrigin
     started_at: datetime
     ended_at: datetime
 
@@ -87,4 +97,31 @@ class WalkFacts(ContractModel):
             raise ValueError("moving_distance_m cannot exceed distance_m")
         if self.moving_s + self.stop_s > self.duration_s:
             raise ValueError("moving_s + stop_s cannot exceed duration_s")
+        wall_s = round((self.ended_at - self.started_at).total_seconds())
+        if self.duration_s > wall_s:
+            raise ValueError("duration_s cannot exceed the session wall time")
+        return self
+
+
+class MotionEventOccurrence(ContractModel):
+    """세션 안에서 관측된 상태 변화. 이유·장소 의미는 붙이지 않는다."""
+
+    session_id: str = Field(min_length=1, max_length=128)
+    event_index: int = Field(ge=0)
+    type: Literal["stop"] = "stop"
+    started_at: datetime
+    ended_at: datetime
+    duration_s: int = Field(ge=0)
+    lat: float = Field(ge=-90, le=90)
+    lng: float = Field(ge=-180, le=180)
+    route_offset_m: float = Field(ge=0)
+    accuracy_p50_m: float | None = Field(None, ge=0)
+    fix_count: int = Field(ge=2)
+
+    _tz = field_validator("started_at", "ended_at")(_tz_required)
+
+    @model_validator(mode="after")
+    def ends_after_start(self) -> "MotionEventOccurrence":
+        if self.ended_at < self.started_at:
+            raise ValueError("ended_at must not precede started_at")
         return self
