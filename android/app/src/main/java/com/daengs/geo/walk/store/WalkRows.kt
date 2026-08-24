@@ -32,6 +32,7 @@ data class WalkSessionRow(
 data class WalkFixRow(
     val sessionId: String,
     val clientSeq: Int,
+    val chainIndex: Int,
     val atMillis: Long,
     val lat: Double,
     val lng: Double,

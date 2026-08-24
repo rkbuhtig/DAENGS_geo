@@ -1,6 +1,7 @@
 package com.daengs.geo.walk
 
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,7 +27,7 @@ class WalkFixWriter(
 
     private val _failure = MutableStateFlow<String?>(null)
 
-    /** Set on the first write that fails. Storage failing is not a reason to stop collecting. */
+    /** Latest write failure. Storage failing is not a reason to stop location collection. */
     val failure: StateFlow<String?> = _failure.asStateFlow()
 
     init {
@@ -50,7 +51,20 @@ class WalkFixWriter(
     fun closeSession(sessionId: String, endedAtMillis: Long) =
         enqueue { log.closeSession(sessionId, endedAtMillis) }
 
+    fun deleteSession(sessionId: String) = enqueue { log.deleteSession(sessionId) }
+
+    /** Waits until every command submitted before this call has completed (successfully or not). */
+    suspend fun flush() {
+        val barrier = CompletableDeferred<Unit>()
+        enqueue { barrier.complete(Unit) }
+        barrier.await()
+    }
+
+    fun clearFailure() {
+        _failure.value = null
+    }
+
     private fun enqueue(command: suspend () -> Unit) {
-        commands.trySend(command)
+        check(commands.trySend(command).isSuccess) { "walk fix writer is unavailable" }
     }
 }

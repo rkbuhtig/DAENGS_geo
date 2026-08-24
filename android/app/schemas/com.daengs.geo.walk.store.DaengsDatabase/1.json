@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "9fe11de183c39036e38796b5c127217e",
+    "identityHash": "2b4274e2ef2a0e1c3270d8fccb961f98",
     "entities": [
       {
         "tableName": "walk_session",
@@ -40,7 +40,7 @@
       },
       {
         "tableName": "walk_fix",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`sessionId` TEXT NOT NULL, `clientSeq` INTEGER NOT NULL, `atMillis` INTEGER NOT NULL, `lat` REAL NOT NULL, `lng` REAL NOT NULL, `accuracyM` REAL, `isMock` INTEGER NOT NULL, PRIMARY KEY(`sessionId`, `clientSeq`), FOREIGN KEY(`sessionId`) REFERENCES `walk_session`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`sessionId` TEXT NOT NULL, `clientSeq` INTEGER NOT NULL, `chainIndex` INTEGER NOT NULL, `atMillis` INTEGER NOT NULL, `lat` REAL NOT NULL, `lng` REAL NOT NULL, `accuracyM` REAL, `isMock` INTEGER NOT NULL, PRIMARY KEY(`sessionId`, `clientSeq`), FOREIGN KEY(`sessionId`) REFERENCES `walk_session`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "sessionId",
@@ -51,6 +51,12 @@
           {
             "fieldPath": "clientSeq",
             "columnName": "clientSeq",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "chainIndex",
+            "columnName": "chainIndex",
             "affinity": "INTEGER",
             "notNull": true
           },
@@ -108,7 +114,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '9fe11de183c39036e38796b5c127217e')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '2b4274e2ef2a0e1c3270d8fccb961f98')"
     ]
   }
 }

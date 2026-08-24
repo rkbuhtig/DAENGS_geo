@@ -34,7 +34,7 @@ def _models() -> list[type[BaseModel]]:
 def test_field_sets_are_pinned():
     """계약의 필드 집합 그대로. 늘리려면 walk-record.md 와 record_version 을 같이 올려라."""
     assert set(WalkFix.model_fields) == {
-        "client_seq", "at", "lat", "lng", "accuracy_m", "is_mock",
+        "client_seq", "chain_index", "at", "lat", "lng", "accuracy_m", "is_mock",
     }
     assert set(WalkSession.model_fields) == {
         "id", "dog_id", "started_at", "ended_at", "fix_count", "state",

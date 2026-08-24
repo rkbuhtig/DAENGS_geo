@@ -12,8 +12,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-RECORD_VERSION = 3
-CALCULATION_VERSION = 3
+RECORD_VERSION = 4
+CALCULATION_VERSION = 4
 ENCOUNTER_OCCURRENCE_VERSION = 2
 
 EvidenceOrigin = Literal["device", "mock", "mixed", "unknown"]
@@ -37,6 +37,8 @@ class WalkFix(ContractModel):
 
     # 네트워크 재전송과 업로드 순서가 측정열을 바꾸지 않게 클라이언트가 부여한다.
     client_seq: int = Field(ge=0)
+    # 명시적 pause/resume 뒤 증가한다. 같은 세션이어도 서로 다른 chain은 잇지 않는다.
+    chain_index: int = Field(0, ge=0)
     at: datetime
     lat: float = Field(ge=-90, le=90)
     lng: float = Field(ge=-180, le=180)
@@ -72,7 +74,7 @@ class WalkFacts(ContractModel):
     """세션이 끝난 뒤 코드가 계산한 사실. 바깥에 나가는 것은 이것이다."""
 
     # record v2 세션도 purge 뒤 계속 읽혀야 한다. 새 응답 기본값만 최신 버전이다.
-    record_version: Literal[2, RECORD_VERSION] = RECORD_VERSION
+    record_version: Literal[2, 3, RECORD_VERSION] = RECORD_VERSION
     calculation_version: int = Field(CALCULATION_VERSION, ge=1)
     session_id: str = Field(min_length=1, max_length=128)
     dog_id: str = Field(min_length=1, max_length=128)

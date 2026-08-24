@@ -1,12 +1,18 @@
 package com.daengs.geo.walk
 
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.runCurrent
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -55,6 +61,36 @@ class WalkFixWriterTest {
         assertNull(reported)
     }
 
+    @Test
+    fun `flush waits for earlier writes instead of only queueing them`() = runTest {
+        val entered = CompletableDeferred<Unit>()
+        val release = CompletableDeferred<Unit>()
+        val log = RecordingLog(blockOnSeq = 0, entered = entered, release = release)
+        val writer = WalkFixWriter(log, backgroundScope)
+
+        writer.append("s1", fix(0))
+        val flushing = async { writer.flush() }
+        runCurrent()
+
+        assertTrue(entered.isCompleted)
+        assertFalse(flushing.isCompleted)
+        release.complete(Unit)
+        flushing.await()
+        assertEquals(listOf("append:0"), log.calls)
+    }
+
+    @Test
+    fun `failure can be cleared before a new recording`() {
+        val log = RecordingLog(failOnSeq = 0)
+
+        withWriter(log) { writer ->
+            writer.append("s1", fix(0))
+            assertNotNull(writer.failure.value)
+            writer.clearFailure()
+            assertNull(writer.failure.value)
+        }
+    }
+
     /** Unconfined so each queued command runs at submission — no scheduler advancing in asserts. */
     private fun withWriter(log: WalkFixLog, block: (WalkFixWriter) -> Unit) {
         val scope = CoroutineScope(UnconfinedTestDispatcher())
@@ -69,6 +105,7 @@ class WalkFixWriterTest {
 
     private fun fix(seq: Int) = RecordedFix(
         clientSeq = seq,
+        chainIndex = 0,
         atMillis = seq.toLong(),
         lat = 37.0,
         lng = 127.0,
@@ -76,7 +113,12 @@ class WalkFixWriterTest {
         isMock = false,
     )
 
-    private class RecordingLog(private val failOnSeq: Int? = null) : WalkFixLog {
+    private class RecordingLog(
+        private val failOnSeq: Int? = null,
+        private val blockOnSeq: Int? = null,
+        private val entered: CompletableDeferred<Unit>? = null,
+        private val release: CompletableDeferred<Unit>? = null,
+    ) : WalkFixLog {
         val calls = mutableListOf<String>()
 
         override suspend fun openSession(session: RecordedSession) {
@@ -85,11 +127,19 @@ class WalkFixWriterTest {
 
         override suspend fun append(sessionId: String, fix: RecordedFix) {
             if (fix.clientSeq == failOnSeq) error("disk full")
+            if (fix.clientSeq == blockOnSeq) {
+                entered?.complete(Unit)
+                release?.await()
+            }
             calls += "append:${fix.clientSeq}"
         }
 
         override suspend fun closeSession(sessionId: String, endedAtMillis: Long) {
             calls += "close:$sessionId"
+        }
+
+        override suspend fun deleteSession(sessionId: String) {
+            calls += "delete:$sessionId"
         }
 
         override suspend fun unfinishedSessions(): List<RecordedSession> = emptyList()

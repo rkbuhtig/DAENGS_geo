@@ -20,6 +20,9 @@ interface WalkFixLog {
 
     suspend fun closeSession(sessionId: String, endedAtMillis: Long)
 
+    /** Deletes the session and every fix it owns. The Room foreign key supplies the cascade. */
+    suspend fun deleteSession(sessionId: String)
+
     /**
      * Sessions that never got a close. A walk ends this way when the process dies or the user
      * force-stops the app, and the stored fixes are the only evidence that walk happened.
@@ -40,6 +43,8 @@ data class RecordedSession(
 /** One reported position, field for field with the server `WalkFix` contract. */
 data class RecordedFix(
     val clientSeq: Int,
+    /** Increments after every explicit pause/resume. Different chains must never be joined. */
+    val chainIndex: Int,
     val atMillis: Long,
     val lat: Double,
     val lng: Double,

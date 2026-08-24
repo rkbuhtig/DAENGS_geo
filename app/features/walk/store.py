@@ -102,7 +102,7 @@ async def append_fixes(
     if len(seqs) != len(set(seqs)):
         raise FixSequenceConflictError("client_seq must be unique within a batch")
     rows = await db.execute(text("""
-        SELECT client_seq, at, lat, lng, accuracy_m, is_mock
+        SELECT client_seq, chain_index, at, lat, lng, accuracy_m, is_mock
         FROM walk_fix
         WHERE session_id = :id AND client_seq = ANY(CAST(:seqs AS integer[]))
     """), {"id": session_id, "seqs": seqs})
@@ -118,6 +118,7 @@ async def append_fixes(
         )
         if not (
             row.at == f.at
+            and row.chain_index == f.chain_index
             and math.isclose(row.lat, f.lat, abs_tol=1e-12)
             and math.isclose(row.lng, f.lng, abs_tol=1e-12)
             and same_accuracy
@@ -131,11 +132,12 @@ async def append_fixes(
     if new_fixes:
         await db.execute(text("""
             INSERT INTO walk_fix
-                (session_id, seq, client_seq, at, lat, lng, accuracy_m, is_mock)
-            VALUES (:sid, :seq, :client_seq, :at, :lat, :lng, :accuracy_m, :is_mock)
+                (session_id, seq, client_seq, chain_index, at, lat, lng, accuracy_m, is_mock)
+            VALUES (:sid, :seq, :client_seq, :chain_index, :at, :lat, :lng, :accuracy_m, :is_mock)
         """), [
             {"sid": session_id, "seq": session.fix_count + i,
-             "client_seq": f.client_seq, "at": f.at, "lat": f.lat, "lng": f.lng,
+             "client_seq": f.client_seq, "chain_index": f.chain_index,
+             "at": f.at, "lat": f.lat, "lng": f.lng,
              "accuracy_m": f.accuracy_m, "is_mock": f.is_mock}
             for i, f in enumerate(new_fixes)
         ])
@@ -156,10 +158,11 @@ async def append_fixes(
 async def load_fixes_ordered(db: AsyncSession, session_id: str) -> list[WalkFix]:
     """계산 입력. 측정 시각 우선, 동시각이면 수신 순서 — 재생하면 같은 열이 나온다."""
     rows = await db.execute(text("""
-        SELECT client_seq, at, lat, lng, accuracy_m, is_mock
+        SELECT client_seq, chain_index, at, lat, lng, accuracy_m, is_mock
         FROM walk_fix WHERE session_id = :id ORDER BY client_seq, seq
     """), {"id": session_id})
-    return [WalkFix(client_seq=r.client_seq, at=r.at, lat=r.lat, lng=r.lng,
+    return [WalkFix(client_seq=r.client_seq, chain_index=r.chain_index,
+                    at=r.at, lat=r.lat, lng=r.lng,
                     accuracy_m=r.accuracy_m, is_mock=r.is_mock) for r in rows]
 
 
@@ -171,11 +174,16 @@ async def facility_candidates(db: AsyncSession, session_id: str) -> list[Facilit
     뽑고 정밀 기하(체류·횡거리)는 encounter 계산이 수용 세그먼트로 다시 잰다.
     """
     rows = await db.execute(text("""
-        WITH trail AS (
-            SELECT ST_MakeLine(ST_SetSRID(ST_MakePoint(lng, lat), 4326) ORDER BY at, seq)
+        WITH chains AS (
+            SELECT chain_index,
+                   ST_MakeLine(ST_SetSRID(ST_MakePoint(lng, lat), 4326) ORDER BY client_seq, seq)
                        AS line,
                    count(*) AS n
             FROM walk_fix WHERE session_id = :id
+            GROUP BY chain_index
+            HAVING count(*) >= 2
+        ), trail AS (
+            SELECT ST_Collect(line) AS line, coalesce(sum(n), 0) AS n FROM chains
         )
         SELECT f.source, f.source_ref, f.kind,
                ST_Y(f.location::geometry) AS lat, ST_X(f.location::geometry) AS lng,

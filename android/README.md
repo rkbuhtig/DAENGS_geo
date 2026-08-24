@@ -56,12 +56,20 @@ UI 상태(`WalkTrackingStore`)는 여전히 프로세스 메모리지만, **기�
 (`docs/contracts/walk-record.md`)을 그대로 따른다.
 
 쓰기는 `WalkFixWriter` 한 곳을 통과한다. 제출 순서대로 한 번에 하나씩 실행해 fix 가 자기 세션 행보다
-먼저 도착하지 않게 하고, 스코프는 서비스가 아니라 **애플리케이션**이다 — `stopRecording()` 이 마지막
-쓰기를 큐에 넣자마자 `stopSelf()` 를 부르기 때문에 서비스 스코프면 그 쓰기가 취소된다.
+먼저 도착하지 않게 하고, 스코프는 서비스가 아니라 **애플리케이션**이다. 정상 종료는 writer barrier로
+마지막 fix와 close가 실제 반영될 때까지 기다린 뒤 foreground service를 내린다. 저장 실패는 산책 상태와
+알림에 노출한다.
+
+명시적 일시정지/재개 때마다 모든 원본 fix의 `chainIndex`가 증가한다. 서버의 `chain_index`와 같은
+계약이며, pause 중 사용자가 이동해도 양쪽 좌표가 가상의 직선·거리·시설 encounter로 이어지지 않는다.
 
 `START_NOT_STICKY`는 그대로다. 프로세스가 죽어도 산책을 자동 복원하지 않는다. 대신 **닫히지 않은
 세션**(`endedAtMillis IS NULL`)이 그 산책의 증거로 남고, `unfinishedSessions()` 로 조회된다. 이 세션을
 사용자에게 어떻게 보여주고 이어붙일지(복구 UI)와 서버 업로드는 아직 없다.
+
+세션 단위 cascade 삭제 API는 구현돼 있지만 삭제 UI와 자동 보관 기간은 아직 정하지 않았다. 로컬
+DB도 앱이 보관 정책을 결정하는 위치 데이터 저장소이므로, 사용자 노출이나 업로드 전에 동의·보관
+기간·삭제 UI를 확정해야 한다. Android 백업에는 이 DB를 싣지 않는다.
 
 `dogId` 는 null 로 저장한다 — 반려견 프로필은 이 레포가 소유하지 않는다 (결정 #4). 가짜 id 를 넣어
 baseline 을 오염시키지 않는다.
@@ -129,6 +137,7 @@ debug 화면의 `CTA 확인용 · 반경 100m`는 결과 0곳 상태를 만들�
 
 - 이 변경의 실기기 화면 OFF/다른 앱 전환 smoke
 - 닫히지 않은 세션의 복구 UI, 서버 업로드 주기 (원본 fix 저장 자체는 구현됨)
+- 원본 fix 보관 기간·동의·세션 삭제 UI (cascade 삭제 저장 경계만 구현됨)
 - Room 마이그레이션 테스트 (`room-testing` + androidTest 소스셋). 지금은 v1 뿐이라 대상이 없다
 - territory 영속 저장·공개 소유권·사진, 로그인, 오프라인 큐, push
 - `/journey` 실측 상세와 지도앱 handoff

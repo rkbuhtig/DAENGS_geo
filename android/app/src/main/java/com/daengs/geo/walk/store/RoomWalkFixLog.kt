@@ -18,6 +18,7 @@ class RoomWalkFixLog(private val dao: WalkDao) : WalkFixLog {
         WalkFixRow(
             sessionId = sessionId,
             clientSeq = fix.clientSeq,
+            chainIndex = fix.chainIndex,
             atMillis = fix.atMillis,
             lat = fix.lat,
             lng = fix.lng,
@@ -29,12 +30,22 @@ class RoomWalkFixLog(private val dao: WalkDao) : WalkFixLog {
     override suspend fun closeSession(sessionId: String, endedAtMillis: Long) =
         dao.closeSession(sessionId, endedAtMillis)
 
+    override suspend fun deleteSession(sessionId: String) = dao.deleteSession(sessionId)
+
     override suspend fun unfinishedSessions(): List<RecordedSession> =
         dao.unfinishedSessions().map {
             RecordedSession(it.id, it.dogId, it.startedAtMillis, it.endedAtMillis)
         }
 
     override suspend fun fixes(sessionId: String): List<RecordedFix> = dao.fixes(sessionId).map {
-        RecordedFix(it.clientSeq, it.atMillis, it.lat, it.lng, it.accuracyM, it.isMock)
+        RecordedFix(
+            it.clientSeq,
+            it.chainIndex,
+            it.atMillis,
+            it.lat,
+            it.lng,
+            it.accuracyM,
+            it.isMock,
+        )
     }
 }

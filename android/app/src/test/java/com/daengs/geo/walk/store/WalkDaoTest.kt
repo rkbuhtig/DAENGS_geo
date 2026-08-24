@@ -44,6 +44,7 @@ class WalkDaoTest {
         assertEquals(listOf(0, 1), stored.map { it.clientSeq })
         assertEquals(37.0, stored.first().lat, 1e-9)
         assertEquals(5f, stored.first().accuracyM)
+        assertEquals(0, stored.first().chainIndex)
     }
 
     @Test
@@ -89,10 +90,22 @@ class WalkDaoTest {
         assertEquals(500L, db.walkDao().session("s1")?.endedAtMillis)
     }
 
+    @Test
+    fun `deleting a session cascades to its raw fixes`() = runBlocking {
+        log.openSession(session("s1"))
+        log.append("s1", fix(0))
+
+        log.deleteSession("s1")
+
+        assertEquals(null, db.walkDao().session("s1"))
+        assertTrue(log.fixes("s1").isEmpty())
+    }
+
     private fun session(id: String) = RecordedSession(id, dogId = null, startedAtMillis = 0L)
 
     private fun fix(seq: Int, lat: Double = 37.0) = RecordedFix(
         clientSeq = seq,
+        chainIndex = 0,
         atMillis = seq.toLong(),
         lat = lat,
         lng = 127.0,

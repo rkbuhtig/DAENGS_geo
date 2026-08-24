@@ -23,6 +23,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
 import java.util.UUID
 
@@ -43,8 +44,10 @@ class WalkTrackingService : Service() {
     private lateinit var writer: WalkFixWriter
 
     /** Non-null exactly while a walk owns a stored session. Late fixes after stop are dropped. */
+    private val sessionLock = Any()
     private var sessionId: String? = null
     private var nextClientSeq = 0
+    private var chainIndex = 0
 
     override fun onCreate() {
         super.onCreate()
@@ -61,6 +64,9 @@ class WalkTrackingService : Service() {
         serviceScope.launch {
             tracker.status.collect(::acceptFeedStatus)
         }
+        serviceScope.launch {
+            writer.failure.filterNotNull().collect(::acceptStorageFailure)
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -71,7 +77,7 @@ class WalkTrackingService : Service() {
             ACTION_STOP -> stopRecording()
             else -> Unit
         }
-        // Without local session persistence we must not invent a restarted walk after process death.
+        // Without an approved recovery policy we must not invent a restarted walk after process death.
         return START_NOT_STICKY
     }
 
@@ -98,6 +104,7 @@ class WalkTrackingService : Service() {
             promote(recorder.snapshot(), store.state.value.errorMessage)
             return
         }
+        writer.clearFailure()
         val trail = recorder.start()
         openSession()
         store.publish(WalkTrackingState(trail = trail))
@@ -123,6 +130,7 @@ class WalkTrackingService : Service() {
     private fun resumeRecording() {
         if (recorder.snapshot().state != TrackingState.PAUSED) return
         val trail = recorder.resume()
+        synchronized(sessionLock) { chainIndex += 1 }
         store.publish(
             WalkTrackingState(
                 trail = trail,
@@ -134,6 +142,7 @@ class WalkTrackingService : Service() {
     }
 
     private fun stopRecording() {
+        if (recorder.snapshot().state == TrackingState.OFF) return
         tracker.stop()
         closeSession()
         val trail = recorder.stop()
@@ -143,25 +152,35 @@ class WalkTrackingService : Service() {
                 lastSample = store.state.value.lastSample,
             ),
         )
-        stopForeground(STOP_FOREGROUND_REMOVE)
-        stopSelf()
+        serviceScope.launch {
+            try {
+                // closeSession was submitted after every accepted fix under sessionLock.
+                writer.flush()
+            } finally {
+                stopForeground(STOP_FOREGROUND_REMOVE)
+                stopSelf()
+            }
+        }
     }
 
     private fun acceptLocation(sample: LocationSample) {
         // Stored before the recorder sees it. The recorder drops jitter and bad accuracy to draw a
         // clean line; those thresholds are provisional, and a dropped fix cannot be recovered.
-        sessionId?.let { id ->
-            writer.append(
-                id,
-                RecordedFix(
-                    clientSeq = nextClientSeq++,
-                    atMillis = sample.capturedAtMillis,
-                    lat = sample.point.latitude,
-                    lng = sample.point.longitude,
-                    accuracyM = sample.accuracyMeters,
-                    isMock = sample.isMock,
-                ),
-            )
+        synchronized(sessionLock) {
+            sessionId?.let { id ->
+                writer.append(
+                    id,
+                    RecordedFix(
+                        clientSeq = nextClientSeq++,
+                        chainIndex = chainIndex,
+                        atMillis = sample.capturedAtMillis,
+                        lat = sample.point.latitude,
+                        lng = sample.point.longitude,
+                        accuracyM = sample.accuracyMeters,
+                        isMock = sample.isMock,
+                    ),
+                )
+            }
         }
         val trail = recorder.add(sample)
         store.publish(
@@ -174,16 +193,21 @@ class WalkTrackingService : Service() {
 
     private fun openSession() {
         val id = UUID.randomUUID().toString()
-        sessionId = id
-        nextClientSeq = 0
-        // dogId stays null: this repo does not own a dog profile (decision #4).
-        writer.openSession(RecordedSession(id = id, dogId = null, startedAtMillis = now()))
+        synchronized(sessionLock) {
+            sessionId = id
+            nextClientSeq = 0
+            chainIndex = 0
+            // dogId stays null: this repo does not own a dog profile (decision #4).
+            writer.openSession(RecordedSession(id = id, dogId = null, startedAtMillis = now()))
+        }
     }
 
     /** Only an explicit stop closes a session. Process death deliberately leaves it open. */
     private fun closeSession() {
-        sessionId?.let { writer.closeSession(it, now()) }
-        sessionId = null
+        synchronized(sessionLock) {
+            sessionId?.let { writer.closeSession(it, now()) }
+            sessionId = null
+        }
     }
 
     private fun now(): Long = System.currentTimeMillis()
@@ -203,6 +227,19 @@ class WalkTrackingService : Service() {
     private fun pauseAfterFeedProblem(message: String) {
         tracker.stop()
         val trail = recorder.pause()
+        store.publish(
+            WalkTrackingState(
+                trail = trail,
+                lastSample = store.state.value.lastSample,
+                errorMessage = message,
+            ),
+        )
+        promote(trail, errorMessage = message)
+    }
+
+    private fun acceptStorageFailure(message: String) {
+        val trail = recorder.snapshot()
+        if (trail.state == TrackingState.OFF) return
         store.publish(
             WalkTrackingState(
                 trail = trail,

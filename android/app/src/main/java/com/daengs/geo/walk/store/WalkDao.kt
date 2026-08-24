@@ -25,6 +25,9 @@ interface WalkDao {
     )
     suspend fun closeSession(sessionId: String, endedAtMillis: Long)
 
+    @Query("DELETE FROM walk_session WHERE id = :sessionId")
+    suspend fun deleteSession(sessionId: String)
+
     @Query("SELECT * FROM walk_session WHERE id = :sessionId")
     suspend fun session(sessionId: String): WalkSessionRow?
 
