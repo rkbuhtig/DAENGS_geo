@@ -22,3 +22,9 @@ def test_no_provider_gives_no_preview(monkeypatch):
     m = build_map(37.5, 127.0, 2000, None, False, False, [])
     assert m.preview_url is None
     assert "ids" not in m.deeplink
+
+
+def test_deeplink_preserves_emergency_preference():
+    m = build_map(37.5, 127.0, 2000, "hospital", False, False, [], emergency=True)
+    assert "filter=emergency" in m.deeplink
+    assert m.web_url.split("?", 1)[1] == m.deeplink.split("?", 1)[1]

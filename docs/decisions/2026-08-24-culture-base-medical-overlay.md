@@ -48,7 +48,7 @@ CSV 동물약국 46,105행은 등록 동물약국(19,251)보다 많다 — MOIS 
 ## 축 재배치 (phase 2 — 미구현)
 
 - **어떤 상황인가**: 전역 '급한 상황' 토글 제거. 긴급도 판단은 응답 에이전트(RAG)로
-  이관하고 우리는 그 등급을 검색 조건으로 받는다 ([에이전트 경계](2026-08-25-agent-parallel-response.md))
+  이관하고 우리는 그 등급을 검색 조건으로 받는다 ([에이전트 경계](2026-08-24-agent-parallel-response.md))
 - **어디를 갈까**: 문화 카테고리가 메인, 의료는 하위 가지.
   `/facility/search` 가 권위, `/hospital`·`/pharmacy` 는 kind preset facade —
   facade 가 자체 정책을 갖지 않는다. 챗봇 계약(state 왕복·딥링크, 결정 #9·#19)은

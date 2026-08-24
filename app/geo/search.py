@@ -102,12 +102,17 @@ async def search_places(db: AsyncSession, p: SearchParams) -> SearchOut:
     )
     results = await find_places(db, plan)
     return SearchOut(params=p, results=results, map=build_map(p.lat, p.lng, p.radius_m, p.kind,
-                                                                p.open_now, p.night, results))
+                                                                p.open_now, p.night, results,
+                                                                emergency=p.emergency))
 
 
 def build_map(lat: float, lng: float, radius_m: int, kind: str | None, open_now: bool, night: bool,
-              results: list[PlaceOut]) -> MapOut:
-    filters = [f for f, on in (("open", open_now), ("night", night)) if on]
+              results: list[PlaceOut], *, emergency: bool = False) -> MapOut:
+    # 검색 결과만 넘기면 지도 화면이 다시 질의를 만들 때 선호 상태가 사라진다.
+    filters = [
+        name for name, on in (("open", open_now), ("night", night), ("emergency", emergency))
+        if on
+    ]
     q: dict = {"lat": lat, "lng": lng, "radius": radius_m}
     if kind:
         q["type"] = kind

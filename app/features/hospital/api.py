@@ -181,7 +181,8 @@ async def hospital_search(
     results = _sort(results, resolved.view, resolved.journey)
     must = resolved.search.must
     mp = build_map(must.lat, must.lng, must.radius_m, "hospital", must.open_now,
-                   st.target.night_service, results)
+                   st.target.night_service, results,
+                   emergency=st.target.emergency_service)
     actions = build_actions(
         st, result_count=len(results), question=r.question,
         dropped_by_hard_limit=dropped,
