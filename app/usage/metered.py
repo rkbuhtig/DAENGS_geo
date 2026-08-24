@@ -1,6 +1,7 @@
 """실제 provider를 Usage Gate 뒤에 가두는 어댑터."""
 
 import time
+from collections import OrderedDict
 from typing import Protocol
 
 from app.providers.base import (
@@ -46,7 +47,7 @@ class MeteredRouteProvider:
         self._gate = gate
         self.name = inner.name
         self.route_modes = inner.route_modes
-        self._cache: dict[tuple, tuple[float, RouteResult]] = {}
+        self._cache: OrderedDict[tuple, tuple[float, RouteResult]] = OrderedDict()
 
     def static_map_url(self, spec: StaticMapSpec) -> str | None:
         return self._inner.static_map_url(spec)
@@ -69,14 +70,20 @@ class MeteredRouteProvider:
 
         key = self._cache_key(mode, origin, dest, option)
         hit = self._cache.get(key)
-        if hit and time.monotonic() - hit[0] < _ROUTE_TTL[mode]:
-            return hit[1]
+        if hit:
+            if time.monotonic() - hit[0] < _ROUTE_TTL[mode]:
+                # 조회도 사용이다. 최근에 사용한 항목을 끝으로 보내야 축출이 진짜 LRU가 된다.
+                self._cache.move_to_end(key)
+                return hit[1]
+            # 만료 항목을 같은 자리에 덮어쓰면 OrderedDict의 순서가 유지된다.
+            # 먼저 제거해 새 응답이 가장 최근 항목으로 들어가게 한다.
+            del self._cache[key]
 
         await self._gate.consume(intent, permit)
         result = await self._inner.route(mode, origin, dest, option)
         if result is not None:
             if len(self._cache) >= _ROUTE_CACHE_MAX:
-                self._cache.pop(next(iter(self._cache)))
+                self._cache.popitem(last=False)
             self._cache[key] = (time.monotonic(), result)
         return result
 
