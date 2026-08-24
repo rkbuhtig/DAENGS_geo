@@ -51,20 +51,11 @@ jobs:
       - name: 의존성 설치
         run: uv sync --frozen
 
-      - name: psql 준비
-        run: |
-          if ! command -v psql > /dev/null; then
-            sudo apt-get update && sudo apt-get install -y postgresql-client
-          fi
-
-      # docker-compose 는 migrations/ 를 initdb 에 마운트하지만 서비스 컨테이너는 그럴 수
-      # 없다. 순서대로 직접 적용한다. dev_seed.sql 은 넣지 않는다 — 테스트는 좌표로 격리한다.
-      - name: 마이그레이션 적용
-        run: |
-          for file in migrations/0*.sql; do
-            echo "-- $file"
-            psql -h localhost -U daengs -d daengs -v ON_ERROR_STOP=1 -q -f "$file"
-          done
+      # 러너 자체를 매 PR 마다 검증한다. 예전엔 CI 가 psql 로 직접 돌려서, 러너에 버그가
+      # 있어도 초록이 떴다. 이 단계의 성공이 곧 DB 가 살아 있다는 증거이기도 하다 —
+      # conftest 는 DB 에 못 붙으면 skip 하므로 없으면 DB 테스트가 조용히 빠진다.
+      - name: 마이그레이션 (alembic)
+        run: uv run alembic upgrade head
 
       - name: ruff
         run: uv run ruff check .

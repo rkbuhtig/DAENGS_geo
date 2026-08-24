@@ -51,10 +51,11 @@ parked된 LLM 경계는 `utterance`가 있을 때만 “말 → 툴 호출” �
 
 ```bash
 cp .env.example .env
-docker compose up -d            # PostGIS 16-3.4, migrations/ 자동 적용
+docker compose up -d            # PostGIS 16-3.4 (빈 DB)
 docker compose ps               # db/api 모두 healthy인지 확인
-docker compose exec -T db psql -U daengs -d daengs < migrations/dev_seed.sql   # 개발용 시드
 uv sync
+uv run alembic upgrade head     # 스키마 적용. 몇 번을 다시 돌려도 안전하다
+docker compose exec -T db psql -U daengs -d daengs < migrations/dev_seed.sql   # 개발용 시드
 uv run uvicorn app.main:app --reload
 uv run pytest
 ```
@@ -62,6 +63,24 @@ uv run pytest
 `GET /health`는 프로세스 liveness라 DB를 조회하지 않는다. `GET /health/ready`는 DB에
 `SELECT 1`을 실행하며 연결할 수 없으면 503을 반환한다. 외부 지도·경로 provider 장애는 컨테이너
 재시작 사유가 아니므로 readiness에서 제외한다.
+
+### 스키마 변경
+
+`alembic` 한 경로다. `migrations/*.sql` 은 동결된 역사이고 새로 추가해도 실행되지 않는다
+([migrations/README.md](migrations/README.md)).
+
+```bash
+uv run alembic upgrade head                      # 현재까지 적용
+uv run alembic revision -m "무엇을 바꾸는지"      # 새 변경
+uv run alembic current                           # 이 DB 가 어디까지 왔나
+```
+
+DB URL 은 `alembic.ini` 가 아니라 앱과 같은 `settings.database_url` 에서 온다. 앱은 asyncpg,
+마이그레이션은 동기 psycopg 로 붙는다 (`alembic/env.py`).
+
+**이미 스키마가 있는 DB**(alembic 도입 전부터 쓰던 것)는 `upgrade` 대신 한 번만
+`uv run alembic stamp 0001` 을 한다. baseline 을 실제로 실행하면 008 의 백필 UPDATE 가
+다시 돌아 `walk_facts.record_version` 이 3에서 2로 내려간다.
 
 Android 앱은 [`android/README.md`](android/README.md)를 따른다. 백엔드와 같은 레포에 있지만
 Gradle 프로젝트는 `android/` 아래에 독립되어 있어 Python 실행·테스트와 섞이지 않는다.
