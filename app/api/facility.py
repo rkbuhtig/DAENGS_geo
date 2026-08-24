@@ -91,43 +91,67 @@ class FacilitySearchOut(BaseModel):
 
 
 # 노출 행: 교차 링크의 ref 로 잡힌 쪽(과거 원천)은 빼고, 그 행을 LATERAL 로 끌어와
-# 빈 필드를 채운다. 링크가 없으면 o.* 는 전부 NULL 이고 결과는 원래 행 그대로다.
+# 빈 필드를 채운다. 링크가 없으면 b.* 는 전부 NULL 이고 결과는 원래 행 그대로다.
+#
+# pet 은 원문과 파생 축이 한 묶음이다. 먼저 `merged` 에서 실제로 노출할 봉투/축을 한 번 정한 뒤
+# 바깥 WHERE 도 그 effective 축을 본다. 그래야 KTO 행이 KCISA 의 "5kg 이하"를 빌린 경우
+# 대형견 필터를 NULL(미상)로 통과한 뒤 small 을 표시하는 모순이 생기지 않는다.
 _SEARCH = text("""
-SELECT f.id, f.source_ref, f.name, f.kind, f.category3,
-       ST_Y(f.location::geometry) AS lat, ST_X(f.location::geometry) AS lng,
-       ST_Distance(f.location, o.geom) AS distance_m,
-       f.address, f.phone, f.homepage, f.hours_text, f.closed_days, f.parking,
-       f.pet, f.pet_allowed, f.pet_exclusive, f.pet_dog_ok, f.pet_size_class, f.pet_max_kg,
-       f.source, COALESCE(f.last_written::text, f.snapshot) AS as_of,
-       b.homepage AS b_homepage, b.hours_text AS b_hours_text,
-       b.closed_days AS b_closed_days, b.parking AS b_parking, b.pet AS b_pet,
-       b.pet_allowed AS b_pet_allowed, b.pet_exclusive AS b_pet_exclusive,
-       b.pet_dog_ok AS b_pet_dog_ok, b.pet_size_class AS b_pet_size_class,
-       b.pet_max_kg AS b_pet_max_kg,
-       b.source AS b_source, COALESCE(b.last_written::text, b.snapshot) AS b_as_of
-FROM facility f
-CROSS JOIN (SELECT ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography AS geom) o
-LEFT JOIN LATERAL (
-    SELECT f2.homepage, f2.hours_text, f2.closed_days, f2.parking, f2.pet,
-           f2.pet_allowed, f2.pet_exclusive, f2.pet_dog_ok, f2.pet_size_class, f2.pet_max_kg,
-           f2.source, f2.last_written, f2.snapshot
-    FROM facility_link l
-    JOIN facility f2 ON f2.id = l.source_ref::bigint
-    WHERE l.source = 'facility' AND l.facility_id = f.id
-    ORDER BY (f2.hours_text IS NULL), f2.last_written DESC NULLS LAST
-    LIMIT 1
-) b ON true
-WHERE f.kind <> ALL(:medical)
-  AND (CAST(:kind AS text) IS NULL OR f.kind = :kind)
-  AND ST_DWithin(f.location, o.geom, :radius_m)
+WITH merged AS (
+    SELECT f.id, f.source_ref, f.name, f.kind, f.category3,
+           ST_Y(f.location::geometry) AS lat, ST_X(f.location::geometry) AS lng,
+           ST_Distance(f.location, o.geom) AS distance_m,
+           f.address, f.phone, f.homepage, f.hours_text, f.closed_days, f.parking,
+           CASE WHEN (f.pet IS NULL OR f.pet = '{}'::jsonb)
+                     AND b.pet IS NOT NULL AND b.pet <> '{}'::jsonb
+                THEN b.pet ELSE f.pet END AS pet,
+           CASE WHEN (f.pet IS NULL OR f.pet = '{}'::jsonb)
+                     AND b.pet IS NOT NULL AND b.pet <> '{}'::jsonb
+                THEN b.pet_allowed ELSE f.pet_allowed END AS pet_allowed,
+           CASE WHEN (f.pet IS NULL OR f.pet = '{}'::jsonb)
+                     AND b.pet IS NOT NULL AND b.pet <> '{}'::jsonb
+                THEN b.pet_exclusive ELSE f.pet_exclusive END AS pet_exclusive,
+           CASE WHEN (f.pet IS NULL OR f.pet = '{}'::jsonb)
+                     AND b.pet IS NOT NULL AND b.pet <> '{}'::jsonb
+                THEN b.pet_dog_ok ELSE f.pet_dog_ok END AS pet_dog_ok,
+           CASE WHEN (f.pet IS NULL OR f.pet = '{}'::jsonb)
+                     AND b.pet IS NOT NULL AND b.pet <> '{}'::jsonb
+                THEN b.pet_size_class ELSE f.pet_size_class END AS pet_size_class,
+           CASE WHEN (f.pet IS NULL OR f.pet = '{}'::jsonb)
+                     AND b.pet IS NOT NULL AND b.pet <> '{}'::jsonb
+                THEN b.pet_max_kg ELSE f.pet_max_kg END AS pet_max_kg,
+           ((f.pet IS NULL OR f.pet = '{}'::jsonb)
+             AND b.pet IS NOT NULL AND b.pet <> '{}'::jsonb) AS pet_borrowed,
+           f.source, COALESCE(f.last_written::text, f.snapshot) AS as_of,
+           b.homepage AS b_homepage, b.hours_text AS b_hours_text,
+           b.closed_days AS b_closed_days, b.parking AS b_parking,
+           b.source AS b_source, COALESCE(b.last_written::text, b.snapshot) AS b_as_of
+    FROM facility f
+    CROSS JOIN (SELECT ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography AS geom) o
+    LEFT JOIN LATERAL (
+        SELECT f2.homepage, f2.hours_text, f2.closed_days, f2.parking, f2.pet,
+               f2.pet_allowed, f2.pet_exclusive, f2.pet_dog_ok, f2.pet_size_class, f2.pet_max_kg,
+               f2.source, f2.last_written, f2.snapshot
+        FROM facility_link l
+        JOIN facility f2 ON f2.id = l.source_ref::bigint
+        WHERE l.source = 'facility' AND l.facility_id = f.id
+        ORDER BY (f2.hours_text IS NULL), f2.last_written DESC NULLS LAST
+        LIMIT 1
+    ) b ON true
+    WHERE f.kind <> ALL(:medical)
+      AND (CAST(:kind AS text) IS NULL OR f.kind = :kind)
+      AND ST_DWithin(f.location, o.geom, :radius_m)
+      AND NOT EXISTS (SELECT 1 FROM facility_link l
+                      WHERE l.source = 'facility' AND l.source_ref = f.id::text)
+)
+SELECT * FROM merged
+WHERE
   -- 종을 열거하면서 개를 뺀 곳만 제외한다. 종 표기가 없는 곳(NULL)은 개 전제라 남는다.
-  AND (:only_dog_ok IS NOT TRUE OR f.pet_dog_ok IS NOT FALSE)
+  (:only_dog_ok IS NOT TRUE OR pet_dog_ok IS NOT FALSE)
   -- **미상은 빼지 않는다.** 크기 등급이 NULL 인 곳은 제약을 모르는 것이지 못 가는 곳이 아니다.
   AND (CAST(:dog_size AS text) IS NULL
-       OR f.pet_size_class IS NULL
-       OR f.pet_size_class = ANY(:size_accepts))
-  AND NOT EXISTS (SELECT 1 FROM facility_link l
-                  WHERE l.source = 'facility' AND l.source_ref = f.id::text)
+       OR pet_size_class IS NULL
+       OR pet_size_class = ANY(:size_accepts))
 ORDER BY distance_m
 LIMIT :limit
 """)
@@ -135,14 +159,13 @@ LIMIT :limit
 # 빌려올 수 있는 필드. 값이 비어 있을 때만 뒤 원천에서 가져온다.
 _BORROWABLE = ("homepage", "hours_text", "closed_days", "parking")
 
-# `pet` 과 그 파생 축은 **한 몸이라 필드 단위로 못 빌린다.** 축은 저장된 봉투의 함수라
-# (app/ingest/pet_axes.py), 봉투만 빌리고 축을 자기 것으로 두면 화면의 원문과 필터 결과가
-# 어긋난다 — 빌린 카페의 "10kg 이하"를 보여주면서 크기 제한 없음으로 취급하게 된다.
+# pet 과 파생 축의 effective 값은 SQL `merged` 가 이미 하나로 정한다. 여기서는 결과를 조립하고
+# 실제로 뒤 원천을 쓴 경우에만 출처 라벨을 붙인다.
 _PET_GROUP = ("pet", "pet_allowed", "pet_exclusive", "pet_dog_ok", "pet_size_class", "pet_max_kg")
 
 
 def _merge(row) -> tuple[dict, dict]:
-    """(필드값, 필드별 출처). 자기 원천 값이 있으면 그대로, 없으면 링크된 원천에서 빌린다."""
+    """(필드값, 필드별 출처). pet 묶음은 SQL 에서 이미 병합됐고 나머지만 빈 값을 빌린다."""
     values = {name: getattr(row, name) for name in (*_BORROWABLE, *_PET_GROUP)}
     borrowed: dict[str, FacilitySourceOut] = {}
     if row.b_source is None:
@@ -153,9 +176,7 @@ def _merge(row) -> tuple[dict, dict]:
         if own in (None, {}, "") and other not in (None, {}, ""):
             values[name] = other
             borrowed[name] = source
-    if not values["pet"] and row.b_pet:
-        for name in _PET_GROUP:
-            values[name] = getattr(row, f"b_{name}")
+    if row.pet_borrowed:
         borrowed["pet"] = source
     return values, borrowed
 
