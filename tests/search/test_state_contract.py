@@ -1,15 +1,16 @@
+"""검색 상태(`EditableState`)의 요청 계약 — 버전·경계·되돌림.
+
+이 파일이 깨지는 이유는 하나다: **클라이언트가 왕복시키는 state 의 해석이 바뀌었다.**
+HTTP 표면(입력 모델·상태코드)은 `tests/api/test_input_validation.py` 가 따로 지킨다.
+"""
+
 from datetime import datetime
 
 import pytest
-from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
-from app.core.config import settings
-from app.core.db import get_session
 from app.features.hospital.api import Edit, HospitalSearchIn, hospital_search
-from app.journey.api import Dest, JourneyIn
-from app.main import app
-from app.planning.state import CURRENT_STATE_VERSION, EditableState, JourneyPrefs
+from app.planning.state import CURRENT_STATE_VERSION, EditableState
 from app.refine import tools
 from app.refine.engine import refine
 from app.refine.nl import ToolCall
@@ -18,6 +19,10 @@ from tests.conftest import TEST_ORIGIN, seeded_places
 
 
 def test_legacy_state_is_migrated_without_silent_loss():
+    """
+    Contract: 옛 필드명(night/emergency/at)은 현재 필드로 옮겨지고, 값이 조용히 사라지지 않는다.
+    Decision: #35
+    """
     old = {
         "lat": 37.5,
         "lng": 127.0,
@@ -39,6 +44,10 @@ def test_legacy_state_is_migrated_without_silent_loss():
 
 
 def test_current_unversioned_state_is_stamped_and_unknown_fields_are_rejected():
+    """
+    Contract: 버전 없는 state 는 현재 버전으로 찍고, 모르는 필드·모르는 버전은 거부한다.
+    Decision: #35
+    """
     state = EditableState.model_validate({
         "lat": 37.5,
         "lng": 127.0,
@@ -60,11 +69,19 @@ def test_current_unversioned_state_is_stamped_and_unknown_fields_are_rejected():
     {"lat": 37, "lng": 127, "history": [{}] * 11},
 ])
 def test_client_state_bounds_are_enforced(patch):
+    """
+    Contract: 전 필드에 상·하한이 있다. 무상태 서버라 state 는 클라이언트가 준 입력이다.
+    Decision: #35
+    """
     with pytest.raises(ValidationError):
         EditableState.model_validate(patch)
 
 
 def test_history_snapshots_are_migrated_and_validated_too():
+    """
+    Contract: history 안의 스냅샷도 같은 마이그레이션·검증을 받는다. 재귀적으로 적용된다.
+    Decision: #35
+    """
     state = EditableState.model_validate({
         "lat": 37.5,
         "lng": 127.0,
@@ -82,6 +99,11 @@ def test_history_snapshots_are_migrated_and_validated_too():
 
 
 async def test_request_origin_overrides_round_tripped_state_without_history_entry():
+    """
+    Contract: 요청 origin 은 state 좌표를 덮되 되돌림 지점을 찍지 않는다 — GPS 갱신은
+              사용자 편집이 아니다. 넘겨받은 state 객체 자체도 변형하지 않는다.
+    Decision: #37, #46
+    """
     old = EditableState(lat=37.0, lng=127.0)
 
     result = await refine(
@@ -105,6 +127,10 @@ async def test_omitting_origin_keeps_the_pinned_search_location():
 
     앱은 pinned 상태에서 origin 을 **보내지 않아야** 한다. 습관적으로 최신 GPS 를 실으면
     위 첫 줄이 매 턴 발동한다.
+
+    Contract: origin 생략은 "state 좌표 유지"다. 앱의 deviceLocation/searchOrigin 분리가
+              서버에서 성립하는 지점.
+    Decision: #46
     """
     async with seeded_places([]) as db:
         pinned = EditableState(lat=TEST_ORIGIN[0], lng=TEST_ORIGIN[1])
@@ -121,7 +147,12 @@ async def test_omitting_origin_keeps_the_pinned_search_location():
 
 
 async def test_map_pan_is_undoable_but_a_gps_refresh_is_not():
-    """같은 좌표 이동이라도 **누가 시켰나**에 따라 되돌림 대상이 갈린다."""
+    """같은 좌표 이동이라도 **누가 시켰나**에 따라 되돌림 대상이 갈린다.
+
+    Contract: 지도 팬은 명시적 편집이라 되돌릴 수 있고, GPS 갱신은 기기 사실이라
+              history 에 안 들어간다.
+    Decision: #37, #46
+    """
     at_home = EditableState(lat=37.0, lng=127.0)
 
     gps = await refine(at_home, edits=[], utterance=None, shown_ids=[], profile=None,
@@ -138,6 +169,10 @@ async def test_map_pan_is_undoable_but_a_gps_refresh_is_not():
 
 
 def test_legacy_set_time_tool_is_migrated_but_not_advertised():
+    """
+    Contract: 폐기된 툴 이름은 받아서 옮겨주되 현재 툴 목록에는 노출하지 않는다.
+    Decision: #35
+    """
     state = tools.apply(
         EditableState(lat=37.5, lng=127.0),
         "set_time",
@@ -162,71 +197,10 @@ def test_legacy_set_time_tool_is_migrated_but_not_advertised():
     ("set_mode", {"mode": "walk", "surprise": True}),
 ])
 def test_bad_tool_calls_are_rejected(tool, args):
+    """
+    Contract: 모르는 툴·모르는 인자·범위 밖 값은 조용히 무시하지 않고 거부한다. UI 필터와
+              자연어가 같은 툴로 들어오므로 이 경계가 둘 다를 지킨다.
+    Decision: #35, #18
+    """
     with pytest.raises(ToolInputError):
         tools.apply(EditableState(lat=37.5, lng=127.0), tool, args)
-
-
-def test_api_input_models_reject_invalid_coordinates_and_unbounded_lists():
-    with pytest.raises(ValidationError):
-        HospitalSearchIn(origin=(999, -999))
-    with pytest.raises(ValidationError):
-        HospitalSearchIn()
-    with pytest.raises(ValidationError):
-        HospitalSearchIn(origin=(37.5, 127.0), shown_ids=list(range(1, 102)))
-    with pytest.raises(ValidationError):
-        JourneyIn(origin=(999, -999), dests=[Dest(lat=37.5, lng=127.0)])
-    with pytest.raises(ValidationError):
-        JourneyIn(
-            origin=(37.5, 127.0),
-            dests=[Dest(lat=37.5, lng=127.0)],
-            state=EditableState(lat=37.5, lng=127.0),
-            prefs=JourneyPrefs(),
-        )
-    with pytest.raises(ValidationError):
-        Dest(name="missing coordinates")
-
-
-async def _no_db():
-    yield None
-
-
-def test_bad_edit_is_an_http_422_not_a_500():
-    app.dependency_overrides[get_session] = _no_db
-    try:
-        with TestClient(app) as client:
-            response = client.post("/hospital/search", json={
-                "origin": [37.5, 127.0],
-                "transport": "none",
-                "with_evidence": False,
-                "edits": [{"tool": "set_mode", "args": {"mode": "bicycle"}}],
-            })
-    finally:
-        app.dependency_overrides.pop(get_session, None)
-
-    assert response.status_code == 422
-    assert "invalid args for set_mode" in response.json()["detail"]
-
-
-def test_static_map_rejects_bad_query_before_provider_call():
-    with TestClient(app) as client:
-        bad_origin = client.get("/map/static?lat=999&lng=127")
-        bad_marker = client.get("/map/static?lat=37.5&lng=127&m=999:127:A:0")
-    assert bad_origin.status_code == 422
-    assert bad_marker.status_code == 422
-
-
-def test_map_client_config_exposes_only_browser_key_id(monkeypatch):
-    monkeypatch.setattr(settings, "map_provider", "naver")
-    monkeypatch.setattr(settings, "naver_ncp_key_id", "public-key-id")
-    monkeypatch.setattr(settings, "naver_ncp_key", "server-secret")
-
-    with TestClient(app) as client:
-        response = client.get("/map/client-config")
-
-    assert response.status_code == 200
-    assert response.json() == {
-        "provider": "naver",
-        "naver_key_id": "public-key-id",
-        "fallback": "osm",
-    }
-    assert "server-secret" not in response.text
