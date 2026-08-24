@@ -1,10 +1,16 @@
+import asyncio
 from pathlib import Path
+from typing import Annotated
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.responses import FileResponse
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api import anchor, facility, places, static_map
 from app.core.config import settings
+from app.core.db import get_session
 from app.features.hospital import api as hospital
 from app.features.pharmacy import api as pharmacy
 from app.features.walk import api as walk
@@ -52,8 +58,23 @@ if settings.dev_console:
 
 @app.get("/health")
 async def health():
+    """Liveness only. Dependencies belong to readiness, not process survival."""
     return {
         "ok": True,
         "map_provider": settings.map_provider,
         "usage_policy": settings.usage_policy,
     }
+
+
+@app.get("/health/ready")
+async def readiness(db: Annotated[AsyncSession, Depends(get_session)]):
+    """Ready to serve DB-backed requests. External providers are deliberately excluded."""
+    try:
+        async with asyncio.timeout(2):
+            await db.execute(text("SELECT 1"))
+    except (SQLAlchemyError, TimeoutError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="database unavailable",
+        ) from exc
+    return {"ok": True, "database": "ready"}
