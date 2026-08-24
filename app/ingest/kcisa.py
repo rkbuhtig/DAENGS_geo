@@ -2,10 +2,12 @@
 
 `python -m app.ingest.kcisa --csv <path> --snapshot 2025-03-24`
 
-증분 없음: 원천에 안정 ID가 없어 스냅샷 **통째 교체**가 유일하게 결정론적이다.
-한 트랜잭션 안에서 전량 삭제 → 적재 → 의료 링크 재구축까지 간다. 실패하면 이전
-스냅샷이 그대로 남는다. 의료 검색이 이 표를 직접 읽지 않고 place(MOIS)를 통해
-읽는 한, 교체 중에도 병원/약국 기능은 흔들리지 않는다.
+원천에 안정 ID가 없다. 그래서 이름+좌표로 **결정적 키**를 만들어 source_ref 로 쓴다 —
+같은 시설은 매 스냅샷에서 같은 키가 나오고, facility.id 가 유지된다. 시설이 이전하거나
+개명하면 새 키가 되어 옛 행은 prune 으로 사라진다: 안정 ID 없는 원천에서 감수하는 한계다.
+
+스냅샷 의미는 synced_at 스탬프로 지킨다 (facility_store). 한 트랜잭션 안에서
+UPSERT → prune → 링크 재구축까지 가고, 실패하면 이전 스냅샷이 그대로 남는다.
 
 원천 좌표는 WGS84. '정보없음'은 None으로 눕힌다 — 모름을 값으로 취급하지 않는다.
 """
@@ -13,14 +15,17 @@
 import argparse
 import asyncio
 import csv
+import hashlib
 import json
-from datetime import date
+import re
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import SessionLocal
+from app.ingest.facility_store import prune_unseen, upsert_rows
 from app.ingest.linking import rebuild_links
 
 SOURCE = "public:kcisa:pet_facility"
@@ -48,6 +53,15 @@ _MISSING = {"", "정보없음", "-", "없음", "NULL"}
 def _clean(value: str | None) -> str | None:
     text_ = (value or "").strip()
     return None if text_ in _MISSING else text_
+
+
+def source_ref(name: str, lat: float, lng: float) -> str:
+    """결정적 키 = 정규화 이름 + 5자리 반올림 좌표(약 1m). 원천이 ID를 안 주므로 우리가 만든다.
+
+    좌표를 넣는 이유: 같은 상호의 지점이 전국에 있다 ('현대동물병원' 6곳 실측).
+    """
+    norm = re.sub(r"[\s()\[\]·.,-]", "", name.lower())
+    return hashlib.md5(f"{norm}|{lat:.5f},{lng:.5f}".encode()).hexdigest()[:20]
 
 
 def _flag(value: str | None) -> bool | None:
@@ -92,6 +106,7 @@ def parse_row(row: dict) -> dict | None:
     }
 
     return {
+        "source_ref": source_ref(name, lat, lng),
         "name": name,
         "kind": KINDS.get(category3, "etc"),
         "category3": category3,
@@ -117,37 +132,27 @@ def load_rows(path: Path) -> tuple[list[dict], int, int]:
     parsed: list[dict] = []
     rejected = 0
     duplicates = 0
-    seen: set[tuple[str, str, str]] = set()
+    seen: set[str] = set()
     with path.open(encoding="utf-8-sig", newline="") as f:
         for row in csv.DictReader(f):
-            key = (row.get("시설명", ""), row.get("위도", ""), row.get("경도", ""))
-            if key in seen:
-                duplicates += 1
-                continue
-            seen.add(key)
             item = parse_row(row)
             if item is None:
                 rejected += 1
                 continue
+            # 중복 판정은 source_ref 로 한다 — 좌표 문자열이 미세하게 달라도 같은 키가 되고,
+            # 한 배치 안에 같은 키가 두 번 들어가면 UPSERT 가 거부한다.
+            if item["source_ref"] in seen:
+                duplicates += 1
+                continue
+            seen.add(item["source_ref"])
             parsed.append(item)
     return parsed, rejected, duplicates
 
 
-_INSERT = text("""
-INSERT INTO facility (source, name, kind, category3, sido, sigungu, address, phone, homepage,
-                      hours_text, closed_days, parking, indoor, outdoor, pet,
-                      location, last_written, snapshot)
-VALUES ('kcisa', :name, :kind, :category3, :sido, :sigungu, :address, :phone, :homepage,
-        :hours_text, :closed_days, :parking, :indoor, :outdoor, CAST(:pet AS jsonb),
-        ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography, :last_written, :snapshot)
-""")
-
 async def replace_snapshot(session: AsyncSession, rows: list[dict], snapshot: str) -> dict:
-    for row in rows:
-        row["snapshot"] = snapshot
-    await session.execute(text("DELETE FROM facility WHERE source = 'kcisa'"))
-    for start in range(0, len(rows), 1000):
-        await session.execute(_INSERT, rows[start : start + 1000])
+    synced_at = datetime.now(UTC)
+    stored = await upsert_rows(session, "kcisa", rows, snapshot, synced_at)
+    pruned = await prune_unseen(session, "kcisa", synced_at)
     linked = await rebuild_links(session)
     await session.execute(
         text("""
@@ -157,7 +162,7 @@ async def replace_snapshot(session: AsyncSession, rows: list[dict], snapshot: st
         """),
         {"source": SOURCE, "watermark": snapshot},
     )
-    return {"stored": len(rows), **linked}
+    return {"stored": stored, "pruned": pruned, **linked}
 
 
 async def _run(csv_path: Path, snapshot: str) -> None:

@@ -1,11 +1,18 @@
 """한국관광공사 반려동물 동반여행 (KorPetTourService2) → facility 기반층 두 번째 원천.
 
-`python -m app.ingest.kto --snapshot 2026-08-24`
+    python -m app.ingest.kto                      # 증분 (기본)
+    python -m app.ingest.kto --mode full          # 전량 재적재 + 사라진 행 정리
+    python -m app.ingest.kto --details 300        # 반려동물 정책 상세를 300건까지 보강
 
-areaBasedList2 전량(~9,700건, 100건×97페이지)을 받아 source='kto'로 통째 교체한다.
-detailPetTour2(시설별 동반 상세)는 건당 1호출 = 전량 ~9,700호출이라 개발계정
-일일 트래픽을 넘본다 — 기본은 안 받고, `--details N`으로 상한을 정해 받는다.
-받은 만큼만 pet 에 채워지고 나머지는 raw의 목록 필드로만 남는다.
+**KCISA와 다른 점**: 이 원천은 안정 ID(`contentid`)와 항목별 `modifiedtime`을 준다.
+그래서 스냅샷 통째 교체가 아니라 UPSERT + 워터마크 증분이 맞다.
+
+**증분이 클라이언트 측인 이유**: `petTourSyncList2`의 `modifiedtime` 파라미터는
+어떤 값을 넣어도 totalCount=0을 돌려준다 (2026-08-24 실측: 20250101/20260301/
+20260601 전부 0, 파라미터 없으면 10,152). 서버 필터를 못 믿으므로 목록은 전량
+받고 **적용을 증분으로** 한다 — 워터마크보다 새 항목만 UPSERT.
+
+`showflag=0`(숨김·삭제)은 적재하지 않는다. 목록 10,152건 중 약 12%.
 
 MOIS와 같은 원칙: 사용자 검색 시 호출 없음, 배치 전용. 좌표는 원천이 WGS84.
 """
@@ -13,7 +20,8 @@ MOIS와 같은 원칙: 사용자 검색 시 호출 없음, 배치 전용. 좌표
 import argparse
 import asyncio
 import json
-from datetime import date
+from datetime import UTC, date, datetime
+from urllib.parse import unquote
 
 import httpx
 from sqlalchemy import text
@@ -21,6 +29,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.db import SessionLocal
+from app.ingest.facility_store import prune_unseen, upsert_rows
 from app.ingest.linking import rebuild_links
 
 SOURCE = "public:kto:pet_tour"
@@ -42,8 +51,6 @@ class KtoApiError(RuntimeError):
 
 
 def _params(**extra: str) -> dict:
-    from urllib.parse import unquote
-
     return {
         "serviceKey": unquote(settings.kto_service_key.strip()),
         "MobileOS": "ETC",
@@ -64,12 +71,13 @@ def _body(payload: dict) -> dict:
         raise KtoApiError(f"invalid KTO envelope: {str(payload)[:200]}") from exc
 
 
-async def fetch_all(client: httpx.AsyncClient) -> list[dict]:
+async def fetch_sync_list(client: httpx.AsyncClient) -> list[dict]:
+    """`petTourSyncList2` 전량. showflag 를 포함하므로 숨김 항목까지 보인다."""
     items: list[dict] = []
     page = 1
     while True:
         r = await client.get(
-            f"{BASE_URL}/areaBasedList2",
+            f"{BASE_URL}/petTourSyncList2",
             params=_params(numOfRows=str(settings.kto_page_size), pageNo=str(page)),
         )
         r.raise_for_status()
@@ -112,6 +120,9 @@ async def fetch_pet_detail(client: httpx.AsyncClient, content_id: str) -> dict |
 
 
 def parse_item(item: dict) -> dict | None:
+    """목록 항목 → UPSERT 파라미터. 숨김·좌표불량은 None (거부 계수용)."""
+    if str(item.get("showflag", "1")) == "0":
+        return None
     name = (item.get("title") or "").strip()
     cid = (item.get("contentid") or "").strip()
     try:
@@ -123,8 +134,12 @@ def parse_item(item: dict) -> dict | None:
     modified = (item.get("modifiedtime") or "")[:8]
     written = None
     if len(modified) == 8 and modified.isdigit():
-        written = date(int(modified[:4]), int(modified[4:6]), int(modified[6:8]))
+        try:
+            written = date(int(modified[:4]), int(modified[4:6]), int(modified[6:8]))
+        except ValueError:
+            written = None
     return {
+        "source_ref": cid,
         "name": name,
         "kind": KINDS.get(str(item.get("contenttypeid")), "etc"),
         "category3": str(item.get("lclsSystm3") or item.get("contenttypeid") or ""),
@@ -132,90 +147,110 @@ def parse_item(item: dict) -> dict | None:
         "sigungu": None,
         "address": (item.get("addr1") or "").strip() or None,
         "phone": (item.get("tel") or "").strip() or None,
-        "homepage": None,                    # detailCommon2에만 있음 — 상세 미수집이면 없음
-        "hours_text": None,                  # detailIntro2에만 있음 — 동일
+        # 목록엔 없는 필드들. detailCommon2/detailIntro2 를 붙이기 전까지 None 이고,
+        # UPSERT 가 COALESCE 라 기존 값이 있으면 덮지 않는다.
+        "homepage": None,
+        "hours_text": None,
         "closed_days": None,
         "parking": None,
         "indoor": None,
         "outdoor": None,
-        "pet": json.dumps({}, ensure_ascii=False),
+        "pet": "{}",                          # 빈 상세는 기존 상세를 덮지 않는다
         "lat": lat,
         "lng": lng,
         "last_written": written,
-        "content_id": cid,
         "raw": json.dumps(item, ensure_ascii=False),
+        "modified": item.get("modifiedtime") or "",
     }
 
 
-_INSERT = text("""
-INSERT INTO facility (source, name, kind, category3, sido, sigungu, address, phone, homepage,
-                      hours_text, closed_days, parking, indoor, outdoor, pet,
-                      location, last_written, snapshot, raw)
-VALUES ('kto', :name, :kind, :category3, :sido, :sigungu, :address, :phone, :homepage,
-        :hours_text, :closed_days, :parking, :indoor, :outdoor, CAST(:pet AS jsonb),
-        ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography, :last_written, :snapshot,
-        CAST(:raw AS jsonb))
-""")
+def watermark_of(rows: list[dict]) -> str | None:
+    stamps = [r["modified"] for r in rows if r.get("modified")]
+    return max(stamps) if stamps else None
 
 
-async def replace_snapshot(session: AsyncSession, rows: list[dict], snapshot: str) -> dict:
-    for row in rows:
-        row["snapshot"] = snapshot
-        row.pop("content_id", None)
-    await session.execute(text("DELETE FROM facility WHERE source = 'kto'"))
-    for start in range(0, len(rows), 1000):
-        await session.execute(_INSERT, rows[start : start + 1000])
-    linked = await rebuild_links(session)
-    await session.execute(
-        text("""
-            INSERT INTO ingest_state (source, watermark, updated_at)
-            VALUES (:source, :watermark, now())
-            ON CONFLICT (source) DO UPDATE SET watermark = :watermark, updated_at = now()
-        """),
-        {"source": SOURCE, "watermark": snapshot},
+async def _missing_detail_refs(session: AsyncSession, limit: int) -> list[str]:
+    """상세가 아직 없는 행부터 채운다 — 매 실행 같은 앞부분만 반복하지 않게."""
+    rows = await session.execute(
+        text("""SELECT source_ref FROM facility
+                WHERE source = 'kto' AND (pet IS NULL OR pet = '{}'::jsonb)
+                ORDER BY source_ref LIMIT :limit"""),
+        {"limit": limit},
     )
-    return {"stored": len(rows), **linked}
+    return [r.source_ref for r in rows]
 
 
-async def _run(snapshot: str, details: int) -> None:
-    async with httpx.AsyncClient(timeout=20.0) as client:
-        items = await fetch_all(client)
-        rows = [r for r in (parse_item(x) for x in items) if r is not None]
-        if not rows:
-            raise SystemExit("refusing empty KTO snapshot")
-
-        # 직렬 + 간격. 병렬 5개는 429가 확인됐다(2026-08-24). 상세 실패는 건너뛴다.
-        fetched_details = 0
-        if details > 0:
-            for row in rows[:details]:
-                try:
-                    pet = await fetch_pet_detail(client, row["content_id"])
-                except (httpx.HTTPError, KtoApiError):
-                    continue
-                if pet:
-                    row["pet"] = json.dumps(pet, ensure_ascii=False)
-                    fetched_details += 1
-                await asyncio.sleep(0.15)
-
+async def _run(mode: str, details: int) -> None:
+    synced_at = datetime.now(UTC)
     async with SessionLocal() as session:
-        stats = await replace_snapshot(session, rows, snapshot)
+        prior = (await session.execute(
+            text("SELECT watermark FROM ingest_state WHERE source = :s"), {"s": SOURCE}
+        )).scalar_one_or_none()
+
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            items = await fetch_sync_list(client)
+            rows = [r for r in (parse_item(x) for x in items) if r is not None]
+            if not rows:
+                raise SystemExit("refusing empty KTO snapshot")
+            fetched = len(rows)
+            if mode == "incremental" and prior:
+                rows = [r for r in rows if r["modified"] > prior]
+
+            watermark = watermark_of(rows) or prior
+            for row in rows:
+                row.pop("modified", None)
+
+            stored = await upsert_rows(session, "kto", rows, synced_at.date().isoformat(),
+                                       synced_at)
+            # full 에서만 정리한다. 증분은 안 바뀐 행을 안 건드리므로 prune 하면 다 지워진다.
+            pruned = await prune_unseen(session, "kto", synced_at) if mode == "full" else 0
+
+            got_details = 0
+            if details > 0:
+                await session.flush()
+                for ref in await _missing_detail_refs(session, details):
+                    try:
+                        pet = await fetch_pet_detail(client, ref)
+                    except (httpx.HTTPError, KtoApiError):
+                        continue
+                    if pet:
+                        await session.execute(
+                            text("""UPDATE facility SET pet = CAST(:pet AS jsonb)
+                                    WHERE source = 'kto' AND source_ref = :ref"""),
+                            {"pet": json.dumps(pet, ensure_ascii=False), "ref": ref},
+                        )
+                        got_details += 1
+                    await asyncio.sleep(0.15)
+
+        linked = await rebuild_links(session)
+        if watermark:
+            await session.execute(
+                text("""
+                    INSERT INTO ingest_state (source, watermark, updated_at)
+                    VALUES (:source, :watermark, now())
+                    ON CONFLICT (source) DO UPDATE SET watermark = :watermark, updated_at = now()
+                """),
+                {"source": SOURCE, "watermark": watermark},
+            )
         await session.commit()
+
     print(json.dumps(
-        {"source": SOURCE, "snapshot": snapshot, "received": len(items),
-         "rejected": len(items) - len(rows), "pet_details": fetched_details, **stats},
+        {"source": SOURCE, "mode": mode, "since": prior, "received": len(items),
+         "usable": fetched, "applied": stored, "pruned": pruned,
+         "pet_details": got_details, "watermark": watermark, **linked},
         ensure_ascii=False,
     ))
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="관광공사 반려동물 동반여행을 facility에 교체 적재")
-    parser.add_argument("--snapshot", required=True, help="적재 기준일, 예: 2026-08-24")
+    parser = argparse.ArgumentParser(description="관광공사 반려동물 동반여행을 facility에 적재")
+    parser.add_argument("--mode", choices=("incremental", "full"), default="incremental")
     parser.add_argument("--details", type=int, default=0,
-                        help="detailPetTour2 수집 상한 (건당 1호출 — 일일 트래픽 주의)")
+                        help="detailPetTour2 보강 상한 (건당 1호출 — 일일 트래픽 주의)")
     args = parser.parse_args()
     if not settings.kto_service_key:
         raise SystemExit("DAENGS_KTO_SERVICE_KEY is required")
-    asyncio.run(_run(args.snapshot, args.details))
+    asyncio.run(_run(args.mode, args.details))
 
 
 if __name__ == "__main__":
