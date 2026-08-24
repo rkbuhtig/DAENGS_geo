@@ -16,6 +16,7 @@ from app.core.config import settings
 from app.core.db import get_session
 from app.enrich.community import attach_evidence
 from app.features.hospital.actions import build_actions
+from app.geo.ranking import DISTANCE_BAND_M, DURATION_BAND_MIN, band_of
 from app.geo.schemas import MapOut, PlaceOut
 from app.geo.search import build_map, find_places
 from app.journey.engine import snapshot
@@ -159,8 +160,10 @@ async def hospital_search(
         # 전국 몇 곳짜리 보조 신호일 뿐이다. 순위 권한을 줘도 되는 이유: 쿼리가 state(symptoms·
         # specialty)에서 나오므로 같은 state 는 같은 근거를 얻는다. 한 턴의 발화 유무로 순위가
         # 흔들리던 1번 버그와 다르다. 밴드 밖은 못 뒤집는 건 _sort 가 보장한다.
-        results.append(ResultOut(**p.model_dump(), transport=t, evidence=e,
-                                 boost=len(p.prefer_hit) * 2 + len(e)))
+        # 선호 부스트는 find_places 가 이미 계산했다 (geo/ranking). 여기서는 근거만 가산한다 —
+        # 같은 선호 규칙이 두 번 계산되던 것을 없앤 자리다 (#24).
+        results.append(ResultOut(**{**p.model_dump(), "boost": p.boost + len(e)},
+                                 transport=t, evidence=e))
 
     # journey.hard_limit: 정책 경계를 넘는 유일한 스위치. 사용자가 명시적으로 켤 때만
     dropped = 0
@@ -178,7 +181,8 @@ async def hospital_search(
     results = _sort(results, resolved.view, resolved.journey)
     must = resolved.search.must
     mp = build_map(must.lat, must.lng, must.radius_m, "hospital", must.open_now,
-                   st.target.night_service, results)
+                   st.target.night_service, results,
+                   emergency=st.target.emergency_service)
     actions = build_actions(
         st, result_count=len(results), question=r.question,
         dropped_by_hard_limit=dropped,
@@ -207,9 +211,9 @@ def _sort(results: list[ResultOut], view: ViewPlan, journey: JourneyPlan) -> lis
         elif view.sort == "duration" and r.transport and journey.mode_priority:
             leg = getattr(r.transport, journey.mode_priority[0])
             primary = leg.min if (leg and leg.min is not None) else 10**6
-            band = primary // 5
+            band = band_of(primary, DURATION_BAND_MIN)
         else:
             primary = r.distance_m
-            band = primary // 500
+            band = band_of(primary, DISTANCE_BAND_M)
         return (pinned, band, -r.boost, primary)
     return sorted(results, key=key)
