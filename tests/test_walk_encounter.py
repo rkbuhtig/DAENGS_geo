@@ -63,6 +63,37 @@ def test_encounters_are_ordered_by_route_offset():
     assert [e.event_index for e in enc] == [0, 1]
 
 
+def test_out_and_back_emits_two_ordered_occurrences_for_same_facility():
+    """같은 길의 반대 방향 통과를 시설별 세션 합계 하나로 접지 않는다."""
+    east = list(range(0, 141, 7)) + list(range(133, -1, -7))
+    fixes = [fix(i * 5, distance) for i, distance in enumerate(east)]
+    enc, _ = compute(
+        fixes, [cand("same-facility", east_m=70, north_m=5)],
+        ended_s=(len(fixes) - 1) * 5,
+    )
+
+    assert len(enc) == 2
+    assert [e.facility_ref for e in enc] == ["same-facility", "same-facility"]
+    assert [e.occurrence_index for e in enc] == [0, 1]
+    assert [e.event_index for e in enc] == [0, 1]
+    assert enc[0].entered_at < enc[0].exited_at < enc[1].entered_at < enc[1].exited_at
+    assert enc[0].exited_offset_m < enc[1].entered_offset_m
+    assert all(e.entry_observed and e.exit_observed and e.pass_count == 1 for e in enc)
+
+
+def test_gap_inside_same_facility_splits_occurrences_with_unknown_boundaries():
+    """수집 공백 동안 계속 원 안이었다고 가정하지 않는다."""
+    fixes = [fix(0, 60), fix(5, 70), fix(100, 70), fix(105, 80)]
+    enc, computed = compute(
+        fixes, [cand("gap-facility", east_m=70, north_m=0)], ended_s=105,
+    )
+
+    assert computed.quality.gap_breaks == 1
+    assert len(enc) == 2
+    assert [e.occurrence_index for e in enc] == [0, 1]
+    assert all(not e.entry_observed and not e.exit_observed for e in enc)
+
+
 def test_closed_hospital_is_observed_not_filtered():
     """폐업은 필터가 아니라 데이터다 — 관측층은 큐레이션하지 않는다."""
     enc, _ = compute(straight_walk(300),
@@ -81,6 +112,24 @@ def test_stop_at_facility_marks_overlap_and_stop_seconds():
     e = enc[0]
     assert e.stop_overlap_10m and e.stop_overlap_30m and e.stop_overlap_50m
     assert e.stop_s_10m >= 25
+
+
+def test_stop_is_attached_only_to_the_overlapping_occurrence():
+    """같은 시설을 두 번 지나도 첫 통과의 정지를 두 번째 통과에 복제하지 않는다."""
+    east = list(range(0, 71, 7))
+    east += [70] * 7                                  # 첫 통과에서만 35초 정지
+    east += list(range(77, 141, 7))
+    east += list(range(133, -1, -7))                  # 돌아올 때는 그대로 통과
+    fixes = [fix(i * 5, distance) for i, distance in enumerate(east)]
+    enc, computed = compute(
+        fixes, [cand("stopped-once", east_m=70, north_m=5)],
+        ended_s=(len(fixes) - 1) * 5,
+    )
+
+    assert computed.facts.stop_count == 1
+    assert len(enc) == 2
+    assert enc[0].stop_overlap_10m and enc[0].stop_s_10m >= 30
+    assert not enc[1].stop_overlap_10m and enc[1].stop_s_10m == 0
 
 
 # ------------------------------------------------------------------ 판정층 (app/scene)

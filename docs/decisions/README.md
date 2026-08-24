@@ -64,7 +64,9 @@
   단발 `/journey`, 프로필 계약, Android 위치→검색→지도 셸, `WalkFacts` outbound 계약
 - **구현은 있으나 parked**: 자연어 refine/LLM, 커뮤니티 evidence, 경로 옵션 fan-out·시설 advice,
   병원 suggested actions. 다시 채택하기 전까지 제품 차별점이나 다음 구현 순서로 세지 않는다
-- **아직 미구현**: 산책 세션 API·저장·집계, Android foreground service·업로드, 위치 프라이버시 정책
+- **산책 구현됨**: 서버 세션 API·원순서 fix·`WalkFacts`·정지/시설 occurrence·원좌표 purge,
+  Android foreground service
+- **아직 미구현**: Android Room 영속 저장·서버 업로드·process-death 복구, 위치 프라이버시 정책
 
 따라서 #18·#20·#22·#24·#28·#33·#34·#45의 구현 계약은 역사와 재사용 가능한 경계로 남지만,
 그 위의 제품 기능 활성화는 #51에 의해 parked다. #25·#29·#30·#35~#42·#49~#50의 경계·진실성 원칙은
