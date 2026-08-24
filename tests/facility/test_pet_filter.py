@@ -4,7 +4,7 @@
 
 1. 축은 **저장된** `pet` 에서 파생된다 (입력 dict 가 아니라)
 2. 크기 필터는 **미상을 빼지 않는다** — 병원 `open_now` 와 같은 규칙
-3. `pet` 을 빌려온 행은 축도 같이 빌려온다 (원문과 필터가 어긋나면 안 된다)
+3. `pet` 을 빌려온 행은 축도 같이 빌려오고, 필터 역시 그 effective 축을 본다
 """
 
 from datetime import UTC, date, datetime
@@ -54,6 +54,18 @@ async def _search(session, **params):
         session,
     )
     return {r.name: r for r in out.results}
+
+
+async def _link(session) -> None:
+    lender, borrower = (await session.execute(text(
+        "SELECT id FROM facility WHERE source = :a UNION ALL "
+        "SELECT id FROM facility WHERE source = :b"),
+        {"a": SOURCES[0], "b": SOURCES[1]})).scalars().all()
+    await session.execute(text("""
+        INSERT INTO facility_link (facility_id, source, source_ref, method)
+        VALUES (:borrower, 'facility', :lender, 'test')
+    """), {"borrower": borrower, "lender": str(lender)})
+    await session.commit()
 
 
 async def test_axes_are_derived_from_the_stored_envelope():
@@ -111,8 +123,8 @@ async def test_species_without_dog_is_excluded_by_default():
             await _clean(session)
 
 
-async def test_borrowed_envelope_brings_its_axes_along():
-    """`pet` 만 빌리고 축을 자기 것(미상)으로 두면 원문과 필터가 어긋난다."""
+async def test_borrowed_envelope_brings_its_axes_along_and_size_filter_uses_them():
+    """빌린 `pet` 과 축을 표시할 뿐 아니라 **그 축으로 필터**해야 한다."""
     async with db_session() as session:
         await _clean(session)
         try:
@@ -120,15 +132,7 @@ async def test_borrowed_envelope_brings_its_axes_along():
                 "빌려주는쪽", pet='{"allowed": "Y", "size": "5kg 이하"}',
             )])
             await _seed(session, [facility_row("빌리는쪽")], source=SOURCES[1])
-            lender, borrower = (await session.execute(text(
-                "SELECT id FROM facility WHERE source = :a UNION ALL "
-                "SELECT id FROM facility WHERE source = :b"),
-                {"a": SOURCES[0], "b": SOURCES[1]})).scalars().all()
-            await session.execute(text("""
-                INSERT INTO facility_link (facility_id, source, source_ref, method)
-                VALUES (:borrower, 'facility', :lender, 'test')
-            """), {"borrower": borrower, "lender": str(lender)})
-            await session.commit()
+            await _link(session)
 
             found = await _search(session)
             assert "빌려주는쪽" not in found, "링크의 ref 쪽은 노출 행에서 빠진다"
@@ -137,5 +141,27 @@ async def test_borrowed_envelope_brings_its_axes_along():
             assert found["빌리는쪽"].pet["size"] == "5kg 이하"
             assert (axes.size_class, axes.max_kg) == ("small", 5.0), "원문만 빌리고 축은 미상으로 남았다"
             assert "pet" in found["빌리는쪽"].field_sources, "빌린 값에 출처가 안 붙었다"
+            assert "빌리는쪽" not in await _search(session, dog_size="large"), (
+                "필터는 자기 NULL 축을 보고 통과했는데 표시는 빌린 small 축을 내보냈다"
+            )
+        finally:
+            await _clean(session)
+
+
+async def test_borrowed_dog_exclusion_is_used_by_default_filter():
+    """빌린 봉투가 고양이 전용이면 default `only_dog_ok` 도 effective 축을 봐야 한다."""
+    async with db_session() as session:
+        await _clean(session)
+        try:
+            await _seed(session, [facility_row(
+                "고양이빌려주는쪽", pet='{"allowed": "Y", "size": "고양이"}',
+            )])
+            await _seed(session, [facility_row("고양이빌리는쪽")], source=SOURCES[1])
+            await _link(session)
+
+            assert "고양이빌리는쪽" not in await _search(session)
+            shown = await _search(session, only_dog_ok=False)
+            assert shown["고양이빌리는쪽"].pet_axes.dog_ok is False
+            assert shown["고양이빌리는쪽"].pet["size"] == "고양이"
         finally:
             await _clean(session)
