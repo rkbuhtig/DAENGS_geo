@@ -12,6 +12,7 @@
 import json
 import math
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from sqlalchemy import text
@@ -19,6 +20,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 
 from app.core.config import settings
+from app.features.walk.models import WalkFix
 from app.providers.base import Facilities, Mode, RouteResult, WalkOption
 
 # ============================================================ 순수 팩토리 (DB 불필요)
@@ -33,6 +35,24 @@ def route(minutes: float = 20, *, option: WalkOption = "recommended", mode: Mode
     return RouteResult(mode=mode, distance_m=secs if distance_m is None else distance_m,
                        duration_s=secs, source=source, option=option,
                        facilities=Facilities(**facilities))
+
+
+WALK_T0 = datetime(2026, 8, 24, 7, 0, tzinfo=UTC)
+
+
+def walk_fix(t_s: float, east_m: float, *, accuracy: float | None = 10.0,
+             client_seq: int | None = None, is_mock: bool = False,
+             chain_index: int = 0) -> WalkFix:
+    """`WALK_T0` 에서 `t_s` 초, 원점에서 동쪽 `east_m` 미터인 fix 하나.
+
+    `client_seq` 를 안 주면 시각에서 만든다 — 순서가 시간과 어긋나는 경우만 직접 준다.
+    """
+    return WalkFix(
+        client_seq=round((t_s + 86_400) * 1000) if client_seq is None else client_seq,
+        at=WALK_T0 + timedelta(seconds=t_s), lat=TEST_ORIGIN[0],
+        lng=_lng_at(TEST_ORIGIN, east_m), accuracy_m=accuracy, is_mock=is_mock,
+        chain_index=chain_index,
+    )
 
 
 def daily_hours(*ranges: tuple[str, str]) -> str:

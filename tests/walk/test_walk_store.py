@@ -13,10 +13,9 @@ from app.features.walk import store
 from app.features.walk.encounter import FacilityCandidate, compute_encounters
 from app.features.walk.facts import compute_facts
 from app.features.walk.models import WalkSession
-from tests.conftest import db_session
-from tests.test_walk_facts import fix
+from tests.conftest import db_session, walk_fix
 
-T0 = datetime(2026, 8, 24, 7, 0, tzinfo=UTC)
+WALK_T0 = datetime(2026, 8, 24, 7, 0, tzinfo=UTC)
 SID = "test:walk:store"
 
 
@@ -29,23 +28,23 @@ async def test_full_session_lifecycle():
     async with db_session() as db:
         await _cleanup(db)
         try:
-            s = WalkSession(id=SID, dog_id="halmae", started_at=T0)
+            s = WalkSession(id=SID, dog_id="halmae", started_at=WALK_T0)
             first = await store.upsert_session(db, s)
             again = await store.upsert_session(db, s)      # 멱등 재전송
             assert first.id == again.id and again.fix_count == 0
 
             # 두 배치 — seq 가 이어지고 수신 수가 누적된다
-            batch1 = [fix(t, t / 5 * 7) for t in range(0, 30, 5)]
-            batch2 = [fix(t, 35) for t in range(30, 60, 5)]
+            batch1 = [walk_fix(t, t / 5 * 7) for t in range(0, 30, 5)]
+            batch2 = [walk_fix(t, 35) for t in range(30, 60, 5)]
             assert (await store.append_fixes(db, SID, batch1)).fix_count == 6
             assert (await store.append_fixes(db, SID, batch2)).fix_count == 12
 
             loaded = await store.load_fixes_ordered(db, SID)
             assert [f.at for f in loaded] == sorted(f.at for f in batch1 + batch2)
 
-            ended = T0 + timedelta(seconds=60)
-            computed = compute_facts(SID, "halmae", T0, ended, loaded)
-            nearby = fix(30, 35)
+            ended = WALK_T0 + timedelta(seconds=60)
+            computed = compute_facts(SID, "halmae", WALK_T0, ended, loaded)
+            nearby = walk_fix(30, 35)
             encounters = compute_encounters(
                 SID, computed.segments, computed.events,
                 [FacilityCandidate(
@@ -84,8 +83,8 @@ async def test_mock_fixes_are_counted_separately():
         await _cleanup(db)
         try:
             sid = "test:walk:mock"
-            await store.upsert_session(db, WalkSession(id=sid, dog_id="halmae", started_at=T0))
-            mocked = [fix(0, 0, is_mock=True), fix(5, 7, is_mock=True)]
+            await store.upsert_session(db, WalkSession(id=sid, dog_id="halmae", started_at=WALK_T0))
+            mocked = [walk_fix(0, 0, is_mock=True), walk_fix(5, 7, is_mock=True)]
             await store.append_fixes(db, sid, mocked)
             mocks = (await db.execute(text(
                 "SELECT mock_fix_count FROM walk_session WHERE id = :id"), {"id": sid}
@@ -102,18 +101,18 @@ async def test_fix_batch_retry_is_idempotent_and_conflict_is_visible():
         await _cleanup(db)
         try:
             sid = "test:walk:retry"
-            await store.upsert_session(db, WalkSession(id=sid, dog_id="halmae", started_at=T0))
-            batch = [fix(0, 0), fix(5, 7)]
+            await store.upsert_session(db, WalkSession(id=sid, dog_id="halmae", started_at=WALK_T0))
+            batch = [walk_fix(0, 0), walk_fix(5, 7)]
             first = await store.append_fixes(db, sid, batch)
             retry = await store.append_fixes(db, sid, batch)
             assert (first.stored, first.duplicates, first.fix_count) == (2, 0, 2)
             assert (retry.stored, retry.duplicates, retry.fix_count) == (0, 2, 2)
 
-            changed = [fix(0, 99, client_seq=batch[0].client_seq)]
+            changed = [walk_fix(0, 99, client_seq=batch[0].client_seq)]
             with pytest.raises(store.FixSequenceConflictError):
                 await store.append_fixes(db, sid, changed)
 
-            changed_chain = [fix(0, 0, client_seq=batch[0].client_seq, chain_index=1)]
+            changed_chain = [walk_fix(0, 0, client_seq=batch[0].client_seq, chain_index=1)]
             with pytest.raises(store.FixSequenceConflictError):
                 await store.append_fixes(db, sid, changed_chain)
         finally:
@@ -125,10 +124,10 @@ async def test_device_and_mock_cannot_mix_in_one_session():
         await _cleanup(db)
         try:
             sid = "test:walk:origin"
-            await store.upsert_session(db, WalkSession(id=sid, dog_id="halmae", started_at=T0))
-            await store.append_fixes(db, sid, [fix(0, 0)])
+            await store.upsert_session(db, WalkSession(id=sid, dog_id="halmae", started_at=WALK_T0))
+            await store.append_fixes(db, sid, [walk_fix(0, 0)])
             with pytest.raises(store.EvidenceOriginConflictError):
-                await store.append_fixes(db, sid, [fix(5, 7, is_mock=True)])
+                await store.append_fixes(db, sid, [walk_fix(5, 7, is_mock=True)])
         finally:
             await _cleanup(db)
 
@@ -137,8 +136,8 @@ async def test_finish_lock_prevents_late_upload_from_surviving():
     sid = "test:walk:finish-race"
     async with db_session() as setup:
         await _cleanup(setup)
-        await store.upsert_session(setup, WalkSession(id=sid, dog_id="halmae", started_at=T0))
-        await store.append_fixes(setup, sid, [fix(0, 0), fix(5, 7)])
+        await store.upsert_session(setup, WalkSession(id=sid, dog_id="halmae", started_at=WALK_T0))
+        await store.append_fixes(setup, sid, [walk_fix(0, 0), walk_fix(5, 7)])
         await setup.commit()
 
     try:
@@ -146,12 +145,12 @@ async def test_finish_lock_prevents_late_upload_from_surviving():
             session = await store.lock_session(finishing, sid)
             assert session is not None
             late_upload = asyncio.create_task(
-                store.append_fixes(uploading, sid, [fix(10, 14)])
+                store.append_fixes(uploading, sid, [walk_fix(10, 14)])
             )
             await asyncio.sleep(0.05)  # late upload은 같은 세션 row lock 뒤에서 기다린다
 
             loaded = await store.load_fixes_ordered(finishing, sid)
-            computed = compute_facts(sid, "halmae", T0, T0 + timedelta(seconds=10), loaded)
+            computed = compute_facts(sid, "halmae", WALK_T0, WALK_T0 + timedelta(seconds=10), loaded)
             await store.finalize(
                 finishing, computed.facts, computed.quality, computed.events
             )

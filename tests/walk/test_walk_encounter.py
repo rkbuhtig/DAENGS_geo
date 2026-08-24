@@ -9,25 +9,25 @@ from app.features.walk.encounter import FacilityCandidate, compute_encounters
 from app.features.walk.facts import compute_facts
 from app.features.walk.models import WalkFix
 from app.scene.judgment import JUDGMENT_VERSION, judge
-from tests.test_walk_facts import ORIGIN, T0, fix
+from tests.conftest import TEST_ORIGIN, WALK_T0, walk_fix
 
 
 def cand(name_ref: str, east_m: float, north_m: float, **kw) -> FacilityCandidate:
     return FacilityCandidate(
         facility_source=kw.get("source", "kcisa"), facility_ref=name_ref,
         kind=kw.get("kind", "cafe"),
-        lat=ORIGIN[0] + north_m / 111_320,
-        lng=ORIGIN[1] + east_m / (111_320 * 0.7934),  # cos(37.4979°)
+        lat=TEST_ORIGIN[0] + north_m / 111_320,
+        lng=TEST_ORIGIN[1] + east_m / (111_320 * 0.7934),  # cos(37.4979°)
         place_active=kw.get("place_active"), as_of=None,
     )
 
 
 def straight_walk(seconds: int = 300) -> list[WalkFix]:
-    return [fix(t, t / 5 * 7) for t in range(0, seconds + 5, 5)]
+    return [walk_fix(t, t / 5 * 7) for t in range(0, seconds + 5, 5)]
 
 
 def compute(fixes, cands, ended_s=300):
-    c = compute_facts("s1", "halmae", T0, T0 + timedelta(seconds=ended_s), fixes)
+    c = compute_facts("s1", "halmae", WALK_T0, WALK_T0 + timedelta(seconds=ended_s), fixes)
     return compute_encounters("s1", c.segments, c.events, cands), c
 
 
@@ -66,7 +66,7 @@ def test_encounters_are_ordered_by_route_offset():
 def test_out_and_back_emits_two_ordered_occurrences_for_same_facility():
     """같은 길의 반대 방향 통과를 시설별 세션 합계 하나로 접지 않는다."""
     east = list(range(0, 141, 7)) + list(range(133, -1, -7))
-    fixes = [fix(i * 5, distance) for i, distance in enumerate(east)]
+    fixes = [walk_fix(i * 5, distance) for i, distance in enumerate(east)]
     enc, _ = compute(
         fixes, [cand("same-facility", east_m=70, north_m=5)],
         ended_s=(len(fixes) - 1) * 5,
@@ -83,7 +83,7 @@ def test_out_and_back_emits_two_ordered_occurrences_for_same_facility():
 
 def test_gap_inside_same_facility_splits_occurrences_with_unknown_boundaries():
     """수집 공백 동안 계속 원 안이었다고 가정하지 않는다."""
-    fixes = [fix(0, 60), fix(5, 70), fix(100, 70), fix(105, 80)]
+    fixes = [walk_fix(0, 60), walk_fix(5, 70), walk_fix(100, 70), walk_fix(105, 80)]
     enc, computed = compute(
         fixes, [cand("gap-facility", east_m=70, north_m=0)], ended_s=105,
     )
@@ -104,9 +104,9 @@ def test_closed_hospital_is_observed_not_filtered():
 
 def test_stop_at_facility_marks_overlap_and_stop_seconds():
     """시설 바로 옆에서 35초 정지 — stop_overlap 과 stop_s_10m 에 잡힌다."""
-    fixes = [fix(t, t / 5 * 7) for t in range(0, 105, 5)]            # 0~100s → 140m
-    fixes += [fix(t, 140) for t in range(105, 140, 5)]               # 35초 정지 @140m
-    fixes += [fix(t, 140 + (t - 140) / 5 * 7) for t in range(140, 205, 5)]
+    fixes = [walk_fix(t, t / 5 * 7) for t in range(0, 105, 5)]            # 0~100s → 140m
+    fixes += [walk_fix(t, 140) for t in range(105, 140, 5)]               # 35초 정지 @140m
+    fixes += [walk_fix(t, 140 + (t - 140) / 5 * 7) for t in range(140, 205, 5)]
     enc, c = compute(fixes, [cand("stopped-at", east_m=140, north_m=5)], ended_s=200)
     assert c.facts.stop_count == 1
     e = enc[0]
@@ -120,7 +120,7 @@ def test_stop_is_attached_only_to_the_overlapping_occurrence():
     east += [70] * 7                                  # 첫 통과에서만 35초 정지
     east += list(range(77, 141, 7))
     east += list(range(133, -1, -7))                  # 돌아올 때는 그대로 통과
-    fixes = [fix(i * 5, distance) for i, distance in enumerate(east)]
+    fixes = [walk_fix(i * 5, distance) for i, distance in enumerate(east)]
     enc, computed = compute(
         fixes, [cand("stopped-once", east_m=70, north_m=5)],
         ended_s=(len(fixes) - 1) * 5,
@@ -134,9 +134,9 @@ def test_stop_is_attached_only_to_the_overlapping_occurrence():
 
 # ------------------------------------------------------------------ 판정층 (app/scene)
 def test_judgment_passed_vs_lingered_vs_visited():
-    fixes = [fix(t, t / 5 * 7) for t in range(0, 105, 5)]
-    fixes += [fix(t, 140) for t in range(105, 140, 5)]
-    fixes += [fix(t, 140 + (t - 140) / 5 * 7) for t in range(140, 205, 5)]
+    fixes = [walk_fix(t, t / 5 * 7) for t in range(0, 105, 5)]
+    fixes += [walk_fix(t, 140) for t in range(105, 140, 5)]
+    fixes += [walk_fix(t, 140 + (t - 140) / 5 * 7) for t in range(140, 205, 5)]
     # drive-by 횡거리 45m: 30m 원엔 아예 안 들어온다. 참고 — 보행 1.4m/s 기준
     # 횡거리 29m 이하면 30m 원 체류가 10초를 넘어 '머묾'이 된다. 이 민감도가
     # LINGER_MIN_DWELL_S 가 잠정이고 실측(PR39)이 필요한 이유다.
@@ -150,8 +150,8 @@ def test_judgment_passed_vs_lingered_vs_visited():
 
 
 def test_judgment_unjudgeable_when_accuracy_exceeds_band():
-    fixes = [WalkFix(client_seq=i, at=T0 + timedelta(seconds=t), lat=ORIGIN[0],
-                     lng=fix(t, t / 5 * 7).lng, accuracy_m=45.0)
+    fixes = [WalkFix(client_seq=i, at=WALK_T0 + timedelta(seconds=t), lat=TEST_ORIGIN[0],
+                     lng=walk_fix(t, t / 5 * 7).lng, accuracy_m=45.0)
              for i, t in enumerate(range(0, 305, 5))]
     enc, _ = compute(fixes, [cand("blurry", 210, 12)])
     assert judge(enc[0], band=30) == "unjudgeable"   # 오차 45m 로 30m 원 판정은 소음
