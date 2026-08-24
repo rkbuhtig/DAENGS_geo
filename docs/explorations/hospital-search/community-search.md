@@ -1,9 +1,14 @@
 ---
-status: exploring
+status: parked
+implementation: draft
+last_verified: 2026-08-24
 date: 2026-08-19
 depends-on: 네이버 개발자센터 검색 API 키 (지도와 별개 콘솔), 병원명↔DB 매칭
 ---
 # 커뮤니티 검색 — 주인의 문장으로, 지도가 아니라 커뮤니티를
+
+> 결정 #51 이후 제품 코어에서 parked. 쿼리 재작성·병원명 매칭과 fake fixture는 남아 있지만
+> 실제 NAVER 검색 구현은 없고 기본 provider는 `none`이다.
 
 **발상 (사용자)**: 프로필이 쌓여 있으니 그걸로 **검색 쿼리를 재작성**해서 포털 검색을 돌리면, 리뷰까지 안 가도 병원이 스스로 노출한 소개 정보나 남들 경험담에서 걸리는 게 있지 않을까.
 

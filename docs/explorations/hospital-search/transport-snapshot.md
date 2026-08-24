@@ -1,11 +1,17 @@
 ---
-status: exploring
+status: parked
+implementation: working-skeleton
+last_verified: 2026-08-24
 date: 2026-08-19
 depends-on: 네이버 or 카카오모빌리티 키(자동차), 카카오 신규 도보 API 스펙 확인(폴백)
 live: TMAP 도보 실호출 검증 완료 (research/2026-08-19-tmap-live.md)
 research: ../../research/2026-08-19-route-apis.md
 ---
 # 교통 스냅샷 — 네비가 아니라 비교표
+
+> 공용 `POST /journey`, provider 경계와 `measured/estimate/unavailable` 계약은 유지한다. 다중
+> 도보 옵션 비교·시설 advice를 제품 차별점으로 쓰는 것은 결정 #51 이후 parked이며, 기본 조립은
+> 모든 모드가 `fake` estimate다.
 
 병원마다 **같은 칸**에 이동 정보를 찍는다. 순간 안내는 제공사 앱으로 넘기고(딥링크), 우리는 "걸으면 35분인데 차로 11분"이 한눈에 보이는 정적 비교만.
 
@@ -20,7 +26,7 @@ research: ../../research/2026-08-19-route-apis.md
 - **도보 시간 = 개의 부담.** 할매 13분은 상한 근처, 두부는 폭염이면 3분도 비권장 → 분 옆에 `advice`
 - **장애물이 곧 조건.** 계단 1회는 노견·관절에 안 됨, 지하도는 대형견 스트레스, 횡단보도 N회는 시간에 숨은 비용
 - **차량**: `has_car` 없으면 택시비 칸. 야간은 교통량 달라 `as_of` 시각 명시
-- **대중교통**: `size_class=small`만 칸이 생김. 대형견은 못 탐
+- **대중교통**: 개 크기와 `OwnerProfile.transit_ok`가 모두 허용할 때만 칸이 생김
 - **도보 속도**: 제공사는 성인 기준. 노견·단두종은 계수 곱함
 
 ## 출처 (research 참조)

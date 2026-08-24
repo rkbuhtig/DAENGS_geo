@@ -1,5 +1,7 @@
 ---
-status: exploring
+status: parked
+implementation: none
+last_verified: 2026-08-24
 depends-on: 수집 코어 (contracts/walk-record.md) 가 먼저 돈다
 ---
 # 3단 루프 · 케어 밸런스 — 코어가 아니다
