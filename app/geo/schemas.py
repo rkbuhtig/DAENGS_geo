@@ -14,7 +14,8 @@ class SearchParams(BaseModel):
     radius_m: int = Field(2000, ge=100, le=20000)
     kind: Kind | None = None            # None = 둘 다
     open_now: bool = False
-    night: bool = False
+    night: bool = False                 # 야간 표방 **우선** (필터 아님 — 결정 #20)
+    emergency: bool = False             # 응급 표방 우선. resolver 쪽 emergency_service 와 같은 뜻
     limit: int = Field(20, ge=1, le=100)
     at: datetime | None = None          # 판정 기준 시각. None = 서버 now
 
@@ -39,6 +40,7 @@ class PlaceOut(BaseModel):
     closed_days: str | None = None
     hours_source: dict | None = None    # {"name": 원천, "as_of": 기준일} — 빌린 값엔 딱지
     prefer_hit: list[str] = Field(default_factory=list)  # 선호 조건과 태그 교집합 — 부스트 근거
+    boost: int = 0                      # 선호 적중 부스트. 거리 밴드 안에서만 순서를 바꾼다
 
 
 class MapOut(BaseModel):
