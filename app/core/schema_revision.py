@@ -1,0 +1,88 @@
+"""alembic 도입 전부터 쓰던 DB 가 **실제로** 어디까지 적용됐는지 판별한다.
+
+일괄 `stamp` 를 금지하기 위해 있다. 기존 initdb 방식은 볼륨 최초 생성 때만 돌아서, 그 뒤에
+추가된 마이그레이션은 각 DB 마다 적용됐을 수도 아닐 수도 있다. 그런 DB 를 head 로 stamp 하면
+뒤처진 스키마를 최신이라고 위장하게 되고, 이 러너를 넣은 이유 자체가 첫날 무너진다.
+
+판별은 스키마 지표로 한다 — 각 마이그레이션이 **처음** 만드는 테이블이나 컬럼 하나.
+"""
+
+from collections.abc import Callable
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class LegacyMarker:
+    """리비전 하나와, 그게 적용됐는지 알려주는 스키마 지표."""
+
+    revision: str
+    source: str
+    table: str
+    column: str | None = None
+
+    def __str__(self) -> str:
+        return f"{self.table}.{self.column}" if self.column else f"{self.table} 테이블"
+
+
+# alembic/versions 의 체인과 **같은 순서**여야 한다. 011 이 두 개인 것은 파일명 정렬이 아니라
+# main 에 들어온 순서를 따른다 — walk_fix_chain 이 먼저, anchor 가 PR #46 으로 나중.
+LEGACY_MARKERS: tuple[LegacyMarker, ...] = (
+    LegacyMarker("0001", "001_init.sql", "place"),
+    LegacyMarker("0002", "002_tags_scale.sql", "place", "tags"),
+    LegacyMarker("0003", "003_mois_ingest.sql", "ingest_state"),
+    LegacyMarker("0004", "004_kcisa_facility.sql", "facility"),
+    LegacyMarker("0005", "005_facility_link_multi_source.sql", "facility_link"),
+    LegacyMarker("0006", "006_facility_source_ref.sql", "facility", "source_ref"),
+    LegacyMarker("0007", "007_walk_sessions.sql", "walk_session"),
+    LegacyMarker("0008", "008_walk_collection_hardening.sql", "walk_session", "state"),
+    LegacyMarker("0009", "009_walk_encounter.sql", "walk_encounter"),
+    LegacyMarker("0010", "010_walk_encounter_occurrence.sql", "walk_encounter",
+                 "occurrence_version"),
+    LegacyMarker("0011", "011_walk_fix_chain.sql", "walk_fix", "chain_index"),
+    LegacyMarker("0012", "011_anchor.sql", "anchor"),
+)
+
+HEAD = LEGACY_MARKERS[-1].revision
+
+
+@dataclass(frozen=True)
+class Detection:
+    """`stamp` 해도 되는 지점, 또는 왜 안 되는지."""
+
+    stamp_at: str | None
+    """연속으로 적용된 마지막 리비전. None 이면 빈 DB 라 stamp 없이 upgrade 하면 된다."""
+
+    missing: tuple[LegacyMarker, ...]
+    """아직 적용되지 않은 것들. upgrade 가 채운다."""
+
+    out_of_order: tuple[LegacyMarker, ...]
+    """빠진 것 **뒤에** 있는데 이미 존재하는 것. 있으면 자동 판별을 신뢰할 수 없다."""
+
+    @property
+    def safe(self) -> bool:
+        return not self.out_of_order
+
+    @property
+    def up_to_date(self) -> bool:
+        return self.stamp_at == HEAD
+
+
+def detect(present: Callable[[LegacyMarker], bool]) -> Detection:
+    """지표 존재 여부를 묻는 함수 하나만 받는다. DB 접속은 호출자 몫이라 테스트가 쉽다.
+
+    연속으로 존재하는 앞부분까지가 `stamp_at` 이다. 그 뒤에도 존재하는 게 섞여 있으면
+    (`out_of_order`) 손으로 만졌거나 revert 된 흔적이므로 판별을 포기한다 — 틀린 stamp 는
+    stamp 를 안 한 것보다 나쁘다.
+    """
+    applied: list[LegacyMarker] = []
+    for marker in LEGACY_MARKERS:
+        if not present(marker):
+            break
+        applied.append(marker)
+
+    rest = LEGACY_MARKERS[len(applied):]
+    return Detection(
+        stamp_at=applied[-1].revision if applied else None,
+        missing=tuple(rest),
+        out_of_order=tuple(m for m in rest if present(m)),
+    )

@@ -67,20 +67,37 @@ uv run pytest
 ### 스키마 변경
 
 `alembic` 한 경로다. `migrations/*.sql` 은 동결된 역사이고 새로 추가해도 실행되지 않는다
-([migrations/README.md](migrations/README.md)).
+([migrations/README.md](migrations/README.md)). 그 12개는 리비전 `0001`~`0012` 로 한 글자도
+바뀌지 않은 채 들어가 있다.
 
 ```bash
 uv run alembic upgrade head                      # 현재까지 적용
-uv run alembic revision -m "무엇을 바꾸는지"      # 새 변경
+uv run alembic revision -m "무엇을 바꾸는지"      # 새 변경 (손으로 쓴다 — 아래 참고)
 uv run alembic current                           # 이 DB 가 어디까지 왔나
+uv run alembic upgrade head --sql                # 실행하지 않고 SQL 만 출력
 ```
 
 DB URL 은 `alembic.ini` 가 아니라 앱과 같은 `settings.database_url` 에서 온다. 앱은 asyncpg,
 마이그레이션은 동기 psycopg 로 붙는다 (`alembic/env.py`).
 
-**이미 스키마가 있는 DB**(alembic 도입 전부터 쓰던 것)는 `upgrade` 대신 한 번만
-`uv run alembic stamp 0001` 을 한다. baseline 을 실제로 실행하면 008 의 백필 UPDATE 가
-다시 돌아 `walk_facts.record_version` 이 3에서 2로 내려간다.
+**`--autogenerate` 는 꺼져 있다.** ORM 에는 `Place` 하나뿐이라 metadata 를 넘기면 facility ·
+walk · anchor 를 비롯한 대부분의 테이블을 "삭제 대상"으로 판단한다. 리비전은 손으로 쓴다.
+되살리려면 전체 테이블 metadata 와 PostGIS 시스템 객체 제외 필터가 함께 필요하다.
+
+#### alembic 도입 전부터 쓰던 DB
+
+**일괄 `stamp head` 를 하면 안 된다.** 기존 initdb 방식은 볼륨 최초 생성 때만 돌았기 때문에,
+그런 DB 는 007 에서 멈췄는지 011 까지 왔는지 각자 다르다. 뒤처진 스키마를 최신으로 위장하면
+이 러너를 넣은 이유가 첫날 무너진다. 그래서 먼저 판별한다:
+
+```bash
+uv run python -m scripts.detect_schema_revision
+```
+
+스키마 지표로 실제 적용 지점을 찾아 칠 명령을 알려준다 (`stamp 0008` 뒤 `upgrade head` 처럼).
+빠진 것 뒤에 이미 존재하는 스키마가 있으면 판별을 포기하고 사람에게 넘긴다 — 틀린 stamp 는
+stamp 를 안 한 것보다 나쁘다. 판별 규칙은 `app/core/schema_revision.py`, 테스트는
+`tests/test_schema_revision.py`.
 
 Android 앱은 [`android/README.md`](android/README.md)를 따른다. 백엔드와 같은 레포에 있지만
 Gradle 프로젝트는 `android/` 아래에 독립되어 있어 Python 실행·테스트와 섞이지 않는다.

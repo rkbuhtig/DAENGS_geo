@@ -16,4 +16,11 @@ uv run alembic upgrade head
 결과이고, 둘이 각각 다른 테이블을 건드려서 **우연히** 무사했다. 번호로 순서를 정하던
 방식이 실패한 지점이고, alembic 을 넣은 이유이기도 하다.
 
+alembic 도입 전부터 쓰던 DB 는 이 중 어디까지 적용됐는지 각자 다르다 (그게 initdb 방식의
+문제였다). 그래서 일괄 stamp 하지 않고 판별부터 한다:
+
+```bash
+uv run python -m scripts.detect_schema_revision
+```
+
 `dev_seed.sql` 은 마이그레이션이 아니라 개발용 시드다. 계속 수동으로 쓴다.
