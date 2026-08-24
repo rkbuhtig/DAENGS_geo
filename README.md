@@ -6,11 +6,14 @@
 | 기능 | 성격 | 진입 |
 |---|---|---|
 | **병원/약국 찾기** | 요청-응답 (검색 + 자연어 파싱) | 챗봇 대화 / 일반 메뉴 |
-| **산책 세션** | GPS 스트림 수신 + 상태 유지 + 트리거 서술 | Android 앱 (백그라운드 GPS) |
+| **산책 기록** | 수집 계약(`WalkFix`·`WalkSession`·`WalkFacts`). API·저장은 아직 없음 | Android foreground service 구현 예정 |
 
 ## 상태
 
-**워킹 스켈레톤 동작** (2026-08-19). 키 0개로 메뉴/딥링크 진입 → 재조정(UI·자연어) → 검색 → 교통 스냅샷 → 근거 부착까지 끝까지 돈다. 외부 것은 전부 결정론 가짜, 인터페이스는 진짜.
+**현재 스냅샷 검증: 2026-08-24.** 병원/약국 검색 백엔드와 Android 지도 셸이 동작한다.
+Python 테스트 200개와 Android 단위 테스트 32개, debug APK 빌드가 통과한다. 산책은 outbound
+계약까지만 있고 세션 API·저장·집계와
+Android 백그라운드 기록은 아직 구현하지 않았다.
 
 ```
 app/
@@ -30,11 +33,19 @@ app/
 android/         Kotlin/Compose 단일 모듈 — 위치 → 검색 → NAVER 지도 → actions/전화 수직 절단면
 ```
 
-**LLM은 `utterance`가 있을 때만**, 그것도 "말 → 툴 호출" 번역 한 겹. 병원 정보 생성 안 함. UI 필터(`edits`)와 자연어는 같은 툴로 수렴.
+## 현재 코어와 parked 구현
 
-진짜 vs 가짜: PostGIS 검색·영업시간·태깅·상태 편집·diff·스냅샷 조립·advice 규칙은 진짜 /
-LLM·경로·커뮤니티 검색·프로필은 기본 가짜 또는 미설정. 지도 표면은 키를 넣으면 NAVER
-Dynamic Map + Static Map, 없으면 `/dev`에서만 OSM으로 내려간다.
+현재 코어는 [결정 #51](docs/decisions/2026-08-22-walk-as-spine.md)에 따라 장소 데이터,
+위치 인프라, Android 위치→검색→지도 셸, 산책 사실 계약이다. 자연어 refine/LLM,
+커뮤니티 evidence, 경로 옵션 비교·시설 advice, suggested actions는 코드와 테스트가 있지만
+제품 코어에서는 **parked**다. 다시 채택하기 전까지 다음 구현 순서나 제품 차별점으로 세지 않는다.
+
+parked된 LLM 경계는 `utterance`가 있을 때만 “말 → 툴 호출” 번역 한 겹으로 동작하며 병원
+정보를 생성하지 않는다. UI 필터(`edits`)와 자연어는 같은 툴로 수렴한다.
+
+실제 구현 경계: PostGIS 검색·공공데이터 적재·영업시간 판정·태깅·상태 편집·provider 진실성
+계약·Usage Gate는 실제 코드다. LLM·경로·커뮤니티 검색·프로필은 기본 가짜 또는 미설정이다.
+지도 표면은 키를 넣으면 NAVER Dynamic Map + Static Map, 없으면 `/dev`에서만 OSM으로 내려간다.
 
 ## 실행
 
@@ -108,21 +119,23 @@ uv run python -m app.ingest full --kind pharmacy
 POST /hospital/search
 { "dog_id":"halmae", "origin":[37.4979,127.0276] }                                   ← 메뉴 진입(초안)
 { "dog_id":"halmae", "state":{...}, "utterance":"눈이 뿌옇고 걸어서 갈 데", "shown_ids":[..] }  ← 자연어/음성
-{ "dog_id":"halmae", "state":{...}, "edits":[{"tool":"set_walk_max","args":{"minutes":15}}] }  ← 필터 UI
-{ "dog_id":"dubu",   "state":{"lat":..,"lng":..,"night":true,"open_now":true} }         ← 챗봇 카드 딥링크
+{ "dog_id":"halmae", "state":{...}, "edits":[{"tool":"set_walk_max_min","args":{"minutes":15}}] }  ← 필터 UI
+{ "dog_id":"dubu",   "state":{"state_version":2,"lat":..,"lng":..,
+  "target":{"open_now":true,"night_service":true},"journey":{},"sort":"distance","history":[]} }
 → { state, results[{..., tags, transport{walk{min,m,facilities,advice,why}, car{taxi_fare}, transit}, evidence[]}],
-    map{deeplink,web_url}, changes[], applied[], question?, reply }
+    map{preview_url,deeplink,web_url}, changes[], applied[], question?, reply,
+    resolution[], show_call_cta, call_reasons[], actions[] }
 ```
 시나리오 드라이버 예시는 커밋 메시지·`docs/research/2026-08-19-skeleton-run.md` 참고.
 
-## 확정 사항 (2026-08-19)
+## 현재 확정 사항 (2026-08-24)
 
 - 백엔드: **FastAPI / Python**, DB: **PostgreSQL + PostGIS** (팀 pgvector와 동거)
-- 클라이언트: 웹 메인 + **Android(Kotlin) 전용** 앱. iOS 없음
-- 산책은 백그라운드 위치가 필요하므로 네이티브 앱에서만. 병원/약국은 웹·앱 양쪽
+- 기준 클라이언트: **Android(Kotlin) 전용** 앱. iOS 없음. `/dev`는 제품 웹이 아니라 검증 콘솔
+- 산책은 백그라운드 위치가 필요하므로 네이티브 앱에서만. foreground service는 아직 미구현
 - 반려견 프로필은 이 레포가 소유하지 않는다 → 외부 계약으로 소비 (`docs/contracts/dog-profile.md`)
-- 산책 게임에 판타지 세계관 없음. 에이전트 = 프로필 기반 **개의 목소리**, 진행도 = 현실 기반
-- 판정·보상은 코드가 결정, LLM은 서술과 자연어 파싱만
+- 산책 코어는 `WalkFacts`까지의 사실 수집. 목표·보상·개의 목소리·서술은 선택적 소비자
+- 판정이 추가되면 코드를 사용하고 LLM은 확정된 사실의 서술이나 자연어 파싱만 담당
 
 ## 문서
 

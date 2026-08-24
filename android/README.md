@@ -1,5 +1,8 @@
 # DAENGS Android 워킹 스켈레톤
 
+마지막 검증: 2026-08-24 — 단위 테스트 32개와 `assembleDebug` 통과. 실기기 smoke와 산책
+foreground service는 아직 미완료다.
+
 `android/app` 단일 모듈이 실제 위치에서 `POST /hospital/search`를 호출하고 NAVER 지도,
 마커, 하단 병원 카드, `actions[]`, 안전 통지, 전화 동작을 렌더링한다. 같은 지도에서 연속
 현재 위치, 선택형 트레일과 로컬 territory 레이어도 실행한다. 백그라운드 위치 추적은 아직

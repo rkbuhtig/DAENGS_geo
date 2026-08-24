@@ -13,7 +13,7 @@
 | 견주 | 개 | 아는 정도 | **모르는 것** | 서비스에 기대하는 것 |
 |---|---|---|---|---|
 | **지현** | 삼월 | `none` | **뭘 모르는지도 모른다.** 동물병원이 다 같은 줄 안다. 접종 전엔 땅에 못 내려놓는다는 것도 방금 알았다 | 증상을 문장으로 던지면 조건으로 번역해 주는 것. 되묻기(`ask`)가 자주 발동해야 정상 |
-| **명수** | 할매 | `basic` | **'24시'와 '응급'이 다르다는 것.** 새벽 3시, 지금 문 연 곳이 어딘지만 필요 | 클릭 최소. `open_now`+`night` 즉시 적용, 전화번호가 1급 정보. 차 없어 택시뿐 |
+| **명수** | 할매 | `basic` | **'24시'와 '응급'이 다르다는 것.** 새벽 3시, 지금 문 연 곳이 어딘지만 필요 | 클릭 최소. `open_now`+`urgency` 적용, 전화번호가 1급 정보. 차 없어 택시뿐 |
 | **은영** | 장군, 초코 | `experienced` | **없다.** 2차·전문의·과목을 안다. 병원을 지목할 수도 있다 | 모르는 건 하나뿐 — **"거기까지 우리 개가 갈 수 있나."** 이 사람에겐 `journey`가 본체다 |
 | **태우** | 두부, 뽀글 | `basic` | **도보권에 뭐가 있는지.** 큰 병원은 멀다는 것만 안다 | 반경·도보 시간이 결정적. 대중교통 동반 가능 여부 |
 | **서준** | 콩이, 바우 | `basic` | 대형견을 받아주는 곳이 따로 있는지 | 차는 있는데 바우(32kg)를 못 안는다 — 주차·통로가 실제 제약 |
@@ -50,7 +50,7 @@ vet_literacy   enum?    none / basic / experienced                  → reply �
 
 - **`can_carry_kg`** — 지금 `spots.py`는 소형견이면 무조건 "계단 — 안고 이동"이라고 한다. 주인이 못 안으면
   그건 조언이 아니라 소음이다. 장군(34kg)·바우(32kg)에서 바로 갈린다.
-- **`transit_ok`** — 현재 대중교통 노출은 **개 크기(small)만으로** 정해진다. 실제로는 개 크기 + 사람 의사의 합이다.
+- **`transit_ok`** — 대중교통 노출은 현재 개 크기 + 견주 의사의 합으로 resolver에 배선됐다.
   은영은 차가 있어서 안 타고, 태우는 차가 없어서 타야 한다 — 둘 다 개 크기와 무관한 이유다.
 - **`vet_literacy`** — 지현에게 "2차 병원 위주로 좁혔습니다"는 아무 의미가 없다. 같은 `changes`도 사람에 따라
   풀어 써야 한다. LLM이 정보를 만드는 게 아니라 **이미 확정된 변경을 다른 어휘로 말하는** 것이므로 원칙에 안 어긋난다.
@@ -63,11 +63,12 @@ vet_literacy   enum?    none / basic / experienced                  → reply �
 
 ## 배선 상태
 
-계약과 페르소나만 만들었고 **판정에는 아직 안 물렸다.** 지금 `OwnerProfile`을 읽는 코드는 없다.
+`OwnerProfile` 조회와 `transit_ok`는 현재 병원·journey resolver에 배선됐다. 나머지 필드는 계약과
+테스트는 있으나 실제 판정에는 아직 일부만 연결돼 있다.
 
 | 붙일 곳 | 지금 | 붙이면 |
 |---|---|---|
-| `journey.engine.snapshot` | `show_transit`이 개 크기만 봄 | `size_class == "small" and owner.transit_ok is not False` |
-| `journey.advice.walk_advice` | 계단이면 무조건 level 2 | `owner.can_carry(dog)`가 True면 완화 |
-| `refine.engine.draft` | 프로필로 도보 옵션 기본값만 | `has_car is False`면 mode 기본값을 walk로 |
-| `features/hospital.api` | `reply`가 한 가지 어휘 | `vet_literacy`로 상세도 조절 |
+| `planning.resolver._available_modes` | **배선 완료**: 개 크기 + `owner.transit_ok` | 실제 외부 프로필 원천 연결 |
+| `journey.advice.walk_advice` | `can_carry()` 계약·테스트만 있고 advice 미배선 | True면 계단 장벽 완화 |
+| `refine.engine.draft` | 개 프로필로 도보 옵션 기본값만. `OwnerProfile.has_car` 미배선 | mode 기본값 정책을 채택할 때 연결 |
+| `features/hospital.api` | owner를 읽지만 `reply`는 한 가지 어휘 | `vet_literacy` 소비자를 채택할 때 연결 |

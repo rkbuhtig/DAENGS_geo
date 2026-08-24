@@ -2,6 +2,10 @@
 
 문서는 한 줄기가 아니라 **갈래**로 자란다. 뭐가 확정이고 뭐가 탐색 중인지 여기서 본다.
 
+현재 제품 범위의 기준은 [결정 #51](decisions/2026-08-22-walk-as-spine.md), 현재 구현 조립의
+기준은 [provider-assembly.md](provider-assembly.md)다. 날짜가 파일명에 들어간 `research/`는 당시
+관찰 기록이며 현재 상태 문서로 읽지 않는다.
+
 ```
 overview.md          컨셉·범위. 거의 안 바뀜
 provider-assembly.md 현재 어떤 공급자가 어느 표면에 조립됐는지 + 교체 실험 로그
@@ -15,13 +19,16 @@ backlog.md           갈래에 안 붙는 미결
 ## 갈래 상태
 `exploring` 파는 중 · `adopted` 채택 (decisions/에 한 줄 생김) · `parked` 보류 · `rejected` 기각 (지우지 않음 — 같은 질문 다시 안 하려고)
 
+`status`는 **제품 결정**, 선택적인 `implementation`은 **코드 성숙도**다. 구현돼 있어도 현재
+제품 범위에서 빠졌다면 `status: parked`, `implementation: working-skeleton`이 될 수 있다.
+
 ## 주제
 - [공급자 조립 현황](provider-assembly.md) — 현재 선택·폴백·교체 지점·검증 로그
-- [병원 찾기](explorations/hospital-search/README.md) — 13갈래, 오늘의 초점은 [community-search](explorations/hospital-search/community-search.md)
+- [병원 찾기](explorations/hospital-search/README.md) — 장소·거리 코어와 parked 실험을 분리
 - [지도 제공사](explorations/map-provider/README.md)
 - [산책](explorations/walk/README.md) — 코어는 수집 계약, 갈래는 전부 소비자 옵션
 - [모바일 셸](explorations/mobile-shell/README.md) — 폰에서의 제품 화면. 공간 표면 vs 에피소드 표면
-- [병원은 산책의 모드, 산책이 척추](decisions/2026-08-22-walk-as-spine.md) — 08-19 → 08-22 의 사슬. 왜 그렇게 이어졌나 (proposed)
+- [결정 #51 — 병원은 산책의 모드, 산책이 척추](decisions/2026-08-22-walk-as-spine.md) — 08-19 → 08-22의 사슬과 2026-08-24 채택 범위
 
 ## 계약
 - [반려견 프로필](contracts/dog-profile.md) — 외부에서 받는 형태 + 가상 페르소나 8마리 (축: 지도 위 난점)
@@ -30,6 +37,9 @@ backlog.md           갈래에 안 붙는 미결
 - [산책 기록](contracts/walk-record.md) — **우리가 주는 것** (outbound). 사실만, 의미 없음, 테스트로 고정
 
 ## 조사
+
+아래 문서는 제목 날짜의 스냅샷이다. 결론이 뒤 결정에서 바뀌어도 본문을 현재형으로 다시 쓰지
+않고, 필요한 경우 `superseded_by` 안내만 추가한다.
 - [지도 제공사 요금·쿼터·코드](research/2026-08-19-map-provider-pricing.md)
 - [리뷰/평가 데이터 출처](research/2026-08-19-review-sources.md)
 - [쿼리 재작성 실험](research/2026-08-19-query-rewrite-experiment.md)
@@ -48,7 +58,10 @@ backlog.md           갈래에 안 붙는 미결
 ```
 ---
 status: exploring | adopted | parked | rejected
+implementation: none | draft | working-skeleton | verified  # 선택
+last_verified: YYYY-MM-DD                                   # 현재 상태를 주장할 때
 depends-on: (있으면)
 ---
 ```
 주제 README 표에 한 줄 추가. adopted 되면 `decisions/README.md`에 번호 붙여 한 줄, 갈래 파일은 그대로 둔다.
+`working-skeleton`은 status가 아니라 implementation 값이다.

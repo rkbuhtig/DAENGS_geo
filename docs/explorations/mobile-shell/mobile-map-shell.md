@@ -1,11 +1,14 @@
 ---
-status: working-skeleton
-depends-on: 결정 #2(Android 전용 앱), #23(/dev는 앱 UI가 아님), #44(네이버 지도 표면)
+status: adopted
+implementation: working-skeleton
+last_verified: 2026-08-24
+depends-on: 결정 #2(Android 전용 앱), #23(/dev는 앱 UI가 아님), #44(네이버 지도 표면), #48(지도 레이어), #51(수집 코어)
 ---
 # 모바일 셸 — 지도는 등뼈지만 산책의 주인공 화면은 아니다
 
-지금 제품의 화면은 `/dev` 하나뿐이고, 그건 개발자용 컨트롤 패널이지 서비스가 아니다.
-백엔드 기능을 더 붙이기 전에 **폰에서 이게 무슨 모양인지**를 정한다.
+이 문서는 `/dev`만 있던 시점에서 출발했다. 현재는 Android 위치→병원 검색→NAVER 지도·카드→
+action·전화와 선택형 trail/territory 레이어가 구현돼 있다. 아래 브리핑·트리거·회고 화면은
+결정 #51 이후 소비자 옵션이며 현재 제품 약속이 아니다.
 
 ## 정의부터: "지도가 메인"의 뜻
 

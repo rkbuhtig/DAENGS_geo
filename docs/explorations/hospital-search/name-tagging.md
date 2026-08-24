@@ -1,5 +1,7 @@
 ---
-status: exploring
+status: adopted
+implementation: verified
+last_verified: 2026-08-24
 depends-on: 행안부 동물병원 인허가 적재
 ---
 # 이름·인허가 태깅 — 공짜 1층
@@ -12,4 +14,5 @@ depends-on: 행안부 동물병원 인허가 적재
 - 공공데이터라 저장 자유. 약관 무관
 
 **한계**: 과목(안과·정형·치과)은 이름에 드묾 → `community-search.md`, `kakao-category.md`가 채움
-**역할**: 필터(24h/emergency) + 표시(규모). 정렬엔 규모 안 씀 (신뢰도 부족)
+**역할**: 이름 태그는 기본적으로 선호 부스트 + 표시다. 신뢰도가 낮아 결과를 제거하지 않으며,
+사용자가 `require`로 명시한 태그만 필터가 된다. 규모는 표시만 하고 정렬에는 쓰지 않는다.

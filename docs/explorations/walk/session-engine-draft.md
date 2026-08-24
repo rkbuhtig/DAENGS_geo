@@ -1,5 +1,7 @@
 ---
 status: exploring
+implementation: draft
+last_verified: 2026-08-24
 owner: 사용자
 ---
 # 산책 세션 엔진 (초안)
