@@ -3,7 +3,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 
-from app.api import facility, places, static_map
+from app.api import anchor, facility, places, static_map
 from app.core.config import settings
 from app.features.hospital import api as hospital
 from app.features.pharmacy import api as pharmacy
@@ -25,6 +25,7 @@ app.include_router(pharmacy.router)
 app.include_router(walk.router)
 app.include_router(journey.router)
 app.include_router(static_map.router)
+app.include_router(anchor.router)
 
 
 @app.middleware("http")
@@ -36,6 +37,12 @@ async def bind_usage_request_scope(request, call_next):
 
 if settings.dev_console:
     _DEV = Path(__file__).parent / "static" / "dev.html"
+    _ANCHORS = Path(__file__).parent / "static" / "anchors.html"
+
+    @app.get("/anchors", include_in_schema=False)
+    async def anchor_map():
+        """앵커 분포 눈으로 보기. 검증용 표면이라 dev_console 과 같은 게이트 뒤에 둔다."""
+        return FileResponse(_ANCHORS, media_type="text/html")
 
     @app.get("/dev", include_in_schema=False)
     async def dev_console():
