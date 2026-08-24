@@ -12,7 +12,7 @@
 2025-03 스냅샷이 낡았음을 숨기지 않는다.
 """
 
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field
@@ -26,6 +26,15 @@ router = APIRouter(prefix="/facility", tags=["facility"])
 
 MEDICAL = ("hospital", "pharmacy")
 
+DogSize = Literal["small", "medium", "large"]
+
+# 이 크기의 개를 받아주는 시설 등급. `any` 는 제한 없음이라 전부에 들어간다.
+SIZE_ACCEPTS: dict[str, tuple[str, ...]] = {
+    "small": ("small", "medium", "large", "any"),
+    "medium": ("medium", "large", "any"),
+    "large": ("large", "any"),
+}
+
 
 class FacilityParams(BaseModel):
     lat: float = Field(ge=32, le=40)
@@ -33,6 +42,20 @@ class FacilityParams(BaseModel):
     radius_m: int = Field(3000, ge=100, le=20000)
     kind: str | None = None            # cafe/travel/grooming/... 미지정 = 비의료 전체
     limit: int = Field(20, ge=1, le=50)
+    # 개 크기. 시설의 상한이 아니라 **데려갈 개**의 크기다 — 서버가 받을 수 있는 등급으로 편다.
+    dog_size: DogSize | None = None
+    # 종을 열거하면서 개를 뺀 시설을 제외한다. place 검색의 `only_dog_ok` 와 같은 뜻.
+    only_dog_ok: bool = True
+
+
+class PetAxesOut(BaseModel):
+    """`pet` 원문에서 뽑은 축. None 은 미상이지 '아님'이 아니다 (explorations/facility/pet-axes.md)."""
+
+    allowed: bool | None = None
+    exclusive: bool | None = None
+    dog_ok: bool | None = None
+    size_class: str | None = None
+    max_kg: float | None = None
 
 
 class FacilitySourceOut(BaseModel):
@@ -56,7 +79,8 @@ class FacilityOut(BaseModel):
     hours_text: str | None
     closed_days: str | None
     parking: bool | None
-    pet: dict
+    pet: dict                          # 원문 봉투. 축이 못 뽑은 restrictions 등이 여기 남는다
+    pet_axes: PetAxesOut               # 위 봉투에서 뽑은 축 — 필터·정렬이 쓰는 것은 이쪽
     source: FacilitySourceOut
     field_sources: dict[str, FacilitySourceOut] = Field(default_factory=dict)
 
@@ -73,14 +97,19 @@ SELECT f.id, f.source_ref, f.name, f.kind, f.category3,
        ST_Y(f.location::geometry) AS lat, ST_X(f.location::geometry) AS lng,
        ST_Distance(f.location, o.geom) AS distance_m,
        f.address, f.phone, f.homepage, f.hours_text, f.closed_days, f.parking,
-       f.pet, f.source, COALESCE(f.last_written::text, f.snapshot) AS as_of,
+       f.pet, f.pet_allowed, f.pet_exclusive, f.pet_dog_ok, f.pet_size_class, f.pet_max_kg,
+       f.source, COALESCE(f.last_written::text, f.snapshot) AS as_of,
        b.homepage AS b_homepage, b.hours_text AS b_hours_text,
        b.closed_days AS b_closed_days, b.parking AS b_parking, b.pet AS b_pet,
+       b.pet_allowed AS b_pet_allowed, b.pet_exclusive AS b_pet_exclusive,
+       b.pet_dog_ok AS b_pet_dog_ok, b.pet_size_class AS b_pet_size_class,
+       b.pet_max_kg AS b_pet_max_kg,
        b.source AS b_source, COALESCE(b.last_written::text, b.snapshot) AS b_as_of
 FROM facility f
 CROSS JOIN (SELECT ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography AS geom) o
 LEFT JOIN LATERAL (
     SELECT f2.homepage, f2.hours_text, f2.closed_days, f2.parking, f2.pet,
+           f2.pet_allowed, f2.pet_exclusive, f2.pet_dog_ok, f2.pet_size_class, f2.pet_max_kg,
            f2.source, f2.last_written, f2.snapshot
     FROM facility_link l
     JOIN facility f2 ON f2.id = l.source_ref::bigint
@@ -91,6 +120,12 @@ LEFT JOIN LATERAL (
 WHERE f.kind <> ALL(:medical)
   AND (CAST(:kind AS text) IS NULL OR f.kind = :kind)
   AND ST_DWithin(f.location, o.geom, :radius_m)
+  -- 종을 열거하면서 개를 뺀 곳만 제외한다. 종 표기가 없는 곳(NULL)은 개 전제라 남는다.
+  AND (:only_dog_ok IS NOT TRUE OR f.pet_dog_ok IS NOT FALSE)
+  -- **미상은 빼지 않는다.** 크기 등급이 NULL 인 곳은 제약을 모르는 것이지 못 가는 곳이 아니다.
+  AND (CAST(:dog_size AS text) IS NULL
+       OR f.pet_size_class IS NULL
+       OR f.pet_size_class = ANY(:size_accepts))
   AND NOT EXISTS (SELECT 1 FROM facility_link l
                   WHERE l.source = 'facility' AND l.source_ref = f.id::text)
 ORDER BY distance_m
@@ -98,20 +133,30 @@ LIMIT :limit
 """)
 
 # 빌려올 수 있는 필드. 값이 비어 있을 때만 뒤 원천에서 가져온다.
-_BORROWABLE = ("homepage", "hours_text", "closed_days", "parking", "pet")
+_BORROWABLE = ("homepage", "hours_text", "closed_days", "parking")
+
+# `pet` 과 그 파생 축은 **한 몸이라 필드 단위로 못 빌린다.** 축은 저장된 봉투의 함수라
+# (app/ingest/pet_axes.py), 봉투만 빌리고 축을 자기 것으로 두면 화면의 원문과 필터 결과가
+# 어긋난다 — 빌린 카페의 "10kg 이하"를 보여주면서 크기 제한 없음으로 취급하게 된다.
+_PET_GROUP = ("pet", "pet_allowed", "pet_exclusive", "pet_dog_ok", "pet_size_class", "pet_max_kg")
 
 
 def _merge(row) -> tuple[dict, dict]:
     """(필드값, 필드별 출처). 자기 원천 값이 있으면 그대로, 없으면 링크된 원천에서 빌린다."""
-    values = {name: getattr(row, name) for name in _BORROWABLE}
+    values = {name: getattr(row, name) for name in (*_BORROWABLE, *_PET_GROUP)}
     borrowed: dict[str, FacilitySourceOut] = {}
     if row.b_source is None:
         return values, borrowed
+    source = FacilitySourceOut(name=row.b_source, as_of=row.b_as_of)
     for name in _BORROWABLE:
         own, other = values[name], getattr(row, f"b_{name}")
         if own in (None, {}, "") and other not in (None, {}, ""):
             values[name] = other
-            borrowed[name] = FacilitySourceOut(name=row.b_source, as_of=row.b_as_of)
+            borrowed[name] = source
+    if not values["pet"] and row.b_pet:
+        for name in _PET_GROUP:
+            values[name] = getattr(row, f"b_{name}")
+        borrowed["pet"] = source
     return values, borrowed
 
 
@@ -123,6 +168,8 @@ async def facility_search(
     rows = await db.execute(_SEARCH, {
         "lat": params.lat, "lng": params.lng, "radius_m": params.radius_m,
         "kind": params.kind, "limit": params.limit, "medical": list(MEDICAL),
+        "only_dog_ok": params.only_dog_ok, "dog_size": params.dog_size,
+        "size_accepts": list(SIZE_ACCEPTS.get(params.dog_size or "", ())),
     })
     results = []
     for r in rows:
@@ -135,6 +182,11 @@ async def facility_search(
             homepage=values["homepage"], hours_text=values["hours_text"],
             closed_days=values["closed_days"], parking=values["parking"],
             pet=values["pet"] or {},
+            pet_axes=PetAxesOut(
+                allowed=values["pet_allowed"], exclusive=values["pet_exclusive"],
+                dog_ok=values["pet_dog_ok"], size_class=values["pet_size_class"],
+                max_kg=values["pet_max_kg"],
+            ),
             source=FacilitySourceOut(name=r.source, as_of=r.as_of),
             field_sources=borrowed,
         ))

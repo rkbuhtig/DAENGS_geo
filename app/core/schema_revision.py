@@ -40,6 +40,10 @@ LEGACY_MARKERS: tuple[LegacyMarker, ...] = (
                  "occurrence_version"),
     LegacyMarker("0011", "011_walk_fix_chain.sql", "walk_fix", "chain_index"),
     LegacyMarker("0012", "011_anchor.sql", "anchor"),
+    # 0013 부터는 alembic 도입 **뒤에** 만든 변경이다. 이관 전 DB 에 있을 수 없으니 판별에는
+    # 안 걸리지만, 지표를 같이 넣어야 HEAD 가 최신 리비전을 가리키고 판별이 "여기까지 왔다"를
+    # 정직하게 말한다. 지표 없이 리비전만 늘면 up_to_date 가 뒤처진 DB 를 최신이라고 한다.
+    LegacyMarker("0013", "0013_facility_pet_axes.py", "facility", "pet_allowed"),
 )
 
 HEAD = LEGACY_MARKERS[-1].revision

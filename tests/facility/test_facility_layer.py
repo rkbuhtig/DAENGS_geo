@@ -144,6 +144,8 @@ async def test_cross_source_merge_keeps_richer_fields(monkeypatch):
             rows = await session.execute(api._SEARCH, {
                 "lat": TEST_ORIGIN[0], "lng": TEST_ORIGIN[1], "radius_m": 1000,
                 "kind": "cafe", "limit": 10, "medical": list(api.MEDICAL),
+                # 이 테스트가 보는 것은 병합이라 pet 축 필터는 열어 둔다 (엔드포인트 기본값과 별개).
+                "only_dog_ok": False, "dog_size": None, "size_accepts": [],
             })
             rows = [r for r in rows if r.source in FAC_SOURCES]
 
