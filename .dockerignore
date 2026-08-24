@@ -1,0 +1,11 @@
+.git
+.venv
+.pytest_cache
+.ruff_cache
+android
+docs
+tests
+scripts
+migrations
+*.md
+.env
