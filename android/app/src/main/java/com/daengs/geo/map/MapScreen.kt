@@ -89,6 +89,7 @@ fun MapScreen(
                 point = hospital.point,
                 label = hospital.name,
                 selected = hospital.id == state.selectedHospitalId,
+                iconGroup = hospital.iconGroup,
             )
         }
     }

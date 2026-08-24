@@ -1,6 +1,7 @@
 package com.daengs.geo.hospital
 
 import com.daengs.geo.location.GeoPoint
+import com.daengs.geo.map.layers.places.FacilityIconGroup
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
@@ -31,6 +32,8 @@ data class HospitalResult(
     val openNow: Boolean?,
     val preferHits: List<String>,
     val walk: RoutePreview?,
+    /** Marker bucket chosen by the server. Unknown or absent falls back to [FacilityIconGroup.ETC]. */
+    val iconGroup: FacilityIconGroup,
 )
 
 data class SuggestedAction(
@@ -106,6 +109,7 @@ private fun JsonObject.toHospitalResult(): HospitalResult {
         openNow = booleanOrNull("open_now"),
         preferHits = arrayOrEmpty("prefer_hit").mapNotNull { it.jsonPrimitive.contentOrNull },
         walk = walk,
+        iconGroup = FacilityIconGroup.fromWire(stringOrNull("icon_group")),
     )
 }
 

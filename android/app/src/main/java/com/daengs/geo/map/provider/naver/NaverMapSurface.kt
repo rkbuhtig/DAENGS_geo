@@ -19,6 +19,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.daengs.geo.location.GeoPoint
 import com.daengs.geo.map.shell.MapScene
 import com.naver.maps.geometry.LatLng
+import com.naver.maps.geometry.LatLngBounds
 import com.naver.maps.map.CameraAnimation
 import com.naver.maps.map.CameraUpdate
 import com.naver.maps.map.MapView
@@ -75,6 +76,10 @@ fun NaverMapSurface(
                     naverMap = map
                     map.uiSettings.isLocationButtonEnabled = false
                     map.uiSettings.isZoomControlEnabled = false
+                    // Nothing in this app is answered by a view wider than a city: search caps at
+                    // a 10km radius and a walk is a few km. The floor also keeps marker count sane.
+                    map.minZoom = MIN_ZOOM
+                    map.extent = KOREA_EXTENT
                     map.addOnCameraChangeListener { reason, _ ->
                         lastCameraReason.intValue = reason
                         if (reason == CameraUpdate.REASON_GESTURE) latestGestureCallback()
@@ -130,13 +135,11 @@ fun NaverMapSurface(
                 captionMinZoom = 13.0
                 width = if (place.selected) 84 else 64
                 height = if (place.selected) 105 else 80
-                icon = OverlayImage.fromResource(
-                    if (place.selected) {
-                        com.naver.maps.map.R.drawable.navermap_default_marker_icon_green
-                    } else {
-                        com.naver.maps.map.R.drawable.navermap_default_marker_icon_blue
-                    },
-                )
+                // Selection is size and stacking order. Keeping the group icon means the
+                // selected pin still says what kind of place it is.
+                icon = OverlayImage.fromResource(place.iconGroup.marker)
+                zIndex = if (place.selected) SELECTED_MARKER_Z else 0
+                isHideCollidedMarkers = true
                 setOnClickListener {
                     onSelectPlace(place.id)
                     true
@@ -211,3 +214,12 @@ private fun Int.isUserDriven(): Boolean =
     this == CameraUpdate.REASON_GESTURE || this == CameraUpdate.REASON_CONTROL
 
 private fun GeoPoint.toLatLng(): LatLng = LatLng(latitude, longitude)
+
+/** Selected place pins draw above their neighbours so the choice stays visible when markers collide. */
+private const val SELECTED_MARKER_Z = 100
+
+/** Zoom floor. Below this the search radius cap (10km) is already off-screen and marker count spikes. */
+private const val MIN_ZOOM = 11.0
+
+/** The camera cannot leave the country the data covers — every source is domestic. */
+private val KOREA_EXTENT = LatLngBounds(LatLng(32.9, 124.0), LatLng(38.7, 132.0))

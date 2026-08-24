@@ -1,7 +1,9 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, computed_field
+
+from app.geo.icons import IconGroup, icon_group
 
 Kind = Literal["hospital", "pharmacy"]
 
@@ -41,6 +43,15 @@ class PlaceOut(BaseModel):
     hours_source: dict | None = None    # {"name": 원천, "as_of": 기준일} — 빌린 값엔 딱지
     prefer_hit: list[str] = Field(default_factory=list)  # 선호 조건과 태그 교집합 — 부스트 근거
     boost: int = 0                      # 선호 적중 부스트. 거리 밴드 안에서만 순서를 바꾼다
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def icon_group(self) -> IconGroup:
+        """지도 마커 그룹. /facility 의 같은 이름 필드와 한 어휘를 쓴다.
+
+        kind 에서 파생되므로 저장·입력값이 아니다 — 계산 필드로 두어 두 값이 어긋날 수 없게 한다.
+        """
+        return icon_group(self.kind)
 
 
 class MapOut(BaseModel):
