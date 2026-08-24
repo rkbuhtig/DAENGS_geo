@@ -13,7 +13,13 @@ from pydantic import BaseModel, ValidationError
 
 from app.features import walk
 from app.features.walk import models
-from app.features.walk.models import MotionEventOccurrence, WalkFacts, WalkFix, WalkSession
+from app.features.walk.models import (
+    FacilityEncounter,
+    MotionEventOccurrence,
+    WalkFacts,
+    WalkFix,
+    WalkSession,
+)
 
 T0 = datetime(2026, 8, 22, 7, 0, tzinfo=UTC)
 
@@ -44,8 +50,16 @@ def test_field_sets_are_pinned():
         "session_id", "event_index", "type", "started_at", "ended_at", "duration_s",
         "lat", "lng", "route_offset_m", "accuracy_p50_m", "fix_count",
     }
+    assert set(FacilityEncounter.model_fields) == {
+        "session_id", "event_index", "facility_source", "facility_ref", "kind",
+        "lat", "lng", "place_active", "as_of", "min_lateral_m", "offset_m",
+        "dwell_s_10m", "dwell_s_30m", "dwell_s_50m", "pass_count",
+        "stop_overlap_10m", "stop_overlap_30m", "stop_overlap_50m", "stop_s_10m",
+        "accuracy_p50_m",
+    }
     assert {m.__name__ for m in _models()} == {
         "WalkFix", "WalkSession", "WalkFacts", "MotionEventOccurrence",
+        "FacilityEncounter",
     }
 
 
@@ -60,7 +74,8 @@ def test_no_field_carries_meaning():
 
 def test_no_text_for_display():
     """문자열 필드는 식별자뿐이다. 사용자에게 보여줄 문장은 소비자가 만든다."""
-    allowed = {"id", "dog_id", "session_id"}
+    # facility_source/ref/kind 는 문장이 아니라 시설의 안정 식별자다 (facility 층의 키)
+    allowed = {"id", "dog_id", "session_id", "facility_source", "facility_ref", "kind"}
     for m in _models():
         for name, f in m.model_fields.items():
             if f.annotation is str:
@@ -74,7 +89,7 @@ def test_walk_package_has_no_judgment_modules():
     bad = [n for n in names if any(t in n for t in walk.OUT_OF_SCOPE_TOKENS)]
     assert not bad, f"수집 패키지에 판정 모듈: {bad}"
     # 엔드포인트·사실 계산이 생기면 여기 허용 목록에 이름을 **명시적으로** 더한다
-    assert names <= {"api", "facts", "store"}, f"예상 밖 모듈: {names}"
+    assert names <= {"api", "facts", "store", "encounter"}, f"예상 밖 모듈: {names}"
 
 
 # ------------------------------------------------------------------ 계약 검증

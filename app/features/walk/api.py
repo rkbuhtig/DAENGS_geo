@@ -18,8 +18,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_session
 from app.features.walk import store
+from app.features.walk.encounter import compute_encounters
 from app.features.walk.facts import compute_facts
-from app.features.walk.models import MotionEventOccurrence, WalkFacts, WalkFix, WalkSession
+from app.features.walk.models import (
+    FacilityEncounter,
+    MotionEventOccurrence,
+    WalkFacts,
+    WalkFix,
+    WalkSession,
+)
 
 router = APIRouter(prefix="/walk", tags=["walk"])
 
@@ -72,12 +79,14 @@ class FinishOut(BaseModel):
     facts: WalkFacts
     quality: dict
     events: list[MotionEventOccurrence] = Field(default_factory=list)
+    encounters: list[FacilityEncounter] = Field(default_factory=list)
 
 
 class SessionOut(BaseModel):
     session: WalkSession
     facts: WalkFacts | None = None
     events: list[MotionEventOccurrence] = Field(default_factory=list)
+    encounters: list[FacilityEncounter] = Field(default_factory=list)
 
 
 async def _session_or_404(db: AsyncSession, session_id: str) -> WalkSession:
@@ -129,8 +138,9 @@ async def finish_session(
     stored = await store.get_facts(db, session_id)
     if stored is not None:                   # 멱등 — 확정된 사실은 다시 계산하지 않는다
         facts, quality = stored
-        events = await store.get_events(db, session_id)
-        return FinishOut(facts=facts, quality=quality, events=events)
+        return FinishOut(facts=facts, quality=quality,
+                         events=await store.get_events(db, session_id),
+                         encounters=await store.get_encounters(db, session_id))
     if s.state != "open":
         raise HTTPException(409, f"walk session is in incomplete state: {s.state}")
     if body.ended_at < s.started_at:
@@ -138,10 +148,13 @@ async def finish_session(
 
     fixes = await store.load_fixes_ordered(db, session_id)
     computed = compute_facts(s.id, s.dog_id, s.started_at, body.ended_at, fixes)
-    await store.finalize(db, computed.facts, computed.quality, computed.events)
+    # 시설 관측은 fix 가 살아 있는 지금(DERIVED 이전)만 계산 가능하다 — purge 뒤엔 원본이 없다
+    candidates = await store.facility_candidates(db, session_id)
+    encounters = compute_encounters(s.id, computed.segments, computed.events, candidates)
+    await store.finalize(db, computed.facts, computed.quality, computed.events, encounters)
     await db.commit()
     return FinishOut(facts=computed.facts, quality=computed.quality.to_dict(),
-                     events=computed.events)
+                     events=computed.events, encounters=encounters)
 
 
 @router.get("/sessions/{session_id}", response_model=SessionOut)
@@ -150,5 +163,8 @@ async def read_session(
 ) -> SessionOut:
     s = await _session_or_404(db, session_id)
     stored = await store.get_facts(db, session_id)
-    events = await store.get_events(db, session_id) if stored else []
-    return SessionOut(session=s, facts=stored[0] if stored else None, events=events)
+    return SessionOut(
+        session=s, facts=stored[0] if stored else None,
+        events=await store.get_events(db, session_id) if stored else [],
+        encounters=await store.get_encounters(db, session_id) if stored else [],
+    )
