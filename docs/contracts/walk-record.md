@@ -24,6 +24,8 @@ WalkFix      수신 원본 한 점. 앱이 배치로 올린다
   at            tz 필수
   lat, lng
   accuracy_m    있으면. 필터 재료
+  is_mock       재생·가짜 위치 표식. Android DEVICE/MOCK 구분의 서버 짝 — 개발 재생이
+                진짜 산책 사실처럼 쌓이지 않게 한다. 사실 필드가 아니라 표식이다
 
 WalkSession  세션 하나
   id, dog_id
@@ -42,6 +44,23 @@ WalkFacts    세션이 끝난 뒤 코드가 계산한 사실. 이게 바깥에 �
   avg_speed_mps            moving 기준
   fix_count
 ```
+
+## 수집 API (2026-08-24)
+
+```
+POST /walk/sessions                시작. id 는 클라이언트 생성(UUID) — 오프라인 시작 + 멱등 재전송
+POST /walk/sessions/{id}/fixes     배치 업로드 → 수신 계수만 응답. 판정·서술 없음 (계약 원칙)
+POST /walk/sessions/{id}/finish    종료 → WalkFacts 확정. 멱등 — 확정된 사실은 재계산하지 않는다
+GET  /walk/sessions/{id}           세션 + 사실
+```
+
+**fix 는 세션이 살아 있는 동안만 서버에 있다.** finish 가 사실을 계산하면 같은
+트랜잭션에서 지운다. 삭제는 영구 방침이 아니라 아래 저장 정책이 서기 전의 안전
+기본값이다 — 정책이 서면 절삭·보관기간과 함께 보관으로 바꿀 수 있다.
+
+계산 정책은 Android `WalkCalculationPolicy` v1 미러 (`app/features/walk/facts.py`):
+이동 임계 0.5m/s · 정지 최소 10초 · accuracy 50m 컷 · 200m 튐 단절. 값을 바꾸면
+앱 미리보기와 서버 확정치가 어긋난다 — 양쪽을 같이 바꾸고 버전을 올린다.
 
 ## 예정 — 저장 정책이 선 뒤
 

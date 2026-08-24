@@ -27,7 +27,7 @@ def _models() -> list[type[BaseModel]]:
 # ------------------------------------------------------------------ 집합 고정
 def test_field_sets_are_pinned():
     """계약의 필드 집합 그대로. 늘리려면 walk-record.md 와 record_version 을 같이 올려라."""
-    assert set(WalkFix.model_fields) == {"at", "lat", "lng", "accuracy_m"}
+    assert set(WalkFix.model_fields) == {"at", "lat", "lng", "accuracy_m", "is_mock"}
     assert set(WalkSession.model_fields) == {"id", "dog_id", "started_at", "ended_at", "fix_count"}
     assert set(WalkFacts.model_fields) == {
         "record_version", "session_id", "dog_id", "started_at", "ended_at",
@@ -62,7 +62,7 @@ def test_walk_package_has_no_judgment_modules():
     bad = [n for n in names if any(t in n for t in walk.OUT_OF_SCOPE_TOKENS)]
     assert not bad, f"수집 패키지에 판정 모듈: {bad}"
     # 엔드포인트·사실 계산이 생기면 여기 허용 목록에 이름을 **명시적으로** 더한다
-    assert names <= {"api", "facts"}, f"예상 밖 모듈: {names}"
+    assert names <= {"api", "facts", "store"}, f"예상 밖 모듈: {names}"
 
 
 # ------------------------------------------------------------------ 계약 검증

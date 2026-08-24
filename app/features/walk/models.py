@@ -34,6 +34,9 @@ class WalkFix(ContractModel):
     lat: float = Field(ge=-90, le=90)
     lng: float = Field(ge=-180, le=180)
     accuracy_m: float | None = Field(None, ge=0)
+    # 재생·가짜 위치 표식. Android 가 DEVICE/MOCK 을 가르는 것의 서버 짝 —
+    # 개발 재생 세션이 진짜 산책 사실처럼 쌓이지 않게 한다. 판정 아님, 표식만.
+    is_mock: bool = False
 
     _tz = field_validator("at")(_tz_required)
 
