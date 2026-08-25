@@ -110,10 +110,12 @@ def expectations() -> list[dict]:
             if lateral_m >= r:
                 dwell[int(r)] = 0.0
                 continue
-            chord = 2 * math.sqrt(r * r - lateral_m * lateral_m)
-            seconds = chord / SPEED_MPS
-            # 정지는 그 자리에서 시간만 흐르므로 원 안에 있으면 통째로 더해진다
-            if abs(offset_m - STOP_AT_M) < r - lateral_m:
+            half_chord = math.sqrt(r * r - lateral_m * lateral_m)
+            seconds = 2 * half_chord / SPEED_MPS
+            # 정지는 그 자리에서 시간만 흐르므로 원 안에 있으면 통째로 더해진다.
+            # 원이 동선을 자르는 구간의 반폭은 r - lateral 이 아니라 반현이다 —
+            # 0 < lateral < r 인 동안 반현이 늘 더 크므로 그 식은 겹침을 놓친다.
+            if abs(offset_m - STOP_AT_M) < half_chord:
                 seconds += STOP_S
             dwell[int(r)] = round(seconds, 1)
         out.append({

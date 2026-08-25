@@ -17,9 +17,10 @@ import kotlinx.serialization.json.JsonObject
  * the whole walk if the process dies. Collecting to Room and uploading once shrinks that exposure
  * to the few seconds of the upload itself.
  *
- * **Gated by [dogId].** Blank means no upload. A walk fact has to belong to a dog (the server's
- * `WalkFacts.dog_id` is required), and this repo does not own dog profiles — decision #4. In debug
- * builds the id is a persona the server already defines; release has no default.
+ * **Gated by the identifier, twice.** [dogId] is what this build was given (decision #58) and
+ * blank means this build never uploads. What actually goes on the wire is the session's own
+ * `dogId`, written when the walk started — a walk belongs to the dog it was recorded under, not
+ * to whatever the build happens to be configured with by the time it uploads.
  */
 class WalkUploader(
     private val api: WalkApi,
@@ -40,11 +41,13 @@ class WalkUploader(
         if (!enabled) return null
         val session = log.session(sessionId) ?: return null
         val endedAtMillis = session.endedAtMillis ?: return null   // 열린 세션은 finish 할 수 없다
+        // 이 산책이 녹화될 때의 주인. 빌드 값이 그 뒤에 바뀌었어도 사실의 귀속은 안 바뀐다.
+        val subject = session.dogId?.takeIf { it.isNotBlank() } ?: return null
 
         val fixes = log.fixes(sessionId)
         if (fixes.isEmpty()) return null
 
-        api.startSession(sessionId, dogId, session.startedAtMillis)
+        api.startSession(sessionId, subject, session.startedAtMillis)
         var stored = 0
         var duplicates = 0
         fixes.chunked(batchSize).forEach { batch ->

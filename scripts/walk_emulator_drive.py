@@ -92,8 +92,11 @@ def main() -> int:
         if not paused_done and fix["chain_index"] == 0 and index + 1 < len(fixes) \
                 and fixes[index + 1]["chain_index"] == 1:
             print(f"  --- pause/resume @{PAUSE_AT_M:.0f}m (chain 경계) ---")
-            tap("일시정지")
-            tap("계속 기록")
+            # 이 탭이 실패하면 chain 경계가 없는 산책이 나온다. 그런데 chain 이 앱에서
+            # 서버까지 도는지 보는 것이 이 탭의 존재 이유라, 조용히 넘어가면 검증하지
+            # 않은 것을 검증했다고 착각한다. 다른 탭과 같이 여기서 세운다.
+            if not tap("일시정지") or not tap("계속 기록"):
+                return 1
             paused_done = True
 
     time.sleep(FIX_INTERVAL_S)

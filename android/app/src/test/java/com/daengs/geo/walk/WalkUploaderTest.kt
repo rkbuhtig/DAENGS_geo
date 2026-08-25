@@ -50,6 +50,31 @@ class WalkUploaderTest {
         assertTrue(api.calls.isEmpty())
     }
 
+    /**
+     * 사실의 귀속은 녹화 시점에 정해진다. 업로드가 밀린 사이 빌드의 dog_id 가 바뀌어도
+     * 그 산책은 여전히 원래 개의 것이다 (결정 #58 — 로컬 행이 자기 dogId 를 저장하는 이유).
+     */
+    @Test
+    fun `uploads under the id the session was recorded with, not the build's`() = runTest {
+        val api = RecordingApi()
+        val recorded = RecordedSession(SESSION, "halmae", 1_000L, 9_000L)
+        val log = FakeLog(recorded, fixes = fixes(2))
+
+        WalkUploader(api, log, dogId = "dubu", batchSize = 100).upload(SESSION)
+
+        assertEquals("start:$SESSION:halmae:1000", api.calls.first())
+    }
+
+    /** 주인을 모르는 행은 올리지 않는다 — 서버 `WalkFacts.dog_id` 는 필수다. */
+    @Test
+    fun `a session without a dog id is not uploaded`() = runTest {
+        val api = RecordingApi()
+        val log = FakeLog(RecordedSession(SESSION, null, 1_000L, 9_000L), fixes = fixes(2))
+
+        assertNull(uploader(api, log).upload(SESSION))
+        assertTrue(api.calls.isEmpty())
+    }
+
     /** 프로세스 사망으로 안 닫힌 세션. finish 를 지어내지 않는다 — 끝난 시각을 모른다. */
     @Test
     fun `an unfinished session is not uploaded`() = runTest {
