@@ -157,15 +157,16 @@ fun MapScreen(
                     }
                     // 눌린 것이 **버튼 자리에서** 보여야 한다. 진행 표시가 지도 한가운데
                     // 있으면 시트에 가리거나 눈이 안 가서, 안 먹은 것과 구분이 안 된다.
+                    val locating = state.request == RequestKind.LOCATION
                     OutlinedButton(onClick = onMyLocation, enabled = !state.loading) {
-                        if (state.loading) {
+                        if (locating) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(16.dp),
                                 strokeWidth = 2.dp,
                             )
                             Spacer(Modifier.width(8.dp))
                         }
-                        Text(if (state.loading) "찾는 중" else "내 위치")
+                        Text(if (locating) "찾는 중" else "내 위치")
                     }
                 }
                 // Errors belong to the app, not to one tab: a location failure raised from the
@@ -198,7 +199,7 @@ fun MapScreen(
                 )
             }
 
-            if (state.loading) {
+            state.request?.let { request ->
                 Surface(
                     modifier = Modifier.align(Alignment.Center),
                     shape = RoundedCornerShape(18.dp),
@@ -207,9 +208,13 @@ fun MapScreen(
                     Row(Modifier.padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
                         CircularProgressIndicator(modifier = Modifier.width(24.dp))
                         Spacer(Modifier.width(12.dp))
-                        // 위치를 기다리는 동안이 대부분이고 실내에서는 길다. "병원을 찾는 중"
-                        // 이라고만 하면 왜 오래 걸리는지가 안 보인다.
-                        Text("현재 위치를 확인하는 중", style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            when (request) {
+                                RequestKind.LOCATION -> "현재 위치를 확인하는 중"
+                                RequestKind.HOSPITAL_SEARCH -> "주변 병원을 찾는 중"
+                            },
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
                     }
                 }
             }
