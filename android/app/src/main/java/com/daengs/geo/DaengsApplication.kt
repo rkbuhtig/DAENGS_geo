@@ -9,6 +9,7 @@ import com.daengs.geo.territory.InMemoryTerritoryRepository
 import com.daengs.geo.territory.LocalHexCellIndexer
 import com.daengs.geo.territory.TerritoryRepository
 import com.daengs.geo.walk.ForegroundWalkTrackingController
+import com.daengs.geo.walk.WalkFixLog
 import com.daengs.geo.walk.WalkFixWriter
 import com.daengs.geo.walk.WalkTrackingController
 import com.daengs.geo.walk.WalkTrackingStore
@@ -46,6 +47,7 @@ class DaengsApplication : Application() {
             walkTrackingStore = walkTrackingStore,
             walkTrackingController = ForegroundWalkTrackingController(this, walkTrackingStore),
             walkFixWriter = walkFixWriter,
+            walkFixLog = walkFixLog,
             walkUploader = WalkUploader(
                 api = HttpWalkApi(BuildConfig.API_BASE_URL),
                 log = walkFixLog,
@@ -63,6 +65,8 @@ data class AppGraph(
     val walkTrackingStore: WalkTrackingStore,
     val walkTrackingController: WalkTrackingController,
     val walkFixWriter: WalkFixWriter,
+    /** Read side of the same Room log the writer feeds — exporter and uploader share it. */
+    val walkFixLog: WalkFixLog,
     val walkUploader: WalkUploader,
     /** Blank until a real dog profile is wired in (decision #4). Blank disables upload. */
     val dogId: String,

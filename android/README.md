@@ -137,10 +137,41 @@ Foreground Service 실기기 smoke에서는 다음을 추가로 본다.
 debug 화면의 `CTA 확인용 · 반경 100m`는 결과 0곳 상태를 만들기 위한 개발 보조 동작이다.
 결과가 여전히 있으면 지도를 빈 지역으로 옮긴 뒤 `이 지역 검색`을 누른다.
 
+## 실측 데이터 꺼내기 (debug)
+
+debug 빌드는 산책을 종료할 때 세션 전체(메타 + 원본 fix)를 내부 저장소
+`files/walk-exports/` 에 JSON 으로 남긴다 — 서버는 finish 에서 원좌표를 지우므로 이 파일이
+디버깅에 쓸 수 있는 유일한 궤적 사본이다. 형식은 서버 wire 계약 그대로라 번역 없이 재전송된다.
+
+```powershell
+# 기기 → 폴더 → (미업로드 재전송) → 서버 파생까지 한 번에
+uv run python -m scripts.walk_bundle all --out C:\dev\walks
+```
+
+`push` 가 업로드 실패의 복구 경로다. 판정은 **"서버에 세션이 있나"가 아니라 "finish 까지
+가서 사실이 확정됐나"** 로 한다 — 가장 흔한 실패가 fix 를 절반쯤 보내다 끊긴 경우이고,
+그때 세션 행은 서버에 있지만 `WalkFacts` 가 없다. 존재만 보면 그 세션을 놓친다.
+엔드포인트가 전부 멱등이라 처음부터 다시 보내는 것이 안전하다.
+
+`push` 는 **명시적으로 종료된** 세션만 다룬다. process-death 로 닫히지 않은 세션은 기기
+export 에 나오지 않으며(결정 #55의 그 세션들), 그 산책의 `ended_at` 을 누가 정할지는 아직
+정책 문제다.
+
+**수명**: 기기 export 와 `--out` 폴더는 둘 다 원좌표를 담는 **개발 artifact 이고 제품 보관
+정책(결정 #57) 밖**이다. 기기 export 는 Room 밖의 두 번째 사본이라 Room 세션을 지워도 같이
+사라지지 않는다. 실측이 끝나면 지운다.
+
+```powershell
+uv run python -m scripts.walk_bundle pull --out C:\dev\walks --delete   # 가져오고 기기에서 삭제
+uv run python -m scripts.walk_bundle clear                              # 기기 export 전부 삭제
+```
+
+`--out` 폴더는 레포 밖에 두고 커밋하지 않는다.
+
 ## 아직 하지 않은 것
 
 - 이 변경의 실기기 화면 OFF/다른 앱 전환 smoke
-- 닫히지 않은 세션의 복구 UI, 서버 업로드 주기 (원본 fix 저장 자체는 구현됨)
+- 닫히지 않은 세션의 복구 UI (미업로드 재전송은 `scripts/walk_bundle.py push` 로 PC 에서 가능)
 - 원본 fix 보관 기간·동의·세션 삭제 UI (cascade 삭제 저장 경계만 구현됨)
 - Room 마이그레이션 테스트 (`room-testing` + androidTest 소스셋). 지금은 v1 뿐이라 대상이 없다
 - territory 영속 저장·공개 소유권·사진, 로그인, 오프라인 큐, push

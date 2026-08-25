@@ -12,6 +12,7 @@ import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
+import com.daengs.geo.BuildConfig
 import com.daengs.geo.DaengsApplication
 import com.daengs.geo.MainActivity
 import com.daengs.geo.R
@@ -45,6 +46,7 @@ class WalkTrackingService : Service() {
     private lateinit var store: WalkTrackingStore
     private lateinit var writer: WalkFixWriter
     private lateinit var uploader: WalkUploader
+    private lateinit var exporter: WalkSessionExporter
     private lateinit var dogId: String
 
     /** Non-null exactly while a walk owns a stored session. Late fixes after stop are dropped. */
@@ -60,6 +62,10 @@ class WalkTrackingService : Service() {
         store = graph.walkTrackingStore
         writer = graph.walkFixWriter
         uploader = graph.walkUploader
+        exporter = WalkSessionExporter(
+            log = graph.walkFixLog,
+            directory = java.io.File(filesDir, WalkSessionExporter.DIRECTORY),
+        )
         dogId = graph.dogId
         tracker = LocationTracker(serviceScope)
         createNotificationChannel()
@@ -162,6 +168,9 @@ class WalkTrackingService : Service() {
             try {
                 // closeSession was submitted after every accepted fix under sessionLock.
                 writer.flush()
+                // Export before upload: if the upload path crashes, the file already exists —
+                // it is the handoff copy of the only surviving trajectory (server purges at finish).
+                exportQuietly(finishedId)
                 uploadQuietly(finishedId)
             } finally {
                 stopForeground(STOP_FOREGROUND_REMOVE)
@@ -227,6 +236,19 @@ class WalkTrackingService : Service() {
      * server has no facts yet, not that the walk was lost — the raw fixes are in Room and the
      * whole session can be resent later, because every endpoint collapses repeats.
      */
+    /** Debug builds drop a JSON copy of the finished session for `scripts/walk_bundle.py`. */
+    private suspend fun exportQuietly(sessionId: String?) {
+        if (sessionId == null || !BuildConfig.DEBUG) return
+        try {
+            val file = exporter.export(sessionId)
+            if (file != null) Log.i(TAG, "exported $sessionId -> ${file.name}")
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (error: Throwable) {
+            Log.w(TAG, "walk export failed for $sessionId; rows stay in Room", error)
+        }
+    }
+
     private suspend fun uploadQuietly(sessionId: String?) {
         if (sessionId == null || !uploader.enabled) return
         try {
