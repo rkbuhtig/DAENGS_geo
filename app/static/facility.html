@@ -91,8 +91,8 @@ const GROUP_COLOR = {
   medical:"#c62828", supply:"#6a1b9a", food:"#ef6c00", stay:"#1565c0",
   culture:"#00838f", outdoor:"#2e7d32", care:"#4527a0", etc:"#546e7a",
 };
-// 탭 하나 = kind 하나 = 호출 하나. 상한이 없으니 반경 안은 다 온다 —
-// 카테고리 탭이 하는 일은 부하를 나누고 점이 겹치지 않게 하는 것이다.
+// 탭 하나 = kind 하나 = 호출 하나. 한 번에 하나만 그린다 — 섞으면 점이 겹쳐 안 읽힌다.
+// **부하 경계가 아니다.** 그건 서버 상한(MAX_RESULTS)이 세운다 (결정 #62).
 const CATS = [
   ["goods",       "용품",     "supply"],
   ["grooming",    "미용",     "supply"],

@@ -33,6 +33,12 @@ router = APIRouter(prefix="/facility", tags=["facility"])
 
 MEDICAL = ("hospital", "pharmacy")
 
+# 서버가 세우는 자원 경계. `/anchor/search` 의 `MAX_LIMIT` 과 같은 값·같은 이유다 —
+# 호출자가 카테고리로 나눠 부를 것이라는 기대는 경계가 아니다. 반경 상한(20km)만으로는
+# 부족하다: 강남역 20km 는 kind 를 지정해도 4,966 곳(3MB)이라 `kind` 를 요구해봐야
+# 최악이 거의 안 준다. 실제 지도 사용(반경 3km, kind 별)은 수백 곳이라 이 상한에 안 닿는다.
+MAX_RESULTS = 3000
+
 DogSize = Literal["small", "medium", "large"]
 
 # 이 크기의 개를 받아주는 시설 등급. `any` 는 제한 없음이라 전부에 들어간다.
@@ -48,10 +54,10 @@ class FacilityParams(BaseModel):
     lng: float = Field(ge=123, le=133)
     radius_m: int = Field(3000, ge=100, le=20000)
     kind: str | None = None            # cafe/travel/grooming/... 미지정 = 비의료 전체
-    # **상한 없음이 기본이다.** 지도는 반경 안을 다 그려야 하고, 잘린 목록을 "이 동네엔
-    # 이만큼뿐"으로 읽으면 "우리 개가 갈 곳이 없다"가 된다. 리스트 화면이 몇 개만 원하면
-    # 그때 명시한다 — 그 경우에만 `truncated` 가 켜진다.
-    limit: int | None = Field(None, ge=1)
+    # 미지정 = 반경 안 전부(서버 상한까지). 지도는 반경 안을 다 그려야 하고, 잘린 목록을
+    # "이 동네엔 이만큼뿐"으로 읽으면 "우리 개가 갈 곳이 없다"가 된다. 리스트 화면이 몇 개만
+    # 원하면 그때 명시한다. 어느 쪽이든 잘리면 `truncated` 로 말한다.
+    limit: int | None = Field(None, ge=1, le=MAX_RESULTS)
     # 이 개를 데려간다. 크기를 프로필에서 채우는 용도 — 병원 검색은 이미 이렇게 받는데
     # 시설 검색만 안 받아서, 개를 아는 서비스인데 시설 목록이 개를 모르고 있었다.
     dog_id: str | None = Field(None, max_length=128)
@@ -255,20 +261,21 @@ async def facility_search(
     prefer = set(facility_preference_tags(
         parking=params.parking, dog_exclusive=params.dog_exclusive,
     ))
+    # 미지정이어도 무한이 아니다 — 상한이 서버에 있고, 걸리면 `truncated` 로 알린다.
+    effective_limit = params.limit or MAX_RESULTS
     rows = await db.execute(_SEARCH, {
         "lat": params.lat, "lng": params.lng, "radius_m": params.radius_m,
-        # LIMIT NULL 은 postgres 에서 '전부'다. +1 은 절단 감지용 한 칸.
-        "kind": params.kind, "medical": list(MEDICAL),
-        "limit": None if params.limit is None else params.limit + 1,
+        # +1 은 절단 감지용 한 칸이다.
+        "kind": params.kind, "medical": list(MEDICAL), "limit": effective_limit + 1,
         "only_dog_ok": params.only_dog_ok, "dog_size": params.dog_size,
         "size_accepts": list(SIZE_ACCEPTS.get(params.dog_size or "", ())),
         "band_m": DISTANCE_BAND_M,
         "want_parking": params.parking, "want_exclusive": params.dog_exclusive,
     })
     fetched = rows.all()
-    truncated = params.limit is not None and len(fetched) > params.limit
+    truncated = len(fetched) > effective_limit
     if truncated:
-        fetched = fetched[: params.limit]
+        fetched = fetched[:effective_limit]
     results = []
     for r in fetched:
         values, borrowed = _merge(r)

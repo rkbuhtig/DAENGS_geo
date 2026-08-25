@@ -235,3 +235,31 @@ async def test_truncation_is_reported_not_silent():
             assert len(whole.results) == 4
         finally:
             await _clean(session)
+
+
+async def test_unspecified_limit_is_still_bounded_by_the_server():
+    """`limit` 미지정이 '무한'은 아니다. 경계는 서버가 세운다 — 호출자가 카테고리로
+    나눠 부를 것이라는 기대는 경계가 아니다 (`/anchor/search` 의 `MAX_LIMIT` 과 같은 이유)."""
+    async with db_session() as session:
+        await _clean(session)
+        try:
+            await _seed(session, [
+                facility_row(f"많음{i}", east_m=10 * i, kind="test_bulk",
+                             pet='{"allowed": "Y", "size": "모두 가능"}')
+                for i in range(5)
+            ])
+            base = {"lat": TEST_ORIGIN[0], "lng": TEST_ORIGIN[1],
+                    "radius_m": 2000, "kind": "test_bulk"}
+
+            from app.api import facility as facility_api
+            original = facility_api.MAX_RESULTS
+            facility_api.MAX_RESULTS = 3          # 상한이 실제로 집행되는지만 본다
+            try:
+                out = await facility_search(FacilityParams(**base), session)
+            finally:
+                facility_api.MAX_RESULTS = original
+
+            assert len(out.results) == 3, "limit 미지정이 상한을 우회했다"
+            assert out.truncated is True, "잘랐으면 말해야 한다"
+        finally:
+            await _clean(session)
