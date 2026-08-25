@@ -38,11 +38,12 @@ interface WalkApi {
     suspend fun finishSession(sessionId: String, endedAtMillis: Long): JsonObject
 }
 
+/** 주소는 호출 시점에 읽는다 — 실행 중에 바뀔 수 있다 (`ServerAddress`). */
 class HttpWalkApi(
-    baseUrl: String,
+    private val baseUrl: () -> String,
     private val json: Json = Json,
 ) : WalkApi {
-    private val root = "${baseUrl.trimEnd('/')}/walk/sessions"
+    private val root: String get() = "${baseUrl().trimEnd('/')}/walk/sessions"
 
     override suspend fun startSession(sessionId: String, dogId: String, startedAtMillis: Long) {
         post(root, buildJsonObject {

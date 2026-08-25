@@ -41,7 +41,7 @@ class DaengsApplication : Application() {
             scope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
         )
         graph = AppGraph(
-            hospitalRepository = HospitalRepository(HospitalApi(BuildConfig.API_BASE_URL)),
+            hospitalRepository = HospitalRepository(HospitalApi(baseUrl = { ServerAddress.current(this) })),
             locationSource = FusedLocationSource(this),
             territoryRepository = territoryRepository,
             walkTrackingStore = walkTrackingStore,
@@ -49,7 +49,7 @@ class DaengsApplication : Application() {
             walkFixWriter = walkFixWriter,
             walkFixLog = walkFixLog,
             walkUploader = WalkUploader(
-                api = HttpWalkApi(BuildConfig.API_BASE_URL),
+                api = HttpWalkApi(baseUrl = { ServerAddress.current(this) }),
                 log = walkFixLog,
                 dogId = BuildConfig.DEV_DOG_ID,
             ),

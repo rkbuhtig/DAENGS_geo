@@ -24,6 +24,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -45,6 +46,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import com.daengs.geo.BuildConfig
+import com.daengs.geo.ServerAddress
 import com.daengs.geo.hospital.HospitalResult
 import com.daengs.geo.hospital.LocationMode
 import com.daengs.geo.hospital.SuggestedAction
@@ -299,6 +301,9 @@ private fun MapToolsPanel(
                     OutlinedButton(onClick = onToggleTrail) {
                         Text(if (state.layers.showTrail) "꼬리 숨기기" else "꼬리 보기")
                     }
+                }
+                if (BuildConfig.DEBUG) {
+                    ServerAddressRow()
                 }
                 if (BuildConfig.DEBUG) {
                     WalkExportRow()
@@ -611,5 +616,60 @@ private fun WalkExportRow() {
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.secondary,
         )
+    }
+}
+
+
+/**
+ * 개발 서버 주소. 빌드가 아니라 **여기서** 정한다.
+ *
+ * 개발 서버는 PC 안에 있어서 폰이 밖에서 부르려면 터널을 쓰는데, 그 주소가 자주 바뀐다.
+ * 주소가 APK 에 박혀 있으면 바뀔 때마다 앱을 다시 만들어야 하고 그때까지 앱은 죽어 있다.
+ * 붙여넣기 한 번으로 살아나야 한다.
+ */
+@Composable
+private fun ServerAddressRow() {
+    val context = LocalContext.current
+    var editing by remember { mutableStateOf(false) }
+    var url by remember { mutableStateOf(ServerAddress.current(context)) }
+    var saved by remember { mutableStateOf(ServerAddress.current(context)) }
+
+    if (!editing) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            OutlinedButton(onClick = { url = saved; editing = true }) { Text("서버 주소") }
+            Text(
+                saved.removePrefix("https://").removePrefix("http://"),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.secondary,
+            )
+        }
+        return
+    }
+
+    OutlinedTextField(
+        value = url,
+        onValueChange = { url = it },
+        label = { Text("서버 주소") },
+        placeholder = { Text("https://....trycloudflare.com") },
+        singleLine = true,
+        modifier = Modifier.fillMaxWidth(),
+    )
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Button(onClick = {
+            ServerAddress.set(context, url)
+            saved = ServerAddress.current(context)
+            editing = false
+        }) { Text("저장") }
+        OutlinedButton(onClick = { editing = false }) { Text("취소") }
+        // 터널을 접고 USB 로 돌아갈 때 필요하다. 빌드에 박힌 값으로 되돌린다.
+        OutlinedButton(onClick = {
+            ServerAddress.set(context, "")
+            saved = ServerAddress.current(context)
+            url = saved
+            editing = false
+        }) { Text("기본값") }
     }
 }

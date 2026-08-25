@@ -259,7 +259,7 @@ class MapViewModelTest {
         source: LocationSource,
         walk: WalkTrackingController = FakeWalkTrackingController(),
     ) = MapViewModel(
-        hospitalRepository = HospitalRepository(HospitalApi("http://127.0.0.1:1")),
+        hospitalRepository = HospitalRepository(HospitalApi(baseUrl = { "http://127.0.0.1:1" })),
         deviceLocationSource = source,
         territoryRepository = InMemoryTerritoryRepository(LocalHexCellIndexer()),
         walkTrackingController = walk,
