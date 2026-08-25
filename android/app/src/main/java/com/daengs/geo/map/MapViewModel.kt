@@ -28,9 +28,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.JsonArray
 
 enum class LocationFeed { DEVICE, REPLAY }
+
+enum class RequestKind { LOCATION, HOSPITAL_SEARCH }
 
 data class MapLayerPreferences(
     val showTrail: Boolean = true,
@@ -60,9 +63,12 @@ data class MapUiState(
     val territoryCells: List<TerritoryCell> = emptyList(),
     val currentTerritoryCell: TerritoryCell? = null,
     val statusMessage: String? = null,
-    val loading: Boolean = false,
+    val request: RequestKind? = null,
+    val failedRequest: RequestKind? = null,
     val error: String? = null,
-)
+) {
+    val loading: Boolean get() = request != null
+}
 
 class MapViewModel(
     private val hospitalRepository: HospitalRepository,
@@ -100,7 +106,9 @@ class MapViewModel(
 
     fun locateAndSearch() {
         viewModelScope.launch {
-            _uiState.update { it.copy(loading = true, error = null) }
+            _uiState.update {
+                it.copy(request = RequestKind.LOCATION, failedRequest = null, error = null)
+            }
             val sample = fetchDeviceFix() ?: return@launch
             _uiState.update {
                 it.copy(
@@ -114,10 +122,12 @@ class MapViewModel(
 
     fun useDeviceLocation() {
         viewModelScope.launch {
-            _uiState.update { it.copy(loading = true, error = null) }
+            _uiState.update {
+                it.copy(request = RequestKind.LOCATION, failedRequest = null, error = null)
+            }
             if (fetchDeviceFix() == null) return@launch
             _uiState.update {
-                it.copy(loading = false, statusMessage = "실제 기기 위치를 사용합니다.")
+                it.copy(request = null, statusMessage = "실제 기기 위치를 사용합니다.")
             }
         }
     }
@@ -179,7 +189,10 @@ class MapViewModel(
     fun searchAtHundredMeters() = search(SearchRequestBuilder.setRadiusEdit(100))
 
     fun retry() {
-        if (_uiState.value.response == null) locateAndSearch() else search()
+        when (retryRequestFor(_uiState.value)) {
+            RequestKind.LOCATION -> locateAndSearch()
+            RequestKind.HOSPITAL_SEARCH -> search()
+        }
     }
 
     fun selectHospital(id: Long) {
@@ -250,13 +263,27 @@ class MapViewModel(
         }
     }
 
+    /**
+     * 단발 위치 하나. **반드시 유한한 시간 안에 끝난다.**
+     *
+     * `getCurrentLocation` 은 실내나 위치 서비스가 꺼진 상태에서 콜백을 영영 안 주기도 한다.
+     * 그러면 `loading` 이 켜진 채로 남아 화면은 계속 도는데 사용자는 버튼이 먹은 건지
+     * 앱이 멈춘 건지 구분할 방법이 없다. 기다림에는 끝이 있어야 하고, 끝났으면 왜 실패했는지
+     * 말해야 한다.
+     */
     private suspend fun fetchDeviceFix(): LocationSample? =
-        runCatching { deviceLocationSource.currentLocation() }
+        runCatching {
+            withTimeoutOrNull(LOCATION_TIMEOUT_MS) { deviceLocationSource.currentLocation() }
+                ?: throw IllegalStateException(
+                    "위치를 찾지 못했어요. 실내에서는 오래 걸릴 수 있어요 - " +
+                        "창가로 나가거나 위치 설정을 확인한 뒤 다시 눌러주세요.",
+                )
+        }
             .onSuccess { sample ->
                 switchFeed(LocationFeed.DEVICE, deviceLocationSource, statusMessage = null)
                 acceptLocation(sample)
             }
-            .onFailure(::showError)
+            .onFailure { error -> showError(error, RequestKind.LOCATION) }
             .getOrNull()
 
     /** The only place the screen-owned feed starts. Walk recording has a different owner. */
@@ -390,7 +417,9 @@ class MapViewModel(
             mode = before.locationMode,
         )
         viewModelScope.launch {
-            _uiState.update { it.copy(loading = true, error = null) }
+            _uiState.update {
+                it.copy(request = RequestKind.HOSPITAL_SEARCH, failedRequest = null, error = null)
+            }
             runCatching {
                 hospitalRepository.search(SearchRequestBuilder.build(session, edits))
             }.onSuccess { response ->
@@ -399,18 +428,20 @@ class MapViewModel(
                         response = response,
                         searchOrigin = response.origin,
                         selectedHospitalId = response.results.firstOrNull()?.id,
-                        loading = false,
+                        request = null,
+                        failedRequest = null,
                         error = null,
                     )
                 }
-            }.onFailure(::showError)
+            }.onFailure { error -> showError(error, RequestKind.HOSPITAL_SEARCH) }
         }
     }
 
-    private fun showError(error: Throwable) {
+    private fun showError(error: Throwable, failedRequest: RequestKind? = null) {
         _uiState.update {
             it.copy(
-                loading = false,
+                request = null,
+                failedRequest = failedRequest,
                 error = error.message ?: "요청을 처리하지 못했습니다.",
             )
         }
@@ -434,5 +465,12 @@ class MapViewModel(
 
     companion object {
         private val DEFAULT_REPLAY_ORIGIN = GeoPoint(latitude = 37.5665, longitude = 126.9780)
+
+        /** 실측으로 잰 값이 아니라 "사람이 버튼을 다시 누르기 전에 답이 와야 한다" 는 상한이다. */
+        private const val LOCATION_TIMEOUT_MS = 15_000L
     }
 }
+
+internal fun retryRequestFor(state: MapUiState): RequestKind =
+    state.failedRequest
+        ?: if (state.response == null) RequestKind.LOCATION else RequestKind.HOSPITAL_SEARCH

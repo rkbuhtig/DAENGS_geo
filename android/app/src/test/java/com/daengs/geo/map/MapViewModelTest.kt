@@ -2,6 +2,7 @@ package com.daengs.geo.map
 
 import com.daengs.geo.hospital.HospitalApi
 import com.daengs.geo.hospital.HospitalRepository
+import com.daengs.geo.hospital.HospitalSearchResponse
 import com.daengs.geo.location.GeoPoint
 import com.daengs.geo.location.LocationSample
 import com.daengs.geo.location.LocationSource
@@ -28,6 +29,8 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -255,6 +258,51 @@ class MapViewModelTest {
         assertEquals("현재 위치를 확인한 뒤 다시 시도해주세요.", viewModel.uiState.value.statusMessage)
     }
 
+    @Test
+    fun `a pending device fix times out and keeps location as the retry target`() = runTest {
+        val source = FakeLocationSource(fix = fix(37.5665, 126.9780)).apply {
+            gate = CompletableDeferred()
+        }
+        val viewModel = viewModel(source)
+
+        viewModel.locateAndSearch()
+
+        assertEquals(RequestKind.LOCATION, viewModel.uiState.value.request)
+        advanceUntilIdle()
+
+        val failed = viewModel.uiState.value
+        assertNull(failed.request)
+        assertEquals(RequestKind.LOCATION, failed.failedRequest)
+        assertTrue(failed.error.orEmpty().startsWith("위치를 찾지 못했어요."))
+        assertEquals(1, source.currentLocationCalls)
+
+        viewModel.retry()
+
+        assertEquals(2, source.currentLocationCalls)
+        assertEquals(RequestKind.LOCATION, viewModel.uiState.value.request)
+    }
+
+    @Test
+    fun `a location failure remains the retry target when old results exist`() {
+        val state = MapUiState(
+            response = HospitalSearchResponse(
+                state = buildJsonObject {
+                    put("lat", 37.5665)
+                    put("lng", 126.9780)
+                },
+                results = emptyList(),
+                actions = emptyList(),
+                reply = "",
+                showCallCta = false,
+                callReasons = emptyList(),
+                resolution = emptyList(),
+            ),
+            failedRequest = RequestKind.LOCATION,
+        )
+
+        assertEquals(RequestKind.LOCATION, retryRequestFor(state))
+    }
+
     private fun viewModel(
         source: LocationSource,
         walk: WalkTrackingController = FakeWalkTrackingController(),
@@ -321,8 +369,11 @@ private class FakeLocationSource(
     var gate = CompletableDeferred<Unit>().apply { complete(Unit) }
     var subscriptions = 0
         private set
+    var currentLocationCalls = 0
+        private set
 
     override suspend fun currentLocation(): LocationSample {
+        currentLocationCalls++
         gate.await()
         return fix
     }
