@@ -21,7 +21,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_session
 from app.geo.icons import IconGroup, icon_group
-from app.geo.ranking import band_boost_sorted, facility_preference_tags, prefer_boost
+from app.geo.ranking import (
+    DISTANCE_BAND_M,
+    band_boost_sorted,
+    facility_preference_tags,
+    prefer_boost,
+)
 
 router = APIRouter(prefix="/facility", tags=["facility"])
 
@@ -108,7 +113,12 @@ WITH merged AS (
     SELECT f.id, f.source_ref, f.name, f.kind, f.category3,
            ST_Y(f.location::geometry) AS lat, ST_X(f.location::geometry) AS lng,
            ST_Distance(f.location, o.geom) AS distance_m,
-           f.address, f.phone, f.homepage, f.hours_text, f.closed_days, f.parking,
+           f.address, f.phone, f.homepage, f.hours_text, f.closed_days,
+           -- parking 도 순위에 쓰이므로 pet 과 같이 SQL 에서 effective 를 정한다. 파이썬
+           -- `_merge` 뒤에야 정해지면 SQL 이 순위 키를 만들 수 없다.
+           CASE WHEN f.parking IS NULL AND b.parking IS NOT NULL
+                THEN b.parking ELSE f.parking END AS parking,
+           (f.parking IS NULL AND b.parking IS NOT NULL) AS parking_borrowed,
            CASE WHEN (f.pet IS NULL OR f.pet = '{}'::jsonb)
                      AND b.pet IS NOT NULL AND b.pet <> '{}'::jsonb
                 THEN b.pet ELSE f.pet END AS pet,
@@ -131,7 +141,7 @@ WITH merged AS (
              AND b.pet IS NOT NULL AND b.pet <> '{}'::jsonb) AS pet_borrowed,
            f.source, COALESCE(f.last_written::text, f.snapshot) AS as_of,
            b.homepage AS b_homepage, b.hours_text AS b_hours_text,
-           b.closed_days AS b_closed_days, b.parking AS b_parking,
+           b.closed_days AS b_closed_days,
            b.source AS b_source, COALESCE(b.last_written::text, b.snapshot) AS b_as_of
     FROM facility f
     CROSS JOIN (SELECT ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography AS geom) o
@@ -151,7 +161,13 @@ WITH merged AS (
       AND NOT EXISTS (SELECT 1 FROM facility_link l
                       WHERE l.source = 'facility' AND l.source_ref = f.id::text)
 )
-SELECT * FROM merged
+SELECT *,
+       -- 선호 적중 수. 부스트 점수(`prefer_boost`)가 적중 수에 단조라 순서가 같다 —
+       -- 점수식을 SQL 에 복제하지 않으려고 수를 센다. 부스트에 다른 재료가 더해지면
+       -- (병원은 근거 수를 더한다) 이 단조성이 깨지므로 여기도 같이 고쳐야 한다.
+       (CASE WHEN :want_parking AND parking IS TRUE THEN 1 ELSE 0 END
+        + CASE WHEN :want_exclusive AND pet_exclusive IS TRUE THEN 1 ELSE 0 END) AS prefer_hits
+FROM merged
 WHERE
   -- 종을 열거하면서 개를 뺀 곳만 제외한다. 종 표기가 없는 곳(NULL)은 개 전제라 남는다.
   (:only_dog_ok IS NOT TRUE OR pet_dog_ok IS NOT FALSE)
@@ -159,21 +175,28 @@ WHERE
   AND (CAST(:dog_size AS text) IS NULL
        OR pet_size_class IS NULL
        OR pet_size_class = ANY(:size_accepts))
-ORDER BY distance_m
+-- 순위 키를 여기서 만드는 이유: 거리로만 자르고 파이썬에서 부스트를 매기면, 밴드가 빽빽할 때
+-- 선호 시설이 자른 창 밖에 남는다. `limit` 20 인데 0~400m 에 40곳이 있으면 450m 의 주차
+-- 가능 시설은 같은 밴드인데도 후보에 못 들어와 부스트가 아예 작동하지 않는다.
+-- 이건 태그 우선 정렬(`geo/search.py` 가 금지한 것)이 아니라 결정 #20 의 rank key 그대로다.
+ORDER BY floor(distance_m / :band_m), prefer_hits DESC, distance_m
 LIMIT :limit
 """)
 
-# 빌려올 수 있는 필드. 값이 비어 있을 때만 뒤 원천에서 가져온다.
-_BORROWABLE = ("homepage", "hours_text", "closed_days", "parking")
+# 파이썬이 빌리는 필드. 값이 비어 있을 때만 뒤 원천에서 가져온다.
+_BORROWABLE = ("homepage", "hours_text", "closed_days")
 
-# pet 과 파생 축의 effective 값은 SQL `merged` 가 이미 하나로 정한다. 여기서는 결과를 조립하고
-# 실제로 뒤 원천을 쓴 경우에만 출처 라벨을 붙인다.
-_PET_GROUP = ("pet", "pet_allowed", "pet_exclusive", "pet_dog_ok", "pet_size_class", "pet_max_kg")
+# SQL `merged` 가 이미 effective 를 정한 필드. 순위에 쓰이는 것은 전부 여기 있어야 한다 —
+# 파이썬 병합을 기다리면 SQL 이 순위 키를 만들 수 없다. 여기서는 출처 라벨만 붙인다.
+_SQL_MERGED = (
+    "parking",
+    "pet", "pet_allowed", "pet_exclusive", "pet_dog_ok", "pet_size_class", "pet_max_kg",
+)
 
 
 def _merge(row) -> tuple[dict, dict]:
-    """(필드값, 필드별 출처). pet 묶음은 SQL 에서 이미 병합됐고 나머지만 빈 값을 빌린다."""
-    values = {name: getattr(row, name) for name in (*_BORROWABLE, *_PET_GROUP)}
+    """(필드값, 필드별 출처). SQL 이 병합한 것은 라벨만, 나머지는 여기서 빈 값을 빌린다."""
+    values = {name: getattr(row, name) for name in (*_BORROWABLE, *_SQL_MERGED)}
     borrowed: dict[str, FacilitySourceOut] = {}
     if row.b_source is None:
         return values, borrowed
@@ -185,6 +208,8 @@ def _merge(row) -> tuple[dict, dict]:
             borrowed[name] = source
     if row.pet_borrowed:
         borrowed["pet"] = source
+    if row.parking_borrowed:
+        borrowed["parking"] = source
     return values, borrowed
 
 
@@ -211,15 +236,13 @@ async def facility_search(
     prefer = set(facility_preference_tags(
         parking=params.parking, dog_exclusive=params.dog_exclusive,
     ))
-    # 선호가 없으면 순서는 거리뿐이라 더 받을 이유가 없다. 있으면 밴드 안에서 자리를 바꿀
-    # 후보가 있어야 하므로 넉넉히 받고 정렬 뒤에 자른다 — SQL 정렬로 앞당기지 않는 것이
-    # 요점이다. 선호를 SQL 에 넣고 자르면 그건 사실상 필터가 된다 (geo/search.py 주석).
-    fetch = params.limit * 2 if prefer else params.limit
     rows = await db.execute(_SEARCH, {
         "lat": params.lat, "lng": params.lng, "radius_m": params.radius_m,
-        "kind": params.kind, "limit": fetch, "medical": list(MEDICAL),
+        "kind": params.kind, "limit": params.limit, "medical": list(MEDICAL),
         "only_dog_ok": params.only_dog_ok, "dog_size": params.dog_size,
         "size_accepts": list(SIZE_ACCEPTS.get(params.dog_size or "", ())),
+        "band_m": DISTANCE_BAND_M,
+        "want_parking": params.parking, "want_exclusive": params.dog_exclusive,
     })
     results = []
     for r in rows:
@@ -242,8 +265,10 @@ async def facility_search(
             field_sources=borrowed,
             prefer_hit=hit, boost=prefer_boost(hit),
         ))
-    # 선호 부스트는 거리 밴드(500m) 안에서만 순서를 바꾼다 — 결정 #20, geo/ranking.py.
+    # SQL 은 **어느 행을 후보로 삼을지**를 정하고, 최종 순서는 여기서 정의된다 —
+    # 결정 #20 의 rank key 는 `geo/ranking.py` 한 곳에만 산다. 둘이 어긋나면 순서가 아니라
+    # 후보 선택이 틀어지므로, 빽빽한 밴드에서 그걸 잡는 회귀 테스트가 붙어 있다.
     results = band_boost_sorted(
         results, distance_of=lambda f: f.distance_m, boost_of=lambda f: f.boost,
     )
-    return FacilitySearchOut(params=params, results=results[:params.limit])
+    return FacilitySearchOut(params=params, results=results)

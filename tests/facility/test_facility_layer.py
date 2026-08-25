@@ -12,6 +12,7 @@ import pytest
 from sqlalchemy import text
 
 from app.geo.facility_hours import attach_facility_hours
+from app.geo.ranking import DISTANCE_BAND_M
 from app.geo.schemas import PlaceOut
 from app.ingest.facility_store import prune_unseen, upsert_rows
 from app.ingest.kcisa import source_ref
@@ -146,6 +147,8 @@ async def test_cross_source_merge_keeps_richer_fields(monkeypatch):
                 "kind": "cafe", "limit": 10, "medical": list(api.MEDICAL),
                 # 이 테스트가 보는 것은 병합이라 pet 축 필터는 열어 둔다 (엔드포인트 기본값과 별개).
                 "only_dog_ok": False, "dog_size": None, "size_accepts": [],
+                # 순위는 이 테스트의 관심이 아니다. 선호를 끄면 rank key 가 거리순으로 접힌다.
+                "band_m": DISTANCE_BAND_M, "want_parking": False, "want_exclusive": False,
             })
             rows = [r for r in rows if r.source in FAC_SOURCES]
 
