@@ -165,3 +165,101 @@ async def test_borrowed_dog_exclusion_is_used_by_default_filter():
             assert shown["고양이빌리는쪽"].pet["size"] == "고양이"
         finally:
             await _clean(session)
+
+
+async def test_dog_id_fills_size_from_profile():
+    """프로필이 크기를 채운다 — 시설 검색이 개를 모르면 대형견에게 못 가는 곳을 내민다."""
+    async with db_session() as session:
+        await _clean(session)
+        try:
+            await _seed(session, [
+                facility_row("소형만", east_m=10, pet='{"allowed": "Y", "size": "5kg 이하"}'),
+                facility_row("모두가능", east_m=20, pet='{"allowed": "Y", "size": "모두 가능"}'),
+            ])
+            # 장군이 = 셰퍼드 34kg large (app/profile/source.py 페르소나)
+            out = await facility_search(
+                FacilityParams(lat=TEST_ORIGIN[0], lng=TEST_ORIGIN[1], radius_m=2000,
+                               dog_id="janggun"),
+                session,
+            )
+            names = {r.name for r in out.results}
+
+            assert "소형만" not in names, "프로필 크기가 필터에 안 닿았다"
+            assert "모두가능" in names
+            # 무엇으로 걸렀는지가 응답에 남아야 한다 — 빈 목록이 데이터 부족으로 읽히면 안 된다
+            assert out.params.dog_size == "large"
+        finally:
+            await _clean(session)
+
+
+async def test_explicit_dog_size_wins_over_profile():
+    """남의 개를 데려가는 경우가 있다. 명시가 프로필을 이긴다."""
+    async with db_session() as session:
+        await _clean(session)
+        try:
+            await _seed(session, [
+                facility_row("소형만", east_m=10, pet='{"allowed": "Y", "size": "5kg 이하"}'),
+            ])
+            out = await facility_search(
+                FacilityParams(lat=TEST_ORIGIN[0], lng=TEST_ORIGIN[1], radius_m=2000,
+                               dog_id="janggun", dog_size="small"),
+                session,
+            )
+            assert out.params.dog_size == "small"
+            assert "소형만" in {r.name for r in out.results}
+        finally:
+            await _clean(session)
+
+
+async def test_truncation_is_reported_not_silent():
+    """상한에 걸리면 말한다. 조용히 자르면 "이 반경엔 이만큼뿐"으로 읽힌다 (`/anchor/search` 와 같은 이유)."""
+    async with db_session() as session:
+        await _clean(session)
+        try:
+            await _seed(session, [
+                facility_row(f"카페{i}", east_m=10 * i, kind="test_kind",
+                             pet='{"allowed": "Y", "size": "모두 가능"}')
+                for i in range(4)
+            ])
+            # 실데이터가 같은 반경에 있어 개수를 세려면 이 테스트 행만 봐야 한다.
+            base = {"lat": TEST_ORIGIN[0], "lng": TEST_ORIGIN[1],
+                    "radius_m": 2000, "kind": "test_kind"}
+
+            cut = await facility_search(FacilityParams(**base, limit=2), session)
+            assert cut.truncated is True
+            assert len(cut.results) == 2, "상한을 넘겨 돌려주면 안 된다"
+
+            # limit 미지정 = 전부. 지도가 반경 안을 다 그릴 수 있어야 한다.
+            whole = await facility_search(FacilityParams(**base), session)
+            assert whole.truncated is False
+            assert len(whole.results) == 4
+        finally:
+            await _clean(session)
+
+
+async def test_unspecified_limit_is_still_bounded_by_the_server():
+    """`limit` 미지정이 '무한'은 아니다. 경계는 서버가 세운다 — 호출자가 카테고리로
+    나눠 부를 것이라는 기대는 경계가 아니다 (`/anchor/search` 의 `MAX_LIMIT` 과 같은 이유)."""
+    async with db_session() as session:
+        await _clean(session)
+        try:
+            await _seed(session, [
+                facility_row(f"많음{i}", east_m=10 * i, kind="test_bulk",
+                             pet='{"allowed": "Y", "size": "모두 가능"}')
+                for i in range(5)
+            ])
+            base = {"lat": TEST_ORIGIN[0], "lng": TEST_ORIGIN[1],
+                    "radius_m": 2000, "kind": "test_bulk"}
+
+            from app.api import facility as facility_api
+            original = facility_api.MAX_RESULTS
+            facility_api.MAX_RESULTS = 3          # 상한이 실제로 집행되는지만 본다
+            try:
+                out = await facility_search(FacilityParams(**base), session)
+            finally:
+                facility_api.MAX_RESULTS = original
+
+            assert len(out.results) == 3, "limit 미지정이 상한을 우회했다"
+            assert out.truncated is True, "잘랐으면 말해야 한다"
+        finally:
+            await _clean(session)

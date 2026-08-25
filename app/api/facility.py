@@ -27,10 +27,17 @@ from app.geo.ranking import (
     facility_preference_tags,
     prefer_boost,
 )
+from app.profile.source import profile_source
 
 router = APIRouter(prefix="/facility", tags=["facility"])
 
 MEDICAL = ("hospital", "pharmacy")
+
+# 서버가 세우는 자원 경계. `/anchor/search` 의 `MAX_LIMIT` 과 같은 값·같은 이유다 —
+# 호출자가 카테고리로 나눠 부를 것이라는 기대는 경계가 아니다. 반경 상한(20km)만으로는
+# 부족하다: 강남역 20km 는 kind 를 지정해도 4,966 곳(3MB)이라 `kind` 를 요구해봐야
+# 최악이 거의 안 준다. 실제 지도 사용(반경 3km, kind 별)은 수백 곳이라 이 상한에 안 닿는다.
+MAX_RESULTS = 3000
 
 DogSize = Literal["small", "medium", "large"]
 
@@ -47,8 +54,15 @@ class FacilityParams(BaseModel):
     lng: float = Field(ge=123, le=133)
     radius_m: int = Field(3000, ge=100, le=20000)
     kind: str | None = None            # cafe/travel/grooming/... 미지정 = 비의료 전체
-    limit: int = Field(20, ge=1, le=50)
+    # 미지정 = 반경 안 전부(서버 상한까지). 지도는 반경 안을 다 그려야 하고, 잘린 목록을
+    # "이 동네엔 이만큼뿐"으로 읽으면 "우리 개가 갈 곳이 없다"가 된다. 리스트 화면이 몇 개만
+    # 원하면 그때 명시한다. 어느 쪽이든 잘리면 `truncated` 로 말한다.
+    limit: int | None = Field(None, ge=1, le=MAX_RESULTS)
+    # 이 개를 데려간다. 크기를 프로필에서 채우는 용도 — 병원 검색은 이미 이렇게 받는데
+    # 시설 검색만 안 받아서, 개를 아는 서비스인데 시설 목록이 개를 모르고 있었다.
+    dog_id: str | None = Field(None, max_length=128)
     # 개 크기. 시설의 상한이 아니라 **데려갈 개**의 크기다 — 서버가 받을 수 있는 등급으로 편다.
+    # 명시하면 프로필보다 우선한다 (남의 개를 데려가는 경우가 있다).
     dog_size: DogSize | None = None
     # 종을 열거하면서 개를 뺀 시설을 제외한다. place 검색의 `only_dog_ok` 와 같은 뜻.
     only_dog_ok: bool = True
@@ -99,6 +113,9 @@ class FacilityOut(BaseModel):
 
 class FacilitySearchOut(BaseModel):
     params: FacilityParams
+    # 상한에 걸렸나. `/anchor/search` 와 같은 이유로 있다 — 조용히 자르면 "이 반경엔
+    # 이만큼뿐"으로 읽힌다. 지도 표면에서는 그 오독이 "우리 개가 갈 곳이 없다"가 된다.
+    truncated: bool = False
     results: list[FacilityOut]
 
 
@@ -233,19 +250,34 @@ async def facility_search(
     params: Annotated[FacilityParams, Query()],
     db: Annotated[AsyncSession, Depends(get_session)],
 ) -> FacilitySearchOut:
+    # 프로필은 **미지정 칸만** 채운다. 응답의 params 에 채워진 값이 그대로 실려서
+    # "무엇을 기준으로 걸렀나"가 클라이언트에 보인다 — 조용히 거르면 빈 목록이
+    # 데이터 부족으로 읽힌다.
+    if params.dog_size is None and params.dog_id:
+        profile = await profile_source().get(params.dog_id)
+        if profile:
+            params = params.model_copy(update={"dog_size": profile.size_class})
+
     prefer = set(facility_preference_tags(
         parking=params.parking, dog_exclusive=params.dog_exclusive,
     ))
+    # 미지정이어도 무한이 아니다 — 상한이 서버에 있고, 걸리면 `truncated` 로 알린다.
+    effective_limit = params.limit or MAX_RESULTS
     rows = await db.execute(_SEARCH, {
         "lat": params.lat, "lng": params.lng, "radius_m": params.radius_m,
-        "kind": params.kind, "limit": params.limit, "medical": list(MEDICAL),
+        # +1 은 절단 감지용 한 칸이다.
+        "kind": params.kind, "medical": list(MEDICAL), "limit": effective_limit + 1,
         "only_dog_ok": params.only_dog_ok, "dog_size": params.dog_size,
         "size_accepts": list(SIZE_ACCEPTS.get(params.dog_size or "", ())),
         "band_m": DISTANCE_BAND_M,
         "want_parking": params.parking, "want_exclusive": params.dog_exclusive,
     })
+    fetched = rows.all()
+    truncated = len(fetched) > effective_limit
+    if truncated:
+        fetched = fetched[:effective_limit]
     results = []
-    for r in rows:
+    for r in fetched:
         values, borrowed = _merge(r)
         hit = sorted(_prefer_tags(values) & prefer)
         results.append(FacilityOut(
@@ -271,4 +303,4 @@ async def facility_search(
     results = band_boost_sorted(
         results, distance_of=lambda f: f.distance_m, boost_of=lambda f: f.boost,
     )
-    return FacilitySearchOut(params=params, results=results)
+    return FacilitySearchOut(params=params, truncated=truncated, results=results)
