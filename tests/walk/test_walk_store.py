@@ -10,6 +10,7 @@ import pytest
 from sqlalchemy import text
 
 from app.features.walk import store
+from app.features.walk.curve import BUCKETS, CURVE_VERSION, compute_curve
 from app.features.walk.encounter import FacilityCandidate, compute_encounters
 from app.features.walk.facts import compute_facts
 from app.features.walk.models import WalkSession
@@ -167,3 +168,58 @@ async def test_finish_lock_prevents_late_upload_from_surviving():
     finally:
         async with db_session() as cleanup:
             await _cleanup(cleanup)
+
+
+async def test_curve_is_written_with_its_version_and_omitted_together():
+    """곡선은 `Segment` 가 살아 있는 finalize 때만 만들 수 있다 — 여기서 안 쓰면 영영 없다.
+
+    그리고 곡선과 버전은 한 몸이다. 못 만든 세션을 0 으로 채우면 "평탄하게 걸었다" 는
+    거짓이 되므로 둘 다 NULL 로 남는다 (CHECK `walk_facts_curve_paired`).
+    """
+    sid = "test:walk:curve"
+    async with db_session() as db:
+        await _cleanup(db)
+        try:
+            await store.upsert_session(db, WalkSession(id=sid, dog_id="halmae",
+                                                       started_at=WALK_T0))
+            fixes = [walk_fix(t, t / 5 * 7) for t in range(0, 60, 5)]
+            await store.append_fixes(db, sid, fixes)
+            loaded = await store.load_fixes_ordered(db, sid)
+            ended = WALK_T0 + timedelta(seconds=60)
+            computed = compute_facts(sid, "halmae", WALK_T0, ended, loaded)
+
+            curve = compute_curve(WALK_T0, ended, computed.segments)
+            await store.finalize(db, computed.facts, computed.quality, computed.events, (), curve)
+            await db.commit()
+
+            row = (await db.execute(text(
+                "SELECT curve, curve_version FROM walk_facts WHERE session_id = :id"),
+                {"id": sid})).one()
+            assert row.curve_version == CURVE_VERSION
+            assert [b["index"] for b in row.curve] == list(range(BUCKETS))
+            assert sum(b["moving_s"] for b in row.curve) > 0, "이동이 곡선에 안 담겼다"
+        finally:
+            await _cleanup(db)
+
+
+async def test_a_session_without_a_curve_stores_neither_half():
+    sid = "test:walk:nocurve"
+    async with db_session() as db:
+        await _cleanup(db)
+        try:
+            await store.upsert_session(db, WalkSession(id=sid, dog_id="halmae",
+                                                       started_at=WALK_T0))
+            await store.append_fixes(db, sid, [walk_fix(0, 0), walk_fix(5, 7)])
+            loaded = await store.load_fixes_ordered(db, sid)
+            ended = WALK_T0 + timedelta(seconds=10)
+            computed = compute_facts(sid, "halmae", WALK_T0, ended, loaded)
+
+            await store.finalize(db, computed.facts, computed.quality, computed.events)
+            await db.commit()
+
+            row = (await db.execute(text(
+                "SELECT curve, curve_version FROM walk_facts WHERE session_id = :id"),
+                {"id": sid})).one()
+            assert row.curve is None and row.curve_version is None
+        finally:
+            await _cleanup(db)
