@@ -14,8 +14,10 @@ import java.io.File
  * has the SDK. Field measurement happens away from that PC, so the phone itself has to be able to
  * send the session somewhere.
  *
- * Debug only — the provider is declared in the debug manifest, so [shareIntent] cannot resolve in
- * release even if a caller forgets the gate.
+ * Debug only. The caller gates on `BuildConfig.DEBUG` and the provider is declared in the debug
+ * manifest, so the share path does not exist in release at all — [shareIntent] there would throw
+ * from `FileProvider.getUriForFile` (no provider metadata for the authority) rather than return
+ * null. Both lines have to hold; neither is a fallback for the other.
  */
 object WalkExportShare {
 
