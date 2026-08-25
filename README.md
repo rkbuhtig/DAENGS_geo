@@ -6,14 +6,15 @@
 | 기능 | 성격 | 진입 |
 |---|---|---|
 | **병원/약국 찾기** | 요청-응답 (검색 + 자연어 파싱) | 챗봇 대화 / 일반 메뉴 |
-| **산책 기록** | Android foreground service + 서버 세션·사실·시설 occurrence. 앱 업로드는 아직 없음 | Android 지도 기능 / `/walk` |
+| **산책 기록** | Android foreground service → Room → 종료 시 서버 업로드 → 세션·사실·시설 occurrence | Android 지도 기능 / `/walk` |
 
 ## 상태
 
 **기존 스냅샷 검증: 2026-08-24.** 병원/약국 검색 백엔드와 Android 지도 셸이 동작한다.
 산책은 Android에서 Activity와 독립된 location foreground service를, 서버에서 세션 API·원순서
-fix·`WalkFacts`·정지/시설 occurrence 파생과 원좌표 purge를 구현했다. Android Room 영속 저장,
-서버 배치 업로드와 process-death 복구는 아직 구현하지 않았다.
+fix·`WalkFacts`·정지/시설 occurrence 파생과 원좌표 purge를 구현했다. Android Room 영속 저장과
+종료 시 서버 업로드까지 에뮬레이터에서 한 바퀴 관통을 확인했다(결정 #60). process-death 복구와
+배터리 대비 업로드 주기는 아직 구현하지 않았다.
 
 ```
 app/
@@ -174,7 +175,7 @@ POST /hospital/search
 - 백엔드: **FastAPI / Python**, DB: **PostgreSQL + PostGIS** (팀 pgvector와 동거)
 - 기준 클라이언트: **Android(Kotlin) 전용** 앱. iOS 없음. `/dev`는 제품 웹이 아니라 검증 콘솔
 - 산책 기록의 런타임 소유자는 Android location foreground service. 시작은 보이는 Activity에서만 하며 `ACCESS_BACKGROUND_LOCATION`은 아직 요청하지 않는다
-- 산책 세션의 Room/SQLite 영속 저장·서버 업로드·process-death 복구는 아직 미구현
+- 산책 세션의 Room/SQLite 영속 저장과 종료 후 서버 업로드는 구현됨. process-death 복구는 아직 미구현
 - 반려견 프로필은 이 레포가 소유하지 않는다 → 외부 계약으로 소비 (`docs/contracts/dog-profile.md`)
 - 산책 코어는 `WalkFacts`까지의 사실 수집. 목표·보상·개의 목소리·서술은 선택적 소비자
 - 판정이 추가되면 코드를 사용하고 LLM은 확정된 사실의 서술이나 자연어 파싱만 담당
