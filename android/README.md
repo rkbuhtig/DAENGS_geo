@@ -148,8 +148,25 @@ debug 빌드는 산책을 종료할 때 세션 전체(메타 + 원본 fix)를 �
 uv run python -m scripts.walk_bundle all --out C:\dev\walks
 ```
 
-`--out` 폴더에는 원좌표가 담기므로 레포 밖을 준다. `push` 하위 명령이 업로드 실패
-(밖에서 Wi-Fi 끊김 등)의 복구 경로다 — 서버가 404 인 세션만 원래 id 로 다시 보낸다.
+`push` 가 업로드 실패의 복구 경로다. 판정은 **"서버에 세션이 있나"가 아니라 "finish 까지
+가서 사실이 확정됐나"** 로 한다 — 가장 흔한 실패가 fix 를 절반쯤 보내다 끊긴 경우이고,
+그때 세션 행은 서버에 있지만 `WalkFacts` 가 없다. 존재만 보면 그 세션을 놓친다.
+엔드포인트가 전부 멱등이라 처음부터 다시 보내는 것이 안전하다.
+
+`push` 는 **명시적으로 종료된** 세션만 다룬다. process-death 로 닫히지 않은 세션은 기기
+export 에 나오지 않으며(결정 #55의 그 세션들), 그 산책의 `ended_at` 을 누가 정할지는 아직
+정책 문제다.
+
+**수명**: 기기 export 와 `--out` 폴더는 둘 다 원좌표를 담는 **개발 artifact 이고 제품 보관
+정책(결정 #57) 밖**이다. 기기 export 는 Room 밖의 두 번째 사본이라 Room 세션을 지워도 같이
+사라지지 않는다. 실측이 끝나면 지운다.
+
+```powershell
+uv run python -m scripts.walk_bundle pull --out C:\dev\walks --delete   # 가져오고 기기에서 삭제
+uv run python -m scripts.walk_bundle clear                              # 기기 export 전부 삭제
+```
+
+`--out` 폴더는 레포 밖에 두고 커밋하지 않는다.
 
 ## 아직 하지 않은 것
 
