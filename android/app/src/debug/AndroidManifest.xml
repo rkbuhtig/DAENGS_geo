@@ -3,5 +3,23 @@
     xmlns:tools="http://schemas.android.com/tools">
     <application
         android:usesCleartextTraffic="true"
-        tools:replace="android:usesCleartextTraffic" />
+        tools:replace="android:usesCleartextTraffic">
+
+        <!--
+          산책 export 를 폰 밖으로 내보내는 통로. debug 에만 있다.
+
+          이게 없으면 export 파일은 앱 내부 저장소에 갇혀 `adb run-as` 로만 꺼낼 수 있다 —
+          즉 그 PC 에 USB 로 꽂아야만 실측 데이터를 볼 수 있다. 밖에서 걷고 돌아와 폰에서
+          바로 보내는 길이 있어야 실측 도구다.
+        -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.walkexports"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/walk_export_paths" />
+        </provider>
+    </application>
 </manifest>

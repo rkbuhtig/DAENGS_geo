@@ -28,6 +28,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -36,9 +37,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import com.daengs.geo.BuildConfig
 import com.daengs.geo.hospital.HospitalResult
 import com.daengs.geo.hospital.LocationMode
@@ -50,12 +55,18 @@ import com.daengs.geo.map.layers.trail.TrackingState
 import com.daengs.geo.map.layers.trail.TrailLayerState
 import com.daengs.geo.map.shell.MapHost
 import com.daengs.geo.map.shell.MapScene
+import com.daengs.geo.walk.WalkExportShare
+import java.io.File
 import kotlin.math.abs
 import kotlin.math.roundToInt
+import kotlinx.coroutines.delay
 
 private enum class AppSection { HOSPITAL, MAP_TOOLS }
 
 /** Consecutive dropped fixes before we admit on screen that recording is going nowhere. */
+/** export 파일은 산책 종료 뒤 서비스 코루틴이 쓴다 — 생겼는지는 세어봐야 안다. */
+private const val EXPORT_RECOUNT_MS = 2_000L
+
 private const val LOW_ACCURACY_STREAK_TO_WARN = 3
 
 @Composable
@@ -288,6 +299,9 @@ private fun MapToolsPanel(
                     OutlinedButton(onClick = onToggleTrail) {
                         Text(if (state.layers.showTrail) "꼬리 숨기기" else "꼬리 보기")
                     }
+                }
+                if (BuildConfig.DEBUG) {
+                    WalkExportRow()
                 }
                 if (
                     state.trail.state == TrackingState.RECORDING &&
@@ -539,4 +553,63 @@ private fun formatMeters(meters: Double): String = formatMeters(meters.roundToIn
 private fun feedLabel(feed: LocationFeed): String = when (feed) {
     LocationFeed.DEVICE -> "실제 위치"
     LocationFeed.REPLAY -> "가상 이동"
+}
+
+
+/**
+ * 실측 도구. 종료한 산책의 원본 JSON 을 폰에서 바로 내보낸다.
+ *
+ * 이게 없으면 export 는 앱 내부 저장소에만 있어 `adb run-as` 로만 꺼낼 수 있다 — SDK 가 깔린
+ * 그 PC 에 USB 로 꽂아야만 실측 데이터를 볼 수 있다는 뜻이다. 산책은 그 PC 에서 멀리 떨어져
+ * 하는 일이므로, 폰이 스스로 보낼 수 있어야 한다.
+ *
+ * 몇 건이 대기 중인지 같이 보여준다. 내보내기는 종료 시 자동이라 화면에 흔적이 없었고,
+ * "저장은 된 건가"를 확인할 방법이 로그뿐이었다.
+ */
+@Composable
+private fun WalkExportRow() {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var exports by remember { mutableStateOf(emptyList<File>()) }
+
+    // **화면에 떠 있는 동안 다시 센다.** resume 한 번으로는 부족하다 — 이 줄의 목적이
+    // "종료 직후 바로 보내기"인데, 그때 앱은 계속 RESUMED 라 resume 이벤트가 오지 않는다.
+    //
+    // 산책 상태를 키로 쓰는 것도 안 된다. `WalkTrackingService.stopRecording()` 은 UI 상태를
+    // 먼저 publish 하고(`store.publish`), export 는 그 뒤 `serviceScope.launch` 안에서
+    // `writer.flush()` 다음에 일어난다. 상태가 OFF 로 바뀌는 시점엔 파일이 아직 없다.
+    //
+    // 파일이 언제 생기는지 UI 가 알 방법이 없어서 주기적으로 센다. 디버그 전용이고 세는 건
+    // 작은 디렉터리의 `listFiles` 하나다.
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            while (true) {
+                exports = WalkExportShare.exports(context)
+                delay(EXPORT_RECOUNT_MS)
+            }
+        }
+    }
+
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        OutlinedButton(
+            enabled = exports.isNotEmpty(),
+            onClick = {
+                // 누르는 순간 다시 읽는다. 위 주기 사이에 산책이 끝났으면 그 파일도 같이 간다.
+                val fresh = WalkExportShare.exports(context)
+                exports = fresh
+                WalkExportShare.shareIntent(context, fresh)?.let(context::startActivity)
+            },
+        ) {
+            Text("산책 기록 보내기")
+        }
+        Text(
+            // "대기"가 아니다 — 공유해도 파일은 남고 이 수는 줄지 않는다. 기기에 저장된 수다.
+            if (exports.isEmpty()) "저장된 기록 없음" else "저장된 기록 ${exports.size}건",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.secondary,
+        )
+    }
 }
