@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_session
 from app.features.walk import store
+from app.features.walk.curve import compute_curve
 from app.features.walk.encounter import compute_encounters
 from app.features.walk.facts import compute_facts
 from app.features.walk.models import (
@@ -151,7 +152,11 @@ async def finish_session(
     # 시설 관측은 fix 가 살아 있는 지금(DERIVED 이전)만 계산 가능하다 — purge 뒤엔 원본이 없다
     candidates = await store.facility_candidates(db, session_id)
     encounters = compute_encounters(s.id, computed.segments, computed.events, candidates)
-    await store.finalize(db, computed.facts, computed.quality, computed.events, encounters)
+    # 곡선은 segments 가 살아 있는 지금만 만들 수 있다 — finalize 가 원좌표를 지운다.
+    curve = compute_curve(computed.facts.started_at, computed.facts.ended_at, computed.segments)
+    await store.finalize(
+        db, computed.facts, computed.quality, computed.events, encounters, curve,
+    )
     await db.commit()
     return FinishOut(facts=computed.facts, quality=computed.quality.to_dict(),
                      events=computed.events, encounters=encounters)

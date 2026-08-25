@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.features.walk.curve import CURVE_VERSION, CurveBucket
 from app.features.walk.encounter import FacilityCandidate
 from app.features.walk.facts import FixQuality
 from app.features.walk.models import (
@@ -213,6 +214,7 @@ async def finalize(
     quality: FixQuality,
     events: list[MotionEventOccurrence],
     encounters: list[FacilityEncounter] = (),
+    curve: list[CurveBucket] | None = None,
 ) -> None:
     """SEALED → DERIVED → PURGED. 파생 사실을 쓴 뒤에만 원좌표를 지운다."""
     await db.execute(text("""
@@ -223,12 +225,21 @@ async def finalize(
         INSERT INTO walk_facts (session_id, record_version, calculation_version, dog_id,
                                 evidence_origin, started_at, ended_at,
                                 duration_s, distance_m, moving_distance_m, moving_s,
-                                stop_count, stop_s, avg_speed_mps, fix_count, quality)
+                                stop_count, stop_s, avg_speed_mps, fix_count, quality,
+                                curve, curve_version)
         VALUES (:session_id, :record_version, :calculation_version, :dog_id,
                 :evidence_origin, :started_at, :ended_at,
                 :duration_s, :distance_m, :moving_distance_m, :moving_s,
-                :stop_count, :stop_s, :avg_speed_mps, :fix_count, CAST(:quality AS jsonb))
-    """), {**facts.model_dump(), "quality": json.dumps(quality.to_dict())})
+                :stop_count, :stop_s, :avg_speed_mps, :fix_count, CAST(:quality AS jsonb),
+                CAST(:curve AS jsonb), :curve_version)
+    """), {
+        **facts.model_dump(),
+        "quality": json.dumps(quality.to_dict()),
+        # 곡선과 버전은 한 몸이다 (CHECK walk_facts_curve_paired). 곡선이 없으면 둘 다 NULL —
+        # 못 만든 것을 0 으로 채우면 "평탄하게 걸었다" 는 거짓이 된다.
+        "curve": json.dumps([b.to_dict() for b in curve]) if curve else None,
+        "curve_version": CURVE_VERSION if curve else None,
+    })
     if events:
         await db.execute(text("""
             INSERT INTO walk_motion_event

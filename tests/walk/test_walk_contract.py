@@ -91,8 +91,9 @@ def test_walk_package_has_no_judgment_modules():
     names = {p.stem for p in pkg.glob("*.py")} - {"__init__", "models"}
     bad = [n for n in names if any(t in n for t in walk.OUT_OF_SCOPE_TOKENS)]
     assert not bad, f"수집 패키지에 판정 모듈: {bad}"
-    # 엔드포인트·사실 계산이 생기면 여기 허용 목록에 이름을 **명시적으로** 더한다
-    assert names <= {"api", "facts", "store", "encounter"}, f"예상 밖 모듈: {names}"
+    # 엔드포인트·사실 계산이 생기면 여기 허용 목록에 이름을 **명시적으로** 더한다.
+    # curve: 진행 구간별 이동·정지 시간. 숫자만 내고 "지쳤다" 같은 해석은 소비자 몫이다.
+    assert names <= {"api", "facts", "store", "encounter", "curve"}, f"예상 밖 모듈: {names}"
 
 
 # ------------------------------------------------------------------ 계약 검증
