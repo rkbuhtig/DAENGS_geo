@@ -37,6 +37,25 @@ def preference_tags(
     return tuple(sorted(prefer))
 
 
+def facility_preference_tags(
+    *, parking: bool = False, dog_exclusive: bool = False
+) -> tuple[str, ...]:
+    """시설 선호 조건 → 선호 태그. `preference_tags` 의 시설판이다.
+
+    시설 축은 병원의 `tags TEXT[]` 같은 배열 컬럼이 아니라 개별 불 컬럼이라, 같은 부스트
+    기계(`prefer_boost` · `band_boost_sorted`)를 쓰려고 태그 어휘로 바꾼다.
+
+    무엇이 이 불을 켜는가(비가 와서 실내, 차로 가서 주차, 개가 다른 개를 무서워해서 전용)는
+    호출자가 정한다 — 위 `preference_tags` 와 같은 경계다. 여기는 의미만 안다.
+    """
+    prefer = []
+    if parking:
+        prefer.append("parking")
+    if dog_exclusive:
+        prefer.append("dog_exclusive")
+    return tuple(prefer)
+
+
 def prefer_boost(prefer_hit: Sequence[str]) -> int:
     """선호 태그 적중 → 부스트 점수. 근거(evidence) 가산은 호출자가 더한다."""
     return len(prefer_hit) * 2

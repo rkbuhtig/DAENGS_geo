@@ -21,6 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_session
 from app.geo.icons import IconGroup, icon_group
+from app.geo.ranking import band_boost_sorted, facility_preference_tags, prefer_boost
 
 router = APIRouter(prefix="/facility", tags=["facility"])
 
@@ -46,6 +47,10 @@ class FacilityParams(BaseModel):
     dog_size: DogSize | None = None
     # 종을 열거하면서 개를 뺀 시설을 제외한다. place 검색의 `only_dog_ok` 와 같은 뜻.
     only_dog_ok: bool = True
+    # 아래 둘은 **필터가 아니라 선호**다. 결과를 빼지 않고 거리 밴드 안에서만 순서를 바꾼다
+    # (결정 #20). 무엇이 이 불을 켜는지는 호출자가 정한다 — geo/ranking.py 의 경계와 같다.
+    parking: bool = False
+    dog_exclusive: bool = False
 
 
 class PetAxesOut(BaseModel):
@@ -83,6 +88,8 @@ class FacilityOut(BaseModel):
     pet_axes: PetAxesOut               # 위 봉투에서 뽑은 축 — 필터·정렬이 쓰는 것은 이쪽
     source: FacilitySourceOut
     field_sources: dict[str, FacilitySourceOut] = Field(default_factory=dict)
+    prefer_hit: list[str] = Field(default_factory=list)  # 선호와 이 행의 교집합 — 부스트 근거
+    boost: int = 0                     # 거리 밴드 안에서만 순서를 바꾼다
 
 
 class FacilitySearchOut(BaseModel):
@@ -181,20 +188,43 @@ def _merge(row) -> tuple[dict, dict]:
     return values, borrowed
 
 
+def _prefer_tags(values: dict) -> set[str]:
+    """이 행이 실제로 갖고 있는 선호 축 → 태그.
+
+    **`_merge` 뒤 병합된 값에서만 뽑는다.** `parking` 은 빌려올 수 있는 필드라 병합 전
+    자기 컬럼만 보면 빌린 주차장을 못 세고, 그러면 표시(빌린 값)와 순위(자기 값)가 갈린다 —
+    PR #51 이 필터에서 밟은 바로 그 함정이다.
+    """
+    tags = set()
+    if values["parking"] is True:
+        tags.add("parking")
+    if values["pet_exclusive"] is True:
+        tags.add("dog_exclusive")
+    return tags
+
+
 @router.get("/search", response_model=FacilitySearchOut)
 async def facility_search(
     params: Annotated[FacilityParams, Query()],
     db: Annotated[AsyncSession, Depends(get_session)],
 ) -> FacilitySearchOut:
+    prefer = set(facility_preference_tags(
+        parking=params.parking, dog_exclusive=params.dog_exclusive,
+    ))
+    # 선호가 없으면 순서는 거리뿐이라 더 받을 이유가 없다. 있으면 밴드 안에서 자리를 바꿀
+    # 후보가 있어야 하므로 넉넉히 받고 정렬 뒤에 자른다 — SQL 정렬로 앞당기지 않는 것이
+    # 요점이다. 선호를 SQL 에 넣고 자르면 그건 사실상 필터가 된다 (geo/search.py 주석).
+    fetch = params.limit * 2 if prefer else params.limit
     rows = await db.execute(_SEARCH, {
         "lat": params.lat, "lng": params.lng, "radius_m": params.radius_m,
-        "kind": params.kind, "limit": params.limit, "medical": list(MEDICAL),
+        "kind": params.kind, "limit": fetch, "medical": list(MEDICAL),
         "only_dog_ok": params.only_dog_ok, "dog_size": params.dog_size,
         "size_accepts": list(SIZE_ACCEPTS.get(params.dog_size or "", ())),
     })
     results = []
     for r in rows:
         values, borrowed = _merge(r)
+        hit = sorted(_prefer_tags(values) & prefer)
         results.append(FacilityOut(
             id=r.id, source_ref=r.source_ref, name=r.name, kind=r.kind,
             icon_group=icon_group(r.kind), category3=r.category3,
@@ -210,5 +240,10 @@ async def facility_search(
             ),
             source=FacilitySourceOut(name=r.source, as_of=r.as_of),
             field_sources=borrowed,
+            prefer_hit=hit, boost=prefer_boost(hit),
         ))
-    return FacilitySearchOut(params=params, results=results)
+    # 선호 부스트는 거리 밴드(500m) 안에서만 순서를 바꾼다 — 결정 #20, geo/ranking.py.
+    results = band_boost_sorted(
+        results, distance_of=lambda f: f.distance_m, boost_of=lambda f: f.boost,
+    )
+    return FacilitySearchOut(params=params, results=results[:params.limit])
