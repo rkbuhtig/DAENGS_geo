@@ -137,10 +137,24 @@ Foreground Service 실기기 smoke에서는 다음을 추가로 본다.
 debug 화면의 `CTA 확인용 · 반경 100m`는 결과 0곳 상태를 만들기 위한 개발 보조 동작이다.
 결과가 여전히 있으면 지도를 빈 지역으로 옮긴 뒤 `이 지역 검색`을 누른다.
 
+## 실측 데이터 꺼내기 (debug)
+
+debug 빌드는 산책을 종료할 때 세션 전체(메타 + 원본 fix)를 내부 저장소
+`files/walk-exports/` 에 JSON 으로 남긴다 — 서버는 finish 에서 원좌표를 지우므로 이 파일이
+디버깅에 쓸 수 있는 유일한 궤적 사본이다. 형식은 서버 wire 계약 그대로라 번역 없이 재전송된다.
+
+```powershell
+# 기기 → 폴더 → (미업로드 재전송) → 서버 파생까지 한 번에
+uv run python -m scripts.walk_bundle all --out C:\dev\walks
+```
+
+`--out` 폴더에는 원좌표가 담기므로 레포 밖을 준다. `push` 하위 명령이 업로드 실패
+(밖에서 Wi-Fi 끊김 등)의 복구 경로다 — 서버가 404 인 세션만 원래 id 로 다시 보낸다.
+
 ## 아직 하지 않은 것
 
 - 이 변경의 실기기 화면 OFF/다른 앱 전환 smoke
-- 닫히지 않은 세션의 복구 UI, 서버 업로드 주기 (원본 fix 저장 자체는 구현됨)
+- 닫히지 않은 세션의 복구 UI (미업로드 재전송은 `scripts/walk_bundle.py push` 로 PC 에서 가능)
 - 원본 fix 보관 기간·동의·세션 삭제 UI (cascade 삭제 저장 경계만 구현됨)
 - Room 마이그레이션 테스트 (`room-testing` + androidTest 소스셋). 지금은 v1 뿐이라 대상이 없다
 - territory 영속 저장·공개 소유권·사진, 로그인, 오프라인 큐, push
