@@ -3,6 +3,7 @@ package com.daengs.geo.location
 import android.annotation.SuppressLint
 import android.content.Context
 import android.location.Location
+import android.os.Looper
 import androidx.core.location.LocationCompat
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
@@ -51,7 +52,11 @@ class FusedLocationSource(context: Context) : LocationSource {
                 result.locations.forEach { trySend(it.toSample()) }
             }
         }
-        client.requestLocationUpdates(request, callback, null)
+        // Not null: the callback needs a Looper to be delivered on, and GMS rejects a null one
+        // with "invalid null looper" unless the *calling thread* has its own. This flow is
+        // collected from the walk service's Dispatchers.Default scope, which has none — so the
+        // subscription failed instantly and every walk paused itself with zero fixes.
+        client.requestLocationUpdates(request, callback, Looper.getMainLooper())
             .addOnFailureListener { close(it) }
         awaitClose { client.removeLocationUpdates(callback) }
     }

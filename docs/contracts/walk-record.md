@@ -65,7 +65,7 @@ FacilityEncounter   동선 주변에 시설 좌표가 있었다는 관측 — �
   session_id, event_index
   occurrence_version, occurrence_index
                                   같은 시설도 연속 진입마다 별도 행. v1 집계행은 복원 불가
-  entered_at, exited_at           50m 원 안에서 관측된 시간 구간
+  entered_at, exited_at           20m 원 안에서 관측된 시간 구간
   entry_observed, exit_observed   원 경계를 실제 통과했나. 수집 시작·gap이면 false
   entered_offset_m, exited_offset_m   방향 있는 segment 열 위의 진입·이탈 위치
   facility_source, facility_ref   시설 안정 키. facility.id 아님
@@ -73,21 +73,25 @@ FacilityEncounter   동선 주변에 시설 좌표가 있었다는 관측 — �
   place_active                    의료 오버레이 상태 — 필터가 아니라 데이터. 폐업 앞을 지나는 것도 사실
   as_of
   min_lateral_m, offset_m         동선이 가장 가까웠던 거리와 그 지점의 동선상 위치
-  dwell_s_10m/30m/50m             판정 원 후보 3개의 체류 시간. 원좌표는 지워지므로
-                                  반지름 선택(실측 후)을 위해 밴드를 전부 저장한다
+  dwell_s_10m/15m/20m             판정 원 후보 3개의 체류 시간. 원좌표는 지워지므로
+                                  반지름 선택(실측 후)을 위해 밴드를 전부 저장한다.
+                                  **occurrence_version <= 2 행은 옛 밴드(10/30/50m)다** —
+                                  15m·20m 칸에 30m·50m 원의 값이 들어 있다. 밴드를 좁힐 때
+                                  컬럼을 rename 했고 원좌표는 이미 purge 돼 재계산이 안 된다.
+                                  버전을 안 보고 읽으면 틀린 반지름의 답을 얻는다
   pass_count                      v2 occurrence는 항상 1. v1 집계행에서만 세션 진입 합계
-  stop_overlap_10m/30m/50m, stop_s_10m   같은 시간 구간의 원 안 정지 이벤트 겹침
-  accuracy_p50_m                  50m 원 안 관측 정확도 — 판정 가능성의 근거
+  stop_overlap_10m/15m/20m, stop_s_10m   같은 시간 구간의 원 안 정지 이벤트 겹침
+  accuracy_p50_m                  20m 원 안 관측 정확도 — 판정 가능성의 근거
 
 "지나쳤다/봤다/들렀다"는 여기 없다. 그 판정은 `app/scene/judgment.py` 가 규칙표
 (JUDGMENT_VERSION, 상수 잠정)로 한다 — 사실은 안 바뀌고 판정 상수만 바뀔 수 있게
 층을 가른 것. 틱은 GPS 점이고 원 경계 통과는 선분 위 보간이라 체류가 점 간격보다 정밀하다.
-판정 v2는 occurrence v2만 받는다. 원좌표 삭제로 분할할 수 없는 legacy v1 집계행은 읽기
-호환만 하고 `unjudgeable`로 격리한다.
+판정은 현재 버전의 occurrence만 받는다. 원좌표 삭제로 분할할 수 없는 v1 집계행과, 밴드가
+달라 값의 뜻이 바뀐 v2 행은 읽기 호환만 하고 `unjudgeable`로 격리한다.
 
 동선 계산의 최소 방향 계약은 시간순 `Segment(a → b)`다. 명시적 pause/resume와
 gap·jump·거부 지점은 별도
-연속 chain으로 끊고, occurrence는 **한 chain에서 50m 원과 겹치는 최대 연속 시간구간**이다.
+연속 chain으로 끊고, occurrence는 **한 chain에서 20m 원과 겹치는 최대 연속 시간구간**이다.
 같은 시설을 왕복하면 서로 다른 occurrence 두 행이 된다. `Leg`·corridor는 이 관측 계약의
 선행 조건이 아니며, 가는 길/오는 길 또는 교차 세션 학습이 필요할 때 별도로 정의한다.
 

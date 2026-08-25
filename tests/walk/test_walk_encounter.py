@@ -39,8 +39,8 @@ def test_geometry_offset_lateral_and_bands():
     assert 11 <= e.min_lateral_m <= 13
     assert 200 <= e.offset_m <= 220
     assert e.dwell_s_10m == 0                       # 12m 횡거리 — 10m 원엔 못 들어온다
-    assert e.dwell_s_30m > 0
-    assert e.dwell_s_50m > e.dwell_s_30m            # 큰 원일수록 오래 머문다
+    assert e.dwell_s_15m > 0
+    assert e.dwell_s_20m > e.dwell_s_15m            # 큰 원일수록 오래 머문다
     assert e.pass_count == 1
 
 
@@ -58,7 +58,7 @@ def test_same_input_same_encounters():
 
 def test_encounters_are_ordered_by_route_offset():
     enc, _ = compute(straight_walk(300),
-                     [cand("late", 350, 20), cand("early", 70, 20)])
+                     [cand("late", 350, 8), cand("early", 70, 8)])
     assert [e.facility_ref for e in enc] == ["early", "late"]
     assert [e.event_index for e in enc] == [0, 1]
 
@@ -110,7 +110,7 @@ def test_stop_at_facility_marks_overlap_and_stop_seconds():
     enc, c = compute(fixes, [cand("stopped-at", east_m=140, north_m=5)], ended_s=200)
     assert c.facts.stop_count == 1
     e = enc[0]
-    assert e.stop_overlap_10m and e.stop_overlap_30m and e.stop_overlap_50m
+    assert e.stop_overlap_10m and e.stop_overlap_15m and e.stop_overlap_20m
     assert e.stop_s_10m >= 25
 
 
@@ -137,12 +137,12 @@ def test_judgment_passed_vs_lingered_vs_visited():
     fixes = [walk_fix(t, t / 5 * 7) for t in range(0, 105, 5)]
     fixes += [walk_fix(t, 140) for t in range(105, 140, 5)]
     fixes += [walk_fix(t, 140 + (t - 140) / 5 * 7) for t in range(140, 205, 5)]
-    # drive-by 횡거리 45m: 30m 원엔 아예 안 들어온다. 참고 — 보행 1.4m/s 기준
-    # 횡거리 29m 이하면 30m 원 체류가 10초를 넘어 '머묾'이 된다. 이 민감도가
-    # LINGER_MIN_DWELL_S 가 잠정이고 실측(PR39)이 필요한 이유다.
+    # drive-by 횡거리 16m: 20m 원엔 들어오지만 15m(기본 판정 반지름) 원엔 안 들어온다.
+    # 참고 — 보행 1.4m/s 기준 횡거리 13.3m 이하면 15m 원 체류가 10초를 넘어 '머묾'이
+    # 된다. 이 민감도가 LINGER_MIN_DWELL_S 가 잠정이고 실측이 필요한 이유다.
     enc, _ = compute(fixes, [
         cand("visited", east_m=140, north_m=5),      # 옆에서 35초 정지
-        cand("drive-by", east_m=40, north_m=45),     # 50m 원만 스침
+        cand("drive-by", east_m=40, north_m=16),     # 20m 원만 스침
     ], ended_s=200)
     by_ref = {e.facility_ref: e for e in enc}
     assert judge(by_ref["visited"]) == "visited_guess"
@@ -151,16 +151,16 @@ def test_judgment_passed_vs_lingered_vs_visited():
 
 def test_judgment_unjudgeable_when_accuracy_exceeds_band():
     fixes = [WalkFix(client_seq=i, at=WALK_T0 + timedelta(seconds=t), lat=TEST_ORIGIN[0],
-                     lng=walk_fix(t, t / 5 * 7).lng, accuracy_m=45.0)
+                     lng=walk_fix(t, t / 5 * 7).lng, accuracy_m=17.0)
              for i, t in enumerate(range(0, 305, 5))]
     enc, _ = compute(fixes, [cand("blurry", 210, 12)])
-    assert judge(enc[0], band=30) == "unjudgeable"   # 오차 45m 로 30m 원 판정은 소음
-    assert judge(enc[0], band=50) != "unjudgeable"
+    assert judge(enc[0], band=15) == "unjudgeable"   # 오차 17m 로 15m 원 판정은 소음
+    assert judge(enc[0], band=20) != "unjudgeable"
 
 
 def test_judgment_does_not_treat_legacy_aggregate_as_one_occurrence():
     enc, _ = compute(straight_walk(300), [cand("legacy", 210, 12)])
     legacy = enc[0].model_copy(update={"occurrence_version": 1, "pass_count": 2})
 
-    assert JUDGMENT_VERSION == 2
+    assert JUDGMENT_VERSION == 3
     assert judge(legacy) == "unjudgeable"

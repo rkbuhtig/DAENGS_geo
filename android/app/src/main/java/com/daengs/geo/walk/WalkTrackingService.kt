@@ -9,6 +9,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.IBinder
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import com.daengs.geo.DaengsApplication
@@ -25,6 +26,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
+import kotlin.coroutines.cancellation.CancellationException
 import java.util.UUID
 
 /**
@@ -42,6 +44,8 @@ class WalkTrackingService : Service() {
     private lateinit var tracker: LocationTracker
     private lateinit var store: WalkTrackingStore
     private lateinit var writer: WalkFixWriter
+    private lateinit var uploader: WalkUploader
+    private lateinit var dogId: String
 
     /** Non-null exactly while a walk owns a stored session. Late fixes after stop are dropped. */
     private val sessionLock = Any()
@@ -55,6 +59,8 @@ class WalkTrackingService : Service() {
         locationSource = graph.locationSource
         store = graph.walkTrackingStore
         writer = graph.walkFixWriter
+        uploader = graph.walkUploader
+        dogId = graph.dogId
         tracker = LocationTracker(serviceScope)
         createNotificationChannel()
 
@@ -144,7 +150,7 @@ class WalkTrackingService : Service() {
     private fun stopRecording() {
         if (recorder.snapshot().state == TrackingState.OFF) return
         tracker.stop()
-        closeSession()
+        val finishedId = closeSession()
         val trail = recorder.stop()
         store.publish(
             WalkTrackingState(
@@ -156,6 +162,7 @@ class WalkTrackingService : Service() {
             try {
                 // closeSession was submitted after every accepted fix under sessionLock.
                 writer.flush()
+                uploadQuietly(finishedId)
             } finally {
                 stopForeground(STOP_FOREGROUND_REMOVE)
                 stopSelf()
@@ -197,16 +204,45 @@ class WalkTrackingService : Service() {
             sessionId = id
             nextClientSeq = 0
             chainIndex = 0
-            // dogId stays null: this repo does not own a dog profile (decision #4).
-            writer.openSession(RecordedSession(id = id, dogId = null, startedAtMillis = now()))
+            // The repo owns no dog profile (decision #4), so this is whatever the build
+            // injected — a server persona in debug, blank in release. Stored with the session
+            // rather than attached at upload time: the local row has to know whose walk it
+            // was, or `dog_id` cannot select this walk for deletion either.
+            writer.openSession(
+                RecordedSession(id = id, dogId = dogId.ifBlank { null }, startedAtMillis = now()),
+            )
         }
     }
 
     /** Only an explicit stop closes a session. Process death deliberately leaves it open. */
-    private fun closeSession() {
-        synchronized(sessionLock) {
-            sessionId?.let { writer.closeSession(it, now()) }
-            sessionId = null
+    private fun closeSession(): String? = synchronized(sessionLock) {
+        val closing = sessionId
+        closing?.let { writer.closeSession(it, now()) }
+        sessionId = null
+        closing
+    }
+
+    /**
+     * Upload is best-effort and never blocks the walk from ending. A failure here means the
+     * server has no facts yet, not that the walk was lost — the raw fixes are in Room and the
+     * whole session can be resent later, because every endpoint collapses repeats.
+     */
+    private suspend fun uploadQuietly(sessionId: String?) {
+        if (sessionId == null || !uploader.enabled) return
+        try {
+            val result = uploader.upload(sessionId)
+            if (result != null) {
+                Log.i(
+                    TAG,
+                    "uploaded $sessionId: ${result.fixCount} fixes " +
+                        "(stored=${result.stored} duplicates=${result.duplicates}) " +
+                        "facts=${result.facts["facts"]} encounters=${result.facts["encounters"]}",
+                )
+            }
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (error: Throwable) {
+            Log.w(TAG, "walk upload failed for $sessionId; rows stay in Room", error)
         }
     }
 
@@ -332,6 +368,8 @@ class WalkTrackingService : Service() {
         const val ACTION_PAUSE = "com.daengs.geo.walk.PAUSE"
         const val ACTION_RESUME = "com.daengs.geo.walk.RESUME"
         const val ACTION_STOP = "com.daengs.geo.walk.STOP"
+
+        private const val TAG = "WalkTrackingService"
 
         private const val CHANNEL_ID = "walk_tracking"
         private const val NOTIFICATION_ID = 4101

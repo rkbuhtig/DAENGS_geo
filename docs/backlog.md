@@ -15,13 +15,23 @@
 - [x] 산책 세션 API·저장·`WalkFacts`·시설 occurrence 집계 구현
 - [x] Android foreground service가 위치수집 생명주기 소유
 - [x] Android Room 원본 fix 영속 저장·세션 cascade 삭제 경계
-- [ ] Android 위치 배치 업로드·process-death 복구 주기 (배터리 vs 유실)
+- [x] Android 위치 배치 업로드 — 명시적 종료 후 일괄, 전체 재전송 (결정 #60)
+- [ ] Android process-death 복구 — 안 닫힌 세션(#55)을 어떻게 다룰지. 서버는 그 세션을
+      영영 finish 받지 못하므로 stale OPEN 의 TTL·tombstone 정책이 짝이다
+- [ ] 업로드 주기와 실행 보장 (배터리 vs 유실) — 현재는 종료 직후 1회, 실패하면 재시도 없음.
+      WorkManager 는 업로드 의미가 아니라 실행 보장 장치로 들어간다
 - [ ] GPS 품질·어뷰징 검증 임계값 (accuracy, 속도, 점프, 가속도)
 - [ ] 병원 **영업시간 데이터 출처** — 공공데이터에 없음. 수기·제휴 또는 parked `homepage-enrich.md`
 - [ ] 검색 후처리로 후보가 빠질 때 반경 안의 다음 후보를 refill하는 방식
 - [ ] Android 실기기 위치·지도·백그라운드 smoke test와 release 서버 설정
 - [x] PostGIS 통합 테스트를 포함한 CI (`.github/workflows/ci.yml`)
 - [ ] 딥링크 스킴 이름 (`daengs://` 가안)
+- [ ] **`NAVER_MAP_NCP_KEY_ID` 가 실제 값이면 Robolectric 테스트 4개가 깨진다.**
+      `DaengsApplication.onCreate` 가 키가 있을 때만 `NaverMapSdk` 를 초기화하는데 그게 JVM
+      에서 `VerifyError` 로 죽는다. 지금 초록인 건 CI·기본 설정에 키가 없어서다 — 키를 가진
+      사람 머신에서는 빨간불이다
+- [ ] **`local.properties` 의 빈 값이 `.env` 의 실제 값을 이긴다.** `configured()` 가
+      `getProperty()` 의 `""` 를 값으로 받아 폴백을 멈춘다. 키를 `.env` 에 넣어둬도 앱이 못 쓴다
 
 ## 현재 코어에 필요한 키·환경
 - [ ] NAVER Cloud Maps Dynamic/Static Map 키와 Android 패키지·웹 서비스 URL 등록

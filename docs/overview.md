@@ -31,8 +31,9 @@ start → GPS 배치 → end → WalkFacts (시간·거리·속도·정지)
 `tests/test_walk_contract.py` 가 지킨다. 3단 루프 · 케어 밸런스는 [탐색](explorations/walk/loop-and-balance.md)으로
 내렸다 — 수집이 돌고 baseline 이 쌓인 뒤에 데이터로 정한다.
 
-현재 구현은 모델과 계약 테스트까지다. 위 흐름을 실행하는 세션 API·저장·집계와 Android
-foreground service·업로드는 아직 없다.
+위 흐름은 실제로 돈다 — Android foreground service가 원본 fix를 Room에 쌓고, 산책을 끝내면
+서버로 올려 `WalkFacts`와 시설 occurrence를 만든 뒤 원좌표를 지운다. 에뮬레이터 주행으로
+확인했다(`scripts/walk_emulator_drive.py`). process-death 복구와 업로드 주기는 아직 없다.
 
 그래도 지키는 것 (만약 누가 얹는다면):
 - **판타지 레이어 없음.** 심해탐사·폐허도시 같은 테마 폐기. 레벨·스탯·전투 없음

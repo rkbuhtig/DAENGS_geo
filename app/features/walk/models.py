@@ -14,7 +14,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 RECORD_VERSION = 4
 CALCULATION_VERSION = 4
-ENCOUNTER_OCCURRENCE_VERSION = 2
+ENCOUNTER_OCCURRENCE_VERSION = 3
 
 EvidenceOrigin = Literal["device", "mock", "mixed", "unknown"]
 SessionState = Literal["open", "sealed", "derived", "purged"]
@@ -137,7 +137,7 @@ class FacilityEncounter(ContractModel):
     "지나쳤다/봤다/들렀다"는 여기 없다. 그 판정은 이 사실을 소비하는 쪽(app/scene)이
     규칙표+버전으로 한다. 시설 좌표는 대표점(건물 중심)이지 출입구가 아니다.
 
-    밴드(10/30/50m)를 전부 저장하는 이유: 원좌표는 finish에서 지워지므로, 판정 반지름을
+    밴드(10/15/20m)를 전부 저장하는 이유: 원좌표는 finish에서 지워지므로, 판정 반지름을
     실측(반복 보행) 후 정하려면 후보 반지름들의 답이 미리 계산돼 있어야 한다.
 
     폐업·인허가 상태는 거르는 조건이 아니라 싣는 데이터다(place_active) — 관측층은
@@ -165,21 +165,21 @@ class FacilityEncounter(ContractModel):
     min_lateral_m: float = Field(ge=0)     # 동선이 시설에 가장 가까웠던 거리
     offset_m: float = Field(ge=0)          # 그 순간의 동선상 위치 (이동거리 기준)
     dwell_s_10m: int = Field(ge=0)         # 반지름별 체류 시간 — 판정 원 후보 3개
-    dwell_s_30m: int = Field(ge=0)
-    dwell_s_50m: int = Field(ge=0)
-    pass_count: int = Field(ge=0)          # 50m 원 진입 횟수 (왕복이면 2)
+    dwell_s_15m: int = Field(ge=0)
+    dwell_s_20m: int = Field(ge=0)
+    pass_count: int = Field(ge=0)          # 20m 원 진입 횟수 (왕복이면 2)
     stop_overlap_10m: bool = False         # 그 원 안에서 정지 이벤트가 있었나
-    stop_overlap_30m: bool = False
-    stop_overlap_50m: bool = False
+    stop_overlap_15m: bool = False
+    stop_overlap_20m: bool = False
     stop_s_10m: int = Field(0, ge=0)       # 10m 원 안 정지 이벤트 지속시간 합
-    accuracy_p50_m: float | None = Field(None, ge=0)   # 50m 원 안 관측점 정확도 중앙값
+    accuracy_p50_m: float | None = Field(None, ge=0)   # 20m 원 안 관측점 정확도 중앙값
 
     _occurrence_tz = field_validator("entered_at", "exited_at")(
         lambda v: v if v is None else _tz_required(v)
     )
 
     @model_validator(mode="after")
-    def occurrence_is_complete_in_v2(self) -> "FacilityEncounter":
+    def occurrence_is_complete_in_current(self) -> "FacilityEncounter":
         if self.occurrence_version < ENCOUNTER_OCCURRENCE_VERSION:
             return self                              # v1 집계행은 원좌표 삭제로 backfill 불가
         required = {
@@ -193,11 +193,11 @@ class FacilityEncounter(ContractModel):
         }
         missing = [name for name, value in required.items() if value is None]
         if missing:
-            raise ValueError(f"occurrence v2 requires {', '.join(missing)}")
+            raise ValueError(f"occurrence v3 requires {', '.join(missing)}")
         if self.exited_at < self.entered_at:
             raise ValueError("exited_at must not precede entered_at")
         if self.exited_offset_m < self.entered_offset_m:
             raise ValueError("exited_offset_m must not precede entered_offset_m")
         if self.pass_count != 1:
-            raise ValueError("occurrence v2 represents exactly one pass")
+            raise ValueError("occurrence v3 represents exactly one pass")
         return self
