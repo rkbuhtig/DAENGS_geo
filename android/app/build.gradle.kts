@@ -23,10 +23,13 @@ val rootDotEnv = rootProject.file("../.env")
     }
     .orEmpty()
 
+// 빈 값은 "설정 안 함" 으로 본다. `local.properties` 에 `KEY=` 한 줄이 남아 있으면 그 빈
+// 문자열이 null 이 아니라서 뒤의 환경변수·`.env` 를 전부 이겼다 — 키가 .env 에 있는데도
+// 빈 값으로 빌드되고, 앱은 설정 안내 표면을 띄운다. 이유가 보이지 않는 종류의 실패다.
 fun configured(name: String, fallback: String): String =
-    localProperties.getProperty(name)
-        ?: providers.environmentVariable(name).orNull
-        ?: rootDotEnv[name]
+    localProperties.getProperty(name)?.takeIf { it.isNotBlank() }
+        ?: providers.environmentVariable(name).orNull?.takeIf { it.isNotBlank() }
+        ?: rootDotEnv[name]?.takeIf { it.isNotBlank() }
         ?: fallback
 
 fun quoted(value: String): String =
