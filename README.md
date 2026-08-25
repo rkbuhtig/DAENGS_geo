@@ -52,7 +52,7 @@ parked된 LLM 경계는 `utterance`가 있을 때만 “말 → 툴 호출” �
 
 ```bash
 cp .env.example .env
-docker compose up -d            # PostGIS 16-3.4 (빈 DB)
+docker compose up -d            # PostgreSQL 18 + PostGIS 3.6 + pgvector 0.8.6
 docker compose ps               # db/api 모두 healthy인지 확인
 uv sync
 uv run alembic upgrade head     # 스키마 적용. 몇 번을 다시 돌려도 안전하다
@@ -60,6 +60,11 @@ docker compose exec -T db psql -U daengs -d daengs < migrations/dev_seed.sql   #
 uv run uvicorn app.main:app --reload
 uv run pytest
 ```
+
+DB 이미지는 팀 공용 환경과 같은 PostgreSQL 18 · PostGIS 3.6 · pgvector 0.8.6 조합이다.
+PG18부터 데이터 볼륨 경로가 `/var/lib/postgresql`로 바뀌었고 compose도 `pgdata18` 새 볼륨을
+쓴다. 기존 PG16 `pgdata` 볼륨은 자동 변환하거나 삭제하지 않는다. 필요한 데이터는 새 DB에
+마이그레이션을 적용한 뒤 다시 적재하거나 `pg_dump`/`pg_restore`로 옮긴다.
 
 `GET /health`는 프로세스 liveness라 DB를 조회하지 않는다. `GET /health/ready`는 DB에
 `SELECT 1`을 실행하며 연결할 수 없으면 503을 반환한다. 외부 지도·경로 provider 장애는 컨테이너
@@ -125,11 +130,13 @@ dev 누적량은 프로세스 메모리에 있어 재시작하면 초기화되�
 공공 API는 사용자 검색 시 호출하지 않고 배치에서만 호출한다. 좌표(EPSG:5174)는 적재 시
 PostGIS에서 WGS84(EPSG:4326)로 변환하며, 검색 후 선택한 목적지만 기존 `/journey`가 TMAP에 넘긴다.
 
-기존 `pgdata` 볼륨은 Docker 초기화 SQL을 다시 실행하지 않으므로 마이그레이션을 한 번 적용한다.
+Alembic 도입 전부터 쓰던 기존 볼륨은 Docker 초기화 SQL을 다시 실행하지 않으므로 먼저 실제
+스키마 리비전을 판별한 뒤 마이그레이션한다.
 
 ```bash
-docker compose exec -T db psql -U daengs -d daengs \
-  -f /docker-entrypoint-initdb.d/003_mois_ingest.sql
+uv run python -m scripts.detect_schema_revision
+# 출력된 stamp 명령을 검토·실행한 뒤
+uv run alembic upgrade head
 ```
 
 ```bash
