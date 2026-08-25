@@ -16,10 +16,10 @@ from typing import Literal
 
 from app.features.walk.models import ENCOUNTER_OCCURRENCE_VERSION, FacilityEncounter
 
-JUDGMENT_VERSION = 2
+JUDGMENT_VERSION = 3
 
 # ---- 잠정 상수. 실측(같은 길 반복 보행) 후 확정한다 ----
-BAND_M: Literal[10, 30, 50] = 30       # 기본 판정 반지름
+BAND_M: Literal[10, 15, 20] = 15       # 기본 판정 반지름
 LINGER_MIN_DWELL_S = 10                # 이상 머물면 '머묾'
 VISIT_MIN_STOP_S = 30                  # 10m 원 안 정지가 이상이면 '방문 추정'
 
@@ -27,11 +27,11 @@ Judgment = Literal["passed", "lingered", "visited_guess", "unjudgeable"]
 
 
 def _dwell(e: FacilityEncounter, band: int) -> int:
-    return {10: e.dwell_s_10m, 30: e.dwell_s_30m, 50: e.dwell_s_50m}[band]
+    return {10: e.dwell_s_10m, 15: e.dwell_s_15m, 20: e.dwell_s_20m}[band]
 
 
 def _stop_overlap(e: FacilityEncounter, band: int) -> bool:
-    return {10: e.stop_overlap_10m, 30: e.stop_overlap_30m, 50: e.stop_overlap_50m}[band]
+    return {10: e.stop_overlap_10m, 15: e.stop_overlap_15m, 20: e.stop_overlap_20m}[band]
 
 
 def judge(e: FacilityEncounter, band: int = BAND_M) -> Judgment:
@@ -41,7 +41,7 @@ def judge(e: FacilityEncounter, band: int = BAND_M) -> Judgment:
         # 하나의 occurrence인 척 판정하면 안 된다. 원좌표 purge 뒤라 분할 backfill도 불가하다.
         return "unjudgeable"
     if e.accuracy_p50_m is not None and e.accuracy_p50_m > band:
-        return "unjudgeable"           # 오차 40m 로 30m 원을 판정하는 건 소음이다
+        return "unjudgeable"           # 오차 25m 로 15m 원을 판정하는 건 소음이다
     if e.stop_s_10m >= VISIT_MIN_STOP_S:
         return "visited_guess"
     if _dwell(e, band) >= LINGER_MIN_DWELL_S or _stop_overlap(e, band):

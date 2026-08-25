@@ -41,7 +41,7 @@ def test_database_stopped_at_009_stamps_there_and_upgrades_the_rest():
     assert not detection.up_to_date
     assert detection.safe
     # 리뷰에서 지적된 바로 그 케이스: 이것들이 upgrade 로 실제 적용돼야 한다.
-    assert [m.revision for m in detection.missing] == ["0010", "0011", "0012", "0013"]
+    assert [m.revision for m in detection.missing] == ["0010", "0011", "0012", "0013", "0014"]
 
 
 def test_database_missing_only_anchor_is_consistent():
@@ -52,6 +52,7 @@ def test_database_missing_only_anchor_is_consistent():
     assert detection.safe
     assert [m.source for m in detection.missing] == [
         "011_anchor.sql", "0013_facility_pet_axes.py",
+        "0014_encounter_bands_10_15_20.py",
     ]
 
 
@@ -64,7 +65,7 @@ def test_a_hole_in_the_chain_refuses_to_stamp():
     assert not detection.safe
     assert detection.stamp_at == "0006"
     assert [m.revision for m in detection.out_of_order] == [
-        "0009", "0010", "0011", "0012", "0013",
+        "0009", "0010", "0011", "0012", "0013", "0014",
     ]
 
 

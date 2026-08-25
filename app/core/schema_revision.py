@@ -44,6 +44,7 @@ LEGACY_MARKERS: tuple[LegacyMarker, ...] = (
     # 안 걸리지만, 지표를 같이 넣어야 HEAD 가 최신 리비전을 가리키고 판별이 "여기까지 왔다"를
     # 정직하게 말한다. 지표 없이 리비전만 늘면 up_to_date 가 뒤처진 DB 를 최신이라고 한다.
     LegacyMarker("0013", "0013_facility_pet_axes.py", "facility", "pet_allowed"),
+    LegacyMarker("0014", "0014_encounter_bands_10_15_20.py", "walk_encounter", "dwell_s_15m"),
 )
 
 HEAD = LEGACY_MARKERS[-1].revision

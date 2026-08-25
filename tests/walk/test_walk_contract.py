@@ -56,8 +56,8 @@ def test_field_sets_are_pinned():
         "entered_offset_m", "exited_offset_m",
         "facility_source", "facility_ref", "kind",
         "lat", "lng", "place_active", "as_of", "min_lateral_m", "offset_m",
-        "dwell_s_10m", "dwell_s_30m", "dwell_s_50m", "pass_count",
-        "stop_overlap_10m", "stop_overlap_30m", "stop_overlap_50m", "stop_s_10m",
+        "dwell_s_10m", "dwell_s_15m", "dwell_s_20m", "pass_count",
+        "stop_overlap_10m", "stop_overlap_15m", "stop_overlap_20m", "stop_s_10m",
         "accuracy_p50_m",
     }
     assert {m.__name__ for m in _models()} == {
@@ -134,11 +134,11 @@ def test_legacy_aggregate_encounter_is_readable_but_new_rows_require_occurrence_
         "session_id": "old", "event_index": 0,
         "facility_source": "kcisa", "facility_ref": "legacy", "kind": "cafe",
         "lat": 37.5, "lng": 127.0, "min_lateral_m": 5, "offset_m": 100,
-        "dwell_s_10m": 5, "dwell_s_30m": 20, "dwell_s_50m": 40,
+        "dwell_s_10m": 5, "dwell_s_15m": 20, "dwell_s_20m": 40,
         "pass_count": 2,
     }
     legacy = FacilityEncounter(occurrence_version=1, **old_fields)
     assert legacy.occurrence_index is None       # purge된 v1 합계행은 분할한 척하지 않는다
 
-    with pytest.raises(ValidationError, match="occurrence v2 requires"):
+    with pytest.raises(ValidationError, match="occurrence v3 requires"):
         FacilityEncounter(**old_fields)

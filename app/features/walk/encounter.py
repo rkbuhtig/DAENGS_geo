@@ -1,7 +1,7 @@
 """세그먼트 열 × 시설 후보 → FacilityEncounter. 순수함수 — 기하값까지만.
 
 "지나쳤다/봤다"는 만들지 않는다. 판정은 app/scene/judgment.py 가 이 사실 위에서
-규칙표+버전으로 한다. 여기서는 게임 히트박스처럼 반지름별 원(10/30/50m)에 대해
+규칙표+버전으로 한다. 여기서는 게임 히트박스처럼 반지름별 원(10/15/20m)에 대해
 체류 시간을 재는데, 틱은 GPS 점이고 원 경계 통과 시각은 선분 위에서 보간한다 —
 체류가 점 간격보다 정밀해지는 이유다.
 
@@ -16,14 +16,14 @@ from datetime import date, datetime
 from app.features.walk.facts import Segment
 from app.features.walk.models import FacilityEncounter, MotionEventOccurrence
 
-BANDS_M = (10.0, 30.0, 50.0)
+BANDS_M = (10.0, 15.0, 20.0)
 MAX_BAND_M = max(BANDS_M)
 BOUNDARY_EPSILON = 1e-9
 
 
 @dataclass(frozen=True)
 class FacilityCandidate:
-    """store 가 궤적 50m 버퍼로 추린 시설 한 곳. 존재 필터 없음 — 폐업도 관측 대상이다."""
+    """store 가 궤적 20m 버퍼로 추린 시설 한 곳. 존재 필터 없음 — 폐업도 관측 대상이다."""
 
     facility_source: str
     facility_ref: str
@@ -171,12 +171,12 @@ def compute_encounters(
                 min_lateral_m=round(current.min_lateral_m, 1),
                 offset_m=round(current.offset_at_min_m, 1),
                 dwell_s_10m=round(current.dwell[10.0]),
-                dwell_s_30m=round(current.dwell[30.0]),
-                dwell_s_50m=round(current.dwell[50.0]),
+                dwell_s_15m=round(current.dwell[15.0]),
+                dwell_s_20m=round(current.dwell[20.0]),
                 pass_count=1,
                 stop_overlap_10m=overlap[10.0],
-                stop_overlap_30m=overlap[30.0],
-                stop_overlap_50m=overlap[50.0],
+                stop_overlap_15m=overlap[15.0],
+                stop_overlap_20m=overlap[20.0],
                 stop_s_10m=stop_s_10,
                 accuracy_p50_m=(
                     round(statistics.median(current.accuracies.values()), 2)
