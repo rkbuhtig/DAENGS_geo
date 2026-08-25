@@ -12,6 +12,8 @@ import com.daengs.geo.walk.ForegroundWalkTrackingController
 import com.daengs.geo.walk.WalkFixWriter
 import com.daengs.geo.walk.WalkTrackingController
 import com.daengs.geo.walk.WalkTrackingStore
+import com.daengs.geo.walk.HttpWalkApi
+import com.daengs.geo.walk.WalkUploader
 import com.daengs.geo.walk.store.DaengsDatabase
 import com.daengs.geo.walk.store.RoomWalkFixLog
 import com.naver.maps.map.NaverMapSdk
@@ -32,8 +34,9 @@ class DaengsApplication : Application() {
         val territoryRepository = InMemoryTerritoryRepository(LocalHexCellIndexer())
         val walkTrackingStore = WalkTrackingStore()
         // Application-scoped on purpose: walk writes must outlive the service that queues them.
+        val walkFixLog = RoomWalkFixLog(DaengsDatabase.open(this).walkDao())
         val walkFixWriter = WalkFixWriter(
-            log = RoomWalkFixLog(DaengsDatabase.open(this).walkDao()),
+            log = walkFixLog,
             scope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
         )
         graph = AppGraph(
@@ -43,6 +46,12 @@ class DaengsApplication : Application() {
             walkTrackingStore = walkTrackingStore,
             walkTrackingController = ForegroundWalkTrackingController(this, walkTrackingStore),
             walkFixWriter = walkFixWriter,
+            walkUploader = WalkUploader(
+                api = HttpWalkApi(BuildConfig.API_BASE_URL),
+                log = walkFixLog,
+                dogId = BuildConfig.DEV_DOG_ID,
+            ),
+            dogId = BuildConfig.DEV_DOG_ID,
         )
     }
 }
@@ -54,4 +63,7 @@ data class AppGraph(
     val walkTrackingStore: WalkTrackingStore,
     val walkTrackingController: WalkTrackingController,
     val walkFixWriter: WalkFixWriter,
+    val walkUploader: WalkUploader,
+    /** Blank until a real dog profile is wired in (decision #4). Blank disables upload. */
+    val dogId: String,
 )

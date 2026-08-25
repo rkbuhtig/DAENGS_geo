@@ -37,6 +37,11 @@ class RoomWalkFixLog(private val dao: WalkDao) : WalkFixLog {
             RecordedSession(it.id, it.dogId, it.startedAtMillis, it.endedAtMillis)
         }
 
+    override suspend fun session(sessionId: String): RecordedSession? =
+        dao.session(sessionId)?.let {
+            RecordedSession(it.id, it.dogId, it.startedAtMillis, it.endedAtMillis)
+        }
+
     override suspend fun fixes(sessionId: String): List<RecordedFix> = dao.fixes(sessionId).map {
         RecordedFix(
             it.clientSeq,

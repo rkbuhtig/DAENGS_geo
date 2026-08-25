@@ -144,6 +144,8 @@ class WalkFixWriterTest {
 
         override suspend fun unfinishedSessions(): List<RecordedSession> = emptyList()
 
+        override suspend fun session(sessionId: String): RecordedSession? = null
+
         override suspend fun fixes(sessionId: String): List<RecordedFix> = emptyList()
     }
 }

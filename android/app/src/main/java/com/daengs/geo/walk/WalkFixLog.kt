@@ -29,6 +29,9 @@ interface WalkFixLog {
      */
     suspend fun unfinishedSessions(): List<RecordedSession>
 
+    /** One stored session, or null if it was never opened or has been deleted. */
+    suspend fun session(sessionId: String): RecordedSession?
+
     suspend fun fixes(sessionId: String): List<RecordedFix>
 }
 

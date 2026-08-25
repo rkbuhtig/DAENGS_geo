@@ -68,6 +68,14 @@ android {
                 "API_BASE_URL",
                 quoted(configured("DAENGS_API_BASE_URL", "http://10.0.2.2:8000")),
             )
+            // 서버 PERSONAS 의 정식 테스트 객체 id (app/profile/source.py). 지어낸
+            // placeholder 가 아니라 계약을 채운 개다. 이 값이 비어 있지 않을 때만
+            // 업로더가 돈다 — 산책 사실을 어느 개에 귀속할지 모르는 채로 올리지 않는다.
+            buildConfigField(
+                "String",
+                "DEV_DOG_ID",
+                quoted(configured("DAENGS_DEV_DOG_ID", "halmae")),
+            )
         }
         release {
             isMinifyEnabled = false
@@ -75,6 +83,13 @@ android {
                 "String",
                 "API_BASE_URL",
                 quoted(configured("DAENGS_API_BASE_URL", "https://daengs.example")),
+            )
+            // release 는 빈 값이 기본이다. 실제 반려견 프로필 연동(결정 #4) 전까지
+            // 업로드가 꺼져 있다는 뜻이고, 켜는 쪽이 명시한다 — 기본값에 기대지 않는다.
+            buildConfigField(
+                "String",
+                "DEV_DOG_ID",
+                quoted(configured("DAENGS_DEV_DOG_ID", "")),
             )
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
