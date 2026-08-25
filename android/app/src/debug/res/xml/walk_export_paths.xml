@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  산책 export 만 공유 대상으로 연다. `files-path` 전체가 아니라 하위 폴더 하나로 한정하는
+  이유: 같은 내부 저장소에 Room DB(daengs.db)가 있고, 그건 모든 산책의 원좌표다.
+  공유 URI 로 나갈 수 있는 것은 사용자가 고른 세션 파일뿐이어야 한다.
+-->
+<paths>
+    <files-path name="walk-exports" path="walk-exports/" />
+</paths>

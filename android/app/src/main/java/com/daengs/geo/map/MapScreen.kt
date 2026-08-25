@@ -36,9 +36,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.daengs.geo.BuildConfig
 import com.daengs.geo.hospital.HospitalResult
 import com.daengs.geo.hospital.LocationMode
@@ -50,6 +52,7 @@ import com.daengs.geo.map.layers.trail.TrackingState
 import com.daengs.geo.map.layers.trail.TrailLayerState
 import com.daengs.geo.map.shell.MapHost
 import com.daengs.geo.map.shell.MapScene
+import com.daengs.geo.walk.WalkExportShare
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -288,6 +291,9 @@ private fun MapToolsPanel(
                     OutlinedButton(onClick = onToggleTrail) {
                         Text(if (state.layers.showTrail) "꼬리 숨기기" else "꼬리 보기")
                     }
+                }
+                if (BuildConfig.DEBUG) {
+                    WalkExportRow()
                 }
                 if (
                     state.trail.state == TrackingState.RECORDING &&
@@ -539,4 +545,46 @@ private fun formatMeters(meters: Double): String = formatMeters(meters.roundToIn
 private fun feedLabel(feed: LocationFeed): String = when (feed) {
     LocationFeed.DEVICE -> "실제 위치"
     LocationFeed.REPLAY -> "가상 이동"
+}
+
+
+/**
+ * 실측 도구. 종료한 산책의 원본 JSON 을 폰에서 바로 내보낸다.
+ *
+ * 이게 없으면 export 는 앱 내부 저장소에만 있어 `adb run-as` 로만 꺼낼 수 있다 — SDK 가 깔린
+ * 그 PC 에 USB 로 꽂아야만 실측 데이터를 볼 수 있다는 뜻이다. 산책은 그 PC 에서 멀리 떨어져
+ * 하는 일이므로, 폰이 스스로 보낼 수 있어야 한다.
+ *
+ * 몇 건이 대기 중인지 같이 보여준다. 내보내기는 종료 시 자동이라 화면에 흔적이 없었고,
+ * "저장은 된 건가"를 확인할 방법이 로그뿐이었다.
+ */
+@Composable
+private fun WalkExportRow() {
+    val context = LocalContext.current
+    var exports by remember { mutableStateOf(emptyList<java.io.File>()) }
+
+    // 산책이 끝나면 파일이 늘어난다. 화면에 들어올 때마다 다시 센다.
+    LifecycleResumeEffect(Unit) {
+        exports = WalkExportShare.exports(context)
+        onPauseOrDispose { }
+    }
+
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        OutlinedButton(
+            enabled = exports.isNotEmpty(),
+            onClick = {
+                WalkExportShare.shareIntent(context, exports)?.let(context::startActivity)
+            },
+        ) {
+            Text("산책 기록 보내기")
+        }
+        Text(
+            if (exports.isEmpty()) "내보낼 기록 없음" else "${exports.size}건 대기",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.secondary,
+        )
+    }
 }

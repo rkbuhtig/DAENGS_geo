@@ -14,9 +14,15 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** Runs the real Room/SQLite stack in the JVM. What is asserted here is storage behaviour, not mapping. */
+/** Runs the real Room/SQLite stack in the JVM. What is asserted here is storage behaviour, not mapping.
+ *
+ * **왜 기본 `Application` 을 쓰나**: `DaengsApplication.onCreate` 는 키가 있으면 NAVER 지도
+ * SDK 를 초기화하는데, 그 클래스는 Robolectric 에서 `VerifyError` 로 죽는다. 키가 빌드에 실제로
+ * 채워졌을 때만(개발자 로컬) 터지고 CI 는 키가 없어 통과하므로, 안 막으면 "내 컴퓨터에서만
+ * 깨지는" 테스트가 된다. DAO 테스트는 앱 그래프가 필요 없다 — Room 과 Context 만 있으면 된다.
+ */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34])
+@Config(sdk = [34], application = android.app.Application::class)
 class WalkDaoTest {
     private lateinit var db: DaengsDatabase
     private lateinit var log: RoomWalkFixLog
