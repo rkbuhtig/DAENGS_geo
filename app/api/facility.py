@@ -27,6 +27,7 @@ from app.geo.ranking import (
     facility_preference_tags,
     prefer_boost,
 )
+from app.profile.source import profile_source
 
 router = APIRouter(prefix="/facility", tags=["facility"])
 
@@ -47,8 +48,15 @@ class FacilityParams(BaseModel):
     lng: float = Field(ge=123, le=133)
     radius_m: int = Field(3000, ge=100, le=20000)
     kind: str | None = None            # cafe/travel/grooming/... 미지정 = 비의료 전체
-    limit: int = Field(20, ge=1, le=50)
+    # **상한 없음이 기본이다.** 지도는 반경 안을 다 그려야 하고, 잘린 목록을 "이 동네엔
+    # 이만큼뿐"으로 읽으면 "우리 개가 갈 곳이 없다"가 된다. 리스트 화면이 몇 개만 원하면
+    # 그때 명시한다 — 그 경우에만 `truncated` 가 켜진다.
+    limit: int | None = Field(None, ge=1)
+    # 이 개를 데려간다. 크기를 프로필에서 채우는 용도 — 병원 검색은 이미 이렇게 받는데
+    # 시설 검색만 안 받아서, 개를 아는 서비스인데 시설 목록이 개를 모르고 있었다.
+    dog_id: str | None = Field(None, max_length=128)
     # 개 크기. 시설의 상한이 아니라 **데려갈 개**의 크기다 — 서버가 받을 수 있는 등급으로 편다.
+    # 명시하면 프로필보다 우선한다 (남의 개를 데려가는 경우가 있다).
     dog_size: DogSize | None = None
     # 종을 열거하면서 개를 뺀 시설을 제외한다. place 검색의 `only_dog_ok` 와 같은 뜻.
     only_dog_ok: bool = True
@@ -99,6 +107,9 @@ class FacilityOut(BaseModel):
 
 class FacilitySearchOut(BaseModel):
     params: FacilityParams
+    # 상한에 걸렸나. `/anchor/search` 와 같은 이유로 있다 — 조용히 자르면 "이 반경엔
+    # 이만큼뿐"으로 읽힌다. 지도 표면에서는 그 오독이 "우리 개가 갈 곳이 없다"가 된다.
+    truncated: bool = False
     results: list[FacilityOut]
 
 
@@ -233,19 +244,33 @@ async def facility_search(
     params: Annotated[FacilityParams, Query()],
     db: Annotated[AsyncSession, Depends(get_session)],
 ) -> FacilitySearchOut:
+    # 프로필은 **미지정 칸만** 채운다. 응답의 params 에 채워진 값이 그대로 실려서
+    # "무엇을 기준으로 걸렀나"가 클라이언트에 보인다 — 조용히 거르면 빈 목록이
+    # 데이터 부족으로 읽힌다.
+    if params.dog_size is None and params.dog_id:
+        profile = await profile_source().get(params.dog_id)
+        if profile:
+            params = params.model_copy(update={"dog_size": profile.size_class})
+
     prefer = set(facility_preference_tags(
         parking=params.parking, dog_exclusive=params.dog_exclusive,
     ))
     rows = await db.execute(_SEARCH, {
         "lat": params.lat, "lng": params.lng, "radius_m": params.radius_m,
-        "kind": params.kind, "limit": params.limit, "medical": list(MEDICAL),
+        # LIMIT NULL 은 postgres 에서 '전부'다. +1 은 절단 감지용 한 칸.
+        "kind": params.kind, "medical": list(MEDICAL),
+        "limit": None if params.limit is None else params.limit + 1,
         "only_dog_ok": params.only_dog_ok, "dog_size": params.dog_size,
         "size_accepts": list(SIZE_ACCEPTS.get(params.dog_size or "", ())),
         "band_m": DISTANCE_BAND_M,
         "want_parking": params.parking, "want_exclusive": params.dog_exclusive,
     })
+    fetched = rows.all()
+    truncated = params.limit is not None and len(fetched) > params.limit
+    if truncated:
+        fetched = fetched[: params.limit]
     results = []
-    for r in rows:
+    for r in fetched:
         values, borrowed = _merge(r)
         hit = sorted(_prefer_tags(values) & prefer)
         results.append(FacilityOut(
@@ -271,4 +296,4 @@ async def facility_search(
     results = band_boost_sorted(
         results, distance_of=lambda f: f.distance_m, boost_of=lambda f: f.boost,
     )
-    return FacilitySearchOut(params=params, results=results)
+    return FacilitySearchOut(params=params, truncated=truncated, results=results)

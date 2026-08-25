@@ -44,6 +44,12 @@ async def bind_usage_request_scope(request, call_next):
 if settings.dev_console:
     _DEV = Path(__file__).parent / "static" / "dev.html"
     _ANCHORS = Path(__file__).parent / "static" / "anchors.html"
+    _FACILITY = Path(__file__).parent / "static" / "facility.html"
+
+    @app.get("/facility-map", include_in_schema=False)
+    async def facility_map():
+        """시설 필터를 눈으로 보는 표면. 개를 바꾸면 무엇이 빠지는지가 보여야 한다."""
+        return FileResponse(_FACILITY, media_type="text/html")
 
     @app.get("/anchors", include_in_schema=False)
     async def anchor_map():
