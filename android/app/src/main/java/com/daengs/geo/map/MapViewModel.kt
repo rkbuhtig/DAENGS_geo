@@ -28,6 +28,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.JsonArray
 
 enum class LocationFeed { DEVICE, REPLAY }
@@ -250,8 +251,22 @@ class MapViewModel(
         }
     }
 
+    /**
+     * 단발 위치 하나. **반드시 유한한 시간 안에 끝난다.**
+     *
+     * `getCurrentLocation` 은 실내나 위치 서비스가 꺼진 상태에서 콜백을 영영 안 주기도 한다.
+     * 그러면 `loading` 이 켜진 채로 남아 화면은 계속 도는데 사용자는 버튼이 먹은 건지
+     * 앱이 멈춘 건지 구분할 방법이 없다. 기다림에는 끝이 있어야 하고, 끝났으면 왜 실패했는지
+     * 말해야 한다.
+     */
     private suspend fun fetchDeviceFix(): LocationSample? =
-        runCatching { deviceLocationSource.currentLocation() }
+        runCatching {
+            withTimeoutOrNull(LOCATION_TIMEOUT_MS) { deviceLocationSource.currentLocation() }
+                ?: throw IllegalStateException(
+                    "위치를 찾지 못했어요. 실내에서는 오래 걸릴 수 있어요 - " +
+                        "창가로 나가거나 위치 설정을 확인한 뒤 다시 눌러주세요.",
+                )
+        }
             .onSuccess { sample ->
                 switchFeed(LocationFeed.DEVICE, deviceLocationSource, statusMessage = null)
                 acceptLocation(sample)
@@ -434,5 +449,8 @@ class MapViewModel(
 
     companion object {
         private val DEFAULT_REPLAY_ORIGIN = GeoPoint(latitude = 37.5665, longitude = 126.9780)
+
+        /** 실측으로 잰 값이 아니라 "사람이 버튼을 다시 누르기 전에 답이 와야 한다" 는 상한이다. */
+        private const val LOCATION_TIMEOUT_MS = 15_000L
     }
 }
