@@ -22,9 +22,9 @@ from datetime import date
 from sqlalchemy import text
 
 from app.core.db import SessionLocal
+from app.geo.cells import ANCHOR_RADIUS_M as HEX_RADIUS_M
+from app.geo.cells import hex_cell, hex_center, mercator
 
-EARTH_R = 6_378_137.0
-HEX_RADIUS_M = 115.0          # 셀 간격 ≈ 199m. 실측: 1.4km 산책당 앵커 3.4개(판정 50m)
 SOURCE = "lamp"
 
 # 한전주 = 실제 전봇대. 서사와 현장 인지 모두 이쪽이 낫다.
@@ -39,40 +39,6 @@ ON CONFLICT (source, cell) DO UPDATE
    SET kind = EXCLUDED.kind, location = EXCLUDED.location,
        instt = EXCLUDED.instt, as_of = EXCLUDED.as_of
 """)
-
-
-def _mercator(lat: float, lng: float) -> tuple[float, float]:
-    lat = max(-85.0, min(85.0, lat))
-    return (
-        EARTH_R * math.radians(lng),
-        EARTH_R * math.log(math.tan(math.pi / 4 + math.radians(lat) / 2)),
-    )
-
-
-def _round_axial(q: float, r: float) -> tuple[int, int]:
-    x, z = q, r
-    y = -x - z
-    rx, ry, rz = round(x), round(y), round(z)
-    dx, dy, dz = abs(rx - x), abs(ry - y), abs(rz - z)
-    if dx > dy and dx > dz:
-        rx = -ry - rz
-    elif dy > dz:
-        ry = -rx - rz
-    else:
-        rz = -rx - ry
-    return rx, rz
-
-
-def hex_cell(lat: float, lng: float, radius_m: float = HEX_RADIUS_M) -> tuple[int, int]:
-    x, y = _mercator(lat, lng)
-    return _round_axial(
-        (math.sqrt(3) / 3 * x - y / 3) / radius_m,
-        (2 / 3 * y) / radius_m,
-    )
-
-
-def hex_center(q: int, r: int, radius_m: float = HEX_RADIUS_M) -> tuple[float, float]:
-    return (radius_m * math.sqrt(3) * (q + r / 2), radius_m * 1.5 * r)
 
 
 def _as_of(value: str | None) -> date | None:
@@ -117,7 +83,7 @@ def select(points, radius_m: float = HEX_RADIUS_M) -> list[dict]:
             members,
             key=lambda p: (
                 KIND_RANK.get(p["kind"], 9),
-                math.dist(_mercator(p["lat"], p["lng"]), (cx, cy)),
+                math.dist(mercator(p["lat"], p["lng"]), (cx, cy)),
                 p["lat"],
                 p["lng"],
             ),
