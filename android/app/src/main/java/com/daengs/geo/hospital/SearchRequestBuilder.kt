@@ -43,7 +43,6 @@ object SearchRequestBuilder {
             utterance?.takeIf { it.isNotBlank() }?.let { put("utterance", it) }
             put("transport", "estimate")
             put("companion", "dog")
-            put("with_evidence", true)
         }
     }
 

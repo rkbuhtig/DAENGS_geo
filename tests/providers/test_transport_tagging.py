@@ -14,10 +14,18 @@ from tests.conftest import route
 
 def test_tags_from_names():
     assert tags_for("강남24시동물의료센터") == ["24h", "center"]
-    assert "ortho" in tags_for("서초동물정형외과") and "surgery" in tags_for("서초동물정형외과")
-    assert tags_for("역삼동물안과") == ["eye"]
     assert not dog_ok(tags_for("강남고양이전문병원"))
     assert dog_ok(tags_for("역삼동물병원"))
+
+
+def test_specialty_words_in_a_name_are_not_tags():
+    """과목은 어휘가 아니다 (#64). 간판에 '안과'가 있어도 자격이 아니라 상호다.
+
+    한국 수의 진료에 전문의 제도가 없어서 이 단어들은 검증되지 않은 마케팅 문구다.
+    """
+    assert tags_for("역삼동물안과") == []
+    assert tags_for("서초동물정형외과") == []
+    assert tags_for("강남재활동물병원") == []
 
 
 def test_advice_senior_joint_avoids_stairs():

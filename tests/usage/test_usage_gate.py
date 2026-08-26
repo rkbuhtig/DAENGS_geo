@@ -228,7 +228,6 @@ def test_llm_denial_is_explicit_http_403_not_silent_fake_fallback(monkeypatch):
                 "origin": [37.5, 127.0],
                 "utterance": "가까운 곳",
                 "transport": "none",
-                "with_evidence": False,
             })
     finally:
         app.dependency_overrides.pop(get_session, None)

@@ -57,7 +57,6 @@ def test_bad_edit_is_an_http_422_not_a_500():
             response = client.post("/hospital/search", json={
                 "origin": [37.5, 127.0],
                 "transport": "none",
-                "with_evidence": False,
                 "edits": [{"tool": "set_mode", "args": {"mode": "bicycle"}}],
             })
     finally:

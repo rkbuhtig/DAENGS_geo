@@ -24,8 +24,7 @@ from app.providers.base import Mode, WalkOption
 
 Sort = Literal["distance", "duration", "open_first"]
 WalkFacility = Literal["underpass", "overpass", "stairs"]
-Specialty = Literal["ortho", "eye", "dental", "derma", "cardio", "rehab"]
-CURRENT_STATE_VERSION = 2
+CURRENT_STATE_VERSION = 3
 # undo 스택 깊이. 되돌림 지점은 **턴당 하나**다 (app/refine/engine.py)
 MAX_HISTORY = 10
 PositiveId = Annotated[int, Field(ge=1)]
@@ -53,10 +52,9 @@ class TargetPrefs(ContractModel):
     open_now: bool = False
     night_service: bool = False        # 야간진료를 표방하는 곳만
     emergency_service: bool = False    # 응급을 표방하는 곳만
-    specialty: list[Specialty] = Field(default_factory=list, max_length=6)  # 부스트용
     # 증상은 **진단이 아니라 사용자의 말 그대로**다. 과목으로 번역하지 않는다 — 그건 진단이고
-    # 관할 밖이다 (docs/overview.md). 이 말이 커뮤니티 검색 쿼리가 되고, 걸린 병원이 부스트된다
-    # (query-rewrite-experiment.md). state 에 있으니 턴이 바뀌어도 유지되고, 칩으로 해제된다.
+    # 관할 밖이다 (docs/overview.md). 이 말을 읽던 커뮤니티 근거가 #63 으로, 과목 축이 #64 로
+    # 없어져서 **지금 이 필드를 조회하는 곳은 없다.** state 에 남고 diff 에 보이기만 한다.
     symptoms: list[SymptomText] = Field(default_factory=list, max_length=20)
     require_tags: list[ShortTag] = Field(default_factory=list, max_length=20)  # 필수
     exclude_ids: list[PositiveId] = Field(default_factory=list, max_length=100)
@@ -117,16 +115,17 @@ class EditableState(ContractModel):
     @model_validator(mode="before")
     @classmethod
     def migrate_legacy_state(cls, value: Any) -> Any:
-        """v1(`target.night/emergency/at`)을 v2 의미로 명시적으로 옮긴다.
+        """옛 payload 를 현재 의미로 명시적으로 옮긴다.
 
-        버전 없는 payload는 v1 클라이언트와 PR 전환 중인 v2 클라이언트 양쪽을
-        받아야 한다. 알려진 옛 필드만 옮기고, 그 밖의 오타는 extra=forbid가 잡는다.
+        v1 → v2: `target.night/emergency/at` 의 의미 분리.
+        v2 → v3: `target.specialty` 제거 (결정 #64). 캐시된 옛 state 를 들고 오는 앱이
+        422 를 맞지 않게 **알려진 옛 필드로 보고 버린다** — 오타는 여전히 extra=forbid 가 잡는다.
         """
         if not isinstance(value, dict):
             return value
         data = deepcopy(value)
         version = data.get("state_version", 1)
-        if version not in (1, CURRENT_STATE_VERSION):
+        if version not in (1, 2, CURRENT_STATE_VERSION):
             raise ValueError(f"unsupported state_version: {version}")
 
         target = data.get("target")
@@ -135,6 +134,7 @@ class EditableState(ContractModel):
                 target.setdefault("night_service", target.pop("night"))
             if "emergency" in target:
                 target.setdefault("emergency_service", target.pop("emergency"))
+            target.pop("specialty", None)          # v2 축. 원천이 없어 #64 로 제거
             legacy_at = target.pop("at", None)
             if legacy_at is not None and data.get("time_intent") is None:
                 data["time_intent"] = {"kind": "service_at", "at": legacy_at}

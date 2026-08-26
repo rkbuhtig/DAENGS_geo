@@ -22,14 +22,15 @@ LLM은 **검색을 하지 않는다. 조건을 편집한다.** 검색은 결정�
 
 ## 툴 (현재 계약)
 `set_origin`, `set_radius`, `set_open_now`, `set_night_service`, `set_emergency_service`,
-`set_urgency`, `set_time_intent`, `set_specialty`, `note_symptoms`, `require`, `exclude`, `pin`,
+`set_urgency`, `set_time_intent`, `note_symptoms`, `require`, `exclude`, `pin`,
 `set_mode`, `set_max_total_min`, `set_walk_option`, `set_walk_avoid`, `set_walk_max_min`,
 `set_sort`, `undo`, `reset`, `ask`
+- `set_specialty` 없음 — 결정 #64. 한국 수의 진료에 과목 제도가 없다
 - `min_rating` 없음 — 의도적. 데이터 없는 병원이 불리해지는 왜곡
 - `exclude`의 "두 번째"는 사용자가 본 화면 기준 → 요청에 `shown_ids` 순서 포함
 
 ## 상태
-`EditableState(state_version=2)`가 context / target / journey / view와 `history`를 묶는다. 서버는
+`EditableState(state_version=3)`가 context / target / journey / view와 `history`를 묶는다. 서버는
 무상태이며 클라이언트가 현재 state를 왕복한다. 알 수 없는 버전·필드·툴·인자는 422다.
 
 ## 응답

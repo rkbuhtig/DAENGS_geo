@@ -16,11 +16,11 @@ last_verified: 2026-08-24
 | 시간 | open_now, open_at | hours | 필터. **미상은 제외 안 함** | ✅ |
 | | night_service, emergency_service | 이름 태그 | **선호 부스트**. 명시 `require`만 필터 | ✅ |
 | 종류 | dog_ok | 카테고리 (`고양이 전문` 배제) | **전제 필터, 비노출** | — |
-| | specialty | 이름 태그 + parked 커뮤니티 근거 | 부스트 | 이름 태그만 |
 | | large_dog_ok | 수기 | 필터 | — |
 | 규모 | 면적·종사자수 | 인허가 | **표시만** | 적재 후 |
 | | has_inpatient / night_staff / ct_mri / parking | 수기·홈페이지 | 필터(요청 시) | — |
-| 평가 | 커뮤니티 evidence | 네이버 검색 API | **부스트 + 표시** | 탐색 중 |
+| 평가 | 과목(specialty) | — | **지원 안 함** | 기각 (#64) — 제도가 없다 |
+| | 커뮤니티 evidence | — | **지원 안 함** | 기각 (#63) — 원천 약관 |
 | | 제공사 리뷰 | 링크아웃 | 표시 | — |
 | | min_rating | — | **지원 안 함** | — |
 | 개인화 | visited_ids | 이력 | 부스트/제외 | — |
@@ -54,10 +54,9 @@ last_verified: 2026-08-24
 | 신호 | 재료 | 권한 |
 |---|---|---|
 | 사용자가 명시한 요구 (반경·영업중·제외) | 사용자 본인 | **must** — 못 맞추면 결과에서 빠짐 |
-| 이름 태그 (night·emergency·과목) | 간판 이름 정규식 | **prefer** — 순위만 |
-| 커뮤니티 근거 | 외부 코퍼스 + 이름 매칭 | **prefer**, 밴드 안에서만 |
+| 이름 태그 (night·emergency) | 간판 이름 정규식 | **prefer** — 순위만 |
 
-실측 2026-08-20, 활성 병원 5,457곳 중 **night 1 · emergency 2 · ortho 2**. 이 신뢰도로
+실측 2026-08-20, 활성 병원 5,457곳 중 **night 1 · emergency 2**. 이 신뢰도로
 `WHERE`를 쓰면 "급해요" 한마디에 전국 결과가 2곳으로 무너진다. `geo/tagging.py`가 잡는 건
 "간판에 그렇게 써 있다"지 "그 진료를 한다"가 아니다.
 
@@ -82,17 +81,20 @@ last_verified: 2026-08-24
 ### 4. 증상은 증상으로 남는다 (결정 #33)
 
 "숨을 헐떡여요" → `cardio`는 **진단**이고, 진단은 이 레포 관할이 아니며([overview](../../overview.md))
-재료도 없다. 증상은 사용자의 말 그대로 `target.symptoms`에 남고, 과목을 아는 건
-커뮤니티 코퍼스다 — [실험](../../research/2026-08-19-query-rewrite-experiment.md)에서도
-정제한 쿼리는 과목을 못 잡았고 증상 언어가 잡았다.
+재료도 없다. 증상은 사용자의 말 그대로 `target.symptoms`에 남는다.
 
-`set_specialty`는 **사용자가 과목을 직접 말했을 때만** 부른다.
+[실험](../../research/2026-08-19-query-rewrite-experiment.md)에서 과목을 잡은 건 정제한 쿼리가
+아니라 증상 언어였고, 그 언어가 사는 곳은 커뮤니티 코퍼스였다. 그 원천이 결정 #63 으로 기각되면서
+**그래서 과목 축 자체를 없앴다 (결정 #64).** 원천이 없기도 하지만, 애초에 한국 수의 진료에
+과목(전문의) 제도가 없어서 채울 대상이 존재하지 않는다. `target.symptoms` 는 사용자의 말로
+남지만 지금은 아무것도 조회하지 않는다.
 
 ### 5. 근거 조회는 발화가 아니라 state가 시킨다 (결정 #34)
 
 그 턴에 말을 했는지가 순위를 흔들었다 — 발화 턴엔 boost +N, 버튼만 누른 턴엔 0. 같은
 조건인데 어떻게 도달했느냐로 결과 순서가 달라지면 무상태 계약이 깨진 것이다. 쿼리를
 state(`symptoms`·`specialty`)에서 만들면 **같은 state가 같은 근거·같은 순위**를 낸다.
+(근거 조회는 #63, 과목 축은 #64 로 없어졌다. 아래 교훈은 그대로 남는다.)
 
 이 버그는 함수별 테스트 97개가 전부 통과하는 동안 살아 있었다. `find_places`도 `_sort`도
 각자 멀쩡했고, 그 **사이**에서 깨졌다. 그래서 요청 단위 계약 테스트를 새로 깔았다
@@ -100,7 +102,7 @@ state(`symptoms`·`specialty`)에서 만들면 **같은 state가 같은 근거·
 
 ## 요청 계약 v2
 
-클라이언트가 왕복시키는 `EditableState`에는 `state_version: 2`가 붙는다. 서버는
+클라이언트가 왕복시키는 `EditableState`에는 `state_version: 3`이 붙는다. 서버는
 버전 없는 v1 state의 `target.night`, `target.emergency`, `target.at`을 각각
 `night_service`, `emergency_service`, `time_intent(kind=service_at)`으로 이행한다.
 옛 `set_time(open_now, night, emergency)` 편집도 입력 호환용으로만 받으며 새 툴

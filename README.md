@@ -23,7 +23,6 @@ app/
 ├── providers/   MapProvider 4메서드 — kakao/naver/tmap/fake/null, 모드별 선택      공용
 ├── profile/     Dog/OwnerProfile 계약 + 개 8마리·견주 5명 페르소나                 공용
 ├── refine/      검색 상태 편집기 — state(target/journey/view) · tools · nl · diff
-├── enrich/      community(쿼리 재작성→검색→병원명 매칭→evidence, Fake 시드)
 ├── features/
 │   ├── hospital/  POST /hospital/search (편집+검색, transport=estimate만)
 │   ├── pharmacy/  GET /pharmacy/search (얇음, companion 기본 none)
@@ -38,14 +37,17 @@ android/         Kotlin/Compose — 위치→검색→NAVER 지도 + walk foregr
 
 현재 코어는 [결정 #51](docs/decisions/2026-08-22-walk-as-spine.md)에 따라 장소 데이터,
 위치 인프라, Android 위치→검색→지도 셸, 산책 사실 계약이다. 자연어 refine/LLM,
-커뮤니티 evidence, 경로 옵션 비교·시설 advice, suggested actions는 코드와 테스트가 있지만
-제품 코어에서는 **parked**다. 다시 채택하기 전까지 다음 구현 순서나 제품 차별점으로 세지 않는다.
+경로 옵션 비교·시설 advice, suggested actions는 코드와 테스트가 있지만 제품 코어에서는
+**parked**다. 다시 채택하기 전까지 다음 구현 순서나 제품 차별점으로 세지 않는다.
+
+커뮤니티 근거·홈페이지 추출은 [결정 #63](docs/decisions/README.md)으로 **기각**했다 — 원천이
+없어서 재료가 생길 경로가 없다. 코드(`app/enrich/`)와 응답의 `evidence[]` 는 제거했다.
 
 parked된 LLM 경계는 `utterance`가 있을 때만 “말 → 툴 호출” 번역 한 겹으로 동작하며 병원
 정보를 생성하지 않는다. UI 필터(`edits`)와 자연어는 같은 툴로 수렴한다.
 
 실제 구현 경계: PostGIS 검색·공공데이터 적재·영업시간 판정·태깅·상태 편집·provider 진실성
-계약·Usage Gate는 실제 코드다. LLM·경로·커뮤니티 검색·프로필은 기본 가짜 또는 미설정이다.
+계약·Usage Gate는 실제 코드다. LLM·경로·프로필은 기본 가짜 또는 미설정이다.
 지도 표면은 키를 넣으면 NAVER Dynamic Map + Static Map, 없으면 `/dev`에서만 OSM으로 내려간다.
 
 ## 실행
@@ -168,9 +170,9 @@ POST /hospital/search
 { "dog_id":"halmae", "origin":[37.4979,127.0276] }                                   ← 메뉴 진입(초안)
 { "dog_id":"halmae", "state":{...}, "utterance":"눈이 뿌옇고 걸어서 갈 데", "shown_ids":[..] }  ← 자연어/음성
 { "dog_id":"halmae", "state":{...}, "edits":[{"tool":"set_walk_max_min","args":{"minutes":15}}] }  ← 필터 UI
-{ "dog_id":"dubu",   "state":{"state_version":2,"lat":..,"lng":..,
+{ "dog_id":"dubu",   "state":{"state_version":3,"lat":..,"lng":..,
   "target":{"open_now":true,"night_service":true},"journey":{},"sort":"distance","history":[]} }
-→ { state, results[{..., tags, transport{walk{min,m,facilities,advice,why}, car{taxi_fare}, transit}, evidence[]}],
+→ { state, results[{..., tags, transport{walk{min,m,facilities,advice,why}, car{taxi_fare}, transit}}],
     map{preview_url,deeplink,web_url}, changes[], applied[], question?, reply,
     resolution[], show_call_cta, call_reasons[], actions[] }
 ```

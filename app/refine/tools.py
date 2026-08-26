@@ -86,13 +86,12 @@ def set_emergency_service(state: EditableState, on: bool = True) -> EditableStat
     s = _edit(state); s.target.emergency_service = on; return s
 
 
-def set_specialty(state: EditableState, tags: Annotated[list[str], Field(max_length=6)]) -> EditableState:
-    s = _edit(state); s.target.specialty = sorted(set(tags)); return s
-
-
 def note_symptoms(state: EditableState,
                   terms: Annotated[list[ShortText], Field(max_length=20)]) -> EditableState:
-    """증상 표현을 **말 그대로** 남긴다. 커뮤니티 검색 쿼리 재료 — 과목 번역이 아니다."""
+    """증상 표현을 **말 그대로** 남긴다. 과목 번역이 아니다.
+
+    이 말을 읽던 커뮤니티 검색은 #63, 과목 축은 #64 로 없어졌다 — 지금은 기록만 한다.
+    """
     s = _edit(state); s.target.symptoms = sorted(set(s.target.symptoms) | set(terms)); return s
 
 
@@ -224,7 +223,7 @@ TARGET_TOOLS: dict[str, Callable[..., EditableState]] = {
     "set_origin": set_origin, "set_radius": set_radius, "widen": widen, "narrow": narrow,
     "set_open_now": set_open_now, "set_night_service": set_night_service,
     "set_emergency_service": set_emergency_service,
-    "set_specialty": set_specialty, "note_symptoms": note_symptoms, "clear_symptoms": clear_symptoms,
+    "note_symptoms": note_symptoms, "clear_symptoms": clear_symptoms,
     "require": require, "unrequire": unrequire,
     "exclude": exclude, "pin": pin,
 }
@@ -300,10 +299,9 @@ TOOL_SPECS: list[dict[str, Any]] = [
     {"policy": "target", "scope": "any", "name": "set_emergency_service", "desc": "응급을 표방하는 곳만. '지금 급하다'가 아니다", "args": {"on": "bool?"}},
     {"policy": "context", "scope": "any", "name": "set_urgency", "desc": "이번 상황의 긴급도 normal|urgent. 조건을 좁히지 않는다 — 병원 종류 요구는 set_emergency_service", "args": {"level": "str"}},
     {"policy": "context", "scope": "any", "name": "set_time_intent", "desc": "시각과 그 뜻. kind=depart_at(출발)|arrive_by(도착기한)|service_at(그 시각에 여는 병원)", "args": {"kind": "str?", "at": "str?"}},
-    {"policy": "target", "scope": "any", "name": "set_specialty", "desc": "진료 특화 선호 (ortho, eye, dental, derma, cardio, rehab). 사용자가 과목을 직접 말했을 때만", "args": {"tags": "list[str]"}},
-    {"policy": "target", "scope": "any", "name": "note_symptoms", "desc": "증상 표현을 말 그대로 기록 (진단 금지, 과목 번역 금지). 커뮤니티 검색 재료", "args": {"terms": "list[str]"}},
+    {"policy": "target", "scope": "any", "name": "note_symptoms", "desc": "증상 표현을 말 그대로 기록 (진단 금지). 현재 이 값을 읽는 검색 경로는 없다", "args": {"terms": "list[str]"}},
     {"policy": "target", "scope": "any", "name": "clear_symptoms", "desc": "증상 기록 해제. terms 없으면 전부", "args": {"terms": "list[str]?"}},
-    {"policy": "target", "scope": "any", "name": "require", "desc": "필수 태그 (24h, center, secondary, surgery)", "args": {"tags": "list[str]"}},
+    {"policy": "target", "scope": "any", "name": "require", "desc": "필수 태그 (24h, center, secondary)", "args": {"tags": "list[str]"}},
     {"policy": "target", "scope": "any", "name": "unrequire", "desc": "필수 태그 해제", "args": {"tags": "list[str]"}},
     {"policy": "target", "scope": "any", "name": "exclude", "desc": "결과에서 제외할 병원 id (화면 순번→id는 shown_ids로 매핑)", "args": {"ids": "list[int]"}},
     {"policy": "target", "scope": "any", "name": "pin", "desc": "위로 고정할 병원 id", "args": {"ids": "list[int]"}},

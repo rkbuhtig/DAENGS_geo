@@ -40,7 +40,6 @@
   .spot { display:flex; gap:6px; padding:3px 0; border-top:1px dashed #eee; }
   .spot .n { width:18px; height:18px; border-radius:50%; background:#444; color:#fff; font-size:11px; display:flex; align-items:center; justify-content:center; flex:none; }
   .spot.warn .n { background:#c62828; }
-  .ev { font-size:12px; color:#555; margin-top:2px; }
   .tag { font-size:11px; background:#eee; border-radius:4px; padding:0 4px; margin-right:3px; }
   .hand a { margin-right:8px; font-size:12px; }
   .pol { font-size:10px; border-radius:8px; padding:1px 6px; margin-left:4px; text-transform:none; letter-spacing:0; font-weight:400; }
@@ -414,7 +413,6 @@ function render(d) {
       ${(w.why || []).length ? `<div class="muted">${w.why.join(' / ')}</div>` : ''}
       ${w.alternatives && w.alternatives.length ? `<div class="muted">다른 길: ${w.alternatives.map(a => `${a.label} ${a.min}분 (Δ${a.delta_min >= 0 ? '+' : ''}${a.delta_min}) 큰길 ${Math.round((a.facilities.big_road_ratio || 0) * 100)}%`).join(', ')}</div>` : ''}
       ${t.car ? `<div>🚗 ${c.min}분 ${c.m}m · 택시 ${c.taxi_fare ?? '-'}원 ${tr ? `· 🚌 ${tr.min}분 ${tr.fare}원` : ''}</div>` : ''}
-       ${x.evidence.map(e => `<div class="ev">[${e.source}] ${e.text}</div>`).join('')}
        <div class="spots"></div>`;
     const call = card.querySelector('.call');
     if (call) call.onclick = e => e.stopPropagation();

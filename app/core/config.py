@@ -28,17 +28,6 @@ class Settings(BaseSettings):
     # 실제 외부 호출은 기본 거부. dev는 같은 Usage Gate 안에서 작은 프로세스별 한도만 허용한다.
     usage_policy: Literal["deny-all", "dev"] = "deny-all"
 
-    # 커뮤니티 근거 (네이버 검색 API). fake = 시드 스니펫
-    # 기본은 none. fake 는 지역과 무관한 강남 시드 6개를 늘 돌려주므로 부산에서 검색해도
-    # 순위를 바꾼다 — 아래 전용 게이트를 켤 때만 쓴다 (app/enrich/community.py).
-    community_provider: Literal["fake", "naver", "none"] = "none"
-
-    # 가짜 근거 전용 게이트. `dev_console` 과 **분리**돼 있다 — 검증 콘솔을 열었다는 이유로
-    # 순위를 흔드는 시드가 같이 켜지면, 하나의 플래그가 표면과 데이터를 동시에 결정하게 된다.
-    allow_fake_evidence: bool = False
-    naver_search_client_id: str = ""
-    naver_search_client_secret: str = ""
-
     kakao_rest_key: str = ""
     tmap_app_key: str = ""
     naver_ncp_key_id: str = ""

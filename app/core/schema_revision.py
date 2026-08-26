@@ -5,6 +5,13 @@
 뒤처진 스키마를 최신이라고 위장하게 되고, 이 러너를 넣은 이유 자체가 첫날 무너진다.
 
 판별은 스키마 지표로 한다 — 각 마이그레이션이 **처음** 만드는 테이블이나 컬럼 하나.
+
+**데이터만 바꾸는 리비전**(예: 0016, 어휘에서 빠진 태그 정리)은 지표가 없다. 그런 리비전은
+판별에서 **투명**하다 — 앞뒤 지표만 보고 지나간다. 그래도 되는 이유: 데이터 전용 리비전은
+alembic 도입 **뒤에만** 생기고, 그 시대의 DB 는 `alembic_version` 이 권위라 스키마 모양으로
+판별할 일이 없다. 이관 대상인 옛 DB 는 0012 이하에서 멈춰 있으므로 `upgrade head` 가 실제로
+실행한다. 지표를 지어내서 채우지 않는 이유는 이 모듈이 존재하는 이유와 같다 — 틀린 지표는
+없는 지표보다 나쁘다.
 """
 
 from collections.abc import Callable
@@ -17,10 +24,16 @@ class LegacyMarker:
 
     revision: str
     source: str
-    table: str
+    table: str | None = None      # None = 스키마를 안 바꾸는 리비전. 판별에서 투명하다
     column: str | None = None
 
+    @property
+    def detectable(self) -> bool:
+        return self.table is not None
+
     def __str__(self) -> str:
+        if self.table is None:
+            return "스키마 지표 없음 (데이터 전용)"
         return f"{self.table}.{self.column}" if self.column else f"{self.table} 테이블"
 
 
@@ -46,6 +59,7 @@ LEGACY_MARKERS: tuple[LegacyMarker, ...] = (
     LegacyMarker("0013", "0013_facility_pet_axes.py", "facility", "pet_allowed"),
     LegacyMarker("0014", "0014_encounter_bands_10_15_20.py", "walk_encounter", "dwell_s_15m"),
     LegacyMarker("0015", "0015_walk_session_curve.py", "walk_facts", "curve"),
+    LegacyMarker("0016", "0016_drop_specialty_tags.py"),   # 데이터 전용 — 위 설명 참고
 )
 
 HEAD = LEGACY_MARKERS[-1].revision
@@ -82,13 +96,13 @@ def detect(present: Callable[[LegacyMarker], bool]) -> Detection:
     """
     applied: list[LegacyMarker] = []
     for marker in LEGACY_MARKERS:
-        if not present(marker):
+        if marker.detectable and not present(marker):
             break
-        applied.append(marker)
+        applied.append(marker)          # 지표 없는 리비전은 묻지 않고 지나간다
 
     rest = LEGACY_MARKERS[len(applied):]
     return Detection(
         stamp_at=applied[-1].revision if applied else None,
         missing=tuple(rest),
-        out_of_order=tuple(m for m in rest if present(m)),
+        out_of_order=tuple(m for m in rest if m.detectable and present(m)),
     )

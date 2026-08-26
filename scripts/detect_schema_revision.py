@@ -78,6 +78,8 @@ def main() -> int:
     try:
         with engine.connect() as connection:
             def present(marker: LegacyMarker) -> bool:
+                if marker.table is None:
+                    raise AssertionError("데이터 전용 리비전은 detect 가 묻지 않는다")
                 if marker.column is None:
                     return bool(connection.execute(EXISTS_TABLE, {"table": marker.table}).scalar())
                 return bool(

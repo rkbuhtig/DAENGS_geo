@@ -62,7 +62,7 @@ walk.avoid 를 바꿔도 car leg 는 변하지 않는다      test_walk_avoid_ch
 ```
 SearchState
 ├── lat, lng                 공통 기준점
-├── target: TargetPrefs      radius_m, open_now, night, emergency, at, specialty, require_tags, exclude_ids, pin_ids, limit
+├── target: TargetPrefs      radius_m, open_now, night, emergency, at, require_tags, exclude_ids, pin_ids, limit
 ├── journey: JourneyPrefs    mode, walk{option, avoid}, max_min, hard_limit
 ├── sort                     view
 └── history                  undo 스택

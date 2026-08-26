@@ -14,7 +14,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.db import get_session
-from app.enrich.community import attach_evidence
 from app.features.hospital.actions import build_actions
 from app.geo.ranking import DISTANCE_BAND_M, DURATION_BAND_MIN, band_of
 from app.geo.schemas import MapOut, PlaceOut
@@ -55,7 +54,6 @@ class HospitalSearchIn(BaseModel):
     shown_ids: list[PositiveId] = Field(default_factory=list, max_length=100)
     transport: Literal["none", "estimate"] = "estimate"   # 검색 응답은 휴리스틱까지만. 실측은 /journey
     companion: Companion = "dog"              # 병원은 개 동반이 기본. "나만 감"이면 none
-    with_evidence: bool = True
 
     @model_validator(mode="after")
     def location_is_required(self) -> "HospitalSearchIn":
@@ -64,16 +62,9 @@ class HospitalSearchIn(BaseModel):
         return self
 
 
-class EvidenceOut(BaseModel):
-    source: str
-    text: str
-    url: str
-
-
 class ResultOut(PlaceOut):
     transport: Transport | None = None
-    evidence: list[EvidenceOut] = Field(default_factory=list)   # 표시 + 순위 — 근거는 hospital_search 참조
-    boost: int = 0                     # prefer_hit×2 + 근거 수. 정렬 부스트 근거 (표시용)
+    boost: int = 0                     # prefer_hit×2. 정렬 부스트 근거 (표시용)
 
 
 class ResolutionOut(BaseModel):
@@ -143,9 +134,6 @@ async def hospital_search(
     # 각 엔진에는 자기 plan만 준다. state·facts를 다시 주워 읽는 우회로는 없다.
     places = await find_places(db, resolved.search)
 
-    # 근거는 state 가 시킨다 — 그 턴에 말을 했는지가 아니라. utterance 는 여기 못 들어온다.
-    ev = (await attach_evidence(st.target.symptoms, st.target.specialty, profile, places)
-          if body.with_evidence else {})
     results: list[ResultOut] = []
     for p in places:
         t = None
@@ -155,15 +143,9 @@ async def hospital_search(
                 dest_name=p.name, with_polyline=False,
                 arrive_note=ARRIVE_NOTE,
             )
-        e = [EvidenceOut(source=x.source, text=x.text, url=x.url) for x in ev.get(p.id, [])]
-        # evidence 가 과목 신호의 **본체**다 (query-rewrite-experiment.md) — 이름 태그(prefer_hit)는
-        # 전국 몇 곳짜리 보조 신호일 뿐이다. 순위 권한을 줘도 되는 이유: 쿼리가 state(symptoms·
-        # specialty)에서 나오므로 같은 state 는 같은 근거를 얻는다. 한 턴의 발화 유무로 순위가
-        # 흔들리던 1번 버그와 다르다. 밴드 밖은 못 뒤집는 건 _sort 가 보장한다.
-        # 선호 부스트는 find_places 가 이미 계산했다 (geo/ranking). 여기서는 근거만 가산한다 —
+        # 부스트는 find_places 가 이미 계산했다 (geo/ranking). 여기서 더하지 않는다 —
         # 같은 선호 규칙이 두 번 계산되던 것을 없앤 자리다 (#24).
-        results.append(ResultOut(**{**p.model_dump(), "boost": p.boost + len(e)},
-                                 transport=t, evidence=e))
+        results.append(ResultOut(**p.model_dump(), transport=t))
 
     # journey.hard_limit: 정책 경계를 넘는 유일한 스위치. 사용자가 명시적으로 켤 때만
     dropped = 0
