@@ -37,7 +37,7 @@ Companion = str  # journey.models.Companion 과 같은 값. 순환 import 를 �
 | 기반 | `core` | config·db. 아무도 모른다 |
 | 인프라 | `providers` `usage` | 외부 세계의 어댑터와 그 정책 |
 | 도메인 | `profile` `geo` `discovery` `place` `journey` | 제품 어휘 |
-| 진입점 | `api` `features` `ingest` `wiring` `main` | 바깥에서 안으로 들어오는 문 |
+| 진입점 | `api` `features` `ingest` `main` | 바깥에서 안으로 들어오는 문 |
 
 `ingest` 는 인프라가 아니라 **batch 진입점**이다. HTTP 가 `api`·`features` 로 들어오듯
 `python -m app.ingest` 로 들어온다. `ingest/anchors.py:29` 가 `geo.cells` 를 쓰는 것은
@@ -52,10 +52,14 @@ Companion = str  # journey.models.Companion 과 같은 값. 순환 import 를 �
 끼우는 것은 과잉이다. 실용적 layered 구조이며, 문서에서 "도메인은 인프라와 무관하다" 같은
 말은 하지 않는다.
 
-### 3. `*/contract.py` 는 선언된 잎이다
+### 3. 계약 모듈은 선언된 잎이다
 
-패키지 간 역방향 에지는 **contract 로 향하는 것만** 허용한다. contract 는 `core` 와 다른
-패키지의 contract 만 import 하고 로직을 담지 않는다.
+패키지 간 역방향 에지는 **계약 모듈로 향하는 것만** 허용한다. 새 계약은 `*/contract.py` 로
+만들고, 계약 모듈은 `core` 와 다른 계약 모듈만 import 하며 로직을 담지 않는다.
+
+`providers/base.py` 는 이미 `MapProvider`·`Mode`·`RouteStatus` 등 제공사 계약을 소유한
+**기존 계약 모듈**로 선언한다. 파일명만 `base.py` 일 뿐 같은 규칙을 적용한다. PR 5의
+import-direction 테스트는 파일명 패턴이 아니라 이 선언된 계약 모듈 집합을 기준으로 검사한다.
 
 계약의 주인은 그것을 **실행하는 쪽**이다. 지금 `planning/plans.py` 에 세 실행자의 입력이
 한 파일에 섞여 있다.
@@ -71,9 +75,10 @@ RuntimeFacts · ViewPlan                  → resolver 의 입력·출력  → d
 `Companion` 은 `Literal["dog", "none"]` 이고 "이번 이동에 개가 동반하는가"를 뜻한다.
 프로필 종류가 아니므로 `profile` 로 보내지 않는다 — `none` 프로필은 없다.
 
-이 규칙으로 `discovery ↔ journey` 는 순환이 아니게 된다. `discovery.resolver` 는
-`journey.contract` 를 향하고(역방향, contract 이므로 허용), `journey.api` 는
-`discovery` 를 향한다(순방향).
+이 규칙으로 `discovery ↔ journey` 의 양방향 패키지 참조는 허용 가능한 모듈 방향으로
+분해한다. `discovery.resolver` 는 `journey.contract` 를 향하고(역방향, contract 이므로 허용),
+`journey.api` 는 `discovery` 를 향한다(순방향). 패키지 이름만으로 순환 여부를 판정하지 않고
+모듈 단위 import-direction 테스트로 이 규칙을 잠근다.
 
 ### 4. HTTP 엔드포인트 소유
 
@@ -102,7 +107,7 @@ feature 인가**의 규칙이다.
 app/
 ├── core/          config · db                          아무도 모름
 ├── providers/     base(계약) · kakao · naver · tmap · fake
-├── usage/         gate · policy · ledger · metered · http
+├── usage/         gate · policy · ledger · metered · composition · http
 ├── profile/
 ├── geo/           contract.py(SearchPlan 계열) · search · cells · ranking …
 ├── discovery/     state · facts · semantics · resolver · trace
@@ -112,8 +117,7 @@ app/
 ├── features/      hospital/ · pharmacy/ · walk/ · scene/
 ├── ingest/        batch 진입점
 ├── api/           공용 조회 어댑터
-├── wiring.py      composition root — 모두를 안다
-└── main.py        wiring 을 호출한다
+└── main.py        진입점 조립
 ```
 
 `planning` 과 `refine` 은 다른 bounded context 가 아니라 한 컨텍스트를 읽기/쓰기로 찢어
@@ -127,26 +131,39 @@ app/
 가 "수집한다. 판정·보상·서술·알림은 하지 않는다"고 못 박은 경계는 결정 #51 의 산물이다.
 54줄이라고 `walk/judgment.py` 로 넣으면 파일은 줄지만 생산자와 소비자의 경계가 흐려진다.
 
-`wiring.py` 는 `core/` 안이 아니라 최상위다. core 는 아무도 모르는 층인데 composition
-root 는 모두를 알아야 한다 — `core/wiring.py` 로 두면 import 방향 테스트에 예외를 하나
-달고 시작하게 된다.
+### provider + usage 조립의 현재 위치
 
-```
-core            아무도 모름
-infra · domain  core 를 앎
-wiring          모두를 앎
-main            wiring 을 호출
-```
+초안은 provider 생성과 Usage Gate 래핑을 최상위 `app/wiring.py` 로 옮기려 했다. 실제 호출
+그래프를 따라가니 `journey.engine` 이 `route_provider()` 를 직접 당기고 있었다. 이 상태에서
+조립을 진입점인 `wiring.py` 로 옮기면 도메인 → 진입점 역방향 import가 생긴다.
+
+그래서 PR 1은 **현재 이미 존재하는 방향**인 `usage → providers` 를 따라
+`usage/composition.py` 에 metered provider 조립을 둔다. `providers.registry` 는 raw provider
+선택만 담당하고 usage를 모른다. 이것은 최상위 composition root가 아니다.
+
+진짜 composition root는 도메인이 provider를 직접 당기지 않고 주입받도록 바꾸는 별도 결정
+이후에만 만든다. 그 전에는 이름만 `wiring.py` 인 파일을 만들기 위해 화살표를 뒤집지 않는다.
+
+### 알려진 방향 위반 — `features ↔ geo`
+
+PR 1에서 전체 import 그래프를 다시 검사해 추가 위반을 찾았다. `geo/paint.py`와
+`geo/region.py`가 `features.walk.facts.Segment`를 import 한다. 현재 축 정의대로면 도메인이
+진입점을 아는 방향이라 위반이다.
+
+여기서 **`Segment`를 어디로 옮긴다고 선결정하지 않는다.** `Segment`는 `WalkFix`·moving·
+chain_index 같은 산책 어휘를 가진 타입이라 단순히 `geo`로 내리는 것도 소유권을 왜곡할 수
+있다. PR 5의 방향 테스트를 넣기 전에 `features.walk`의 경계와 `paint/region`의 실제 소유권을
+다시 검증해 해결한다. 이 결정이 고정하는 것은 "현재 위반이 존재한다"는 사실까지다.
 
 ## 이행 순서
 
 | PR | 내용 | 완료 조건 |
 |---|---|---|
-| 1 | `providers.registry` 의 조립을 `app/wiring.py` 로 | `git grep 'from app.usage' app/providers/` 0건 |
+| 1 | `providers.registry` 의 게이트 조립 → `usage/composition.py` | `git grep 'from app.usage' app/providers/` 0건 |
 | 2 | 계약 소유권 분할 (§3) | `plans.py:23` 의 `Companion = str` 별칭·주석 삭제 |
 | 3 | `planning` + `refine` → `discovery` | `git grep 'app\.planning\|app\.refine'` 전체 0건 |
 | 4 | `scene` → `features/scene` | — |
-| 5 | import 방향 테스트로 잠금 | 아래 게이트 통과 |
+| 5 | import 방향 테스트로 잠금 | 알려진 위반 포함 아래 게이트 통과 |
 | 6 | API 소유 집행 (§4) | 별도 트랙 |
 
 순서가 강제인 이유: 계약이 먼저 빠져야 3의 diff 가 순수 이동으로 읽히고, 방향 테스트는
@@ -177,5 +194,7 @@ git grep -n 'app\.planning\|app\.refine\|app\.scene'   # docs · tools 포함 �
   `api/static_map.py` 가 직접 쓴다. providers 가 usage 의 부모가 될 관계가 아니다
 - **`RuntimeFacts` → `geo`, `Companion` → `profile`** — §3. 순환만 보고 옮기면 새 구조가
   처음부터 거짓말을 한다
+- **`features.walk.Segment` 의 목적지 선결정** — 방향 위반은 확인했지만 소유권은 PR 5 전에
+  별도로 검증한다
 - **패키지 병합으로 개수 줄이기** — 9개인데 소유권이 틀린 것보다 11개라도 기준이 명확한
   편이 낫다
