@@ -94,6 +94,43 @@ def test_facility_search_rejects_the_retired_goods_kind():
     assert "goods was split into pet_shop and shopping" in response.text
 
 
+@pytest.mark.parametrize(
+    ("kinds", "message"),
+    [
+        ([], "at least 1 item"),
+        (["goods"], "goods was split into pet_shop and shopping"),
+        (["not-a-kind"], "unknown place kinds"),
+        (["cafe", "cafe"], "kinds must be unique"),
+    ],
+)
+def test_v2_place_search_requires_explicit_canonical_kinds(kinds, message):
+    """후보군을 고르지 않거나 폐기된 분류를 보내면 DB를 읽기 전에 거부한다."""
+    app.dependency_overrides[get_session] = _no_db
+    try:
+        with TestClient(app) as client:
+            response = client.post("/v2/places/search", json={
+                "lat": 37.5,
+                "lng": 127.0,
+                "radius_m": 3000,
+                "kinds": kinds,
+            })
+    finally:
+        app.dependency_overrides.pop(get_session, None)
+
+    assert response.status_code == 422
+    assert message in response.text
+
+
+def test_v2_openapi_exposes_the_shared_place_kind_vocabulary():
+    """클라이언트가 별도 하드코딩 없이 같은 canonical kind enum을 생성할 수 있어야 한다."""
+    schema = app.openapi()["components"]["schemas"]
+
+    assert {"hospital", "pharmacy", "pet_shop", "shopping"} <= set(
+        schema["PlaceKind"]["enum"]
+    )
+    assert "goods" not in schema["PlaceKind"]["enum"]
+
+
 def test_map_client_config_exposes_only_browser_key_id(monkeypatch):
     """
     Contract: 브라우저가 받는 설정에는 key id 만 나가고 서버 secret 은 응답 어디에도

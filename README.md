@@ -19,8 +19,8 @@ fix·`WalkFacts`·정지/시설 occurrence 파생과 원좌표 purge를 구현�
 **다음 장소 발견 축: 2026-08-26.** [결정 #63](docs/decisions/2026-08-26-place-first-discovery.md)은
 병원·약국·카페·여행·미용·숙박을 공통 `Place`로 보고, 원천 category에서 정규화한 `kind`를
 검색 입구로 삼는다. 기본 결과는 사실 기반이고 태그·AI는 사용자가 적용하는 제안층이다.
-이 결정은 아직 현재 Android 병원 화면과 분리된 검색 API를 바꾸지 않았다 — 구현은 작은 PR로
-순차 이동한다.
+공통 `POST /v2/places/search`는 종류별 독립 그룹과 거리순으로 구현됐다. 기존 웹 검증 표면과
+Android 병원 화면은 아직 이 계약으로 전환하지 않았으며 작은 PR로 순차 이동한다.
 
 ```
 app/
@@ -29,11 +29,12 @@ app/
 ├── providers/   MapProvider 4메서드 — kakao/naver/tmap/fake/null, 모드별 선택      공용
 ├── profile/     Dog/OwnerProfile 계약 + 개 8마리·견주 5명 페르소나                 공용
 ├── refine/      검색 상태 편집기 — state(target/journey/view) · tools · nl · diff
+├── place/       공통 PlaceResult · 의료/시설 resolver 조율 · POST /v2/places/search
 ├── features/
 │   ├── hospital/  POST /hospital/search (편집+검색, transport=estimate만)
 │   ├── pharmacy/  GET /pharmacy/search (얇음, companion 기본 none)
 │   └── walk/      수집만 — WalkFacts (contracts/walk-record.md). 판정·서술 없음, 테스트로 고정
-├── api/         GET /places/search · GET /map/static
+├── api/         legacy GET /places/search · canonical POST /v2/places/search · GET /map/static
 ├── usage/       실제 외부 호출 Gate — 기본 거부, 제한형 dev 정책, 요청/시간당 사용량
 └── core/        config · db
 android/         Kotlin/Compose — 위치→검색→NAVER 지도 + walk foreground service

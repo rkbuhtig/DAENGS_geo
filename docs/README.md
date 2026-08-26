@@ -37,6 +37,7 @@ backlog.md           갈래에 안 붙는 미결
 - [반려견 프로필](contracts/dog-profile.md) — 외부에서 받는 형태 + 가상 페르소나 8마리 (축: 지도 위 난점)
 - [견주 프로필](contracts/owner-profile.md) — 이동 제약 + 페르소나 5명 (축: 병원의 역할을 아는 정도)
 - [검색 응답](contracts/search-response.md)
+- [Place v2 검색](contracts/place-search-v2.md) — kinds 필수, 종류별 거리순 그룹, 공통 identity·facts
 - [산책 기록](contracts/walk-record.md) — **우리가 주는 것** (outbound). 사실만, 의미 없음, 테스트로 고정
 
 ## 조사
