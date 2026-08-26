@@ -9,7 +9,9 @@ from datetime import datetime
 from app.api.facility import FacilityOut
 from app.geo.schemas import PlaceOut
 from app.ingest.kcisa import KIND_MAPPING_VERSION as KCISA_MAPPING_VERSION
+from app.ingest.kcisa import KINDS as KCISA_KINDS
 from app.ingest.kto import KIND_MAPPING_VERSION as KTO_MAPPING_VERSION
+from app.ingest.kto import KINDS as KTO_KINDS
 from app.ingest.mois import KIND_MAPPING_VERSION as MOIS_MAPPING_VERSION
 from app.ingest.mois import SOURCES
 from app.place.contracts import (
@@ -18,6 +20,7 @@ from app.place.contracts import (
     PetAccessFacts,
     PlaceClassification,
     PlaceFacts,
+    PlaceMatch,
     PlaceRef,
     PlaceResult,
 )
@@ -26,8 +29,12 @@ _FACILITY_MAPPING_VERSIONS = {
     "kcisa": KCISA_MAPPING_VERSION,
     "kto": KTO_MAPPING_VERSION,
 }
-_MEDICAL_SOURCE_CATEGORIES = {
-    definition.source: definition.slug for definition in SOURCES.values()
+_FACILITY_KIND_MAPPINGS = {
+    "kcisa": KCISA_KINDS,
+    "kto": KTO_KINDS,
+}
+_MEDICAL_SOURCES = {
+    definition.source: definition for definition in SOURCES.values()
 }
 
 
@@ -45,9 +52,14 @@ def medical_place_result(value: PlaceOut) -> PlaceResult:
     """MOIS `PlaceOut` → 공통 계약. ORM 내부 id는 결과에 복사하지 않는다."""
     key = _required_ref(value.source, value.source_ref)
     try:
-        source_category = _MEDICAL_SOURCE_CATEGORIES[key.source]
+        source_definition = _MEDICAL_SOURCES[key.source]
     except KeyError as exc:
         raise ValueError(f"unknown medical classification source: {key.source}") from exc
+    if value.kind != source_definition.kind:
+        raise ValueError(
+            f"stale medical kind for {key.source}:{key.ref}: "
+            f"expected {source_definition.kind}, got {value.kind}"
+        )
 
     field_sources: dict[str, FieldProvenance] = {}
     if value.hours_source:
@@ -70,10 +82,10 @@ def medical_place_result(value: PlaceOut) -> PlaceResult:
         lat=value.lat,
         lng=value.lng,
         distance_m=value.distance_m,
-        matched_kind=value.kind,
+        match=PlaceMatch(source=key, kind=value.kind),
         classifications=[PlaceClassification(
             source=key,
-            source_category=source_category,
+            source_category=source_definition.slug,
             kind=value.kind,
             mapping_version=MOIS_MAPPING_VERSION,
             as_of=_iso(value.source_updated_at),
@@ -87,11 +99,8 @@ def medical_place_result(value: PlaceOut) -> PlaceResult:
                 active=value.active,
                 license_status_code=value.license_status_code,
                 license_status_name=value.license_status_name,
-                is_night=value.is_night,
-                is_24h=value.is_24h,
                 open_now=value.open_now,
                 hours_today=value.hours_today,
-                tags=value.tags,
                 area_m2=value.area_m2,
                 staff_count=value.staff_count,
             ),
@@ -105,10 +114,17 @@ def facility_place_result(value: FacilityOut) -> PlaceResult:
     key = _required_ref(value.source.name, value.source_ref)
     try:
         mapping_version = _FACILITY_MAPPING_VERSIONS[key.source]
+        kind_mapping = _FACILITY_KIND_MAPPINGS[key.source]
     except KeyError as exc:
         raise ValueError(f"unknown facility classification source: {key.source}") from exc
     if not value.classification_category:
         raise ValueError(f"missing mapping input category for {key.source}:{key.ref}")
+    expected_kind = kind_mapping.get(value.classification_category, "etc")
+    if value.kind != expected_kind:
+        raise ValueError(
+            f"stale facility kind for {key.source}:{key.ref}: "
+            f"{value.classification_category} maps to {expected_kind}, got {value.kind}"
+        )
 
     field_sources: dict[str, FieldProvenance] = {}
     borrowed_fields = value.place_field_sources or value.field_sources
@@ -123,7 +139,7 @@ def facility_place_result(value: FacilityOut) -> PlaceResult:
         lat=value.lat,
         lng=value.lng,
         distance_m=value.distance_m,
-        matched_kind=value.kind,
+        match=PlaceMatch(source=key, kind=value.kind),
         classifications=[PlaceClassification(
             source=key,
             source_category=value.classification_category,

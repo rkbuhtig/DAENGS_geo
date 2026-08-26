@@ -18,7 +18,13 @@ from app.geo.schemas import PlaceOut
 from app.geo.search import find_places
 from app.ingest.facility_store import upsert_rows
 from app.place.adapters import facility_place_result, medical_place_result
-from app.place.contracts import PlaceClassification, PlaceFacts, PlaceRef, PlaceResult
+from app.place.contracts import (
+    PlaceClassification,
+    PlaceFacts,
+    PlaceMatch,
+    PlaceRef,
+    PlaceResult,
+)
 from app.planning.plans import SearchMust, SearchPlan
 from tests.conftest import TEST_ORIGIN, db_session
 
@@ -85,7 +91,10 @@ def test_medical_adapter_uses_external_key_and_keeps_unknowns():
     payload = result.model_dump()
 
     assert payload["key"] == {"source": "public:mois:animal_hospital", "ref": "MOIS:123"}
-    assert payload["matched_kind"] == "hospital"
+    assert payload["match"] == {
+        "source": {"source": "public:mois:animal_hospital", "ref": "MOIS:123"},
+        "kind": "hospital",
+    }
     assert payload["classifications"] == [{
         "source": {"source": "public:mois:animal_hospital", "ref": "MOIS:123"},
         "source_category": "animal_hospitals",
@@ -94,6 +103,9 @@ def test_medical_adapter_uses_external_key_and_keeps_unknowns():
         "as_of": "2026-08-20T00:00:00+00:00",
     }]
     assert payload["facts"]["medical"]["open_now"] is None
+    assert "is_night" not in payload["facts"]["medical"]
+    assert "is_24h" not in payload["facts"]["medical"]
+    assert "tags" not in payload["facts"]["medical"]
     assert "id" not in payload, "DB PK가 Place identity로 노출됐다"
     assert result.aliases == []
 
@@ -159,7 +171,7 @@ def test_adapter_metadata_is_absent_from_legacy_serialization_schemas():
     assert "ref" not in FacilitySourceOut.model_json_schema(mode="serialization")["properties"]
 
 
-def test_place_can_hold_multiple_source_classifications_without_changing_match():
+def test_match_can_use_an_alias_classification_without_changing_primary_key():
     kcisa = PlaceRef(source="kcisa", ref="K1")
     kto = PlaceRef(source="kto", ref="T1")
     result = PlaceResult(
@@ -169,7 +181,7 @@ def test_place_can_hold_multiple_source_classifications_without_changing_match()
         lat=37.5,
         lng=127.0,
         distance_m=10,
-        matched_kind="pet_shop",
+        match=PlaceMatch(source=kto, kind="shopping"),
         classifications=[
             PlaceClassification(
                 source=kcisa, source_category="반려동물용품", kind="pet_shop",
@@ -184,26 +196,75 @@ def test_place_can_hold_multiple_source_classifications_without_changing_match()
     )
 
     assert {item.kind for item in result.classifications} == {"pet_shop", "shopping"}
-    assert result.matched_kind == "pet_shop"
+    assert result.key == kcisa
+    assert result.match == PlaceMatch(source=kto, kind="shopping")
     assert result.icon_group == "supply"
 
 
-def test_matched_kind_must_come_from_the_primary_source_record():
+def test_match_must_reference_an_exact_classification():
     key = PlaceRef(source="kcisa", ref="K1")
-    with pytest.raises(ValidationError, match="matched_kind"):
+    with pytest.raises(ValidationError, match="match must reference"):
         PlaceResult(
             key=key,
             name="불일치",
             lat=37.5,
             lng=127.0,
             distance_m=10,
-            matched_kind="shopping",
+            match=PlaceMatch(source=key, kind="shopping"),
             classifications=[PlaceClassification(
                 source=key, source_category="반려동물용품", kind="pet_shop",
                 mapping_version="kcisa-category3/2",
             )],
             facts=PlaceFacts(),
         )
+
+
+def test_key_and_each_source_record_require_unique_classification_provenance():
+    key = PlaceRef(source="kcisa", ref="K1")
+    other = PlaceRef(source="kto", ref="T1")
+    common = {
+        "name": "계약 오류",
+        "lat": 37.5,
+        "lng": 127.0,
+        "distance_m": 10,
+        "facts": PlaceFacts(),
+    }
+
+    with pytest.raises(ValidationError, match="key must have classification"):
+        PlaceResult(
+            key=key,
+            match=PlaceMatch(source=other, kind="shopping"),
+            classifications=[PlaceClassification(
+                source=other, source_category="38", kind="shopping",
+                mapping_version="kto-contenttypeid/2",
+            )],
+            **common,
+        )
+
+    with pytest.raises(ValidationError, match="exactly one classification"):
+        PlaceResult(
+            key=key,
+            match=PlaceMatch(source=key, kind="pet_shop"),
+            classifications=[
+                PlaceClassification(
+                    source=key, source_category="반려동물용품", kind="pet_shop",
+                    mapping_version="kcisa-category3/2",
+                ),
+                PlaceClassification(
+                    source=key, source_category="반려동물용품", kind="shopping",
+                    mapping_version="kcisa-category3/2",
+                ),
+            ],
+            **common,
+        )
+
+
+def test_adapter_rejects_a_kind_not_produced_by_its_mapping_version():
+    with pytest.raises(ValueError, match="stale facility kind"):
+        facility_place_result(facility_result(kind="pet_shop"))
+
+    with pytest.raises(ValueError, match="stale medical kind"):
+        medical_place_result(medical_result(kind="pharmacy"))
 
 
 async def test_kto_mapping_category_is_recovered_from_raw_contenttypeid():

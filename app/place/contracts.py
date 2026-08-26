@@ -3,6 +3,7 @@
 `PlaceRef`는 원천 레코드의 안정 키이지 물리 장소 통합 ID가 아니다. 현재 name+150m 링크는
 오탐이 있으므로 `aliases`에는 검증된 것만 들어갈 수 있고, adapter는 링크를 자동 승격하지
 않는다. 원천 레코드 하나의 kind는 scalar지만 통합 Place는 복수 classification을 가질 수 있다.
+대표 identity와 이번 검색에서 후보가 된 분류도 서로 다른 개념으로 다룬다.
 """
 
 from typing import Self
@@ -31,6 +32,13 @@ class PlaceClassification(BaseModel):
     as_of: str | None = None
 
 
+class PlaceMatch(BaseModel):
+    """이번 검색에서 이 Place가 후보가 된 분류. 대표 `key`와 독립적이다."""
+
+    source: PlaceRef
+    kind: str = Field(min_length=1)
+
+
 class FieldProvenance(BaseModel):
     """대표 레코드가 아닌 다른 원천에서 빌린 필드의 출처."""
 
@@ -50,16 +58,13 @@ class PetAccessFacts(BaseModel):
 
 
 class MedicalFacts(BaseModel):
-    """의료 원천에만 있는 사실. 진료과목·응급도 같은 추론은 넣지 않는다."""
+    """의료 원천에만 있는 사실. 이름에서 만든 태그·영업 형태 추론은 넣지 않는다."""
 
     active: bool
     license_status_code: str | None = None
     license_status_name: str | None = None
-    is_night: bool
-    is_24h: bool
     open_now: bool | None = None
     hours_today: list[tuple[str, str]] | None = None
-    tags: list[str] = Field(default_factory=list)
     area_m2: float | None = None
     staff_count: int | None = None
 
@@ -89,7 +94,7 @@ class PlaceResult(BaseModel):
     lat: float
     lng: float
     distance_m: int = Field(ge=0)
-    matched_kind: str = Field(min_length=1)
+    match: PlaceMatch
     classifications: list[PlaceClassification] = Field(min_length=1)
     facts: PlaceFacts
     # `facts.hours_text`처럼 계약 경로를 키로 쓴다. 대표 원천의 값은 key/classification으로
@@ -99,7 +104,7 @@ class PlaceResult(BaseModel):
     @computed_field  # type: ignore[prop-decorator]
     @property
     def icon_group(self) -> IconGroup:
-        return icon_group(self.matched_kind)
+        return icon_group(self.match.kind)
 
     @model_validator(mode="after")
     def identity_and_match_are_consistent(self) -> Self:
@@ -111,11 +116,16 @@ class PlaceResult(BaseModel):
         classified_keys = {
             (item.source.source, item.source.ref) for item in self.classifications
         }
+        if len(classified_keys) != len(self.classifications):
+            raise ValueError("each source record must have exactly one classification")
+        key = (self.key.source, self.key.ref)
+        if key not in classified_keys:
+            raise ValueError("key must have classification provenance")
         if not alias_keys <= classified_keys:
             raise ValueError("every alias must have classification provenance")
         if not any(
-            item.source == self.key and item.kind == self.matched_kind
+            item.source == self.match.source and item.kind == self.match.kind
             for item in self.classifications
         ):
-            raise ValueError("matched_kind must be classified by the primary source record")
+            raise ValueError("match must reference one of the Place classifications")
         return self

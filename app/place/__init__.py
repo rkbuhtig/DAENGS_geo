@@ -6,6 +6,7 @@ from app.place.contracts import (
     PetAccessFacts,
     PlaceClassification,
     PlaceFacts,
+    PlaceMatch,
     PlaceRef,
     PlaceResult,
 )
@@ -16,6 +17,7 @@ __all__ = (
     "PetAccessFacts",
     "PlaceClassification",
     "PlaceFacts",
+    "PlaceMatch",
     "PlaceRef",
     "PlaceResult",
 )
