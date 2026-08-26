@@ -34,7 +34,7 @@ SOURCE = "public:kcisa:pet_facility"
 KINDS = {
     "동물병원": "hospital",
     "동물약국": "pharmacy",
-    "반려동물용품": "goods",
+    "반려동물용품": "pet_shop",
     "미용": "grooming",
     "여행지": "travel",
     "박물관": "museum",

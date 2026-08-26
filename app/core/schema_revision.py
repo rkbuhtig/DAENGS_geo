@@ -26,6 +26,13 @@ class LegacyMarker:
     source: str
     table: str | None = None      # None = 스키마를 안 바꾸는 리비전. 판별에서 투명하다
     column: str | None = None
+    constraint: str | None = None
+
+    def __post_init__(self) -> None:
+        if self.column is not None and self.constraint is not None:
+            raise ValueError("a marker cannot be both a column and a constraint")
+        if self.table is None and (self.column is not None or self.constraint is not None):
+            raise ValueError("a column or constraint marker requires a table")
 
     @property
     def detectable(self) -> bool:
@@ -34,7 +41,11 @@ class LegacyMarker:
     def __str__(self) -> str:
         if self.table is None:
             return "스키마 지표 없음 (데이터 전용)"
-        return f"{self.table}.{self.column}" if self.column else f"{self.table} 테이블"
+        if self.column:
+            return f"{self.table}.{self.column}"
+        if self.constraint:
+            return f"{self.table}.{self.constraint} 제약"
+        return f"{self.table} 테이블"
 
 
 # alembic/versions 의 체인과 **같은 순서**여야 한다. 011 이 두 개인 것은 파일명 정렬이 아니라
@@ -60,6 +71,10 @@ LEGACY_MARKERS: tuple[LegacyMarker, ...] = (
     LegacyMarker("0014", "0014_encounter_bands_10_15_20.py", "walk_encounter", "dwell_s_15m"),
     LegacyMarker("0015", "0015_walk_session_curve.py", "walk_facts", "curve"),
     LegacyMarker("0016", "0016_drop_specialty_tags.py"),   # 데이터 전용 — 위 설명 참고
+    LegacyMarker(
+        "0017", "0017_split_goods_kinds.py", "facility",
+        constraint="facility_kind_not_legacy_goods",
+    ),
 )
 
 HEAD = LEGACY_MARKERS[-1].revision

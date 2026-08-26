@@ -26,6 +26,13 @@ def test_unknown_kind_is_etc_not_dropped():
     assert icon_group("space_elevator") == "etc"
 
 
+def test_split_supply_kinds_keep_the_existing_marker_contract():
+    """분류는 갈라도 Android 마커 어휘는 이번 PR에서 늘리지 않는다."""
+    assert icon_group("pet_shop") == "supply"
+    assert icon_group("shopping") == "supply"
+    assert icon_group("goods") == "etc"
+
+
 def test_every_mapped_group_is_declared():
     """매핑 값이 IconGroup 리터럴 밖으로 새면 앱이 모르는 문자열을 받는다."""
     declared = set(IconGroup.__args__)
