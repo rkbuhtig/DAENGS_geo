@@ -1,3 +1,4 @@
+import inspect
 from datetime import UTC, datetime
 
 import pytest
@@ -172,11 +173,13 @@ def test_draft_sets_no_condition_from_the_profile():
     노령·관절견에 `no_stairs` 를 깔던 것이 유일한 프로필 유래 기본값이었고, 그건 보이는 것
     없이 경로를 3배로 늘렸다 (28분 → 84분).
     """
-    for dog in ("halmae", "kong"):
-        s = draft(37.5, 127.0, PERSONAS[dog], 2000)
-        assert s.target.radius_m == 2000
-        assert s.target.open_now is False and s.target.require_tags == []
-        assert s.journey == draft(37.5, 127.0, None, 2000).journey, "프로필이 이동 설정을 세웠다"
+    s = draft(37.5, 127.0, 2000)
+    assert s.target.radius_m == 2000
+    assert s.target.open_now is False and s.target.require_tags == []
+    assert s.journey == EditableState(lat=37.5, lng=127.0).journey, "초안이 이동 설정을 세웠다"
+
+    # 프로필은 아예 인자가 아니다 — 어느 개로 시작하든 초안이 갈릴 여지가 없다
+    assert "profile" not in inspect.signature(draft).parameters
 
 
 async def test_refine_edits_then_utterance():

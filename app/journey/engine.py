@@ -36,8 +36,11 @@ class RouteOutcome:
     reason: str | None = None
 
 
-async def _route(mode: Mode, o: LatLng, d: LatLng, measured: bool,
+async def _route(mode: Mode, o: LatLng, d: LatLng, measured: bool, *,
                  option: WalkOption = "recommended") -> RouteOutcome:
+    # `option` 이 키워드 전용인 이유: 이 시그니처는 `(..., option, measured)` 였다. 자리를
+    # 바꾸면서 위치로 부르던 호출부 하나가 `measured="recommended"` · `option=True` 로 조용히
+    # 묶였는데, 둘 다 truthy 라 테스트가 초록이었다. 별표가 그 사고를 문법으로 막는다.
     """네 갈래뿐이다.
 
         설정이 none        → unavailable. 숫자를 만들지 않는다
