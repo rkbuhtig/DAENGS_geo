@@ -4,7 +4,7 @@
 
 기반층(`facility`)은 [문화시설 기반·의료 오버레이 제안](../../decisions/2026-08-24-culture-base-medical-overlay.md)에서
 왔다. 데이터 층과 필드 병합은 유지하지만 `/facility` 를 제품 최상위로 두는 phase 2는
-[결정 #63](../../decisions/2026-08-26-place-first-discovery.md)의 `Place` 축으로 대체됐다.
+[결정 #65](../../decisions/2026-08-26-place-first-discovery.md)의 `Place` 축으로 대체됐다.
 현재 `/facility/search` 와 Android 병원 검색은 아직 새 공통 계약으로 이동하지 않았다.
 
 이 폴더는 그 기반층을 **실제로 쓸 수 있게 만드는** 갈래들이다. 병원 쪽에서 답이 없었던 질문 —

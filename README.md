@@ -16,7 +16,7 @@ fix·`WalkFacts`·정지/시설 occurrence 파생과 원좌표 purge를 구현�
 종료 시 서버 업로드까지 에뮬레이터에서 한 바퀴 관통을 확인했다(결정 #60). process-death 복구와
 배터리 대비 업로드 주기는 아직 구현하지 않았다.
 
-**다음 장소 발견 축: 2026-08-26.** [결정 #63](docs/decisions/2026-08-26-place-first-discovery.md)은
+**다음 장소 발견 축: 2026-08-26.** [결정 #65](docs/decisions/2026-08-26-place-first-discovery.md)은
 병원·약국·카페·여행·미용·숙박을 공통 `Place`로 보고, 원천 category에서 정규화한 `kind`를
 검색 입구로 삼는다. 기본 결과는 사실 기반이고 태그·AI는 사용자가 적용하는 제안층이다.
 이 결정은 아직 현재 Android 병원 화면과 분리된 검색 API를 바꾸지 않았다 — 구현은 작은 PR로
@@ -46,7 +46,7 @@ android/         Kotlin/Compose — 위치→검색→NAVER 지도 + walk foregr
 경로 옵션 비교·시설 advice, suggested actions는 코드와 테스트가 있지만 제품 코어에서는
 **parked**다. 다시 채택하기 전까지 다음 구현 순서나 제품 차별점으로 세지 않는다.
 
-커뮤니티 근거·홈페이지 추출은 [결정 #63](docs/decisions/README.md)으로 **기각**했다 — 원천이
+커뮤니티 근거·홈페이지 추출은 [결정 #65](docs/decisions/README.md)으로 **기각**했다 — 원천이
 없어서 재료가 생길 경로가 없다. 코드(`app/enrich/`)와 응답의 `evidence[]` 는 제거했다.
 
 parked된 LLM 경계는 `utterance`가 있을 때만 “말 → 툴 호출” 번역 한 겹으로 동작하며 병원

@@ -14,7 +14,7 @@
 | **이용 과정의 데이터** | 산책 사실. (저장 정책 뒤) 어디서 뭘 찾았나 | [`contracts/walk-record.md`](contracts/walk-record.md) |
 | **위치 인프라** | PostGIS 반경 검색 · 영업 판정 · 경로 · 제공사 경계 · 유료 호출 게이트 | `app/geo` `app/journey` `app/providers` `app/usage` |
 
-[결정 #63](decisions/2026-08-26-place-first-discovery.md)은 이 장소들의 제품 최상위를 `Place`로
+[결정 #65](decisions/2026-08-26-place-first-discovery.md)은 이 장소들의 제품 최상위를 `Place`로
 고정했다. 현재 구현은 의료 `place` 검색과 비의료 `facility` 검색, Android 병원 화면으로 아직
 갈라져 있으며, 공통 계약으로 옮기는 것은 다음 구현 절단면이다.
 

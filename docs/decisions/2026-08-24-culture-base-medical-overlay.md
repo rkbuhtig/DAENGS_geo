@@ -5,7 +5,7 @@ superseded_by: 2026-08-26-place-first-discovery.md
 # 재편성: 문화시설이 기반, 인허가는 오버레이 — 의료는 하위로
 
 > 데이터 층(시설 기반·MOIS 의료 오버레이)과 필드 병합 규칙은 유지한다. 제품 최상위를
-> `/facility` 로 두는 phase 2는 채택하지 않았고, [결정 #63](2026-08-26-place-first-discovery.md)의
+> `/facility` 로 두는 phase 2는 채택하지 않았고, [결정 #65](2026-08-26-place-first-discovery.md)의
 > `Place → kind 후보군 → 조건 → 사실 순서`로 대체했다.
 
 08-24 실측의 결론. 인허가 원천만으로 병원/약국은 디렉토리 이상이 안 되고

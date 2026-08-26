@@ -1,6 +1,6 @@
 ---
 status: adopted
-decision: 63
+decision: 65
 adopted_at: 2026-08-26
 ---
 # 장소 발견의 최상위 도메인은 Place다 — 원천 분류부터, 의미 제안은 나중
