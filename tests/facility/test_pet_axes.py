@@ -7,7 +7,7 @@
 
 import pytest
 
-from app.geo.pet import PetAxes, derive_axes
+from app.geo.pet import PetAxes, accepting_size_classes, derive_axes, size_class_accepts
 
 
 def axes(**pet) -> PetAxes:
@@ -64,6 +64,22 @@ def test_unknown_size_is_not_a_constraint():
     a = axes(allowed="N", size="해당없음")
     assert a.size_class is None and a.max_kg is None and a.dog_ok is None
     assert a.allowed is False
+
+
+@pytest.mark.parametrize(
+    ("dog_size", "accepted"),
+    [
+        ("small", ("small", "medium", "large", "any")),
+        ("medium", ("medium", "large", "any")),
+        ("large", ("large", "any")),
+    ],
+)
+def test_filter_and_evaluation_share_one_size_order(dog_size, accepted):
+    assert accepting_size_classes(dog_size) == accepted
+    assert tuple(
+        limit for limit in ("small", "medium", "large", "any")
+        if size_class_accepts(limit, dog_size)
+    ) == accepted
 
 
 # ------------------------------------------------------- size → 종 (개가 되는가)

@@ -24,7 +24,25 @@ EXCLUSIVE_YES = "반려동물 전용"
 SMALL_MAX_KG = 10.0
 MEDIUM_MAX_KG = 25.0
 
-_ORDER: tuple[SizeClass, ...] = ("small", "medium", "large", "any")
+SIZE_ORDER: tuple[SizeClass, ...] = ("small", "medium", "large", "any")
+
+
+def size_class_accepts(facility_limit: str | None, dog_size: str | None) -> bool | None:
+    """시설의 크기 상한이 이 개 등급을 받는지. 어느 값이 미상이면 판단하지 않는다."""
+    if facility_limit not in SIZE_ORDER or dog_size not in SIZE_ORDER[:-1]:
+        return None
+    return SIZE_ORDER.index(dog_size) <= SIZE_ORDER.index(facility_limit)
+
+
+def accepting_size_classes(dog_size: str | None) -> tuple[SizeClass, ...]:
+    """legacy SQL이 쓰는, 이 개를 받는 시설 상한 목록. 평가와 같은 순서를 공유한다."""
+    if dog_size not in SIZE_ORDER[:-1]:
+        return ()
+    return tuple(
+        facility_limit
+        for facility_limit in SIZE_ORDER
+        if size_class_accepts(facility_limit, dog_size)
+    )
 
 # "입장 가능 동물 크기" 칸에는 크기와 **종**이 섞여 들어온다 (측정 §5: 고양이 17행 등).
 # 종이 열거됐는데 개가 없는 것은 결측이 아니라 명시적 진술이라 `dog_ok=False` 로 본다.
@@ -114,7 +132,7 @@ def _size_class(size: str, max_kg: float | None) -> SizeClass | None:
         labelled.append("small")
     if labelled:
         # `소형/중형` 은 중형까지 받는다는 뜻이다 — 가장 큰 등급이 상한.
-        return max(labelled, key=_ORDER.index)
+        return max(labelled, key=SIZE_ORDER.index)
     if max_kg is None:
         return None
     # 숫자는 시설이 정한 **상한**이다. 상한이 10kg 이면 소형견만 받는다는 뜻이므로

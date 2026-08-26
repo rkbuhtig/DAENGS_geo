@@ -160,6 +160,27 @@ def test_v2_openapi_exposes_the_shared_place_kind_vocabulary():
     assert "goods" not in schema["PlaceKind"]["enum"]
     request_schema = schema["PlaceSearchRequest"]
     assert request_schema["properties"]["kinds"]["maxItems"] == 6
+    assert "conditions" in request_schema["properties"]
+    assert set(schema["PlaceSearchConditions"]["properties"]) == {
+        "dog_id", "dog_size", "dog_weight_kg",
+    }
+
+
+def test_v2_place_search_rejects_empty_dog_conditions_before_reading_the_db():
+    app.dependency_overrides[get_session] = _no_db
+    try:
+        with TestClient(app) as client:
+            response = client.post("/v2/places/search", json={
+                "lat": 37.5,
+                "lng": 127.0,
+                "kinds": ["cafe"],
+                "conditions": {},
+            })
+    finally:
+        app.dependency_overrides.pop(get_session, None)
+
+    assert response.status_code == 422
+    assert "conditions require dog_id or dog_size" in response.text
 
 
 def test_map_client_config_exposes_only_browser_key_id(monkeypatch):

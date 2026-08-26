@@ -19,6 +19,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.geo.icons import IconGroup, icon_group
+from app.geo.pet import accepting_size_classes
 from app.geo.ranking import (
     DISTANCE_BAND_M,
     band_boost_sorted,
@@ -37,14 +38,6 @@ CANONICAL_SOURCES = ("kcisa", "kto")
 MAX_RESULTS = 3000
 
 DogSize = Literal["small", "medium", "large"]
-
-# 이 크기의 개를 받아주는 시설 등급. `any` 는 제한 없음이라 전부에 들어간다.
-SIZE_ACCEPTS: dict[str, tuple[str, ...]] = {
-    "small": ("small", "medium", "large", "any"),
-    "medium": ("medium", "large", "any"),
-    "large": ("large", "any"),
-}
-
 
 class FacilityParams(BaseModel):
     lat: float = Field(ge=32, le=40)
@@ -311,7 +304,7 @@ async def resolve_facilities(
         "require_canonical_identity": require_canonical_identity,
         "canonical_sources": list(CANONICAL_SOURCES),
         "only_dog_ok": params.only_dog_ok, "dog_size": params.dog_size,
-        "size_accepts": list(SIZE_ACCEPTS.get(params.dog_size or "", ())),
+        "size_accepts": list(accepting_size_classes(params.dog_size)),
         "band_m": DISTANCE_BAND_M,
         "want_parking": params.parking, "want_exclusive": params.dog_exclusive,
     })

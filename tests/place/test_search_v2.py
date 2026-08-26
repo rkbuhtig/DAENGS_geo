@@ -158,20 +158,22 @@ async def test_v2_groups_kinds_and_sorts_only_inside_each_candidate_set():
             assert [group.kind for group in response.groups] == [
                 "shopping", "hospital", "cafe",
             ]
-            assert [[item.name for item in group.results] for group in response.groups] == [
+            assert [[hit.place.name for hit in group.results] for group in response.groups] == [
                 ["명시한쇼핑"], ["V2계약동물병원"], ["가까운카페", "먼카페"],
             ]
+            assert response.conditions is None
+            assert "conditions" not in response.model_dump()
             assert all(group.sort.type == "distance" for group in response.groups)
             assert all(group.limit == 2 for group in response.groups)
-            assert response.groups[0].results[0].key.source == "kto"
-            assert response.groups[1].results[0].key.source == _MEDICAL_SOURCE
+            assert response.groups[0].results[0].place.key.source == "kto"
+            assert response.groups[1].results[0].place.key.source == _MEDICAL_SOURCE
             assert "V2제외개발병원" not in {
-                item.name for item in response.groups[1].results
+                hit.place.name for hit in response.groups[1].results
             }
             assert _NULL_REF_FACILITY_NAME not in {
-                item.name for item in response.groups[2].results
+                hit.place.name for hit in response.groups[2].results
             }
-            assert response.groups[2].results[0].facts.parking is None
+            assert response.groups[2].results[0].place.facts.parking is None
 
             cut = await search_place_groups(session, PlaceSearchRequest(
                 lat=TEST_ORIGIN[0],
@@ -180,8 +182,100 @@ async def test_v2_groups_kinds_and_sorts_only_inside_each_candidate_set():
                 kinds=["cafe"],
                 limit_per_kind=1,
             ))
-            assert [item.name for item in cut.groups[0].results] == ["가까운카페"]
+            assert [hit.place.name for hit in cut.groups[0].results] == ["가까운카페"]
             assert cut.groups[0].truncated is True
+
+            await session.execute(text("""
+                UPDATE facility
+                SET pet_allowed = true,
+                    pet_size_class = CASE source_ref
+                        WHEN :near_ref THEN 'small'
+                        WHEN :far_ref THEN 'any'
+                    END,
+                    pet_max_kg = CASE source_ref
+                        WHEN :near_ref THEN 5
+                        ELSE NULL
+                    END
+                WHERE source = 'kcisa' AND source_ref = ANY(:refs)
+            """), {
+                "near_ref": _FACILITY_REFS[0],
+                "far_ref": _FACILITY_REFS[1],
+                "refs": list(_FACILITY_REFS[:2]),
+            })
+            await session.commit()
+
+            for_dog = await search_place_groups(session, PlaceSearchRequest(
+                lat=TEST_ORIGIN[0],
+                lng=TEST_ORIGIN[1],
+                radius_m=1000,
+                kinds=["cafe", "shopping", "hospital"],
+                limit_per_kind=2,
+                conditions={"dog_id": "janggun"},
+            ))
+
+            assert for_dog.conditions is not None
+            assert for_dog.conditions.model_dump() == {
+                "dog_id": "janggun", "dog_size": "large", "dog_weight_kg": 34.0,
+            }
+            assert [hit.place.name for hit in for_dog.groups[0].results] == [
+                "가까운카페", "먼카페",
+            ], "평가가 후보를 삭제하거나 거리순을 바꿨다"
+            assert [
+                (hit.evaluations.dog_access.state, hit.evaluations.dog_access.reason)
+                for hit in for_dog.groups[0].results
+            ] == [
+                ("incompatible", "weight_exceeded"),
+                ("compatible", "size_allowed"),
+            ]
+            assert for_dog.groups[1].results[0].evaluations.dog_access.model_dump() == {
+                "state": "unknown", "reason": "missing_restriction",
+            }
+            medical_hit = for_dog.groups[2].results[0]
+            assert medical_hit.evaluations.dog_access is None
+            assert medical_hit.evaluations.model_dump() == {}
+
+            explicit_size = await search_place_groups(session, PlaceSearchRequest(
+                lat=TEST_ORIGIN[0],
+                lng=TEST_ORIGIN[1],
+                radius_m=1000,
+                kinds=["cafe"],
+                limit_per_kind=2,
+                conditions={"dog_id": "janggun", "dog_size": "small"},
+            ))
+            assert explicit_size.conditions is not None
+            assert explicit_size.conditions.dog_size == "small"
+            assert explicit_size.conditions.dog_weight_kg is None, (
+                "명시한 크기에 장군이의 34kg을 섞었다"
+            )
+            assert [
+                hit.evaluations.dog_access.state
+                for hit in explicit_size.groups[0].results
+            ] == ["unknown", "compatible"]
+
+            await session.execute(text("""
+                UPDATE facility SET pet_dog_ok = false
+                WHERE source = 'kto' AND source_ref = :ref
+            """), {"ref": _FACILITY_REFS[2]})
+            await session.commit()
+            unknown_profile = await search_place_groups(session, PlaceSearchRequest(
+                lat=TEST_ORIGIN[0],
+                lng=TEST_ORIGIN[1],
+                radius_m=1000,
+                kinds=["shopping", "cafe"],
+                limit_per_kind=2,
+                conditions={"dog_id": "missing-profile"},
+            ))
+            assert unknown_profile.conditions is not None
+            assert unknown_profile.conditions.model_dump() == {
+                "dog_id": "missing-profile", "dog_size": None, "dog_weight_kg": None,
+            }
+            assert unknown_profile.groups[0].results[0].evaluations.dog_access.model_dump() == {
+                "state": "incompatible", "reason": "dog_disallowed",
+            }
+            assert [
+                hit.evaluations.dog_access.reason
+                for hit in unknown_profile.groups[1].results
+            ] == ["missing_dog_weight", "missing_dog_size"]
         finally:
             await session.rollback()
             await _delete_owned_rows(session)
