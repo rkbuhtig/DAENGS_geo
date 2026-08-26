@@ -1,8 +1,8 @@
 """스파이크 뷰어에 넣을 OSM 배경 타일을 받아 data URI 로 굽는다.
 
-    uv run python -m scripts.spike_basemap --walks walks.json --out basemap.json
-    uv run python -m scripts.spike_basemap --scenes layer-scenes.json --out basemap.json
-    uv run python -m scripts.spike_basemap --bbox 37.485 127.041 37.493 127.056 --out basemap.json
+    uv run python -m scripts.spikes.territory_paint.basemap --walks walks.json --out basemap.json
+    uv run python -m scripts.spikes.territory_paint.basemap --scenes layer-scenes.json --out basemap.json
+    uv run python -m scripts.spikes.territory_paint.basemap --bbox 37.485 127.041 37.493 127.056 --out basemap.json
 
 ## 왜 미리 받나
 
@@ -51,8 +51,8 @@ def main(argv: list[str] | None = None) -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--walks", help="spike_real_route/persona_year 가 만든 경로 JSON")
-    parser.add_argument("--scenes", help="spike_layer_scenes 가 만든 JSON — bbox 를 그대로 쓴다")
+    parser.add_argument("--walks", help="real_route/persona_year 가 만든 경로 JSON")
+    parser.add_argument("--scenes", help="layer_scenes 가 만든 JSON — bbox 를 그대로 쓴다")
     parser.add_argument("--bbox", nargs=4, type=float,
                         metavar=("SOUTH", "WEST", "NORTH", "EAST"))
     parser.add_argument("--out", required=True)

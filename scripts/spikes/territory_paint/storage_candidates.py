@@ -1,6 +1,6 @@
 """§A 측정: 원좌표를 지운 뒤 무엇을 남길 것인가 — 후보 셋의 실제 값.
 
-    uv run python -m scripts.spike_storage_candidates --personas personas.json \\
+    uv run python -m scripts.spikes.territory_paint.storage_candidates --personas personas.json \\
         --cache-sheets sheets.pkl
 
 ## 무엇을 묻나
@@ -53,8 +53,8 @@ from itertools import pairwise
 
 from app.geo.cells import cell_size_m, hex_center_latlng
 from app.geo.paint import paint_sheet
-from scripts.spike_paint import segments_for
-from scripts.spike_persona_experiment import PROFILE, RADIUS_U, load
+from scripts.spikes.territory_paint.paint import segments_for
+from scripts.spikes.territory_paint.persona_experiment import PROFILE, RADIUS_U, load
 
 EARTH_R = 6_371_000.0
 WALKS_PER_YEAR = 1000          # 하루 2~3 회. 연 환산의 기준

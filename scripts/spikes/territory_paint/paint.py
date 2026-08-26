@@ -1,8 +1,8 @@
 """스파이크: 산책 점을 붓으로 써서 지도를 칠한다 — 실제 도로망 위 24회 산책으로.
 
-    uv run python -m scripts.spike_real_route --json walks.json      # 먼저 경로를 만든다
-    uv run python -m scripts.spike_paint --walks walks.json
-    uv run python -m scripts.spike_paint --walks walks.json --scenes paint.json
+    uv run python -m scripts.spikes.territory_paint.real_route --json walks.json      # 먼저 경로를 만든다
+    uv run python -m scripts.spikes.territory_paint.paint --walks walks.json
+    uv run python -m scripts.spikes.territory_paint.paint --walks walks.json --scenes paint.json
 
 ## 무엇을 묻나
 
@@ -87,7 +87,7 @@ def main(argv: list[str] | None = None) -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--walks", required=True, help="spike_real_route 가 만든 JSON")
+    parser.add_argument("--walks", required=True, help="real_route 가 만든 JSON")
     parser.add_argument("--scenes", help="눈으로 볼 장면을 쓸 JSON 경로")
     args = parser.parse_args(argv)
 

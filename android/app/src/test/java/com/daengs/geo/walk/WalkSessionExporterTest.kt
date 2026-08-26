@@ -16,7 +16,7 @@ import org.junit.rules.TemporaryFolder
 /**
  * The export file is the handoff copy of the only surviving trajectory, so what matters is:
  * it exists exactly for finished non-empty sessions, and its fields match the server wire
- * contract so `scripts/walk_bundle.py` can POST it back without translation.
+ * contract so `scripts/verify/walk_bundle.py` can POST it back without translation.
  */
 class WalkSessionExporterTest {
 

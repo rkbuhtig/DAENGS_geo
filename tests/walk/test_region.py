@@ -1,6 +1,6 @@
 """면 판정 기하 고정. 스파이크 측정치가 여기 정확성에 통째로 걸려 있다.
 
-`scripts/spike_region_fidelity.py` 가 "셀 근사가 얼마나 틀리나"를 재는데, 참값을 내는 것이
+`scripts/spikes/territory_paint/region_fidelity.py` 가 "셀 근사가 얼마나 틀리나"를 재는데, 참값을 내는 것이
 `region_encounters` 다. 이게 틀리면 오차표 전체가 틀린 값을 기준으로 잰 것이 된다.
 그래서 손으로 답을 아는 배치 몇 개를 박아 둔다.
 """

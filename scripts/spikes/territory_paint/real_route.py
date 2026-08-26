@@ -1,12 +1,12 @@
 """실제 도로망(OSM)에서 한 집의 산책들을 만든다. 합성 정사각형을 대체하는 입력.
 
-    uv run python -m scripts.spike_real_route --json walks.json --cache osm.json
+    uv run python -m scripts.spikes.territory_paint.real_route --json walks.json --cache osm.json
 
 갈래는 `docs/explorations/walk/territory-paint.md`.
 
 ## 왜 필요한가
 
-`spike_region_fidelity.py` 는 정사각형 면과 그 위를 도는 합성 궤적으로 오차를 쟀다. 정사각형은
+`region_fidelity.py` 는 정사각형 면과 그 위를 도는 합성 궤적으로 오차를 쟀다. 정사각형은
 경계 대비 면적이 가장 유리한 모양이라 그 측정은 낙관적으로 편향돼 있다. 실제 산책은 길을
 따라가므로 꺾이고, 좁은 골목을 지나고, 되돌아온다.
 

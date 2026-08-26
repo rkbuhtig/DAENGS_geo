@@ -1,6 +1,6 @@
 """뷰어용 장면 — 페르소나 × 고정 시나리오를 미리 겹쳐 둔다.
 
-    uv run python -m scripts.spike_layer_scenes --personas personas.json \\
+    uv run python -m scripts.spikes.territory_paint.layer_scenes --personas personas.json \\
         --cache-sheets sheets.pkl --out scenes.json
 
 ## 왜 고정 시나리오인가
@@ -29,7 +29,7 @@ import sys
 
 from app.geo.cells import GRID_VERSION, hex_center_latlng
 from app.geo.layers import Aggregation, LayerSpec, Projection, Selector, render
-from scripts.spike_persona_experiment import PROFILE, RADIUS_U, load
+from scripts.spikes.territory_paint.persona_experiment import PROFILE, RADIUS_U, load
 
 # 뷰어가 보여줄 전부. 실험이 실제로 답한 조합만 남긴다.
 SCENARIOS: tuple[tuple[str, str, dict], ...] = (

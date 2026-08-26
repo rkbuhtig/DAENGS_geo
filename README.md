@@ -199,3 +199,7 @@ POST /hospital/search
 ## 문서
 
 [docs/README.md](docs/README.md) 가 지도. 확정(`decisions/`) · 계약(`contracts/`) · 갈래(`explorations/`) · 조사(`research/`)로 나뉘고, 갈래는 status(exploring/adopted/parked/rejected)로 상태를 표시한다.
+
+실행 가능한 것은 [scripts/README.md](scripts/README.md) 가 지도. 운영 도구(최상위) ·
+관통 검증 하네스(`verify/`) · 갈래별 측정 스파이크(`spikes/<갈래>/`)로 **수명**에 따라
+나뉘고, 스파이크는 갈래가 닫히면 폴더째 지운다.

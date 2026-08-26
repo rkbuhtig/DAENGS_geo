@@ -17,7 +17,7 @@
 
 반지름이 곧 다이얼이다. 작을수록 정밀하고 좌표에 가깝다(28단위 셀 id 는 사실상 좌표다).
 어느 반지름에서 근사가 GPS 지터보다 작아지는지는 재야 하는 값이지 고르는 값이 아니다 —
-`scripts/spike_region_fidelity.py`, `docs/research/2026-08-26-region-cell-fidelity.md`.
+`scripts/spikes/territory_paint/region_fidelity.py`, `docs/research/2026-08-26-region-cell-fidelity.md`.
 
 **무엇을 영구히 남길지는 아직 안 정했다** — 단순화 궤적과 산책별 셀 맵이 후보다
 (`docs/explorations/walk/territory-paint.md` §A). 실사용 업로드는 #57·#58 이 막고 있어

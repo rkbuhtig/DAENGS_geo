@@ -13,7 +13,7 @@ import kotlinx.serialization.json.put
  * **Why a file, when the uploader already sends the session**: the server purges raw fixes at
  * finish, so after upload the Room rows on this device are the only copy of the trajectory.
  * Debugging a wrong distance or a missed encounter needs exactly those rows, off the device,
- * in a folder the developer chooses. `scripts/walk_bundle.py` pulls these files over adb and
+ * in a folder the developer chooses. `scripts/verify/walk_bundle.py` pulls these files over adb and
  * can replay them against a local server — the export format is therefore **field for field the
  * server wire contract** (`at` as ISO-8601, `client_seq`, `chain_index`, …), so a bundle can be
  * POSTed back without translation.

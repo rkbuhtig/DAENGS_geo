@@ -1,4 +1,4 @@
-"""`scripts/walk_bundle.py` 의 순수 부분. adb·HTTP 는 여기서 안 돈다.
+"""`scripts/verify/walk_bundle.py` 의 순수 부분. adb·HTTP 는 여기서 안 돈다.
 
 push 의 실동작(멱등 재전송)은 서버 계약 테스트(`test_walk_store.py` 의 duplicates)와
 기기 export 계약(`WalkSessionExporterTest`)이 각각 지킨다 — 이 파일은 그 둘을 잇는
@@ -7,7 +7,7 @@ push 의 실동작(멱등 재전송)은 서버 계약 테스트(`test_walk_store
 
 import pytest
 
-from scripts.walk_bundle import (
+from scripts.verify.walk_bundle import (
     BATCH,
     PushUnavailable,
     batches,

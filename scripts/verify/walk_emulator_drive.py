@@ -10,7 +10,7 @@ Phase 1 은 좌표를 서버에 직접 넣었고, 여기서는 GPS → FusedLoca
 `WalkTrackingService` 는 `exported="false"` 라 `am start-foreground-service` 로 못 깨운다
 (shell uid 권한 없음). 그래서 화면을 눌러 시작한다 — 버튼 좌표는 매번 UI 를 덤프해서 찾는다.
 
-    uv run python -m scripts.walk_emulator_drive
+    uv run python -m scripts.verify.walk_emulator_drive
 """
 
 import re
@@ -18,7 +18,7 @@ import subprocess
 import sys
 import time
 
-from scripts.walk_fixture import FIX_INTERVAL_S, PAUSE_AT_M, STOP_AT_M, STOP_S, route
+from scripts.verify.walk_fixture import FIX_INTERVAL_S, PAUSE_AT_M, STOP_AT_M, STOP_S, route
 
 ADB = "adb"
 DUMP = "/sdcard/ui.xml"

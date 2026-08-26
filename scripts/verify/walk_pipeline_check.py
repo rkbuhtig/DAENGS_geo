@@ -10,7 +10,7 @@
   - finish 뒤 walk_fix 가 실제로 지워지나 (프라이버시 주장의 유일한 관문)
   - 같은 배치를 다시 보내면 duplicates 로만 세나 (업로더가 기대는 멱등 계약)
 
-    uv run python -m scripts.walk_pipeline_check
+    uv run python -m scripts.verify.walk_pipeline_check
 """
 
 import json
@@ -19,7 +19,7 @@ import urllib.error
 import urllib.request
 from datetime import UTC, datetime, timedelta
 
-from scripts.walk_fixture import FACILITIES, expectations, route
+from scripts.verify.walk_fixture import FACILITIES, expectations, route
 
 BASE = "http://127.0.0.1:8000"
 SESSION_ID = "fixture-walk-0001"

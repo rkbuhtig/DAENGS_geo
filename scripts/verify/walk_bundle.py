@@ -4,9 +4,9 @@
 원본 fix 가 파일로 손에 있어야 한다. 서버는 finish 에서 원좌표를 지우므로 원본은 기기 Room
 에만 있고, debug 빌드가 종료 시 내부 저장소에 남긴 export(`WalkSessionExporter`)가 그 통로다.
 
-    uv run python -m scripts.walk_bundle pull  --out C:/dev/walks   # 기기 → 폴더 (adb)
-    uv run python -m scripts.walk_bundle fetch --out C:/dev/walks   # 서버 파생 → 폴더
-    uv run python -m scripts.walk_bundle push  --out C:/dev/walks   # 서버에 없는 세션 재전송
+    uv run python -m scripts.verify.walk_bundle pull  --out C:/dev/walks   # 기기 → 폴더 (adb)
+    uv run python -m scripts.verify.walk_bundle fetch --out C:/dev/walks   # 서버 파생 → 폴더
+    uv run python -m scripts.verify.walk_bundle push  --out C:/dev/walks   # 서버에 없는 세션 재전송
 
 폴더 구조 — 세션 하나가 파일 두 개다:
 

@@ -12,9 +12,9 @@
 같이 틀린다. 원 안 현(chord) 길이 2·sqrt(r²-d²) 를 보행 속도로 나눈 것이 체류의 이론값이고,
 실제값은 GPS 점 간격 때문에 그 언저리에 떨어진다.
 
-    uv run python -m scripts.walk_fixture route   > route.json
-    uv run python -m scripts.walk_fixture seed    > seed.sql
-    uv run python -m scripts.walk_fixture expect
+    uv run python -m scripts.verify.walk_fixture route   > route.json
+    uv run python -m scripts.verify.walk_fixture seed    > seed.sql
+    uv run python -m scripts.verify.walk_fixture expect
 """
 
 import json
@@ -93,7 +93,7 @@ def seed_sql() -> str:
         )
     values = ",\n  ".join(rows)
     return (
-        "-- 산책 관통 검증용. scripts/walk_fixture.py 가 생성한다 — 손으로 고치지 않는다.\n"
+        "-- 산책 관통 검증용. scripts/verify/walk_fixture.py 가 생성한다 — 손으로 고치지 않는다.\n"
         "INSERT INTO facility (name, kind, category3, location, source, source_ref, snapshot)\n"
         f"VALUES\n  {values}\n"
         "ON CONFLICT (source, source_ref) WHERE source_ref IS NOT NULL\n"
