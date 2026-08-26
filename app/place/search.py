@@ -1,16 +1,17 @@
 """종류별 Place 발견을 조율하는 canonical 검색 서비스.
 
 각 resolver는 자기 원천의 존재·병합 규칙을 유지한다. 이 계층은 요청한 kind를 알맞은
-resolver로 보내고 공통 `PlaceResult`로 바꾼 뒤, 종류 안에서만 순수 거리순을 보장한다.
+resolver로 보내고 공통 `PlaceResult`로 바꾼 뒤, 종류 안에서만 요청한 사실 선호를 적용한다.
 """
 
 from enum import StrEnum
 from typing import Literal, Self
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.clock import SystemClock
+from app.geo.ranking import DISTANCE_BAND_M, prefer_boost, rank_key
 from app.place.adapters import facility_place_result, medical_place_result
 from app.place.contracts import PlaceResult
 from app.place.evaluations import DogAccessEvaluation, evaluate_dog_access
@@ -89,6 +90,14 @@ class AppliedPlaceSearchConditions(BaseModel):
     dog_weight_kg: float | None = Field(None, gt=0, le=200)
 
 
+class PlaceSearchPreferences(BaseModel):
+    """사용자가 명시한 사실 기반 선호. 결과를 제거하지 않는다."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    parking: bool = False
+
+
 class PlaceSearchRequest(BaseModel):
     lat: float = Field(ge=32, le=40)
     lng: float = Field(ge=123, le=133)
@@ -97,6 +106,7 @@ class PlaceSearchRequest(BaseModel):
     # 지도는 반경 안 후보를 가능한 한 보되 서버 상한은 명시한다. 잘렸는지는 group이 말한다.
     limit_per_kind: int | None = Field(None, ge=1, le=MAX_RESULTS)
     conditions: PlaceSearchConditions | None = None
+    preferences: PlaceSearchPreferences | None = None
 
     @field_validator("kinds", mode="before")
     @classmethod
@@ -134,9 +144,28 @@ class PlaceSearchRequest(BaseModel):
         if self.limit_per_kind is not None:
             return self.limit_per_kind
         return min(MAX_RESULTS, MAX_TOTAL_RESULTS // len(self.kinds))
+
+
+class BooleanFactCoverage(BaseModel):
+    """반환된 그룹 안의 3상태 불 사실 개수. unknown은 false가 아니다."""
+
+    known_true: int = Field(ge=0)
+    known_false: int = Field(ge=0)
+    unknown: int = Field(ge=0)
+
+
 class PlaceSort(BaseModel):
-    type: Literal["distance"] = "distance"
-    basis: tuple[Literal["distance_m"], ...] = ("distance_m",)
+    type: Literal["distance", "distance_preferred"] = "distance"
+    basis: tuple[Literal["distance_band", "parking", "distance_m"], ...] = (
+        "distance_m",
+    )
+    applied: tuple[Literal["parking"], ...] = Field(
+        default=(), exclude_if=lambda value: not value,
+    )
+    band_m: int | None = Field(None, ge=1, exclude_if=lambda value: value is None)
+    coverage: dict[Literal["parking"], BooleanFactCoverage] = Field(
+        default_factory=dict, exclude_if=lambda value: not value,
+    )
 
 
 class PlaceEvaluations(BaseModel):
@@ -167,6 +196,27 @@ class PlaceSearchResponse(BaseModel):
 
 def _distance_key(result: PlaceResult) -> tuple[int, str, str]:
     return result.distance_m, result.key.source, result.key.ref
+
+
+def _parking_preference_key(result: PlaceResult) -> tuple:
+    hit = ("parking",) if result.facts.parking is True else ()
+    return (
+        *rank_key(
+            primary=result.distance_m,
+            boost=prefer_boost(hit),
+            band_size=DISTANCE_BAND_M,
+        ),
+        result.key.source,
+        result.key.ref,
+    )
+
+
+def _parking_coverage(results: list[PlaceResult]) -> BooleanFactCoverage:
+    return BooleanFactCoverage(
+        known_true=sum(result.facts.parking is True for result in results),
+        known_false=sum(result.facts.parking is False for result in results),
+        unknown=sum(result.facts.parking is None for result in results),
+    )
 
 
 def _hit(
@@ -215,6 +265,7 @@ async def _facility_group(
     limit: int,
     conditions: AppliedPlaceSearchConditions | None,
 ) -> PlaceSearchGroup:
+    prefer_parking = bool(request.preferences and request.preferences.parking)
     resolved = await resolve_facilities(
         FacilityParams(
             lat=request.lat,
@@ -223,16 +274,28 @@ async def _facility_group(
             kind=kind.value,
             limit=limit,
             only_dog_ok=False,
+            parking=prefer_parking,
         ),
         db,
         require_canonical_identity=True,
     )
-    places = sorted(
-        (facility_place_result(row) for row in resolved.results), key=_distance_key,
-    )
+    places = [facility_place_result(row) for row in resolved.results]
+    sort = PlaceSort()
+    if prefer_parking:
+        places.sort(key=_parking_preference_key)
+        sort = PlaceSort(
+            type="distance_preferred",
+            basis=("distance_band", "parking", "distance_m"),
+            applied=("parking",),
+            band_m=DISTANCE_BAND_M,
+            coverage={"parking": _parking_coverage(places)},
+        )
+    else:
+        places.sort(key=_distance_key)
     results = [_hit(place, conditions) for place in places]
     return PlaceSearchGroup(
         kind=kind,
+        sort=sort,
         limit=limit,
         truncated=resolved.truncated,
         results=results,

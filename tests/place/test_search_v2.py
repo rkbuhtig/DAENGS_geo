@@ -173,6 +173,53 @@ async def test_v2_groups_kinds_and_sorts_only_inside_each_candidate_set():
             }
             assert response.groups[2].results[0].place.facts.parking is None
 
+            await session.execute(text("""
+                UPDATE facility
+                SET parking = CASE source_ref
+                    WHEN :near_ref THEN false
+                    WHEN :far_ref THEN true
+                END
+                WHERE source = 'kcisa' AND source_ref = ANY(:refs)
+            """), {
+                "near_ref": _FACILITY_REFS[0],
+                "far_ref": _FACILITY_REFS[1],
+                "refs": list(_FACILITY_REFS[:2]),
+            })
+            await session.commit()
+
+            preferred = await search_place_groups(session, PlaceSearchRequest(
+                lat=TEST_ORIGIN[0],
+                lng=TEST_ORIGIN[1],
+                radius_m=1000,
+                kinds=["cafe", "shopping", "hospital"],
+                limit_per_kind=2,
+                preferences={"parking": True},
+            ))
+            assert [hit.place.name for hit in preferred.groups[0].results] == [
+                "먼카페", "가까운카페",
+            ], "같은 500m 밴드에서 주차 사실이 순위에 반영되지 않았다"
+            assert preferred.groups[0].sort.model_dump() == {
+                "type": "distance_preferred",
+                "basis": ("distance_band", "parking", "distance_m"),
+                "applied": ("parking",),
+                "band_m": 500,
+                "coverage": {
+                    "parking": {"known_true": 1, "known_false": 1, "unknown": 0},
+                },
+            }
+            assert preferred.groups[1].sort.model_dump() == {
+                "type": "distance_preferred",
+                "basis": ("distance_band", "parking", "distance_m"),
+                "applied": ("parking",),
+                "band_m": 500,
+                "coverage": {
+                    "parking": {"known_true": 0, "known_false": 0, "unknown": 1},
+                },
+            }, "정보가 없는 shopping을 주차 불가로 세면 안 된다"
+            assert preferred.groups[2].sort.model_dump() == {
+                "type": "distance", "basis": ("distance_m",),
+            }, "주차 사실이 없는 의료 그룹에 선호 적용을 주장하면 안 된다"
+
             cut = await search_place_groups(session, PlaceSearchRequest(
                 lat=TEST_ORIGIN[0],
                 lng=TEST_ORIGIN[1],
