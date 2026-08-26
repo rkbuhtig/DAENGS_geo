@@ -633,13 +633,16 @@ private fun ServerAddressRow() {
     var editing by remember { mutableStateOf(false) }
     var url by remember { mutableStateOf(ServerAddress.current(context)) }
     var saved by remember { mutableStateOf(ServerAddress.current(context)) }
+    var rejected by remember { mutableStateOf<String?>(null) }
 
     if (!editing) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            OutlinedButton(onClick = { url = saved; editing = true }) { Text("서버 주소") }
+            OutlinedButton(onClick = { url = saved; rejected = null; editing = true }) {
+                Text("서버 주소")
+            }
             Text(
                 saved.removePrefix("https://").removePrefix("http://"),
                 style = MaterialTheme.typography.bodySmall,
@@ -651,17 +654,23 @@ private fun ServerAddressRow() {
 
     OutlinedTextField(
         value = url,
-        onValueChange = { url = it },
+        onValueChange = { url = it; rejected = null },
         label = { Text("서버 주소") },
         placeholder = { Text("https://....trycloudflare.com") },
         singleLine = true,
+        isError = rejected != null,
+        supportingText = rejected?.let { { Text(it) } },
         modifier = Modifier.fillMaxWidth(),
     )
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Button(onClick = {
-            ServerAddress.set(context, url)
-            saved = ServerAddress.current(context)
-            editing = false
+            when (val result = ServerAddress.set(context, url)) {
+                is ServerAddress.Result.Rejected -> rejected = result.reason
+                else -> {
+                    saved = ServerAddress.current(context)
+                    editing = false
+                }
+            }
         }) { Text("저장") }
         OutlinedButton(onClick = { editing = false }) { Text("취소") }
         // 터널을 접고 USB 로 돌아갈 때 필요하다. 빌드에 박힌 값으로 되돌린다.

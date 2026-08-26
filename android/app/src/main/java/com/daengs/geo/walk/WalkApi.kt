@@ -38,12 +38,16 @@ interface WalkApi {
     suspend fun finishSession(sessionId: String, endedAtMillis: Long): JsonObject
 }
 
-/** 주소는 호출 시점에 읽는다 — 실행 중에 바뀔 수 있다 (`ServerAddress`). */
+/**
+ * 주소는 **생성 시점에 고정**된다. 산책 업로드는 `start → fixes… → finish` 가 한 덩어리라
+ * 그 사이에 주소가 바뀌면 앞뒤가 다른 서버로 갈라진다 — 뒤 서버엔 그 세션이 없다.
+ * 새 주소는 `WalkUploader` 가 **다음 업로드를 시작할 때** 새 인스턴스로 집어온다.
+ */
 class HttpWalkApi(
-    private val baseUrl: () -> String,
+    baseUrl: String,
     private val json: Json = Json,
 ) : WalkApi {
-    private val root: String get() = "${baseUrl().trimEnd('/')}/walk/sessions"
+    private val root = "${baseUrl.trimEnd('/')}/walk/sessions"
 
     override suspend fun startSession(sessionId: String, dogId: String, startedAtMillis: Long) {
         post(root, buildJsonObject {

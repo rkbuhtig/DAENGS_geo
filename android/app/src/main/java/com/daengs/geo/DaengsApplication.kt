@@ -49,7 +49,7 @@ class DaengsApplication : Application() {
             walkFixWriter = walkFixWriter,
             walkFixLog = walkFixLog,
             walkUploader = WalkUploader(
-                api = HttpWalkApi(baseUrl = { ServerAddress.current(this) }),
+                apiFactory = { HttpWalkApi(ServerAddress.current(this)) },
                 log = walkFixLog,
                 dogId = BuildConfig.DEV_DOG_ID,
             ),

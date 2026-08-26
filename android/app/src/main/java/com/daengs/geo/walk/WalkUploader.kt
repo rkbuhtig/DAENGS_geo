@@ -23,7 +23,12 @@ import kotlinx.serialization.json.JsonObject
  * to whatever the build happens to be configured with by the time it uploads.
  */
 class WalkUploader(
-    private val api: WalkApi,
+    /**
+     * 업로드 하나에 하나. **주소는 업로드가 시작될 때 한 번 정해진다** — 그 사이 사용자가
+     * 서버를 바꿔도 진행 중인 `start → fixes… → finish` 는 끝까지 같은 서버로 간다.
+     * 바뀐 주소는 다음 업로드부터다.
+     */
+    private val apiFactory: () -> WalkApi,
     private val log: WalkFixLog,
     private val dogId: String,
     private val batchSize: Int = MAX_BATCH,
@@ -47,6 +52,7 @@ class WalkUploader(
         val fixes = log.fixes(sessionId)
         if (fixes.isEmpty()) return null
 
+        val api = apiFactory()          // 이 업로드가 끝까지 쓸 서버
         api.startSession(sessionId, subject, session.startedAtMillis)
         var stored = 0
         var duplicates = 0
