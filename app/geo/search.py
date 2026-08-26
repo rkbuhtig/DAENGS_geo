@@ -23,11 +23,13 @@ def _point(lat: float, lng: float):
     return cast(func.ST_SetSRID(func.ST_MakePoint(lng, lat), 4326), Geography)
 
 
-async def find_places(
+async def _find_places(
     db: AsyncSession,
     plan: SearchPlan,
     *,
-    only_dog_ok: bool = True,
+    only_dog_ok: bool,
+    authoritative_source: str | None,
+    require_source_ref: bool,
 ) -> list[PlaceOut]:
     must = plan.must
     origin = _point(must.lat, must.lng)
@@ -41,6 +43,10 @@ async def find_places(
     )
     if must.kind:
         stmt = stmt.where(Place.kind == must.kind)
+    if authoritative_source is not None:
+        stmt = stmt.where(Place.source == authoritative_source)
+    if require_source_ref:
+        stmt = stmt.where(Place.source_id.is_not(None))
     # **야간·응급은 거르지 않는다.** 인허가 원천엔 진료 능력이 없어서 이 태그들은 간판 이름
     # 정규식이 전부다 (geo/tagging.py). 실측 2026-08-20, 활성 병원 5,457곳 중
     # night 1곳 · emergency 2곳 — WHERE 로 쓰면 반경 안 결과가 통째로 사라진다.
@@ -93,6 +99,38 @@ async def find_places(
     # 표시 보강만 - 존재·정렬·open_now 판정엔 관여하지 않는다 (facility_hours.py).
     await attach_facility_hours(db, out)
     return out
+
+
+async def find_places(
+    db: AsyncSession,
+    plan: SearchPlan,
+    *,
+    only_dog_ok: bool = True,
+) -> list[PlaceOut]:
+    """Legacy 의료 검색. 개발 seed를 포함한 기존 source 범위를 그대로 유지한다."""
+    return await _find_places(
+        db,
+        plan,
+        only_dog_ok=only_dog_ok,
+        authoritative_source=None,
+        require_source_ref=False,
+    )
+
+
+async def find_authoritative_places(
+    db: AsyncSession,
+    plan: SearchPlan,
+    *,
+    source: str,
+) -> list[PlaceOut]:
+    """Canonical resolver용. 지정 원천과 외부 ref가 모두 있는 의료 행만 반환한다."""
+    return await _find_places(
+        db,
+        plan,
+        only_dog_ok=False,
+        authoritative_source=source,
+        require_source_ref=True,
+    )
 
 
 async def search_places(db: AsyncSession, p: SearchParams) -> SearchOut:

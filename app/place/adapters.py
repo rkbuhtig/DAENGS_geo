@@ -1,12 +1,11 @@
-"""기존 의료·시설 결과를 공통 Place 계약으로 옮기는 순수 adapter.
+"""내부 의료·시설 resolver 결과를 공통 Place 계약으로 옮기는 순수 adapter.
 
-기존 API 응답은 유지한다. 다음 `/v2/places/search` resolver가 이 함수들을 호출하며, 현재
+기존 API 응답은 유지한다. canonical `/v2/places/search`가 이 함수들을 호출하며, 현재
 facility_link는 검증된 identity가 아니므로 aliases로 자동 변환하지 않는다.
 """
 
 from datetime import datetime
 
-from app.api.facility import FacilityOut
 from app.geo.schemas import PlaceOut
 from app.ingest.kcisa import KIND_MAPPING_VERSION as KCISA_MAPPING_VERSION
 from app.ingest.kcisa import KINDS as KCISA_KINDS
@@ -24,6 +23,7 @@ from app.place.contracts import (
     PlaceRef,
     PlaceResult,
 )
+from app.place.facility_resolver import FacilityOut
 
 _FACILITY_MAPPING_VERSIONS = {
     "kcisa": KCISA_MAPPING_VERSION,
@@ -110,7 +110,7 @@ def medical_place_result(value: PlaceOut) -> PlaceResult:
 
 
 def facility_place_result(value: FacilityOut) -> PlaceResult:
-    """KCISA/KTO `FacilityOut` → 공통 계약. legacy category3 표시는 그대로 둔다."""
+    """KCISA/KTO 내부 시설 결과 → 공통 계약. legacy category3 표시는 그대로 둔다."""
     key = _required_ref(value.source.name, value.source_ref)
     try:
         mapping_version = _FACILITY_MAPPING_VERSIONS[key.source]

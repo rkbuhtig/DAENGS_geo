@@ -146,6 +146,8 @@ async def test_cross_source_merge_keeps_richer_fields(monkeypatch):
             rows = await session.execute(api._SEARCH, {
                 "lat": TEST_ORIGIN[0], "lng": TEST_ORIGIN[1], "radius_m": 1000,
                 "kind": "cafe", "limit": 10, "medical": list(api.MEDICAL),
+                "require_canonical_identity": False,
+                "canonical_sources": [],
                 # 이 테스트가 보는 것은 병합이라 pet 축 필터는 열어 둔다 (엔드포인트 기본값과 별개).
                 "only_dog_ok": False, "dog_size": None, "size_accepts": [],
                 # 순위는 이 테스트의 관심이 아니다. 선호를 끄면 rank key 가 거리순으로 접힌다.
@@ -230,6 +232,8 @@ async def test_cross_kind_rows_are_neither_linked_nor_collapsed():
                 rows = await session.execute(api._SEARCH, {
                     "lat": TEST_ORIGIN[0], "lng": TEST_ORIGIN[1], "radius_m": 1000,
                     "kind": kind, "limit": 10, "medical": list(api.MEDICAL),
+                    "require_canonical_identity": False,
+                    "canonical_sources": [],
                     "only_dog_ok": False, "dog_size": None, "size_accepts": [],
                     "band_m": DISTANCE_BAND_M,
                     "want_parking": False, "want_exclusive": False,

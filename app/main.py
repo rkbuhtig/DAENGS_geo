@@ -8,7 +8,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api import anchor, facility, places, static_map
+from app.api import anchor, facility, places, places_v2, static_map
 from app.core.config import settings
 from app.core.db import get_session
 from app.features.hospital import api as hospital
@@ -24,6 +24,7 @@ if _problems:
     raise RuntimeError("경로 제공사 설정 오류: " + " / ".join(_problems))
 
 app = FastAPI(title="DAENGS_geo", version="0.1.0")
+app.include_router(places_v2.router)
 app.include_router(places.router)
 app.include_router(facility.router)
 app.include_router(hospital.router)
