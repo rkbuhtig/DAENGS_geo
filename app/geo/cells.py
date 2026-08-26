@@ -29,6 +29,11 @@ from collections.abc import Iterable
 
 EARTH_R = 6_378_137.0
 
+# 격자 수학의 버전. 투영·축좌표·반올림 중 무엇이라도 바뀌면 올린다 — 같은 (q, r) 이
+# 다른 자리를 뜻하게 되기 때문이다. golden vector(docs/contracts/hex-grid-golden.json)가
+# 이 버전의 값을 고정하고, 셀로판(`paint.Cellophane`)이 이 버전을 달고 다닌다.
+GRID_VERSION = "hex-v1"
+
 # anchors.py 가 앵커를 솎은 반지름(격자 단위). 위도 37.5° 에서 실제 91m, 셀 간격 158m.
 ANCHOR_RADIUS_U = 115.0
 

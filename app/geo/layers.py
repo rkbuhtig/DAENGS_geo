@@ -37,10 +37,9 @@ from collections.abc import Iterable
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime
 
-from app.geo.cells import Cell
+from app.geo.cells import GRID_VERSION, Cell
 from app.geo.paint import Cellophane, Paint, stack
 
-GRID_VERSION = "hex-v1"
 LAYER_SPEC_VERSION = 1
 
 # 질의층이 정하는 시간대. 생성기의 시각 분포와 **독립**이어야 파생이 검증 대상이 된다.
@@ -163,13 +162,27 @@ def select(sheets: Iterable[Cellophane], spec: LayerSpec) -> list[Cellophane]:
     """조건에 맞는 장만. 장의 격자·붓이 spec 과 다르면 **섞지 않는다.**
 
     다른 격자의 장을 겹치면 조용히 틀린 그림이 나온다 — 셀 id 가 같은 자리를 뜻하지 않는다.
+    격자는 `grid_version` 까지 본다: radius 와 붓 이름이 같아도 격자 수학이 바뀌었으면
+    (q, r) 이 다른 자리다.
+
+    붓은 이름으로 고르되 **지문이 갈리면 조용히 거르지 않고 에러다.** 이름이 같고 곡선이
+    다른 장이 섞여 있다는 것은 데이터가 이미 두 세대라는 뜻이고, 어느 쪽을 원하는지는
+    호출자만 안다 — 골라 주는 척하면 안 된다.
     """
-    return [
+    chosen = [
         sheet for sheet in sheets
         if sheet.radius_u == spec.projection.radius_u
+        and sheet.grid_version == spec.projection.grid_version
         and sheet.profile == spec.projection.brush
         and spec.selector.matches(sheet.at)
     ]
+    fingerprints = {sheet.profile_fp for sheet in chosen}
+    if len(fingerprints) > 1:
+        raise ValueError(
+            f"붓 '{spec.projection.brush}' 이름에 곡선 지문이 {len(fingerprints)}개다: "
+            f"{sorted(fingerprints)} — 같은 이름으로 감쇠를 바꾼 장이 섞여 있다"
+        )
+    return chosen
 
 
 def render(sheets: Iterable[Cellophane], spec: LayerSpec, note: str = "") -> Layer:
@@ -198,8 +211,12 @@ def value_field(layer: Layer) -> dict[Cell, float]:
     return {cell: getattr(paint, metric) for cell, paint in layer.canvas.items()}
 
 
-def diff(a: Layer, b: Layer) -> dict[Cell, float]:
-    """rate(A) − rate(B). 양수면 A 쪽이 우세한 칸이다.
+def rate_diff(a: Layer, b: Layer) -> dict[Cell, float]:
+    """visit_rate(A) − visit_rate(B). 양수면 A 쪽이 우세한 칸이다.
+
+    이름이 `diff` 가 아닌 이유: 이것은 **방문률의 차**이지 일반 값의 차가 아니다.
+    occupancy(체류 시간)와 peak(최대 근접도)는 단위가 달라 같은 빼기로 일반화되는 값이
+    아니고, 그걸 하나의 `diff` 로 감추면 metric 을 무시하는 함수가 일반 연산인 척 하게 된다.
 
     존재 연산(`a.support - b.support`)과 다르다 — 여름 90% · 겨울 10% 인 칸은 존재로는
     양쪽에 다 있어 사라지지만 여기서는 +0.8 로 남는다.
@@ -209,9 +226,10 @@ def diff(a: Layer, b: Layer) -> dict[Cell, float]:
 
 
 def normalized_distance(a: Layer, b: Layer) -> float:
-    """두 층이 얼마나 다른가. 합이 1 이 되게 고른 뒤 평균 절대차.
+    """정규화 L1 거리 — 두 방문률 분포를 각각 합 1 로 만든 뒤 |차| 를 **합산**한다.
 
-    "거의 같다" 를 눈으로 판정하지 않으려고 둔다(A 페르소나 검증). 0 이면 같고 클수록 다르다.
+    평균이 아니라 합이다. 0 = 동일, 2 = 완전히 분리(겹치는 칸이 하나도 없음).
+    "거의 같다" 를 눈으로 판정하지 않으려고 둔다(A 페르소나 검증).
     복잡한 통계는 안 쓴다 — 나중에 그 통계 자체를 설명해야 한다.
     """
     fa, fb = rate_field(a), rate_field(b)

@@ -35,12 +35,14 @@
 그 사실을 먼저 처리해야 한다 (`home_bias` 로 얼마나 튀는지 잰다).
 """
 
+import hashlib
 import math
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 
 from app.features.walk.facts import Segment
 from app.geo.cells import (
+    GRID_VERSION,
     Cell,
     cell_area_m2,
     hex_cell,
@@ -95,6 +97,12 @@ class Cellophane:
     profile: str
     occupancy: dict[Cell, float]
     peak: dict[Cell, float]
+    # 아래 둘이 "같은 장인가" 의 실제 계약이다. 이름(`profile`)은 사람 몫이고, 겹쳐도 되는지는
+    # 지문이 정한다 — 이름만 보면 3 개월 뒤 누가 같은 이름으로 weights 를 바꿨을 때 옛 장과
+    # 새 장이 조용히 섞인다. 격자도 같다: radius 와 이름이 같아도 격자 수학이 hex-v2 로
+    # 바뀌었다면 (q, r) 이 다른 자리다.
+    grid_version: str = GRID_VERSION
+    profile_fp: str = ""
 
 
 @dataclass(frozen=True)
@@ -132,6 +140,16 @@ class BrushProfile:
     @property
     def reach_m(self) -> float:
         return self.bands[-1]
+
+    @property
+    def fingerprint(self) -> str:
+        """감쇠 곡선의 지문 — bands · weights · smooth. 이름과 달리 **바꾸면 반드시 바뀐다.**
+
+        이름은 표시용이고 지문이 동일성이다. 같은 이름으로 곡선을 바꾸면 spec 상 같은 붓처럼
+        보이는 문제를 여기서 막는다 — "이름을 꼭 바꾼다" 는 규율에 기대지 않는다.
+        """
+        blob = f"{self.bands}|{self.weights}|{self.smooth}"
+        return hashlib.sha256(blob.encode()).hexdigest()[:12]
 
     def weight_at(self, distance: float) -> float:
         """중심에서 `distance` 만큼 떨어진 곳에 묻는 물감의 양. 밖이면 0."""
@@ -241,7 +259,8 @@ def paint_sheet(
                 if weight > peak.get(cell, 0.0):
                     peak[cell] = weight
     return Cellophane(walk_id=walk_id, at=at, radius_u=radius_u, profile=profile.name,
-                      occupancy=occupancy, peak=peak)
+                      occupancy=occupancy, peak=peak,
+                      grid_version=GRID_VERSION, profile_fp=profile.fingerprint)
 
 
 def stack(sheets: list[Cellophane], min_peak: float = 0.0) -> dict[Cell, Paint]:

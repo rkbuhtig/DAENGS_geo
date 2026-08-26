@@ -40,16 +40,16 @@ from dataclasses import dataclass
 from datetime import datetime
 from itertools import pairwise
 
-from app.geo.cells import Cell
+from app.geo.cells import GRID_VERSION, Cell
 from app.geo.layers import (
     Aggregation,
     LayerSpec,
     Projection,
     Selector,
     derive_tags,
-    diff,
     mass_in,
     normalized_distance,
+    rate_diff,
     render,
 )
 from app.geo.paint import NARROW_STEP, Cellophane, paint_sheet
@@ -83,7 +83,8 @@ def load(path: str, cache: str | None = None) -> list[Person]:
     캐시는 **칠한 결과**만 담는다 — 정답지 대조는 매번 다시 한다. 격자·붓이 바뀌면 캐시가
     무효이므로 키에 넣는다.
     """
-    key = f"{RADIUS_U:.0f}|{PROFILE.name}|{JITTER_SEED}|{os.path.getmtime(path):.0f}"
+    key = (f"{GRID_VERSION}|{RADIUS_U:.0f}|{PROFILE.name}|{PROFILE.fingerprint}|"
+           f"{JITTER_SEED}|{os.path.getmtime(path):.0f}")
     if cache and os.path.exists(cache):
         with open(cache, "rb") as handle:
             blob = pickle.load(handle)
@@ -152,7 +153,7 @@ def axis_recovery(person: Person, tag: str, a: str, b: str, family: str):
     """조건 A 와 B 를 갈랐을 때 양의 질량이 `family` 의 배타 영역에 얼마나 드나."""
     la = render(person.sheets, spec(**{tag: a}))
     lb = render(person.sheets, spec(**{tag: b}))
-    field_values = positive(diff(la, lb))
+    field_values = positive(rate_diff(la, lb))
     region = person.exclusive.get(family, set())
     return {
         "recall": mass_in(field_values, region),
@@ -242,7 +243,7 @@ def main(argv: list[str] | None = None) -> int:
     for name, person in (("F1", f1), ("F2", f2)):
         w = render(person.sheets, spec(season=warm[1]))
         c2 = render(person.sheets, spec(season=cold[1]))
-        pairs[name] = diff(w, c2)
+        pairs[name] = rate_diff(w, c2)
         river = person.exclusive.get("river", set())
         share = mass_in(positive(pairs[name]), river)
         print(f"    {name} 여름−겨울 양의 질량 중 river {share:.3f} "

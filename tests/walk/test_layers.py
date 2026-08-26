@@ -19,8 +19,8 @@ from app.geo.layers import (
     Projection,
     Selector,
     derive_tags,
-    diff,
     normalized_distance,
+    rate_diff,
     rate_field,
     render,
     select,
@@ -100,6 +100,41 @@ def test_period_narrows_independently_of_tags():
         projection=Projection(radius_u=RADIUS_U, brush=BRUSH),
     )
     assert len(select(sheets, spec)) == 1
+
+
+def test_same_name_different_curve_is_an_error_not_a_filter():
+    """같은 이름으로 감쇠를 바꾼 장이 섞여 있으면 **조용히 거르지 않고 에러다.**
+
+    이름은 표시용이고 지문(bands·weights·smooth)이 동일성이다. 데이터가 이미 두 세대라는
+    뜻이므로 어느 쪽을 원하는지는 호출자만 안다 — 골라 주는 척하면 안 된다.
+    """
+    import dataclasses
+
+    import pytest
+
+    old = _sheet("old", datetime(2026, 7, 1, 9, tzinfo=UTC), 0.0)
+    renamed_curve = dataclasses.replace(old, walk_id="new", profile_fp="deadbeef0000")
+    with pytest.raises(ValueError, match="지문"):
+        select([old, renamed_curve], _spec())
+
+
+def test_grid_version_gates_mixing():
+    """radius 와 붓 이름이 같아도 격자 수학이 바뀌었으면 (q, r) 이 다른 자리다."""
+    import dataclasses
+
+    good = _sheet("v1", datetime(2026, 7, 1, 9, tzinfo=UTC), 0.0)
+    future = dataclasses.replace(good, walk_id="v2", grid_version="hex-v2")
+    assert select([good, future], _spec()) == [good]
+
+
+def test_brush_fingerprint_tracks_the_curve_not_the_name():
+    from app.geo.paint import BrushProfile
+
+    a = BrushProfile("같은이름", (3.0, 8.0, 20.0), (1.0, 0.45, 0.15))
+    b = BrushProfile("같은이름", (3.0, 8.0, 20.0), (1.0, 0.5, 0.1))
+    c = BrushProfile("다른이름", (3.0, 8.0, 20.0), (1.0, 0.45, 0.15))
+    assert a.fingerprint != b.fingerprint          # 곡선이 다르면 지문이 다르다
+    assert a.fingerprint == c.fingerprint          # 이름은 지문에 안 들어간다
 
 
 def test_sheets_from_another_grid_are_never_mixed_in():
@@ -182,7 +217,7 @@ def test_support_difference_hides_a_bias_that_value_difference_shows():
 
     assert cell in a.support and cell in b.support     # 존재로는 양쪽에 다 있고
     assert cell not in (a.support - b.support)         # 차집합에서 사라진다
-    assert diff(a, b)[cell] > 0.5                      # 값으로는 크게 남는다
+    assert rate_diff(a, b)[cell] > 0.5                      # 값으로는 크게 남는다
 
 
 def test_identical_selections_have_zero_distance():
