@@ -237,14 +237,14 @@ def _encounters_for(
 # ---- approx: 셀 방문 기록 × 폴리곤 ---------------------------------------------------
 
 
-def cell_visits(segments: list[Segment], radius_m: float, step_m: float = 0.0) -> list[CellVisit]:
+def cell_visits(segments: list[Segment], radius_u: float, step_m: float = 0.0) -> list[CellVisit]:
     """세그먼트 열 → 셀별 체류. purge 전에 만들어 두는 층이다.
 
     세그먼트를 `step_m` 간격으로 잘라 각 조각의 시간을 그 지점의 셀에 준다. 중점 하나로
     셀을 정하면 셀보다 긴 세그먼트가 통째로 한 셀에 몰린다 — 걸음 5초면 6m 지만 GPS 공백
     직후엔 수십 m 다. 기본 간격은 반지름의 1/4.
     """
-    step = step_m or max(radius_m / 4.0, 2.0)
+    step = step_m or max(radius_u / 4.0, 2.0)      # 격자 단위 — 여기선 셀 자체가 자다
     accumulated: dict[Cell, CellVisit] = {}
 
     for seg in segments:
@@ -253,7 +253,7 @@ def cell_visits(segments: list[Segment], radius_m: float, step_m: float = 0.0) -
             frac = (index + 0.5) / pieces
             lat = seg.a.lat + (seg.b.lat - seg.a.lat) * frac
             lng = seg.a.lng + (seg.b.lng - seg.a.lng) * frac
-            cell = hex_cell(lat, lng, radius_m)
+            cell = hex_cell(lat, lng, radius_u)
             at = seg.a.at + timedelta(seconds=seg.dt * frac)
             visit = accumulated.get(cell)
             if visit is None:
@@ -268,11 +268,14 @@ def cell_visits(segments: list[Segment], radius_m: float, step_m: float = 0.0) -
 def region_dwell_from_cells(
     visits: list[CellVisit],
     region: Region,
-    radius_m: float,
+    radius_u: float,
     weighted: bool = True,
     rings: int = 3,
 ) -> float:
     """셀 방문 기록만으로 면 체류를 근사한다. **좌표 없이** 답이 나온다.
+
+    `radius_u` 는 격자 **단위**다(`cells.py`). 이 함수는 셀 안팎만 보므로 단위를 미터로
+    바꿀 필요가 없다 — 실제 크기를 말할 때만 `cells.cell_size_m` 을 거친다.
 
     `weighted=False` 는 셀 중심이 면 안이면 그 셀 시간을 통째로 준다 — 구현이 제일 싸고,
     셀이 면보다 훨씬 작으면 그걸로 충분하다. `True` 는 셀을 표본으로 채워 면과 겹치는
@@ -286,13 +289,13 @@ def region_dwell_from_cells(
 
     for visit in visits:
         if not weighted:
-            lat, lng = hex_center_latlng(*visit.cell, radius_m)
+            lat, lng = hex_center_latlng(*visit.cell, radius_u)
             px, py = project(lat, lng)
             if _point_in_ring(px, py, ring):
                 total += visit.dwell_s
             continue
         # 표본점은 메르카토르 평면이라 위경도를 거쳐 등장방형 평면으로 옮긴다.
-        samples = hex_sample_points(*visit.cell, radius_m, rings)
+        samples = hex_sample_points(*visit.cell, radius_u, rings)
         points = [inverse_mercator(mx, my) for mx, my in samples]
         hits = sum(1 for lat, lng in points if _point_in_ring(*project(lat, lng), ring))
         total += visit.dwell_s * (hits / len(points))
