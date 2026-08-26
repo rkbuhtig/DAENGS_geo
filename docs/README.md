@@ -74,4 +74,9 @@ depends-on: (있으면)
 ---
 ```
 주제 README 표에 한 줄 추가. adopted 되면 `decisions/README.md`에 번호 붙여 한 줄, 갈래 파일은 그대로 둔다.
+
+## 갈래를 닫을 때 (adopted · rejected)
+`status`를 바꾸는 것으로 끝이 아니다. 그 갈래의 측정 스파이크 폴더
+`scripts/spikes/<갈래>/`도 같이 지운다 — 규칙과 절차는 [scripts/README.md](../scripts/README.md).
+갈래 파일과 연구 문서는 남고, 코드는 `## 재현`의 git history 포인터가 대신한다.
 `working-skeleton`은 status가 아니라 implementation 값이다.

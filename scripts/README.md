@@ -27,11 +27,26 @@ uv run python -m scripts.spikes.territory_paint.storage_candidates --personas pe
 아홉 번 묻는 대신 갈래 status 하나만 본다 — `adopted` 나 `rejected` 로 닫히면 그 폴더는
 통째로 지운다. 갈래가 `exploring` 인 동안에는 아무것도 지우지 않는다.
 
+**지우기 전에 참조를 확인한다.** 스파이크는 재현 장치이면서 동시에 **프로덕션 코드의 근거**
+이기도 하다 — `app/geo/cells.py` 와 `app/geo/region.py` 의 도크스트링이 셀 반지름을 고른
+근거로 `region_fidelity.py` 를 가리킨다. 그냥 지우면 살아 있는 코드가 없는 파일을 가리킨다.
+
+```bash
+git grep -n 'scripts/spikes/<갈래>'   # app · tests · docs · android 전부
+```
+
+걸린 것이 있으면 그 참조를 **연구 문서 쪽으로 갈아끼운 뒤** 지운다. 문서는 지우지 않으므로
+근거 사슬이 끊기지 않는다.
+
 지울 때 재현성은 연구 문서가 받는다. 코드를 남기는 대신 **git history 포인터 한 줄**을
 그 문서의 `## 재현` 에 적는다. 선례가 있다 — `tmap_option_survey.py` 는 결정 #66 과 함께
 지웠고, [조사 문서](../docs/research/2026-08-22-tmap-option-survey.md) 가 `git log` 명령으로
 원문을 가리킨다. 안 도는 코드를 "언젠가 쓸지도 몰라서" 남기면 몇 달 뒤 import 경로가
 바뀌어 어차피 안 돈다. 그때는 지워야 한다는 것조차 안 보인다.
+
+**여기 있는 모든 모듈은 import 되는 것이 테스트로 지켜진다** (`tests/test_script_imports.py`).
+`ruff` 는 import 대상을 해석하지 않고 `compileall` 은 문법만 본다 — 둘 다 통과하면서 깨져
+있을 수 있어서 실제로 import 해 본다. 발견식이라 새 폴더도 저절로 들어온다.
 
 새 갈래의 스파이크는 새 폴더를 만든다. 갈래 없이 스파이크를 추가하지 않는다 — 소속이
 없으면 지울 시점도 없기 때문이고, 그게 이 폴더가 쌓인 이유였다.
