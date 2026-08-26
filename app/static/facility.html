@@ -8,7 +8,7 @@
   body { margin:0; font:14px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif; color:var(--ink) }
   #map { position:absolute; inset:0 }
   .hud {
-    position:absolute; z-index:1000; top:12px; left:12px; width:250px;
+    position:absolute; z-index:1000; top:12px; left:12px; width:290px;
     background:#fff; border:1px solid var(--line); border-radius:10px; padding:12px 13px;
     box-shadow:0 3px 14px rgba(0,0,0,.14); max-height:calc(100vh - 24px); overflow:auto;
   }
@@ -30,6 +30,18 @@
     background:#fff; cursor:pointer; color:#3c4043;
   }
   .tab[aria-selected="true"] { background:var(--ink); border-color:var(--ink); color:#fff; font-weight:600 }
+  .preference { display:flex; align-items:center; gap:7px; margin-top:10px; cursor:pointer }
+  .preference input { margin:0 }
+  .results { max-height:260px; overflow:auto; margin:6px 0 0; padding:0; list-style:none }
+  .result { margin:0 0 4px }
+  .result button {
+    display:grid; grid-template-columns:24px 1fr auto; gap:6px; width:100%; padding:6px;
+    border:1px solid var(--line); border-radius:6px; background:#fff; text-align:left; cursor:pointer;
+  }
+  .result button:hover, .result button:focus-visible { background:#f5f5f5; border-color:#999 }
+  .result-rank, .result-meta { color:#6b6b6b; font-size:11px; font-variant-numeric:tabular-nums }
+  .result-name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+  .result-parking { grid-column:2 / 4; color:#6b6b6b; font-size:11px }
 </style>
 
 <div id="map"></div>
@@ -68,12 +80,20 @@
     <option value="20000">20 km</option>
   </select>
 
+  <label class="preference">
+    <input id="prefer-parking" type="checkbox">
+    <span>주차 가능 우선</span>
+  </label>
+  <div class="muted">장소를 빼지 않고 같은 500m 거리 구간 안에서만 우선한다.</div>
+
   <hr>
   <div class="row"><span class="muted">이 카테고리</span><b id="n-all">–</b></div>
   <div class="row"><span>입장 조건상 가능</span><b id="n-compatible">–</b></div>
   <div class="row"><span class="cut">조건 불일치</span><b class="cut" id="n-incompatible">–</b></div>
   <div class="row"><span class="unknown">확인 필요</span><b class="unknown" id="n-unknown">–</b></div>
   <div class="muted" id="basis" style="margin-top:6px"></div>
+  <div class="muted" id="sort-basis" style="margin-top:6px" aria-live="polite"></div>
+  <div class="muted" id="parking-coverage" aria-live="polite"></div>
   <div class="cut" id="trunc" style="display:none;margin-top:6px"></div>
   <div class="error" id="error" style="display:none"></div>
 
@@ -84,9 +104,13 @@
     <div id="lg-unknown-row"><i class="dot" style="background:#f9a825"></i>정보 부족 · 확인 필요</div>
   </div>
   <div class="muted" style="margin-top:8px">
-    서버의 장소 사실과 요청별 3상태 평가를 함께 표시한다. 평가는 결과를 숨기거나
-    거리순을 바꾸지 않는다.
+    서버의 장소 사실과 요청별 3상태 평가를 함께 표시한다. 반려견 평가는 결과를 숨기거나
+    순서를 바꾸지 않고, 주차 선호는 명시적으로 켠 경우에만 순서를 바꾼다.
   </div>
+
+  <hr>
+  <div class="row"><b>서버 정렬 순서</b><span class="muted">클릭하면 지도 이동</span></div>
+  <ol class="results" id="results"></ol>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -122,6 +146,7 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   {maxZoom:19, attribution:'&copy; OpenStreetMap'}).addTo(map);
 const layer = L.layerGroup().addTo(map);
 const $ = id => document.getElementById(id);
+const resultMarkers = new Map();
 
 function buildTabs() {
   $('tabs').innerHTML = '';
@@ -189,12 +214,14 @@ function marker(hit) {
     : '';
   const provenanceText =
     provenanceLine('입장정보 출처', fields['facts.pet_access']) +
+    provenanceLine('주차정보 출처', fields['facts.parking']) +
     provenanceLine('영업시간 출처', fields['facts.hours_text']);
   m.bindPopup(
     '<b>' + f.name + '</b><br>' +
     '<span style="color:#6b6b6b">' + f.match.kind + ' · ' + f.distance_m + 'm</span><br>' +
     evaluationText +
     '크기: ' + size + '<br>' +
+    '주차: ' + parkingLabel(f.facts.parking) + '<br>' +
     (ax.exclusive ? '반려동물 전용<br>' : '') +
     (f.facts.hours_text ? '시간: ' + f.facts.hours_text + '<br>' : '') +
     '<span style="color:#6b6b6b">대표 출처 ' + f.key.source +
@@ -204,12 +231,81 @@ function marker(hit) {
   return m;
 }
 
+function placeKey(place) {
+  return place.key.source + '\u0000' + place.key.ref;
+}
+
+function parkingLabel(value) {
+  if (value === true) return '주차 가능';
+  if (value === false) return '주차 불가';
+  return '주차 정보 없음';
+}
+
+function renderResults(results) {
+  const list = $('results');
+  list.innerHTML = '';
+  results.forEach(function (hit, index) {
+    const f = hit.place;
+    const item = document.createElement('li');
+    const button = document.createElement('button');
+    const rank = document.createElement('span');
+    const name = document.createElement('span');
+    const distance = document.createElement('span');
+    const parking = document.createElement('span');
+    item.className = 'result';
+    button.type = 'button';
+    rank.className = 'result-rank'; rank.textContent = String(index + 1);
+    name.className = 'result-name'; name.textContent = f.name;
+    distance.className = 'result-meta'; distance.textContent = f.distance_m + 'm';
+    parking.className = 'result-parking'; parking.textContent = parkingLabel(f.facts.parking);
+    button.append(rank, name, distance, parking);
+    button.onclick = function () {
+      const hitMarker = resultMarkers.get(placeKey(f));
+      if (!hitMarker) return;
+      map.panTo(hitMarker.getLatLng());
+      hitMarker.openPopup();
+    };
+    item.appendChild(button);
+    list.appendChild(item);
+  });
+}
+
+function renderSort(sort, resultCount) {
+  if (!sort || sort.type === 'distance') {
+    $('sort-basis').textContent = '정렬: 가까운 순';
+    $('parking-coverage').textContent = '';
+    return;
+  }
+  const parkingApplied = (sort.applied || []).includes('parking');
+  if (!parkingApplied) {
+    $('sort-basis').textContent = '정렬: 서버 지정 순서';
+    $('parking-coverage').textContent = '';
+    return;
+  }
+  $('sort-basis').textContent = '정렬: ' + sort.band_m + 'm 거리 구간 안에서 주차 가능 우선';
+  const coverage = sort.coverage && sort.coverage.parking;
+  if (!coverage) {
+    $('parking-coverage').textContent = '주차 정보 보유량을 받지 못했습니다';
+    return;
+  }
+  if (resultCount > 0 && coverage.unknown === resultCount) {
+    $('parking-coverage').textContent = '반환 결과 ' + resultCount + '곳의 주차 정보가 모두 미상입니다';
+    return;
+  }
+  $('parking-coverage').textContent = '주차 정보: 가능 ' + coverage.known_true +
+    ' · 불가 ' + coverage.known_false + ' · 미상 ' + coverage.unknown;
+}
+
 function resetSearchState() {
   layer.clearLayers();
+  resultMarkers.clear();
+  $('results').innerHTML = '';
   ['all', 'compatible', 'incompatible', 'unknown'].forEach(function (name) {
     $('n-' + name).textContent = '–';
   });
   $('basis').textContent = '검색 중…';
+  $('sort-basis').textContent = '';
+  $('parking-coverage').textContent = '';
   $('trunc').style.display = 'none';
   $('trunc').textContent = '';
 }
@@ -223,6 +319,7 @@ async function search() {
   const radius = Number($('radius').value), dog = $('dog').value;
   const body = {lat:lat, lng:lng, radius_m:radius, kinds:[cat]};
   if (dog) body.conditions = {dog_id:dog};
+  if ($('prefer-parking').checked) body.preferences = {parking:true};
 
   setEvaluationLegend(Boolean(dog));
   resetSearchState();
@@ -241,8 +338,11 @@ async function search() {
     group.results.forEach(function (hit) {
       const evaluation = hit.evaluations && hit.evaluations.dog_access;
       if (evaluation) counts[evaluation.state] += 1;
-      marker(hit).addTo(layer);
+      const hitMarker = marker(hit).addTo(layer);
+      resultMarkers.set(placeKey(hit.place), hitMarker);
     });
+    renderResults(group.results);
+    renderSort(group.sort, group.results.length);
 
     $('n-all').textContent = group.results.length;
     ['compatible', 'incompatible', 'unknown'].forEach(function (state) {
@@ -264,7 +364,7 @@ async function search() {
   }
 }
 
-['dog', 'where', 'radius'].forEach(function (id) {
+['dog', 'where', 'radius', 'prefer-parking'].forEach(function (id) {
   $(id).addEventListener('change', search);
 });
 buildTabs();
