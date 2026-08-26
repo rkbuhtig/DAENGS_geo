@@ -41,7 +41,7 @@ KINDS = {
     "14": "culture",
     "28": "leisure",
     "32": "stay",
-    "38": "goods",
+    "38": "shopping",
     "39": "restaurant",
 }
 

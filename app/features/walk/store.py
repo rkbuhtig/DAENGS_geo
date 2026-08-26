@@ -199,8 +199,15 @@ async def facility_candidates(db: AsyncSession, session_id: str) -> list[Facilit
         WHERE trail.n >= 2
           AND f.source_ref IS NOT NULL
           AND ST_DWithin(f.location, trail.line::geography, 20)
-          AND NOT EXISTS (SELECT 1 FROM facility_link l
-                          WHERE l.source = 'facility' AND l.source_ref = f.id::text)
+          AND NOT EXISTS (
+              SELECT 1
+              FROM facility_link l
+              JOIN facility winner ON winner.id = l.facility_id
+              WHERE l.source = 'facility' AND l.source_ref = f.id::text
+                -- 서로 다른 canonical kind는 별도 관측 후보다. Place 다중 분류 계약 전에는
+                -- 한쪽을 임의의 winner로 접지 않는다.
+                AND winner.kind = f.kind
+          )
     """), {"id": session_id})
     return [FacilityCandidate(facility_source=r.source, facility_ref=r.source_ref,
                               kind=r.kind, lat=r.lat, lng=r.lng,

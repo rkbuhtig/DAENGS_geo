@@ -20,6 +20,11 @@ EXISTS_COLUMN = text(
     "SELECT EXISTS (SELECT 1 FROM information_schema.columns"
     " WHERE table_schema = 'public' AND table_name = :table AND column_name = :column)"
 )
+EXISTS_CONSTRAINT = text(
+    "SELECT EXISTS (SELECT 1 FROM information_schema.table_constraints"
+    " WHERE table_schema = 'public' AND table_name = :table"
+    " AND constraint_name = :constraint)"
+)
 
 
 def _report(detection: Detection) -> int:
@@ -80,13 +85,20 @@ def main() -> int:
             def present(marker: LegacyMarker) -> bool:
                 if marker.table is None:
                     raise AssertionError("데이터 전용 리비전은 detect 가 묻지 않는다")
-                if marker.column is None:
-                    return bool(connection.execute(EXISTS_TABLE, {"table": marker.table}).scalar())
-                return bool(
-                    connection.execute(
-                        EXISTS_COLUMN, {"table": marker.table, "column": marker.column}
-                    ).scalar()
-                )
+                if marker.column is not None:
+                    return bool(
+                        connection.execute(
+                            EXISTS_COLUMN, {"table": marker.table, "column": marker.column}
+                        ).scalar()
+                    )
+                if marker.constraint is not None:
+                    return bool(
+                        connection.execute(
+                            EXISTS_CONSTRAINT,
+                            {"table": marker.table, "constraint": marker.constraint},
+                        ).scalar()
+                    )
+                return bool(connection.execute(EXISTS_TABLE, {"table": marker.table}).scalar())
 
             detection = detect(present)
 

@@ -4,7 +4,7 @@
 """
 
 import asyncio
-from datetime import timedelta
+from datetime import UTC, date, datetime, timedelta
 
 import pytest
 from sqlalchemy import text
@@ -14,7 +14,9 @@ from app.features.walk.curve import BUCKETS, CURVE_VERSION, compute_curve
 from app.features.walk.encounter import FacilityCandidate, compute_encounters
 from app.features.walk.facts import compute_facts
 from app.features.walk.models import WalkSession
-from tests.conftest import WALK_T0, db_session, walk_fix
+from app.ingest.facility_store import upsert_rows
+from app.ingest.kcisa import source_ref
+from tests.conftest import TEST_ORIGIN, WALK_T0, db_session, walk_fix
 
 SID = "test:walk:store"
 
@@ -93,6 +95,61 @@ async def test_mock_fixes_are_counted_separately():
             stored = await store.get_session(db, sid)
             assert stored is not None and stored.evidence_origin == "mock"
         finally:
+            await _cleanup(db)
+
+
+async def test_walk_candidates_keep_both_cross_kind_rows():
+    """산책 관측도 shopping winner 때문에 pet_shop을 버리지 않는다."""
+    sid = "test:walk:cross-kind-link"
+    sources = ("test:walk:pet-shop", "test:walk:shopping")
+    lat, lng = TEST_ORIGIN[0], TEST_ORIGIN[1] + 3 / 91_000.0
+
+    def facility(kind: str) -> dict:
+        return {
+            "source_ref": source_ref("같은가게", lat, lng),
+            "name": "같은가게", "kind": kind, "category3": kind,
+            "sido": None, "sigungu": None, "address": "테스트", "phone": None,
+            "homepage": None, "hours_text": None, "closed_days": None,
+            "parking": None, "indoor": None, "outdoor": None,
+            "lat": lat, "lng": lng, "last_written": date(2025, 3, 24),
+        }
+
+    async with db_session() as db:
+        await _cleanup(db)
+        await db.execute(text("DELETE FROM facility WHERE source = ANY(:sources)"),
+                         {"sources": list(sources)})
+        await db.commit()
+        try:
+            await store.upsert_session(
+                db, WalkSession(id=sid, dog_id="halmae", started_at=WALK_T0)
+            )
+            await store.append_fixes(db, sid, [walk_fix(0, 0), walk_fix(5, 7)])
+            now = datetime.now(UTC)
+            await upsert_rows(db, sources[0], [facility("pet_shop")], "2025-03-24", now)
+            await upsert_rows(db, sources[1], [facility("shopping")], "2026-08-24", now)
+
+            ids = {row.source: row.id for row in await db.execute(text(
+                "SELECT source, id FROM facility WHERE source = ANY(:sources)"
+            ), {"sources": list(sources)})}
+            await db.execute(text("""
+                INSERT INTO facility_link (facility_id, source, source_ref, method)
+                VALUES (:winner, 'facility', :hidden, 'test-walk-cross-kind')
+            """), {
+                "winner": ids[sources[1]],
+                "hidden": str(ids[sources[0]]),
+            })
+
+            candidates = [
+                candidate for candidate in await store.facility_candidates(db, sid)
+                if candidate.facility_source in sources
+            ]
+            assert {(candidate.facility_source, candidate.kind) for candidate in candidates} == {
+                (sources[0], "pet_shop"),
+                (sources[1], "shopping"),
+            }
+        finally:
+            await db.execute(text("DELETE FROM facility WHERE source = ANY(:sources)"),
+                             {"sources": list(sources)})
             await _cleanup(db)
 
 

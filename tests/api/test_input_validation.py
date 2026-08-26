@@ -79,6 +79,21 @@ def test_static_map_rejects_bad_query_before_provider_call():
     assert bad_marker.status_code == 422
 
 
+def test_facility_search_rejects_the_retired_goods_kind():
+    """폐기된 분류를 빈 결과로 돌려주면 데이터가 없는 것으로 오독한다."""
+    app.dependency_overrides[get_session] = _no_db
+    try:
+        with TestClient(app) as client:
+            response = client.get(
+                "/facility/search?lat=37.5&lng=127&radius_m=3000&kind=goods"
+            )
+    finally:
+        app.dependency_overrides.pop(get_session, None)
+
+    assert response.status_code == 422
+    assert "goods was split into pet_shop and shopping" in response.text
+
+
 def test_map_client_config_exposes_only_browser_key_id(monkeypatch):
     """
     Contract: 브라우저가 받는 설정에는 key id 만 나가고 서버 secret 은 응답 어디에도

@@ -42,7 +42,7 @@ def test_database_stopped_at_009_stamps_there_and_upgrades_the_rest():
     assert detection.safe
     # 리뷰에서 지적된 바로 그 케이스: 이것들이 upgrade 로 실제 적용돼야 한다.
     assert [m.revision for m in detection.missing] == [
-        "0010", "0011", "0012", "0013", "0014", "0015", "0016",
+        "0010", "0011", "0012", "0013", "0014", "0015", "0016", "0017",
     ]
 
 
@@ -55,7 +55,7 @@ def test_database_missing_only_anchor_is_consistent():
     assert [m.source for m in detection.missing] == [
         "011_anchor.sql", "0013_facility_pet_axes.py",
         "0014_encounter_bands_10_15_20.py", "0015_walk_session_curve.py",
-        "0016_drop_specialty_tags.py",
+        "0016_drop_specialty_tags.py", "0017_split_goods_kinds.py",
     ]
 
 
@@ -69,7 +69,7 @@ def test_a_hole_in_the_chain_refuses_to_stamp():
     assert detection.stamp_at == "0006"
     # 0016 은 데이터 전용이라 존재 여부를 물을 수 없다 — 여기 안 나온다.
     assert [m.revision for m in detection.out_of_order] == [
-        "0009", "0010", "0011", "0012", "0013", "0014", "0015",
+        "0009", "0010", "0011", "0012", "0013", "0014", "0015", "0017",
     ]
 
 
@@ -95,7 +95,7 @@ def test_markers_match_the_revision_chain_in_order():
 def test_markers_are_one_per_revision_and_unique():
     assert len({m.revision for m in LEGACY_MARKERS}) == len(LEGACY_MARKERS)
     detectable = [m for m in LEGACY_MARKERS if m.detectable]
-    assert len({(m.table, m.column) for m in detectable}) == len(detectable)
+    assert len({(m.table, m.column, m.constraint) for m in detectable}) == len(detectable)
     assert all(isinstance(m, LegacyMarker) for m in LEGACY_MARKERS)
 
 

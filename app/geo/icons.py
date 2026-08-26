@@ -24,7 +24,10 @@ IconGroup = Literal[
 _GROUPS: dict[str, IconGroup] = {
     "hospital": "medical",
     "pharmacy": "medical",
-    "goods": "supply",
+    # 분류는 다르지만 Android 마커 계약은 아직 같은 supply 그룹이다. 현재 지도에서 둘을
+    # 동시에 그리면 아이콘만으로 구별되지 않는 한계는 의도적으로 남겨 둔다.
+    "pet_shop": "supply",
+    "shopping": "supply",
     "grooming": "supply",
     "cafe": "food",
     "restaurant": "food",

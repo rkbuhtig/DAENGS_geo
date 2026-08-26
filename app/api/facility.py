@@ -15,7 +15,7 @@
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -70,6 +70,13 @@ class FacilityParams(BaseModel):
     # (결정 #20). 무엇이 이 불을 켜는지는 호출자가 정한다 — geo/ranking.py 의 경계와 같다.
     parking: bool = False
     dog_exclusive: bool = False
+
+    @field_validator("kind")
+    @classmethod
+    def reject_legacy_goods(cls, value: str | None) -> str | None:
+        if value == "goods":
+            raise ValueError("goods was split into pet_shop and shopping")
+        return value
 
 
 class PetAxesOut(BaseModel):
@@ -169,14 +176,24 @@ WITH merged AS (
         FROM facility_link l
         JOIN facility f2 ON f2.id = l.source_ref::bigint
         WHERE l.source = 'facility' AND l.facility_id = f.id
+          -- cross-kind link는 동일 장소의 복수 분류 후보일 수 있다. scalar kind 응답에서는
+          -- 다른 후보군의 값을 빌리지 않는다.
+          AND f2.kind = f.kind
         ORDER BY (f2.hours_text IS NULL), f2.last_written DESC NULLS LAST
         LIMIT 1
     ) b ON true
     WHERE f.kind <> ALL(:medical)
       AND (CAST(:kind AS text) IS NULL OR f.kind = :kind)
       AND ST_DWithin(f.location, o.geom, :radius_m)
-      AND NOT EXISTS (SELECT 1 FROM facility_link l
-                      WHERE l.source = 'facility' AND l.source_ref = f.id::text)
+      AND NOT EXISTS (
+          SELECT 1
+          FROM facility_link l
+          JOIN facility winner ON winner.id = l.facility_id
+          WHERE l.source = 'facility' AND l.source_ref = f.id::text
+            -- 같은 후보군에서만 중복을 접는다. shopping winner 때문에 pet_shop 후보가
+            -- 사라지면 canonical kind → 후보군 순서가 깨진다.
+            AND winner.kind = f.kind
+      )
 )
 SELECT *,
        -- 선호 적중 수. 부스트 점수(`prefer_boost`)가 적중 수에 단조라 순서가 같다 —
