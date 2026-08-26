@@ -61,10 +61,9 @@ uv run uvicorn app.main:app --reload
 uv run pytest
 ```
 
-DB 이미지는 팀 공용 환경과 같은 PostgreSQL 18 · PostGIS 3.6 · pgvector 0.8.6 조합이다.
-PG18부터 데이터 볼륨 경로가 `/var/lib/postgresql`로 바뀌었고 compose도 `pgdata18` 새 볼륨을
-쓴다. 기존 PG16 `pgdata` 볼륨은 자동 변환하거나 삭제하지 않는다. 필요한 데이터는 새 DB에
-마이그레이션을 적용한 뒤 다시 적재하거나 `pg_dump`/`pg_restore`로 옮긴다.
+DB 이미지는 팀 공용 환경과 같은 PostgreSQL 18 · PostGIS 3.6 · pgvector 0.8.6 조합이다
+(`docker/postgres/Dockerfile`). PG18 이미지의 VOLUME 은 `/var/lib/postgresql` 이고 PGDATA 는
+그 아래 `18/docker` 라, compose 는 상위 경로를 `pgdata` 볼륨에 마운트한다.
 
 `GET /health`는 프로세스 liveness라 DB를 조회하지 않는다. `GET /health/ready`는 DB에
 `SELECT 1`을 실행하며 연결할 수 없으면 503을 반환한다. 외부 지도·경로 provider 장애는 컨테이너
