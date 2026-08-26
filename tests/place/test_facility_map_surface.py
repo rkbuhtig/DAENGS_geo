@@ -42,8 +42,10 @@ def test_facility_map_does_not_present_unevaluated_places_as_compatible():
 def test_facility_map_shows_the_sources_of_borrowed_facts_it_displays():
     assert "const fields = f.field_sources || {}" in HTML
     assert "fields['facts.pet_access']" in HTML
+    assert "fields['facts.parking']" in HTML
     assert "fields['facts.hours_text']" in HTML
     assert "입장정보 출처" in HTML
+    assert "주차정보 출처" in HTML
     assert "영업시간 출처" in HTML
     assert "대표 출처" in HTML
 
@@ -53,3 +55,30 @@ def test_facility_map_clears_stale_results_before_a_new_request():
     assert "resetSearchState();" in HTML
     assert "layer.clearLayers();" in HTML
     assert "검색 결과를 표시하지 못했습니다" in HTML
+
+
+def test_facility_map_sends_parking_preference_only_when_explicitly_enabled():
+    assert 'id="prefer-parking" type="checkbox"' in HTML
+    assert "if ($('prefer-parking').checked) body.preferences = {parking:true};" in HTML
+    assert "['dog', 'where', 'radius', 'prefer-parking']" in HTML
+    assert "장소를 빼지 않고 같은 500m 거리 구간 안에서만 우선한다" in HTML
+
+
+def test_facility_map_explains_server_sort_and_three_state_parking_coverage():
+    assert "renderSort(group.sort, group.results.length);" in HTML
+    assert "(sort.applied || []).includes('parking')" in HTML
+    assert "sort.coverage && sort.coverage.parking" in HTML
+    assert "coverage.known_true" in HTML
+    assert "coverage.known_false" in HTML
+    assert "coverage.unknown" in HTML
+    assert "주차 정보가 모두 미상입니다" in HTML
+
+
+def test_facility_map_preserves_server_order_in_a_clickable_result_list():
+    assert "renderResults(group.results);" in HTML
+    assert "results.forEach(function (hit, index)" in HTML
+    assert "group.results.sort" not in HTML
+    assert "resultMarkers.set(placeKey(hit.place), hitMarker);" in HTML
+    assert "resultMarkers.get(placeKey(f))" in HTML
+    assert "hitMarker.openPopup();" in HTML
+    assert "parkingLabel(f.facts.parking)" in HTML

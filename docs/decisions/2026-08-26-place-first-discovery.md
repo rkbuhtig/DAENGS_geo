@@ -140,7 +140,8 @@ AI와 태그 기반 검색은 현재 제품 검색 권한을 갖지 않는다.
 6. Android를 Place 계약으로 옮긴 뒤 `MapViewModel`을 Place 기준으로 분리
 
 현재 1~5를 구현했다. `/facility-map`은 한 번의 canonical 요청으로 모든 후보를 유지하면서
-`compatible / incompatible / unknown` 분포를 표시한다. Android 전환은 아직이다.
+`compatible / incompatible / unknown` 분포와 명시적 주차 선호의 정렬 순서·사실 커버리지를
+표시한다. Android 전환은 아직이다.
 
 기존 `/hospital/search`, `/pharmacy/search`, `/facility/search`, `GET /places/search`는 소비자가
 새 계약으로 이동할 때까지 유지한다. HTTP method만 달리해 같은 경로를 legacy와 canonical로
