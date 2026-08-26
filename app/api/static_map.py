@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException, Query, Response
 
 from app.core.config import settings
 from app.providers.base import LatLng, MapMarker, StaticMapSpec
-from app.providers.registry import static_map_fetcher
+from app.usage.composition import static_map_fetcher
 from app.usage.http import usage_http_exception
 from app.usage.models import UsageDenied
 
