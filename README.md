@@ -16,6 +16,12 @@ fix·`WalkFacts`·정지/시설 occurrence 파생과 원좌표 purge를 구현�
 종료 시 서버 업로드까지 에뮬레이터에서 한 바퀴 관통을 확인했다(결정 #60). process-death 복구와
 배터리 대비 업로드 주기는 아직 구현하지 않았다.
 
+**다음 장소 발견 축: 2026-08-26.** [결정 #63](docs/decisions/2026-08-26-place-first-discovery.md)은
+병원·약국·카페·여행·미용·숙박을 공통 `Place`로 보고, 원천 category에서 정규화한 `kind`를
+검색 입구로 삼는다. 기본 결과는 사실 기반이고 태그·AI는 사용자가 적용하는 제안층이다.
+이 결정은 아직 현재 Android 병원 화면과 분리된 검색 API를 바꾸지 않았다 — 구현은 작은 PR로
+순차 이동한다.
+
 ```
 app/
 ├── geo/         search(PostGIS) · hours · tagging · polyline                       공용

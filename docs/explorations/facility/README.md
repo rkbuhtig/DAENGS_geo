@@ -2,9 +2,10 @@
 
 **담당: 사용자.**
 
-기반층(`facility`)은 [결정: 문화시설이 기반, 인허가는 오버레이](../../decisions/2026-08-24-culture-base-medical-overlay.md)에서
-왔다. 그 결정은 아직 `proposed` 이며, phase 2(축 재배치 — `/facility/search` 가 권위, `/hospital` 은
-kind preset facade)는 미구현이다.
+기반층(`facility`)은 [문화시설 기반·의료 오버레이 제안](../../decisions/2026-08-24-culture-base-medical-overlay.md)에서
+왔다. 데이터 층과 필드 병합은 유지하지만 `/facility` 를 제품 최상위로 두는 phase 2는
+[결정 #63](../../decisions/2026-08-26-place-first-discovery.md)의 `Place` 축으로 대체됐다.
+현재 `/facility/search` 와 Android 병원 검색은 아직 새 공통 계약으로 이동하지 않았다.
 
 이 폴더는 그 기반층을 **실제로 쓸 수 있게 만드는** 갈래들이다. 병원 쪽에서 답이 없었던 질문 —
 "조건 편집기는 무엇을 편집하나" — 이 여기서는 답이 있다. 원천이 반려동물 동반을 목적으로
