@@ -2,7 +2,9 @@
 
 `Clock` 이 프로토콜인 이유: `datetime.now()` 를 각자 부르던 게 사달의 뿌리였다. 경로의
 야간 판정은 서버 현재 시각을, 병원 영업 판정은 `target.at` 을 봤다 — 같은 요청인데 두
-엔진이 다른 시각을 살았다. 시각은 resolver 가 한 번 정해서 계획에 실어 보낸다.
+엔진이 다른 시각을 살았다. resolver 를 거치는 요청은 시각을 한 번 정해서 계획에 실어
+보낸다 — 다만 `geo.search` 의 직접 호출 경로는 아직 `p.at or SystemClock().now()` 로 자기
+시각을 만든다. 그 경로가 resolver 로 합류하기 전까지 이 문장은 절반만 참이다.
 
 `planning/facts.py` 에 있던 것을 옮겼다. 거기 있을 이유가 없었다 — `geo`·`place`·
 `journey`·`features` 넷이 이미 planning 에서 꺼내 쓰고 있었고, 그 에지가 `geo ↔ planning`

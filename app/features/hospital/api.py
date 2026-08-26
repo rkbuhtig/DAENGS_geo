@@ -19,9 +19,9 @@ from app.features.hospital.actions import build_actions
 from app.geo.ranking import DISTANCE_BAND_M, DURATION_BAND_MIN, band_of
 from app.geo.schemas import MapOut, PlaceOut
 from app.geo.search import build_map, find_places
-from app.journey.contract import JourneyPlan
+from app.journey.contract import Companion, JourneyPlan
 from app.journey.engine import snapshot
-from app.journey.models import Companion, Transport
+from app.journey.models import Transport
 from app.planning.facts import RuntimeFacts
 from app.planning.plans import ViewPlan
 from app.planning.resolver import resolve_request
