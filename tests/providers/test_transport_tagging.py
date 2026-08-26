@@ -69,12 +69,9 @@ async def test_fake_route_gives_numbers_but_never_facilities():
     """
     f = FakeProvider()
     o, d = LatLng(37.4979, 127.0276), LatLng(37.5145, 127.0316)
-    a = await f.route("walk", o, d, "recommended")
-    b = await f.route("walk", o, d, "no_stairs")
-    assert a.facilities is None and b.facilities is None
+    a = await f.route("walk", o, d)
+    assert a.facilities is None
     assert a.distance_m > 0 and a.duration_s > 0
-    # 계단이 있는지도 모르는데 "계단을 피해 돌아간다" 고 할 수 없다 — 옵션이 숫자를 안 바꾼다
-    assert (b.distance_m, b.duration_s) == (a.distance_m, a.duration_s)
     c = await f.route("car", o, d)
     assert c.taxi_fare and c.taxi_fare >= 4800
 
@@ -93,7 +90,7 @@ def test_parse_tmap_counts_facilities_like_real_response():
         L("11", 200), L("14", 40),                                  # 별개 지하 통로
         P(201),
     ]}
-    r = parse_tmap(data, "recommended")
+    r = parse_tmap(data)
     assert r.distance_m == 2306 and r.duration_s == 1880
     f = r.facilities
     assert f.crosswalk == 2 and f.stairs == 1

@@ -8,7 +8,6 @@ from dataclasses import dataclass, field
 from typing import Literal, Protocol
 
 Mode = Literal["walk", "car", "transit"]
-WalkOption = Literal["recommended", "main_road", "shortest", "no_stairs"]
 
 # 이 leg 의 숫자가 어디서 왔나. **source(누가) 와 다른 축이다 — status 는 얼마나 믿을 수 있나.**
 #   measured     제공사가 실제로 준 값
@@ -89,7 +88,6 @@ class RouteResult:
     facilities: Facilities | None = None      # walk만
     taxi_fare: int | None = None              # car만
     fare: int | None = None                   # transit만
-    option: WalkOption | None = None
     spots: tuple[Spot, ...] = ()              # walk만. 순서 있음
 
 
@@ -102,8 +100,7 @@ class MapProvider(Protocol):
     def static_map_url(self, spec: StaticMapSpec) -> str | None: ...
     async def geocode(self, address: str) -> LatLng | None: ...
     async def reverse_geocode(self, pos: LatLng) -> str | None: ...
-    async def route(self, mode: Mode, origin: LatLng, dest: LatLng,
-                    option: WalkOption = "recommended") -> RouteResult | None: ...
+    async def route(self, mode: Mode, origin: LatLng, dest: LatLng) -> RouteResult | None: ...
 
 
 class NullProvider:
@@ -121,6 +118,5 @@ class NullProvider:
     async def reverse_geocode(self, pos: LatLng) -> str | None:
         return None
 
-    async def route(self, mode: Mode, origin: LatLng, dest: LatLng,
-                    option: WalkOption = "recommended") -> RouteResult | None:
+    async def route(self, mode: Mode, origin: LatLng, dest: LatLng) -> RouteResult | None:
         return None

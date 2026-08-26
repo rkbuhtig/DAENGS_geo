@@ -50,7 +50,7 @@ app/
 ```
 POST /hospital/search {…, companion, transport: "none"|"estimate"}   → 가벼운 리스트
 POST /journey {origin, dests[{id}|{lat,lng,name}], companion, dog_id?, prefs: JourneyPrefs, measured, with_polyline}
-   → items[{id,name,lat,lng, transport{walk{min,provider_min,option_label,road_mix,facilities,advice,why,spots,polyline,handoff}, car{taxi_fare,handoff}, transit?}}]
+   → items[{id,name,lat,lng, transport{walk{min,provider_min,road_mix,facilities,advice,why,spots,polyline,handoff}, car{taxi_fare,handoff}, transit?}}]
 GET  /pharmacy/search?lat&lng&radius_m&open_now
 ```
 콘솔: 검색 → 상위 5 `/journey` 배치 → 선. 카드 클릭 → 그 병원 `/journey`(캐시). 동반/나만 감 토글.

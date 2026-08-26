@@ -11,13 +11,10 @@ totalDistance/totalTime은 첫 Feature properties에만.
 
 import httpx
 
-from app.providers.base import LatLng, Mode, RouteResult, StaticMapSpec, WalkOption
+from app.providers.base import LatLng, Mode, RouteResult, StaticMapSpec
 from app.providers.tmap_parse import parse_tmap
 
 URL = "https://apis.openapi.sk.com/tmap/routes/pedestrian"
-OPTION = {"recommended": 0, "main_road": 4, "shortest": 10, "no_stairs": 30}
-
-
 class TmapProvider:
     name = "tmap"
     route_modes = frozenset({"walk"})          # 보행자 경로만. 자동차·대중교통 없음
@@ -35,8 +32,7 @@ class TmapProvider:
     async def reverse_geocode(self, pos: LatLng) -> str | None:
         return None
 
-    async def route(self, mode: Mode, origin: LatLng, dest: LatLng,
-                    option: WalkOption = "recommended") -> RouteResult | None:
+    async def route(self, mode: Mode, origin: LatLng, dest: LatLng) -> RouteResult | None:
         if mode != "walk":
             return None
         body = {
@@ -44,8 +40,11 @@ class TmapProvider:
             "endX": dest.lng, "endY": dest.lat,
             "reqCoordType": "WGS84GEO", "resCoordType": "WGS84GEO",
             "startName": "출발", "endName": "도착",
-            "searchOption": OPTION[option],
+            # 결정 #66 — **추천 경로 하나만 요청한다.** 생략해도 지금은 같은 결과지만,
+            # 그건 TMAP 기본값이 0 이라는 외부 사실에 기대는 것이다. 우리 정책은 "옵션 없음"이
+            # 아니라 "추천을 쓴다" 이므로 요청 본문이 그렇게 말하게 둔다.
+            "searchOption": 0,
         }
         r = await self._client.post(URL, json=body, headers=self._headers, params={"version": 1})
         r.raise_for_status()
-        return parse_tmap(r.json(), option)
+        return parse_tmap(r.json())

@@ -8,7 +8,7 @@ from urllib.parse import urlencode
 
 import httpx
 
-from app.providers.base import LatLng, Mode, RouteResult, StaticMapSpec, WalkOption
+from app.providers.base import LatLng, Mode, RouteResult, StaticMapSpec
 
 # Application Services > Maps 게이트웨이. 구 "AI·NAVER API > 지도"(naveropenapi.apigw.ntruss.com)는
 # 2025-03 신규 차단됐고, 현행 키로 부르면 401 "A subscription to the API is required" 가 온다.
@@ -93,7 +93,6 @@ class NaverProvider:
         parts = [region.get(f"area{i}", {}).get("name", "") for i in range(1, 5)]
         return " ".join(p for p in parts if p) or None
 
-    async def route(self, mode: Mode, origin: LatLng, dest: LatLng,
-                    option: WalkOption = "recommended") -> RouteResult | None:
+    async def route(self, mode: Mode, origin: LatLng, dest: LatLng) -> RouteResult | None:
         # TODO: 자동차 = 카카오모빌리티 Directions / 네이버 Directions 5. 키 발급 후.
         return None

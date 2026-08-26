@@ -7,7 +7,7 @@ spots = 반려견 관심 지점만. 방향전환·직진은 네비 영역이라 
 
 from dataclasses import dataclass
 
-from app.providers.base import Facilities, LatLng, RouteResult, Spot, WalkOption
+from app.providers.base import Facilities, LatLng, RouteResult, Spot
 
 ORIGIN_PASSAGE_WITHIN_M = 150   # 이 안에서 시작하고
 ORIGIN_PASSAGE_MAX_M = 120      # 이보다 짧은 지하 구간은 출발 통로(역 출구 등)로 본다
@@ -35,7 +35,7 @@ class _Run:
     at: LatLng
 
 
-def parse_tmap(data: dict, option: WalkOption) -> RouteResult:
+def parse_tmap(data: dict) -> RouteResult:
     feats = data.get("features") or []
     total_d = total_t = 0
     cross = stairs = elev = slope = 0
@@ -160,5 +160,5 @@ def parse_tmap(data: dict, option: WalkOption) -> RouteResult:
                               big_road_m=big_m, total_m=walked,
                               big_road_ratio=round(big_m / walked, 2) if walked else 0.0,
                               big_crossings=big_cross),
-        option=option, spots=tuple(spots),
+        spots=tuple(spots),
     )

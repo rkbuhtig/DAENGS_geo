@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import ClassVar, Literal
 
-from app.providers.base import Mode, WalkOption
+from app.providers.base import Mode
 
 
 class MeteredOperation(StrEnum):
@@ -24,8 +24,10 @@ class StaticMapIntent:
 
 @dataclass(frozen=True)
 class MeasuredRouteIntent:
+    # `option` 은 여기 없다 (#66). 안 읽혀서가 아니라 **상류에서 더 이상 선택될 수 없어서**다 —
+    # 기록할 변주가 없다. `mode` 는 정책이 분기하지 않아도 walk/car/transit 로 실제 갈리는
+    # 사실이므로 남는다.
     mode: Mode
-    option: WalkOption
     operation: ClassVar[MeteredOperation] = MeteredOperation.MEASURED_ROUTE
     units: ClassVar[int] = 1
 

@@ -21,11 +21,11 @@ from sqlalchemy.pool import NullPool
 
 from app.core.config import settings
 from app.features.walk.models import WalkFix
-from app.providers.base import Facilities, Mode, RouteResult, WalkOption
+from app.providers.base import Facilities, Mode, RouteResult
 
 # ============================================================ 순수 팩토리 (DB 불필요)
 
-def route(minutes: float = 20, *, option: WalkOption = "recommended", mode: Mode = "walk",
+def route(minutes: float = 20, *, mode: Mode = "walk",
           source: str = "estimate", distance_m: int | None = None, **facilities) -> RouteResult:
     """경로 하나. 시설은 키워드로 그대로 — `route(10, stairs=1, underpass=1)`.
 
@@ -33,7 +33,7 @@ def route(minutes: float = 20, *, option: WalkOption = "recommended", mode: Mode
     """
     secs = int(minutes * 60)
     return RouteResult(mode=mode, distance_m=secs if distance_m is None else distance_m,
-                       duration_s=secs, source=source, option=option,
+                       duration_s=secs, source=source,
                        facilities=Facilities(**facilities))
 
 

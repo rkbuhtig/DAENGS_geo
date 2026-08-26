@@ -233,7 +233,6 @@ def test_legacy_set_time_tool_is_migrated_but_not_advertised():
 @pytest.mark.parametrize(("tool", "args"), [
     ("does_not_exist", {}),
     ("set_mode", {"mode": "bicycle"}),
-    ("set_walk_option", {"option": "teleport"}),
     ("set_sort", {"sort": "random"}),
     ("set_walk_max_min", {"minutes": -1}),
     ("set_radius", {"m": 99_999_999}),

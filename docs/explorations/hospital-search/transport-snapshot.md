@@ -63,8 +63,7 @@ research: ../../research/2026-08-19-route-apis.md
   "walk": {
     "min": 43, "m": 2500, "source": "estimate|tmap",
     "facilities": { "crosswalk": 4, "stairs": 1, "underpass": 1, "overpass": 0, "elevator": 0 },
-    "option": "recommended|no_stairs",
-    "advice": "ok|caution|avoid", "why": ["노령·관절: 계단 1회", "폭염"]
+    "advice": "ok|caution|avoid", "why": ["지하 통로 1곳 — 대형견 스트레스", "폭염"]
   },
   "car":     { "min": 10, "m": 2600, "taxi_fare": 5700, "source": "estimate|naver|kakaomobility" },
   "transit": null   // size_class != small → 없음

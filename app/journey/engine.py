@@ -11,12 +11,12 @@ from dataclasses import dataclass
 import httpx
 
 from app.geo.polyline import encode as encode_polyline
-from app.journey.advice import OPTION_LABEL, dog_time_factor, walk_advice
+from app.journey.advice import dog_time_factor, walk_advice
 from app.journey.handoff import handoff_links
 from app.journey.models import Companion, Leg, RoadMix, Transport
 from app.journey.spots import spots_out
 from app.planning.plans import JourneyPlan
-from app.providers.base import LatLng, Mode, RouteResult, RouteStatus, WalkOption
+from app.providers.base import LatLng, Mode, RouteResult, RouteStatus
 from app.providers.fake import FakeProvider, haversine_m
 from app.providers.registry import route_cache_stats, route_provider, route_provider_name
 from app.usage.models import UsageDenied
@@ -36,11 +36,7 @@ class RouteOutcome:
     reason: str | None = None
 
 
-async def _route(mode: Mode, o: LatLng, d: LatLng, measured: bool, *,
-                 option: WalkOption = "recommended") -> RouteOutcome:
-    # `option` 이 키워드 전용인 이유: 이 시그니처는 `(..., option, measured)` 였다. 자리를
-    # 바꾸면서 위치로 부르던 호출부 하나가 `measured="recommended"` · `option=True` 로 조용히
-    # 묶였는데, 둘 다 truthy 라 테스트가 초록이었다. 별표가 그 사고를 문법으로 막는다.
+async def _route(mode: Mode, o: LatLng, d: LatLng, measured: bool) -> RouteOutcome:
     """네 갈래뿐이다.
 
         설정이 none        → unavailable. 숫자를 만들지 않는다
@@ -54,11 +50,11 @@ async def _route(mode: Mode, o: LatLng, d: LatLng, measured: bool, *,
         return RouteOutcome(None, "unavailable", "provider_disabled")
 
     if not measured:
-        return RouteOutcome(await _fake.route(mode, o, d, option), "estimate", "preview")
+        return RouteOutcome(await _fake.route(mode, o, d), "estimate", "preview")
     if name == "fake":
         # 개발용 대역. **실측을 요청받아도 measured 라고 하지 않는다** — 계산식을 제공사
         # 결과로 부르는 게 이 계약이 없애려는 거짓말이다. measured 는 진짜 제공사만 준다.
-        return RouteOutcome(await _fake.route(mode, o, d, option), "estimate", "provider_is_fake")
+        return RouteOutcome(await _fake.route(mode, o, d), "estimate", "provider_is_fake")
 
     provider = route_provider(mode)
     if provider.name == "none":
@@ -68,7 +64,7 @@ async def _route(mode: Mode, o: LatLng, d: LatLng, measured: bool, *,
     else:
         reason = None
         try:
-            r = await provider.route(mode, o, d, option)
+            r = await provider.route(mode, o, d)
         except UsageDenied:
             r = None
             reason = "usage_denied"
@@ -80,7 +76,7 @@ async def _route(mode: Mode, o: LatLng, d: LatLng, measured: bool, *,
         reason = reason or "provider_no_route"
     # 강등해도 거리·시간은 준다 — 그건 모델이고, 라벨이 붙어 있으면 쓸모가 있다.
     # 시설은 안 준다 (FakeProvider 참조). 없는 계단을 경고하느니 아무 말도 안 하는 게 낫다.
-    return RouteOutcome(await _fake.route(mode, o, d, option), "estimate", reason)
+    return RouteOutcome(await _fake.route(mode, o, d), "estimate", reason)
 
 
 def _unavailable_leg(mode: Mode, outcome: RouteOutcome) -> Leg:
@@ -99,8 +95,7 @@ def _leg(outcome: RouteOutcome, factor: float,
         status=outcome.status, status_reason=outcome.reason,
         min=max(1, round(r.duration_s * factor / 60)),
         provider_min=(max(1, round(r.duration_s / 60)) if factor != 1.0 else None),
-        m=r.distance_m, source=r.source, option=r.option,
-        option_label=OPTION_LABEL.get(r.option or "", None) if r.option else None,
+        m=r.distance_m, source=r.source,
         facilities=(fac.__dict__ if fac else None),
         road_mix=RoadMix(big_road_m=fac.big_road_m, total_m=fac.total_m, big_ratio=fac.big_road_ratio,
                          big_crossings=fac.big_crossings) if fac else None,
@@ -124,32 +119,32 @@ async def snapshot(plan: JourneyPlan, dest: LatLng, *, dest_name: str = "",
     # 목적지당 도보 경로는 **하나만** 받는다. 옵션 여럿을 받아 점수로 고르던 것은 결정 #66 으로
     # 없앴다 — 288경로 조사에서 추천 하나가 비교 결과와 99% 같은 선택이었고, 비교의 축이던
     # 계단은 0/288 이었다. 콜은 1/3 이 되고 선택은 사실상 그대로다.
-    walk_tasks = [asyncio.create_task(_route("walk", origin, dest, walk_measured))]
+    walk_task = asyncio.create_task(_route("walk", origin, dest, walk_measured))
     car_task = asyncio.create_task(_route("car", origin, dest, measured_mode == "car"))
     transit_task = (asyncio.create_task(_route("transit", origin, dest,
                                                measured_mode == "transit"))
                     if show_transit else None)
-    walk_outcomes = [await t for t in walk_tasks]
+    walk = await walk_task
     car = await car_task
     transit = await transit_task if transit_task else None
 
     factor = dog_time_factor(profile) if dog else 1.0
-    walks = [o for o in walk_outcomes if o.result is not None]
-    if not walks:
-        wl = _unavailable_leg("walk", walk_outcomes[0])
+    # 후보가 하나뿐이라 고를 것이 없다. `walk_tasks`/`walks`/`best` 라는 복수형은 옵션
+    # fan-out 시절의 흔적이었고 #66 으로 근거가 사라졌다 — 이름이 없는 선택을 말하고 있었다.
+    walk_r = walk.result
+    if walk_r is None:
+        wl = _unavailable_leg("walk", walk)
     else:
-        best = walks[0]
-        best_r = best.result
         advice = walk_advice(
-            best_r, profile, plan.walk.max_walk_min, plan.temp_c, factor,
+            walk_r, profile, plan.walk.max_walk_min, plan.temp_c, factor,
         ) if dog else None
 
-        wl = _leg(best, factor, advice)
-        wl.spots = spots_out(best_r, profile, companion, arrive_note)
+        wl = _leg(walk, factor, advice)
+        wl.spots = spots_out(walk_r, profile, companion, arrive_note)
         wl.handoff = handoff_links(origin, dest, dest_name, "walk")
-        if with_polyline and best_r.polyline and best.status == "measured":
-            wl.polyline = encode_polyline([(p.lat, p.lng) for p in best_r.polyline])
-            wl.polyline_points = len(best_r.polyline)
+        if with_polyline and walk_r.polyline and walk.status == "measured":
+            wl.polyline = encode_polyline([(p.lat, p.lng) for p in walk_r.polyline])
+            wl.polyline_points = len(walk_r.polyline)
 
     cl = _leg(car, 1.0) if car.result else _unavailable_leg("car", car)
     cl.handoff = handoff_links(origin, dest, dest_name, "car")

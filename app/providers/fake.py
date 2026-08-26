@@ -13,7 +13,7 @@ TMAP 이 죽은 날 노령·관절견의 경로에 **실측된 적 없는 "계�
 
 import math
 
-from app.providers.base import LatLng, Mode, RouteResult, StaticMapSpec, WalkOption
+from app.providers.base import LatLng, Mode, RouteResult, StaticMapSpec
 
 DETOUR = {"walk": 1.3, "car": 1.4, "transit": 1.5}
 SPEED_MPS = {"walk": 1.0, "car": 5.5, "transit": 4.0}   # 도보 3.6km/h(횡단 대기 포함), 차 도심 20km/h
@@ -40,8 +40,7 @@ class FakeProvider:
     async def reverse_geocode(self, pos: LatLng) -> str | None:
         return None
 
-    async def route(self, mode: Mode, origin: LatLng, dest: LatLng,
-                    option: WalkOption = "recommended") -> RouteResult | None:
+    async def route(self, mode: Mode, origin: LatLng, dest: LatLng) -> RouteResult | None:
         straight = haversine_m(origin, dest)
         dist = straight * DETOUR[mode]
         dur = dist / SPEED_MPS[mode]
@@ -53,5 +52,4 @@ class FakeProvider:
         return RouteResult(
             mode=mode, distance_m=int(dist), duration_s=int(dur), source="estimate",
             polyline=(origin, dest), facilities=None, taxi_fare=taxi, fare=fare,
-            option=option if mode == "walk" else None,
         )

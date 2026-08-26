@@ -10,6 +10,7 @@
 
 from datetime import UTC, datetime
 
+import httpx
 import pytest
 
 from app.core.config import settings
@@ -167,4 +168,28 @@ def test_declared_capability_matches_what_the_provider_implements():
 @pytest.mark.parametrize("mode", ["car", "transit"])
 async def test_tmap_refuses_modes_it_did_not_declare(mode):
     assert await TmapProvider("k").route(mode, O, D) is None
+
+
+async def test_tmap_request_asks_for_the_recommended_route_explicitly():
+    """`searchOption: 0` 을 **명시해서** 보낸다 — 생략하지 않는다.
+
+    Decision: #66
+
+    지금 TMAP 기본값이 0 이라 생략해도 결과는 같다. 그래도 명시하는 이유는, 우리 정책이
+    "옵션을 안 쓴다" 가 아니라 **"추천 경로 하나를 쓴다"** 이기 때문이다. 생략하면 그 의미를
+    외부 서비스의 기본값에 위임하게 되고, 저쪽이 언젠가 기본값을 바꾸면 우리 동작이 조용히
+    따라 바뀐다. 요청 본문만 봐도 무엇을 요구했는지 보여야 한다.
+    """
+    sent: dict = {}
+
+    class _Capture:
+        async def post(self, url, json, headers, params):
+            sent.update(json)
+            raise httpx.HTTPError("여기까지만 — 파싱은 이 테스트의 관심이 아니다")
+
+    provider = TmapProvider("k", client=_Capture())
+    with pytest.raises(httpx.HTTPError):
+        await provider.route("walk", O, D)
+
+    assert sent["searchOption"] == 0
 

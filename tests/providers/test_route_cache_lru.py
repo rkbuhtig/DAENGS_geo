@@ -24,14 +24,13 @@ class SpyRouteProvider:
     async def reverse_geocode(self, pos):
         return None
 
-    async def route(self, mode, origin, dest, option="recommended"):
+    async def route(self, mode, origin, dest):
         self.calls += 1
         return RouteResult(
             mode=mode,
             distance_m=100,
             duration_s=60,
             source=self.name,
-            option=option,
         )
 
 

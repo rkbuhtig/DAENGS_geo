@@ -238,9 +238,9 @@ def test_tool_specs_cover_all_tools_with_policy():
 
 def test_journey_tools_never_touch_target():
     from app.refine.tools import JOURNEY_TOOLS
-    args = {"set_mode": {"mode": "car"}, "set_walk_option": {"option": "no_stairs"},
-            "set_max_total_min": {"minutes": 10}, "set_walk_avoid": {"facilities": ["stairs"]},
-            "unset_walk_avoid": {"facilities": ["stairs"]}, "set_walk_max_min": {"minutes": 10}}
+    args = {"set_mode": {"mode": "car"}, "set_max_total_min": {"minutes": 10},
+            "set_walk_max_min": {"minutes": 10}}
+    assert set(args) == set(JOURNEY_TOOLS), "툴이 늘거나 줄었는데 이 표가 안 따라왔다"
     for name, fn in JOURNEY_TOOLS.items():
         out = fn(S, **args[name])
         assert out.target == S.target, f"{name} 이 target 을 건드렸다"
