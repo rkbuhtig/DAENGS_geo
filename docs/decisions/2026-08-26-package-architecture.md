@@ -185,7 +185,7 @@ chain_index 같은 산책 어휘를 가진 타입이라 단순히 `geo`로 내�
 | 2 | 계약 소유권 분할 (§3) + 공용 시간 원천 `core.clock` 이동 | `plans.py:23` 의 `Companion = str` 삭제 **그리고** `git grep 'app\.planning' app/geo` 0건 |
 | 3 | `planning` + `refine` → `discovery` | `git grep 'app\.planning\|app\.refine' -- . ':!docs/decisions/'` 0건 |
 | 4 | `scene` → `features/scene` | `git grep 'app\.scene\|app/scene' -- . ':!docs/decisions/'` 0건 |
-| 5 | import 방향 테스트로 잠금 | 알려진 위반 포함 아래 게이트 통과 |
+| 5 | import 방향 테스트로 잠금 | `tests/test_import_direction.py` — 다섯 게이트가 각각 **일부러 실패시켜** 잡히는 것을 확인 |
 | 6 | API 소유 집행 (§4) — `journey/api.py` → `features/journey/` | `app/journey/api.py` 부재 **그리고** `git grep 'from app\.journey import api'` 0건. 덤으로 `git grep 'from app\.discovery' -- app/journey` 0건 |
 
 PR 2 에 `Clock` 이 함께 들어가는 이유: 계약만 옮기면 `geo → planning` 에지가 하나 남아
@@ -193,8 +193,12 @@ PR 2 에 `Clock` 이 함께 들어가는 이유: 계약만 옮기면 `geo → pl
 소유권으로 봐도 같은 종류의 작업이다 — `planning/facts.py` 에 planning 개념을 모르는 시간
 원천과 진짜 planning 어휘(`RuntimeFacts`)가 섞여 있었고, 넷이 이미 밖에서 꺼내 쓰고 있었다.
 
-순서가 강제인 이유: 계약이 먼저 빠져야 3의 diff 가 순수 이동으로 읽히고, 방향 테스트는
-위반이 0일 때만 넣을 수 있다.
+순서가 강제인 이유: 계약이 먼저 빠져야 3의 diff 가 순수 이동으로 읽힌다.
+
+**방향 테스트는 위반이 0 이 될 때까지 기다리지 않는다.** 초안은 그렇게 적었지만 틀렸다 —
+남은 부채를 `KNOWN_VIOLATIONS` 에 **정확히 일치**하도록 박으면 지금 넣을 수 있고, 그러면
+여기까지 끊어낸 것이 즉시 보호된다. 목록은 새 위반이 생겨도 실패하고 **고친 것을 안 지워도
+실패한다** — 부채가 사라진 것을 고친 사람이 기록하게 만드는 쪽이다.
 
 모든 PR 은 **행동 변화가 0**이다. 테스트가 import 경로 갱신 외의 수정 없이 통과하는 것이
 각 PR 의 기본 완료 조건이고, 테스트 본문을 고쳐야 통과한다면 이동에 변경이 섞인 것이다.
@@ -207,6 +211,11 @@ PR 2 에 `Clock` 이 함께 들어가는 이유: 계약만 옮기면 `geo → pl
 `docs/decisions/` 를 제외하는 이유: 결정문의 옛 경로는 **역사 서술**이다. "plans.py 의
 `Companion = str` 을 지웠다" 같은 문장의 경로를 현재 이름으로 바꾸면 그 문장이 거짓이 된다.
 역사는 남기고, 검증 범위가 역사를 밟지 않게 게이트 쪽에서 비켜 간다.
+
+게이트를 테스트로 승격할 때는 **다섯 개를 각각 일부러 실패시켜** 실제로 잡히는지 본다.
+이 규칙을 처음 코드로 옮길 때 두 개가 거짓 통과였다 — 계약 잎 검사는 패키지 **내부** import
+를 훑지 않아 `geo/contract.py` 가 `geo/ranking.py` 를 부르는 것을 못 봤다. 그냥 초록을 믿고
+머지했으면 §3 의 절반이 처음부터 빈 껍데기였다.
 
 게이트 자체도 틀릴 수 있다. `grep -E` 에서 `\|` 는 alternation 이 아니라 **리터럴 파이프**라
 `from app\.(geo\|place)` 는 아무것도 못 찾는다 — 0건이 "깨끗하다"가 아니라 "검사가 안 돌았다"가
