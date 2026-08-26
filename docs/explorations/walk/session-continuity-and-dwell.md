@@ -933,7 +933,11 @@ https://support.coros.com/hc/en-us/articles/4409363080980-How-to-Use-Resume-Late
 - 좌표를 가진 `MotionEventOccurrence`, `FacilityEncounter`는 기본이 짧은 보관
 - 구체 보관 기간 전에는 실사용 업로드를 켜지 않는다
 
-이 문서는 그 결정을 바꾸지 않는다.
+여기에 결정 #69 가 층을 하나 더 얹었다 — **셀로판 장은 무좌표 집계가 아니다.** 칸은 반올림된
+좌표이고, 이 층은 민감도가 레코드 하나가 아니라 **몇 장을 갖고 있나**로 정해진다. 한 장으로는
+집을 220m 로밖에 못 찍지만 겹치면 12m 다. 그리고 격자·붓을 고르는 것이 업로드 게이트에 들어왔다.
+
+이 문서는 그 결정들을 바꾸지 않는다.
 
 오히려 dwell을 추가할수록 좌표 민감도가 커진다는 점을 강조한다.
 
@@ -1057,7 +1061,7 @@ https://support.coros.com/hc/en-us/articles/4409363080980-How-to-Use-Resume-Late
 
 - `walks`, `occupancy`, dwell을 실제 지도에서 어떤 채널로 표시할지
 - dwell을 `Cellophane` 내부에 넣을지 별도 파생으로 둘지
-- 어떤 공간 자료를 원좌표 purge 뒤 영구 보관할지
+- ~~어떤 공간 자료를 원좌표 purge 뒤 영구 보관할지~~ → [결정 #69](../../decisions/2026-08-26-walk-permanent-spatial-form.md) (집계 셀 맵 하나, 궤적은 안 남긴다)
 
 ### 운영
 
