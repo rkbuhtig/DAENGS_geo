@@ -16,6 +16,11 @@ _MEDICAL_REF = "test:v2:medical:hospital"
 _DEV_MEDICAL_REF = "test:v2:dev:hospital"
 _NULL_REF_FACILITY_NAME = "V2계약식별자없는카페"
 _FACILITY_REFS = ("test:v2:kcisa:cafe-near", "test:v2:kcisa:cafe-far", "test:v2:kto:shop")
+_PREFERENCE_REFS = (
+    "test:v2:kcisa:preference-near",
+    "test:v2:kcisa:preference-middle",
+    "test:v2:kcisa:preference-parking",
+)
 
 
 def _lng_at(east_m: int) -> float:
@@ -32,6 +37,7 @@ def _facility_row(
     east_m: int,
     *,
     raw: dict | None = None,
+    parking: bool | None = None,
 ) -> dict:
     return {
         "source_ref": ref,
@@ -45,7 +51,7 @@ def _facility_row(
         "homepage": None,
         "hours_text": None,
         "closed_days": None,
-        "parking": None,
+        "parking": parking,
         "indoor": None,
         "outdoor": None,
         "pet": "{}",
@@ -62,7 +68,7 @@ async def _delete_owned_rows(session) -> None:
     ), {"refs": [_MEDICAL_REF, _DEV_MEDICAL_REF]})
     await session.execute(text(
         "DELETE FROM facility WHERE source_ref = ANY(:refs)"
-    ), {"refs": list(_FACILITY_REFS)})
+    ), {"refs": [*_FACILITY_REFS, *_PREFERENCE_REFS]})
     await session.execute(text(
         "DELETE FROM facility WHERE source = 'kcisa' AND source_ref IS NULL AND name = :name"
     ), {"name": _NULL_REF_FACILITY_NAME})
@@ -86,6 +92,50 @@ def test_default_group_limit_stays_inside_the_total_budget():
     )
     assert request.effective_limit_per_kind == 1666
     assert request.effective_limit_per_kind * len(request.kinds) <= 5000
+
+
+async def test_parking_preference_reaches_candidate_selection_before_limit():
+    """Place가 선호를 resolver에 안 넘기면 450m 주차 행은 거리 LIMIT 뒤에서 복구할 수 없다."""
+    async with db_session() as session:
+        await _delete_owned_rows(session)
+        await session.commit()
+        try:
+            now = datetime.now(UTC)
+            await upsert_rows(session, "kcisa", [
+                _facility_row(
+                    _PREFERENCE_REFS[0], "100m_주차불가", "cafe", "카페", 100,
+                    parking=False,
+                ),
+                _facility_row(
+                    _PREFERENCE_REFS[1], "200m_주차불가", "cafe", "카페", 200,
+                    parking=False,
+                ),
+                _facility_row(
+                    _PREFERENCE_REFS[2], "450m_주차가능", "cafe", "카페", 450,
+                    parking=True,
+                ),
+            ], "2026-08-26", now)
+            await session.commit()
+
+            response = await search_place_groups(session, PlaceSearchRequest(
+                lat=TEST_ORIGIN[0],
+                lng=TEST_ORIGIN[1],
+                radius_m=850,
+                kinds=["cafe"],
+                limit_per_kind=1,
+                preferences={"parking": True},
+            ))
+
+            group = response.groups[0]
+            assert [hit.place.name for hit in group.results] == ["450m_주차가능"]
+            assert group.truncated is True
+            assert group.sort.coverage["parking"].model_dump() == {
+                "known_true": 1, "known_false": 0, "unknown": 0,
+            }
+        finally:
+            await session.rollback()
+            await _delete_owned_rows(session)
+            await session.commit()
 
 
 async def test_v2_groups_kinds_and_sorts_only_inside_each_candidate_set():
