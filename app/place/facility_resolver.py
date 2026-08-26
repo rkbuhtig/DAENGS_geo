@@ -28,6 +28,7 @@ from app.geo.ranking import (
 from app.profile.source import profile_source
 
 MEDICAL = ("hospital", "pharmacy")
+CANONICAL_SOURCES = ("kcisa", "kto")
 
 # 서버가 세우는 자원 경계. `/anchor/search` 의 `MAX_LIMIT` 과 같은 값·같은 이유다 —
 # 호출자가 카테고리로 나눠 부를 것이라는 기대는 경계가 아니다. 반경 상한(20km)만으로는
@@ -192,6 +193,8 @@ WITH merged AS (
         FROM facility_link l
         JOIN facility f2 ON f2.id = l.source_ref::bigint
         WHERE l.source = 'facility' AND l.facility_id = f.id
+          AND (:require_canonical_identity IS NOT TRUE
+               OR (f2.source = ANY(:canonical_sources) AND f2.source_ref IS NOT NULL))
           -- cross-kind link는 동일 장소의 복수 분류 후보일 수 있다. scalar kind 응답에서는
           -- 다른 후보군의 값을 빌리지 않는다.
           AND f2.kind = f.kind
@@ -199,6 +202,8 @@ WITH merged AS (
         LIMIT 1
     ) b ON true
     WHERE f.kind <> ALL(:medical)
+      AND (:require_canonical_identity IS NOT TRUE
+           OR (f.source = ANY(:canonical_sources) AND f.source_ref IS NOT NULL))
       AND (CAST(:kind AS text) IS NULL OR f.kind = :kind)
       AND ST_DWithin(f.location, o.geom, :radius_m)
       AND NOT EXISTS (
@@ -284,6 +289,7 @@ async def resolve_facilities(
     db: AsyncSession,
     *,
     max_results: int = MAX_RESULTS,
+    require_canonical_identity: bool = False,
 ) -> FacilitySearchOut:
     # 프로필은 **미지정 칸만** 채운다. 응답의 params 에 채워진 값이 그대로 실려서
     # "무엇을 기준으로 걸렀나"가 클라이언트에 보인다 — 조용히 거르면 빈 목록이
@@ -302,6 +308,8 @@ async def resolve_facilities(
         "lat": params.lat, "lng": params.lng, "radius_m": params.radius_m,
         # +1 은 절단 감지용 한 칸이다.
         "kind": params.kind, "medical": list(MEDICAL), "limit": effective_limit + 1,
+        "require_canonical_identity": require_canonical_identity,
+        "canonical_sources": list(CANONICAL_SOURCES),
         "only_dog_ok": params.only_dog_ok, "dog_size": params.dog_size,
         "size_accepts": list(SIZE_ACCEPTS.get(params.dog_size or "", ())),
         "band_m": DISTANCE_BAND_M,

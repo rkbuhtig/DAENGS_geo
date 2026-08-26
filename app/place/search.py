@@ -5,14 +5,14 @@ resolver로 보내고 공통 `PlaceResult`로 바꾼 뒤, 종류 안에서만 �
 """
 
 from enum import StrEnum
-from typing import Literal
+from typing import Literal, Self
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.geo.search import find_places
 from app.ingest.kcisa import KINDS as KCISA_KINDS
 from app.ingest.kto import KINDS as KTO_KINDS
+from app.ingest.mois import SOURCES as MOIS_SOURCES
 from app.place.adapters import facility_place_result, medical_place_result
 from app.place.contracts import PlaceResult
 from app.place.facility_resolver import (
@@ -20,8 +20,8 @@ from app.place.facility_resolver import (
     FacilityParams,
     resolve_facilities,
 )
+from app.place.medical_resolver import resolve_medical_places
 from app.planning.facts import SystemClock
-from app.planning.plans import SearchMust, SearchPlan
 
 
 class PlaceKind(StrEnum):
@@ -47,12 +47,22 @@ class PlaceKind(StrEnum):
 
 MEDICAL_KINDS = frozenset({PlaceKind.HOSPITAL, PlaceKind.PHARMACY})
 PLACE_KINDS = frozenset(PlaceKind)
-_MAPPED_KINDS = {*KCISA_KINDS.values(), *KTO_KINDS.values(), "etc"}
-_UNDECLARED_KINDS = _MAPPED_KINDS - {kind.value for kind in PLACE_KINDS}
-if _UNDECLARED_KINDS:
+MAX_KINDS_PER_REQUEST = 6
+MAX_TOTAL_RESULTS = 5000
+
+_RESOLVER_KINDS = {
+    *KCISA_KINDS.values(),
+    *KTO_KINDS.values(),
+    *(source.kind for source in MOIS_SOURCES.values()),
+    "etc",
+}
+_DECLARED_KINDS = {kind.value for kind in PLACE_KINDS}
+if _DECLARED_KINDS != _RESOLVER_KINDS:
+    missing = sorted(_RESOLVER_KINDS - _DECLARED_KINDS)
+    retired = sorted(_DECLARED_KINDS - _RESOLVER_KINDS)
     raise RuntimeError(
-        "ingest mapping contains undeclared Place kinds: "
-        + ", ".join(sorted(_UNDECLARED_KINDS))
+        "PlaceKind and resolver mappings differ: "
+        f"missing={missing}, without_resolver={retired}"
     )
 
 
@@ -60,7 +70,7 @@ class PlaceSearchRequest(BaseModel):
     lat: float = Field(ge=32, le=40)
     lng: float = Field(ge=123, le=133)
     radius_m: int = Field(3000, ge=100, le=20000)
-    kinds: list[PlaceKind] = Field(min_length=1, max_length=len(PLACE_KINDS))
+    kinds: list[PlaceKind] = Field(min_length=1, max_length=MAX_KINDS_PER_REQUEST)
     # 지도는 반경 안 후보를 가능한 한 보되 서버 상한은 명시한다. 잘렸는지는 group이 말한다.
     limit_per_kind: int | None = Field(None, ge=1, le=MAX_RESULTS)
 
@@ -84,6 +94,23 @@ class PlaceSearchRequest(BaseModel):
             raise ValueError("kinds must be unique")
         return values
 
+    @model_validator(mode="after")
+    def stay_inside_request_budget(self) -> Self:
+        if (
+            self.limit_per_kind is not None
+            and self.limit_per_kind * len(self.kinds) > MAX_TOTAL_RESULTS
+        ):
+            raise ValueError(
+                f"limit_per_kind across all kinds must not exceed {MAX_TOTAL_RESULTS} results"
+            )
+        return self
+
+    @property
+    def effective_limit_per_kind(self) -> int:
+        if self.limit_per_kind is not None:
+            return self.limit_per_kind
+        return min(MAX_RESULTS, MAX_TOTAL_RESULTS // len(self.kinds))
+
 
 class PlaceSort(BaseModel):
     type: Literal["distance"] = "distance"
@@ -93,6 +120,7 @@ class PlaceSort(BaseModel):
 class PlaceSearchGroup(BaseModel):
     kind: PlaceKind
     sort: PlaceSort = Field(default_factory=PlaceSort)
+    limit: int = Field(ge=1)
     truncated: bool = False
     results: list[PlaceResult]
 
@@ -111,22 +139,18 @@ async def _medical_group(
     kind: PlaceKind,
     limit: int,
 ) -> PlaceSearchGroup:
-    rows = await find_places(
+    rows = await resolve_medical_places(
         db,
-        SearchPlan(must=SearchMust(
-            lat=request.lat,
-            lng=request.lng,
-            radius_m=request.radius_m,
-            judge_at=SystemClock().now(),
-            kind=kind.value,
-            limit=limit + 1,
-        )),
-        # canonical category search는 이름 파생 cat_only 신호로 후보를 조용히 빼지 않는다.
-        only_dog_ok=False,
+        lat=request.lat,
+        lng=request.lng,
+        radius_m=request.radius_m,
+        judge_at=SystemClock().now(),
+        kind=kind.value,
+        limit=limit + 1,
     )
     truncated = len(rows) > limit
     results = sorted((medical_place_result(row) for row in rows), key=_distance_key)[:limit]
-    return PlaceSearchGroup(kind=kind, truncated=truncated, results=results)
+    return PlaceSearchGroup(kind=kind, limit=limit, truncated=truncated, results=results)
 
 
 async def _facility_group(
@@ -145,11 +169,17 @@ async def _facility_group(
             only_dog_ok=False,
         ),
         db,
+        require_canonical_identity=True,
     )
     results = sorted(
         (facility_place_result(row) for row in resolved.results), key=_distance_key,
     )
-    return PlaceSearchGroup(kind=kind, truncated=resolved.truncated, results=results)
+    return PlaceSearchGroup(
+        kind=kind,
+        limit=limit,
+        truncated=resolved.truncated,
+        results=results,
+    )
 
 
 async def search_place_groups(
@@ -157,7 +187,7 @@ async def search_place_groups(
     request: PlaceSearchRequest,
 ) -> PlaceSearchResponse:
     """요청 kind 순서를 보존하고, 서로 다른 kind 사이에는 순위를 만들지 않는다."""
-    limit = request.limit_per_kind or MAX_RESULTS
+    limit = request.effective_limit_per_kind
     groups: list[PlaceSearchGroup] = []
     for kind in request.kinds:
         if kind in MEDICAL_KINDS:

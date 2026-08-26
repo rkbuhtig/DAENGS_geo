@@ -121,6 +121,35 @@ def test_v2_place_search_requires_explicit_canonical_kinds(kinds, message):
     assert message in response.text
 
 
+@pytest.mark.parametrize(
+    "body",
+    [
+        {
+            "kinds": [
+                "hospital", "pharmacy", "cafe", "travel", "shopping", "pet_shop",
+                "grooming",
+            ],
+        },
+        {"kinds": ["hospital", "cafe"], "limit_per_kind": 3000},
+    ],
+)
+def test_v2_place_search_enforces_a_whole_request_budget(body):
+    """그룹별 상한을 곱해 한 HTTP 요청의 DB 작업·응답 크기 경계를 뚫을 수 없다."""
+    app.dependency_overrides[get_session] = _no_db
+    try:
+        with TestClient(app) as client:
+            response = client.post("/v2/places/search", json={
+                "lat": 37.5,
+                "lng": 127.0,
+                "radius_m": 3000,
+                **body,
+            })
+    finally:
+        app.dependency_overrides.pop(get_session, None)
+
+    assert response.status_code == 422
+
+
 def test_v2_openapi_exposes_the_shared_place_kind_vocabulary():
     """클라이언트가 별도 하드코딩 없이 같은 canonical kind enum을 생성할 수 있어야 한다."""
     schema = app.openapi()["components"]["schemas"]
@@ -129,6 +158,8 @@ def test_v2_openapi_exposes_the_shared_place_kind_vocabulary():
         schema["PlaceKind"]["enum"]
     )
     assert "goods" not in schema["PlaceKind"]["enum"]
+    request_schema = schema["PlaceSearchRequest"]
+    assert request_schema["properties"]["kinds"]["maxItems"] == 6
 
 
 def test_map_client_config_exposes_only_browser_key_id(monkeypatch):

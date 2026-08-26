@@ -7,11 +7,16 @@ from datetime import UTC, datetime
 from sqlalchemy import text
 
 from app.ingest.facility_store import upsert_rows
-from app.place.search import PlaceSearchRequest, search_place_groups
+from app.ingest.kcisa import KINDS as KCISA_KINDS
+from app.ingest.kto import KINDS as KTO_KINDS
+from app.ingest.mois import SOURCES as MOIS_SOURCES
+from app.place.search import PlaceKind, PlaceSearchRequest, search_place_groups
 from tests.conftest import TEST_ORIGIN, db_session
 
 _MEDICAL_SOURCE = "public:mois:animal_hospital"
 _MEDICAL_REF = "test:v2:medical:hospital"
+_DEV_MEDICAL_REF = "test:v2:dev:hospital"
+_NULL_REF_FACILITY_NAME = "V2계약식별자없는카페"
 _FACILITY_REFS = ("test:v2:kcisa:cafe-near", "test:v2:kcisa:cafe-far", "test:v2:kto:shop")
 
 
@@ -55,11 +60,34 @@ def _facility_row(
 
 async def _delete_owned_rows(session) -> None:
     await session.execute(text(
-        "DELETE FROM place WHERE source = :source AND source_id = :ref"
-    ), {"source": _MEDICAL_SOURCE, "ref": _MEDICAL_REF})
+        "DELETE FROM place WHERE source_id = ANY(:refs)"
+    ), {"refs": [_MEDICAL_REF, _DEV_MEDICAL_REF]})
     await session.execute(text(
         "DELETE FROM facility WHERE source_ref = ANY(:refs)"
     ), {"refs": list(_FACILITY_REFS)})
+    await session.execute(text(
+        "DELETE FROM facility WHERE source = 'kcisa' AND source_ref IS NULL AND name = :name"
+    ), {"name": _NULL_REF_FACILITY_NAME})
+
+
+def test_place_kind_exactly_matches_all_resolver_vocabularies():
+    resolver_kinds = {
+        *KCISA_KINDS.values(),
+        *KTO_KINDS.values(),
+        *(source.kind for source in MOIS_SOURCES.values()),
+        "etc",
+    }
+    assert {kind.value for kind in PlaceKind} == resolver_kinds
+
+
+def test_default_group_limit_stays_inside_the_total_budget():
+    request = PlaceSearchRequest(
+        lat=37.5,
+        lng=127.0,
+        kinds=["hospital", "cafe", "shopping"],
+    )
+    assert request.effective_limit_per_kind == 1666
+    assert request.effective_limit_per_kind * len(request.kinds) <= 5000
 
 
 async def test_v2_groups_kinds_and_sorts_only_inside_each_candidate_set():
@@ -79,12 +107,19 @@ async def test_v2_groups_kinds_and_sorts_only_inside_each_candidate_set():
                     ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography,
                     false, false, NULL, ARRAY[]::text[], :source, :ref, :updated,
                     '01', '영업/정상', true
+                ), (
+                    'hospital', 'V2제외개발병원', '테스트', '02-1',
+                    ST_SetSRID(ST_MakePoint(:dev_lng, :lat), 4326)::geography,
+                    false, false, NULL, ARRAY[]::text[], 'dev', :dev_ref, :updated,
+                    '01', '영업/정상', true
                 )
             """), {
                 "lat": TEST_ORIGIN[0],
                 "lng": _lng_at(300),
+                "dev_lng": _lng_at(50),
                 "source": _MEDICAL_SOURCE,
                 "ref": _MEDICAL_REF,
+                "dev_ref": _DEV_MEDICAL_REF,
                 "updated": now,
             })
             await upsert_rows(session, "kcisa", [
@@ -97,6 +132,19 @@ async def test_v2_groups_kinds_and_sorts_only_inside_each_candidate_set():
                     raw={"contenttypeid": "38", "lclsSystm3": "SH040300"},
                 ),
             ], "2026-08-26", now)
+            await session.execute(text("""
+                INSERT INTO facility (
+                    source, source_ref, name, kind, category3, location, snapshot, pet
+                ) VALUES (
+                    'kcisa', NULL, :name, 'cafe', '카페',
+                    ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography,
+                    'legacy-null-ref', '{}'::jsonb
+                )
+            """), {
+                "name": _NULL_REF_FACILITY_NAME,
+                "lat": TEST_ORIGIN[0],
+                "lng": _lng_at(25),
+            })
             await session.commit()
 
             response = await search_place_groups(session, PlaceSearchRequest(
@@ -114,8 +162,15 @@ async def test_v2_groups_kinds_and_sorts_only_inside_each_candidate_set():
                 ["명시한쇼핑"], ["V2계약동물병원"], ["가까운카페", "먼카페"],
             ]
             assert all(group.sort.type == "distance" for group in response.groups)
+            assert all(group.limit == 2 for group in response.groups)
             assert response.groups[0].results[0].key.source == "kto"
             assert response.groups[1].results[0].key.source == _MEDICAL_SOURCE
+            assert "V2제외개발병원" not in {
+                item.name for item in response.groups[1].results
+            }
+            assert _NULL_REF_FACILITY_NAME not in {
+                item.name for item in response.groups[2].results
+            }
             assert response.groups[2].results[0].facts.parking is None
 
             cut = await search_place_groups(session, PlaceSearchRequest(
