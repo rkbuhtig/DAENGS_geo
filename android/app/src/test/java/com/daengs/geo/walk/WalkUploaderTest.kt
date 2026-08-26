@@ -43,7 +43,7 @@ class WalkUploaderTest {
     fun `blank dog id disables upload entirely`() = runTest {
         val api = RecordingApi()
         val log = FakeLog(session(ended = 9_000L), fixes = fixes(3))
-        val uploader = WalkUploader(api, log, dogId = "")
+        val uploader = WalkUploader({ api }, log, dogId = "")
 
         assertFalse(uploader.enabled)
         assertNull(uploader.upload(SESSION))
@@ -60,7 +60,7 @@ class WalkUploaderTest {
         val recorded = RecordedSession(SESSION, "halmae", 1_000L, 9_000L)
         val log = FakeLog(recorded, fixes = fixes(2))
 
-        WalkUploader(api, log, dogId = "dubu", batchSize = 100).upload(SESSION)
+        WalkUploader({ api }, log, dogId = "dubu", batchSize = 100).upload(SESSION)
 
         assertEquals("start:$SESSION:halmae:1000", api.calls.first())
     }
@@ -109,7 +109,7 @@ class WalkUploaderTest {
     // ------------------------------------------------------------------ helpers
 
     private fun uploader(api: WalkApi, log: WalkFixLog, batchSize: Int = 100) =
-        WalkUploader(api, log, dogId = DOG, batchSize = batchSize)
+        WalkUploader({ api }, log, dogId = DOG, batchSize = batchSize)
 
     private fun session(ended: Long?) =
         RecordedSession(SESSION, DOG, startedAtMillis = 1_000L, endedAtMillis = ended)
@@ -162,4 +162,44 @@ class WalkUploaderTest {
         const val SESSION = "walk-1"
         const val DOG = "halmae"
     }
+
+    // ---------------------------------------------------------------- 서버 경계
+    // 산책 업로드는 `start → fixes… → finish` 가 한 덩어리다. 그 사이에 서버 주소가 바뀌면
+    // 앞뒤가 다른 서버로 갈라지고, 뒤 서버엔 그 세션이 없다. 주소는 업로드 단위로 고정된다.
+
+    @Test
+    fun `one upload talks to a single server even if the address changes midway`() = runTest {
+        val first = RecordingApi()
+        val second = RecordingApi()
+        var current: WalkApi = first
+        val log = FakeLog(session(ended = 9_000L), fixes = fixes(5))
+
+        // 첫 호출로 api 를 집어온 뒤 주소를 바꾼다. 진행 중인 업로드는 안 흔들려야 한다.
+        val uploader = WalkUploader(
+            apiFactory = { current.also { current = second } },
+            log = log, dogId = DOG, batchSize = 2,
+        )
+        uploader.upload(SESSION)
+
+        assertTrue("업로드가 두 서버로 갈라졌다", second.calls.isEmpty())
+        assertTrue(first.calls.any { it.startsWith("start:") })
+        assertTrue(first.calls.any { it.startsWith("finish:") })
+    }
+
+    @Test
+    fun `the next upload picks up the address that changed`() = runTest {
+        val first = RecordingApi()
+        val second = RecordingApi()
+        var next: WalkApi = first
+        val log = FakeLog(session(ended = 9_000L), fixes = fixes(2))
+        val uploader = WalkUploader(apiFactory = { next }, log = log, dogId = DOG)
+
+        uploader.upload(SESSION)
+        next = second                      // 사용자가 서버 주소를 바꿨다
+        uploader.upload(SESSION)
+
+        assertTrue("바뀐 주소가 다음 업로드에 반영되지 않았다",
+                   second.calls.any { it.startsWith("start:") })
+    }
+
 }

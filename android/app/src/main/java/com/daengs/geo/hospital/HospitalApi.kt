@@ -8,11 +8,15 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
 
+/**
+ * `baseUrl` 은 값이 아니라 **함수**다. 주소는 실행 중에 바뀔 수 있고(ServerAddress), 그때
+ * 이미 만들어진 API 객체가 옛 주소를 붙들고 있으면 앱을 다시 켜야 반영된다.
+ */
 class HospitalApi(
-    baseUrl: String,
+    private val baseUrl: () -> String,
     private val json: Json = Json,
 ) {
-    private val endpoint = "${baseUrl.trimEnd('/')}/hospital/search"
+    private val endpoint: String get() = "${baseUrl().trimEnd('/')}/hospital/search"
 
     suspend fun search(payload: JsonObject): HospitalSearchResponse = withContext(Dispatchers.IO) {
         val connection = (URL(endpoint).openConnection() as HttpURLConnection).apply {
