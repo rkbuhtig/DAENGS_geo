@@ -16,6 +16,7 @@ from app.geo.ranking import DISTANCE_BAND_M
 from app.geo.schemas import PlaceOut
 from app.ingest.facility_store import prune_unseen, upsert_rows
 from app.ingest.kcisa import source_ref
+from app.ingest.linking import _LINK_CROSS
 from tests.conftest import TEST_ORIGIN, TEST_SOURCE, db_session, place_row, seeded_places
 
 # 동해 한복판 — place 쪽 테스트와 같은 격리 전략(좌표)을 쓴다.
@@ -161,6 +162,89 @@ async def test_cross_source_merge_keeps_richer_fields(monkeypatch):
             assert borrowed["hours_text"].name == "test:base", "빌린 필드에 출처가 없다"
         finally:
             await session.execute(text("DELETE FROM facility_link WHERE method = 'test'"))
+            await _clean(session)
+
+
+async def test_cross_kind_rows_are_neither_linked_nor_collapsed():
+    """같은 장소 후보여도 shopping 때문에 pet_shop 후보군이 사라지면 안 된다."""
+    from app.api import facility as api
+
+    async with db_session() as session:
+        await _clean(session)
+        try:
+            now = datetime.now(UTC)
+            await upsert_rows(
+                session,
+                "test:base",
+                [
+                    facility_row("같은가게", kind="pet_shop", hours_text="매일 10:00~22:00"),
+                    facility_row("같은카페", east_m=50),
+                ],
+                "2025-03-24",
+                now,
+            )
+            await upsert_rows(
+                session,
+                "test:newer",
+                [facility_row("같은가게", kind="shopping"),
+                 facility_row("같은카페", east_m=50)],
+                "2026-08-24",
+                now,
+            )
+
+            ids = {(r.source, r.name): r.id for r in await session.execute(text(
+                "SELECT source, name, id FROM facility WHERE source = ANY(:sources)"
+            ), {"sources": list(FAC_SOURCES)})}
+
+            # 새 linker는 이름과 좌표가 같아도 후보군이 다르면 hard identity를 만들지 않는다.
+            await session.execute(_LINK_CROSS)
+            cross_kind_linked = (await session.execute(text("""
+                SELECT count(*) FROM facility_link
+                WHERE source = 'facility'
+                  AND facility_id = :newer AND source_ref = :base
+            """), {
+                "newer": ids[("test:newer", "같은가게")],
+                "base": str(ids[("test:base", "같은가게")]),
+            })).scalar_one()
+            same_kind_linked = (await session.execute(text("""
+                SELECT count(*) FROM facility_link
+                WHERE source = 'facility'
+                  AND facility_id = :newer AND source_ref = :base
+            """), {
+                "newer": ids[("test:newer", "같은카페")],
+                "base": str(ids[("test:base", "같은카페")]),
+            })).scalar_one()
+            assert cross_kind_linked == 0
+            assert same_kind_linked == 1, "같은 kind까지 링크하지 않았다"
+
+            # migration 전 링크가 남거나 수동 링크가 생겨도 legacy 소비자는 방어해야 한다.
+            await session.execute(text("""
+                INSERT INTO facility_link (facility_id, source, source_ref, method)
+                VALUES (:newer, 'facility', :base, 'test-cross-kind')
+            """), {
+                "newer": ids[("test:newer", "같은가게")],
+                "base": str(ids[("test:base", "같은가게")]),
+            })
+
+            async def search(kind: str):
+                rows = await session.execute(api._SEARCH, {
+                    "lat": TEST_ORIGIN[0], "lng": TEST_ORIGIN[1], "radius_m": 1000,
+                    "kind": kind, "limit": 10, "medical": list(api.MEDICAL),
+                    "only_dog_ok": False, "dog_size": None, "size_accepts": [],
+                    "band_m": DISTANCE_BAND_M,
+                    "want_parking": False, "want_exclusive": False,
+                })
+                return [row for row in rows if row.source in FAC_SOURCES]
+
+            pet_shops = await search("pet_shop")
+            shopping = await search("shopping")
+
+            assert [row.source for row in pet_shops] == ["test:base"]
+            assert [row.source for row in shopping] == ["test:newer"]
+            assert shopping[0].b_source is None, "다른 kind의 운영정보를 빌렸다"
+        finally:
+            # _LINK_CROSS는 전역 파생 링크를 다루므로 이 테스트 트랜잭션을 통째로 되돌린다.
+            await session.rollback()
             await _clean(session)
 
 

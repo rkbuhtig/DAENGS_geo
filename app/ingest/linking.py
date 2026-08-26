@@ -43,7 +43,7 @@ ON CONFLICT DO NOTHING
 # 세 번째 원천부터는 명시적 우선순위 표가 필요하다 (결정 문서 참조).
 _LINK_CROSS = text(f"""
 WITH a AS (
-    SELECT id, source, location,
+    SELECT id, source, kind, location,
            regexp_replace(lower(name), {_NORM}, '', 'g') AS norm
     FROM facility
 )
@@ -52,6 +52,9 @@ SELECT DISTINCT ON (n.id) n.id, 'facility', o.id::text, 'norm-name+150m',
        ST_Distance(n.location, o.location)
 FROM a n
 JOIN a o ON o.source < n.source
+        -- scalar kind만 있는 legacy 소비자는 서로 다른 분류를 한 행으로 안전하게 표현할 수
+        -- 없다. 복수 classification은 Place 계약에서 다루고, 여기서는 같은 후보군만 접는다.
+        AND o.kind = n.kind
         AND ST_DWithin(n.location, o.location, 150)
         AND length(n.norm) >= 2 AND length(o.norm) >= 2
         AND (n.norm = o.norm OR n.norm LIKE '%' || o.norm || '%'
