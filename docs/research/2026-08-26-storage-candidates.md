@@ -3,11 +3,11 @@
 2026-08-26 스파이크. 재현:
 
 ```bash
-uv run python -m scripts.spike_persona_year --cache osm.json --json personas.json
-uv run python -m scripts.spike_storage_candidates --personas personas.json --cache-sheets sheets.pkl
+uv run python -m scripts.spikes.territory_paint.persona_year --cache osm.json --json personas.json
+uv run python -m scripts.spikes.territory_paint.storage_candidates --personas personas.json --cache-sheets sheets.pkl
 ```
 
-코드는 `scripts/spike_storage_candidates.py`, 갈래는
+코드는 `scripts/spikes/territory_paint/storage_candidates.py`, 갈래는
 [territory-paint §A](../explorations/walk/territory-paint.md).
 
 ## 왜 쟀나
@@ -27,7 +27,7 @@ uv run python -m scripts.spike_storage_candidates --personas personas.json --cac
 
 ## 재는 방법
 
-페르소나 실험이 이미 만들어 둔 산책 **98회**(개 한 마리분, `spike_persona_year`)를 그대로
+페르소나 실험이 이미 만들어 둔 산책 **98회**(개 한 마리분, `persona_year`)를 그대로
 쓴다. 격자 15 단위(실제 셀 11.9m), 붓 `계단 3·8·20`. 연 환산은 하루 2~3회 = **1,000회**.
 
 축 넷을 잰다. **이름을 좁게 붙였다** — 첫 판에서 셋을 실제로 재는 것보다 넓게 불렀고,

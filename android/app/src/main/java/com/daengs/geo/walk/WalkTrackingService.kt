@@ -236,7 +236,7 @@ class WalkTrackingService : Service() {
      * server has no facts yet, not that the walk was lost — the raw fixes are in Room and the
      * whole session can be resent later, because every endpoint collapses repeats.
      */
-    /** Debug builds drop a JSON copy of the finished session for `scripts/walk_bundle.py`. */
+    /** Debug builds drop a JSON copy of the finished session for `scripts/verify/walk_bundle.py`. */
     private suspend fun exportQuietly(sessionId: String?) {
         if (sessionId == null || !BuildConfig.DEBUG) return
         try {

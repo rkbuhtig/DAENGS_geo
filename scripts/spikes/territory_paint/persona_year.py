@@ -1,7 +1,7 @@
 """페르소나 1년치 가상 산책 — 정답지(ground truth)를 심어서 만든다.
 
-    uv run python -m scripts.spike_persona_year --cache osm.json --check
-    uv run python -m scripts.spike_persona_year --cache osm.json --json personas.json
+    uv run python -m scripts.spikes.territory_paint.persona_year --cache osm.json --check
+    uv run python -m scripts.spikes.territory_paint.persona_year --cache osm.json --json personas.json
 
 ## 왜 필요한가
 
@@ -45,7 +45,7 @@ import sys
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
-from scripts.spike_real_route import (
+from scripts.spikes.territory_paint.real_route import (
     build_graph,
     dijkstra,
     fetch,
@@ -406,7 +406,7 @@ def _report_slices(made) -> None:
 def _report_separation(made, meta) -> None:
     """정답 영역이 서로 얼마나 겹치나. 많이 겹치면 회수율이 뜻을 잃는다."""
     from app.geo.paint import NARROW_STEP, paint_sheet
-    from scripts.spike_paint import segments_for
+    from scripts.spikes.territory_paint.paint import segments_for
 
     print("\n=== 정답 영역 분리도 (family 별 셀 집합의 Jaccard) ===")
     rng = random.Random(3)

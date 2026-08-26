@@ -17,7 +17,7 @@
 `approx` 셀 방문 기록 × 폴리곤. 좌표가 purge 된 뒤에도, **면을 나중에 그려도** 답이 나온다.
 
 같은 산책에 대해 둘을 함께 계산할 수 있는 것이 중요하다 — 그래야 근사가 얼마나 틀리는지
-재고, 셀 반지름을 근거로 고를 수 있다 (`scripts/spike_region_fidelity.py`).
+재고, 셀 반지름을 근거로 고를 수 있다 (`scripts/spikes/territory_paint/region_fidelity.py`).
 
 좌표 수학은 첫 점 기준 등장방형 투영(미터). 산책 반경(수 km)에서 오차는 cm 급 —
 `encounter.py` 와 같은 선택이다.

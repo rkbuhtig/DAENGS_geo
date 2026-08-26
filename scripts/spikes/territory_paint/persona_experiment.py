@@ -1,7 +1,7 @@
 """실험: 조건으로 장을 골라 겹치면 심어둔 행동 패턴이 회수되는가.
 
-    uv run python -m scripts.spike_persona_year --cache osm.json --json personas.json
-    uv run python -m scripts.spike_persona_experiment --personas personas.json
+    uv run python -m scripts.spikes.territory_paint.persona_year --cache osm.json --json personas.json
+    uv run python -m scripts.spikes.territory_paint.persona_experiment --personas personas.json
 
 ## 무엇을 묻나
 
@@ -10,7 +10,7 @@
 > 산책을 독립된 장으로 보존하고 태그로 다시 골라 겹치면, **전체 누적에서는 사라지는**
 > 행동 맥락을 복구할 수 있다.
 
-`spike_persona_year` 가 정답을 아는 1년치를 만들었다. 여기서는 질의층(`app/geo/layers.py`)만
+`persona_year` 가 정답을 아는 1년치를 만들었다. 여기서는 질의층(`app/geo/layers.py`)만
 써서 지도를 만들고, **정답지와 대조해 숫자로** 회수 여부를 판정한다.
 
 `truth_only` 는 이 파일의 평가 함수만 본다. `LayerSpec` 은 절대 보지 않는다 — 보면 실험이
@@ -54,7 +54,7 @@ from app.geo.layers import (
     render,
 )
 from app.geo.paint import NARROW_STEP, Cellophane, paint_sheet
-from scripts.spike_paint import segments_for
+from scripts.spikes.territory_paint.paint import segments_for
 
 RADIUS_U = 15.0
 PROFILE = NARROW_STEP

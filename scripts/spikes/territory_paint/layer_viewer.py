@@ -1,6 +1,6 @@
 """장면 + 배경 타일을 뷰어 템플릿에 구워 실행 가능한 HTML 하나를 만든다.
 
-    uv run python -m scripts.spike_layer_viewer \\
+    uv run python -m scripts.spikes.territory_paint.layer_viewer \\
         --scenes layer-scenes.json --basemap layer-basemap.json --out layer-lab.html
 
 ## 왜 레포에 있나
@@ -11,9 +11,9 @@
     scenes.json → ??? → 화면 → 픽셀 측정 → 400/400 · 0.649/0.367
 
 `???` 가 커밋에 없으면 3 개월 뒤 그 숫자가 어디서 나왔는지 아무도 못 되짚는다. 평가기를
-커밋한 `spike_persona_experiment` 와 같은 이유로 뷰어도 레포에 있어야 한다.
+커밋한 `persona_experiment` 와 같은 이유로 뷰어도 레포에 있어야 한다.
 
-제품 코드가 아니라 **연구 재현물**이다. 템플릿은 `scripts/lab/layer_viewer.html`.
+제품 코드가 아니라 **연구 재현물**이다. 템플릿은 `scripts/spikes/territory_paint/lab/layer_viewer.html`.
 
 ## 측정도 페이지 안에 있다
 
@@ -34,8 +34,8 @@ def main(argv: list[str] | None = None) -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--scenes", required=True, help="spike_layer_scenes 산출물")
-    parser.add_argument("--basemap", required=True, help="spike_basemap 산출물")
+    parser.add_argument("--scenes", required=True, help="layer_scenes 산출물")
+    parser.add_argument("--basemap", required=True, help="basemap 산출물")
     parser.add_argument("--template", default=TEMPLATE)
     parser.add_argument("--out", required=True)
     args = parser.parse_args(argv)

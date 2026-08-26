@@ -3,8 +3,8 @@
 2026-08-26 스파이크. 재현:
 
 ```bash
-uv run python -m scripts.spike_real_route --json walks.json      # 실제 도로망에서 경로
-uv run python -m scripts.spike_paint --walks walks.json          # 프로파일별로 칠하기
+uv run python -m scripts.spikes.territory_paint.real_route --json walks.json      # 실제 도로망에서 경로
+uv run python -m scripts.spikes.territory_paint.paint --walks walks.json          # 프로파일별로 칠하기
 ```
 
 코드는 `app/geo/paint.py`, 갈래는 [territory-paint](../explorations/walk/territory-paint.md).

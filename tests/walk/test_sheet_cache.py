@@ -1,10 +1,13 @@
-"""장 캐시 왕복 계약. `scripts/spike_persona_experiment.load`.
+"""장 캐시 왕복 계약. `scripts/spikes/territory_paint/persona_experiment.py` 의 `load`.
 
 실제로 한 번 깨졌던 버그의 회귀 테스트다. 캐시에 `Person` dataclass 를 그대로 pickle 했는데,
-`-m scripts.spike_persona_experiment` 로 만든 캐시를 `-m scripts.spike_layer_scenes` 에서
+`-m scripts.spikes.territory_paint.persona_experiment` 로 만든 캐시를 `-m scripts.spikes.territory_paint.layer_scenes` 에서
 읽으니 터졌다:
 
     AttributeError: Can't get attribute 'Person' on <module 'scripts.spike_layer_scenes'>
+
+(당시 실제 출력이라 그대로 둔다. 그 모듈은 지금
+`scripts/spikes/territory_paint/layer_scenes.py` 다.)
 
 pickle 은 클래스를 **정의 모듈 이름**으로 찾는데 `-m` 진입점이 다르면 그 이름이 달라진다.
 그래서 캐시는 순수 자료로만 담는다 — **진입점에 묶이면 안 된다.**

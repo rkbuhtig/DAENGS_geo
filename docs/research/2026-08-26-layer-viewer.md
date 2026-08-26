@@ -3,13 +3,13 @@
 2026-08-26 실험. 재현:
 
 ```bash
-uv run python -m scripts.spike_persona_year --cache osm.json --json personas.json
-uv run python -m scripts.spike_layer_scenes --personas personas.json \
+uv run python -m scripts.spikes.territory_paint.persona_year --cache osm.json --json personas.json
+uv run python -m scripts.spikes.territory_paint.layer_scenes --personas personas.json \
     --cache-sheets sheets.pkl --out layer-scenes.json
-uv run python -m scripts.spike_basemap --walks bbox.json --out layer-basemap.json
+uv run python -m scripts.spikes.territory_paint.basemap --walks bbox.json --out layer-basemap.json
 ```
 
-코드는 `scripts/spike_layer_scenes.py`. 갈래는
+코드는 `scripts/spikes/territory_paint/layer_scenes.py`. 갈래는
 [territory-paint](../explorations/walk/territory-paint.md).
 
 ## 앞 실험과 무엇이 다른가
@@ -25,7 +25,7 @@ uv run python -m scripts.spike_basemap --walks bbox.json --out layer-basemap.jso
 
 미리 겹쳐 둔 조합만 실을 거면서 UI 를 임의 태그 조합처럼 만들면 **실제보다 되는 것처럼
 보인다.** 가짜 공급자가 설계의 모든 질문에 답해서 데이터의 한계가 안 보였던 결정 #51 의
-UI 판이다. 그래서 13 개 시나리오를 `spike_layer_scenes.SCENARIOS` 에 못 박고 뷰어는 그
+UI 판이다. 그래서 13 개 시나리오를 `layer_scenes.SCENARIOS` 에 못 박고 뷰어는 그
 목록만 보여준다. 문턱도 슬라이더가 아니라 **두 단계 토글**(`전부` / `심만`)인 것이 같은 이유다.
 
 임의 조합 질의는 DB·API 로 갈 때 한다.

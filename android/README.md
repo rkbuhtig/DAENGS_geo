@@ -154,7 +154,7 @@ debug 빌드는 산책을 종료할 때 세션 전체(메타 + 원본 fix)를 �
 
 ```powershell
 # 기기 → 폴더 → (미업로드 재전송) → 서버 파생까지 한 번에
-uv run python -m scripts.walk_bundle all --out C:\dev\walks
+uv run python -m scripts.verify.walk_bundle all --out C:\dev\walks
 ```
 
 `push` 가 업로드 실패의 복구 경로다. 판정은 **"서버에 세션이 있나"가 아니라 "finish 까지
@@ -171,8 +171,8 @@ export 에 나오지 않으며(결정 #55의 그 세션들), 그 산책의 `ende
 사라지지 않는다. 실측이 끝나면 지운다.
 
 ```powershell
-uv run python -m scripts.walk_bundle pull --out C:\dev\walks --delete   # 가져오고 기기에서 삭제
-uv run python -m scripts.walk_bundle clear                              # 기기 export 전부 삭제
+uv run python -m scripts.verify.walk_bundle pull --out C:\dev\walks --delete   # 가져오고 기기에서 삭제
+uv run python -m scripts.verify.walk_bundle clear                              # 기기 export 전부 삭제
 ```
 
 `--out` 폴더는 레포 밖에 두고 커밋하지 않는다.
@@ -180,7 +180,7 @@ uv run python -m scripts.walk_bundle clear                              # 기기
 ## 아직 하지 않은 것
 
 - 이 변경의 실기기 화면 OFF/다른 앱 전환 smoke
-- 닫히지 않은 세션의 복구 UI (미업로드 재전송은 `scripts/walk_bundle.py push` 로 PC 에서 가능)
+- 닫히지 않은 세션의 복구 UI (미업로드 재전송은 `scripts/verify/walk_bundle.py push` 로 PC 에서 가능)
 - 원본 fix 보관 기간·동의·세션 삭제 UI (cascade 삭제 저장 경계만 구현됨)
 - Room 마이그레이션 테스트 (`room-testing` + androidTest 소스셋). 지금은 v1 뿐이라 대상이 없다
 - territory 영속 저장·공개 소유권·사진, 로그인, 오프라인 큐, push

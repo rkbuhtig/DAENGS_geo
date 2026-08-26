@@ -1,7 +1,7 @@
 """스파이크: 셀 방문 기록으로 면 체류를 근사할 수 있나 — 반지름은 몇이어야 하나.
 
-    uv run python -m scripts.spike_region_fidelity
-    uv run python -m scripts.spike_region_fidelity --trials 60 --csv out.csv
+    uv run python -m scripts.spikes.territory_paint.region_fidelity
+    uv run python -m scripts.spikes.territory_paint.region_fidelity --trials 60 --csv out.csv
 
 ## 무엇을 묻나
 
