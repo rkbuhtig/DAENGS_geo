@@ -6,7 +6,7 @@
 다른 시각을 살았다.
 
 여기 있는 건 값과 병합 규칙뿐이다. 무엇을 거르고 어떤 경로를 고를지는 resolver 와
-엔진의 몫이다 (app/planning/resolver.py — 예정).
+엔진의 몫이다 (app/discovery/resolver.py — 예정).
 """
 
 from datetime import datetime

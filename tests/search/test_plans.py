@@ -10,10 +10,10 @@ from datetime import UTC, datetime
 
 import pytest
 
+from app.discovery.plans import ViewPlan
+from app.discovery.trace import ResolutionTrace
 from app.geo.contract import SearchMust, SearchPlan, SearchPrefer
 from app.journey.contract import JourneyPlan
-from app.planning.plans import ViewPlan
-from app.planning.trace import ResolutionTrace
 
 NOW = datetime(2026, 8, 21, 3, 0, tzinfo=UTC)
 MUST = SearchMust(lat=37.4979, lng=127.0276, radius_m=2000, judge_at=NOW)

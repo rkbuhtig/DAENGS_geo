@@ -10,10 +10,10 @@ from pydantic import ValidationError
 
 from app.core.config import settings
 from app.core.db import get_session
+from app.discovery.state import EditableState, JourneyPrefs
 from app.features.hospital.api import HospitalSearchIn
 from app.journey.api import Dest, JourneyIn
 from app.main import app
-from app.planning.state import EditableState, JourneyPrefs
 
 
 def test_api_input_models_reject_invalid_coordinates_and_unbounded_lists():

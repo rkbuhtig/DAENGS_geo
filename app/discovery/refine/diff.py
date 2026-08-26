@@ -4,8 +4,8 @@
 target 변경은 "결과가 바뀐다", journey 변경은 "같은 결과, 가는 방법이 바뀐다" — 사용자에게 다르게 읽혀야 한다.
 """
 
-from app.planning.state import EditableState
-from app.refine.labels import format_distance_m, value_label
+from app.discovery.refine.labels import format_distance_m, value_label
+from app.discovery.state import EditableState
 
 POLICY_LABEL = {"context": "상황", "target": "찾는 곳", "journey": "가는 길", "view": "보기"}
 _TIME_KIND = {"depart_at": "출발", "arrive_by": "도착 기한", "service_at": "진료 시각"}

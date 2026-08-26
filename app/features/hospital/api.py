@@ -15,6 +15,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.clock import SystemClock
 from app.core.config import settings
 from app.core.db import get_session
+from app.discovery.facts import RuntimeFacts
+from app.discovery.plans import ViewPlan
+from app.discovery.refine.actions import Edit, SuggestedAction
+from app.discovery.refine.engine import refine
+from app.discovery.refine.nl import ToolCall
+from app.discovery.refine.tools import ToolInputError
+from app.discovery.resolver import resolve_request
+from app.discovery.state import EditableState
 from app.features.hospital.actions import build_actions
 from app.geo.ranking import DISTANCE_BAND_M, DURATION_BAND_MIN, band_of
 from app.geo.schemas import MapOut, PlaceOut
@@ -22,16 +30,8 @@ from app.geo.search import build_map, find_places
 from app.journey.contract import Companion, JourneyPlan
 from app.journey.engine import snapshot
 from app.journey.models import Transport
-from app.planning.facts import RuntimeFacts
-from app.planning.plans import ViewPlan
-from app.planning.resolver import resolve_request
-from app.planning.state import EditableState
 from app.profile.source import owner_of, profile_source
 from app.providers.base import LatLng
-from app.refine.actions import Edit, SuggestedAction
-from app.refine.engine import refine
-from app.refine.nl import ToolCall
-from app.refine.tools import ToolInputError
 from app.usage.http import usage_http_exception
 from app.usage.models import UsageDenied
 

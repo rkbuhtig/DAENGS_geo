@@ -19,12 +19,12 @@ from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from app.planning.semantics import TimeIntent, Urgency
+from app.discovery.semantics import TimeIntent, Urgency
 from app.providers.base import Mode
 
 Sort = Literal["distance", "duration", "open_first"]
 CURRENT_STATE_VERSION = 4
-# undo 스택 깊이. 되돌림 지점은 **턴당 하나**다 (app/refine/engine.py)
+# undo 스택 깊이. 되돌림 지점은 **턴당 하나**다 (app/discovery/refine/engine.py)
 MAX_HISTORY = 10
 PositiveId = Annotated[int, Field(ge=1)]
 ShortTag = Annotated[str, Field(min_length=1, max_length=64)]
@@ -41,7 +41,7 @@ class TargetPrefs(ContractModel):
     """어디를 갈까 — **필터**. 결과 집합을 바꾼다.
 
     시각은 여기 없다 → `EditableState.time_intent`. 영업 판정 시각과 이동의 야간 판정
-    시각이 한 필드를 공유하면서 서로 어긋났다 (`app/planning/semantics.py`).
+    시각이 한 필드를 공유하면서 서로 어긋났다 (`app/discovery/semantics.py`).
 
     아래 둘은 **병원이 표방하는 것**이지 이번 상황이 아니다. "지금 밤이다"는
     `EditableState.time_intent`, "지금 급하다"는 `EditableState.urgency` 다.

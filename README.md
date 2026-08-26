@@ -29,7 +29,8 @@ app/
 ├── journey/     engine(route+캐시) · advice(개 계수·시간·기온) · spots · handoff  공용 ← POST /journey
 ├── providers/   MapProvider 4메서드 — kakao/naver/tmap/fake/null, 모드별 선택      공용
 ├── profile/     Dog/OwnerProfile 계약 + 개 8마리·견주 5명 페르소나                 공용
-├── refine/      검색 상태 편집기 — state(target/journey/view) · tools · nl · diff
+├── discovery/   의도 → 편집 → 실행계획. state(target/journey/view) · facts · resolver
+│   └── refine/  그 상태를 편집하는 방법 — tools · nl · diff · actions
 ├── place/       공통 PlaceResult · 의료/시설 resolver 조율 · POST /v2/places/search
 ├── features/
 │   ├── hospital/  POST /hospital/search (편집+검색, transport=estimate만)
@@ -37,7 +38,7 @@ app/
 │   └── walk/      수집만 — WalkFacts (contracts/walk-record.md). 판정·서술 없음, 테스트로 고정
 ├── api/         legacy GET /places/search · canonical POST /v2/places/search · GET /map/static
 ├── usage/       실제 외부 호출 Gate — 기본 거부, 제한형 dev 정책, 요청/시간당 사용량
-└── core/        config · db
+└── core/        config · db · clock
 android/         Kotlin/Compose — 위치→검색→NAVER 지도 + walk foreground service
 ```
 

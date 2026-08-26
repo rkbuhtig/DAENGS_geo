@@ -12,10 +12,10 @@ from datetime import UTC, datetime
 
 import pytest
 
+from app.discovery.facts import RuntimeFacts
+from app.discovery.resolver import resolve_request
+from app.discovery.state import EditableState
 from app.geo.search import find_places
-from app.planning.facts import RuntimeFacts
-from app.planning.resolver import resolve_request
-from app.planning.state import EditableState
 from tests.conftest import TEST_ORIGIN, daily_hours, place_row, seeded_places
 
 # 이 파일이 소유하는 시나리오. 아래 assert 들이 정확히 이 6행에 결합돼 있으므로

@@ -5,12 +5,12 @@ from fastapi.testclient import TestClient
 
 from app.core.config import settings
 from app.core.db import get_session
+from app.discovery.refine.nl import MeteredLLM, ToolCall
+from app.discovery.state import EditableState
 from app.journey import engine
 from app.main import app
-from app.planning.state import EditableState
 from app.providers import registry as provider_registry
 from app.providers.base import LatLng, RouteResult, StaticMapSpec
-from app.refine.nl import MeteredLLM, ToolCall
 from app.usage import composition as usage_composition
 from app.usage.gate import UsageGate, usage_request_scope
 from app.usage.ledger import InMemoryLedger
@@ -195,7 +195,7 @@ async def _no_db():
 
 
 def test_llm_denial_is_explicit_http_403_not_silent_fake_fallback(monkeypatch):
-    from app.refine import engine as refine_engine
+    from app.discovery.refine import engine as refine_engine
 
     spy = SpyLLM()
     metered = MeteredLLM(spy, deny_gate())
@@ -224,7 +224,7 @@ def test_shipped_usage_policy_is_deny_all_and_independent_of_dev_console():
 
 
 def test_real_provider_factories_install_metered_adapters(monkeypatch):
-    from app.refine.nl import llm
+    from app.discovery.refine.nl import llm
 
     monkeypatch.setattr(settings, "usage_policy", "deny-all")
     monkeypatch.setattr(settings, "walk_route_provider", "tmap")

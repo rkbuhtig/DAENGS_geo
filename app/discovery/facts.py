@@ -15,7 +15,7 @@
 from dataclasses import dataclass, field
 from datetime import datetime
 
-from app.planning.semantics import UrgencySignal
+from app.discovery.semantics import UrgencySignal
 from app.profile.contract import DogProfile, OwnerProfile
 
 

@@ -9,7 +9,7 @@
 'min_rating' 같은 툴은 의도적으로 없다 (condition-schema.md).
 
 **툴은 history 를 건드리지 않는다.** 되돌림 지점은 턴 경계에서 한 번 찍힌다
-(`checkpoint` ← app/refine/engine.py). undo 의 단위는 툴이 아니라 사용자의 한 마디다.
+(`checkpoint` ← app/discovery/refine/engine.py). undo 의 단위는 툴이 아니라 사용자의 한 마디다.
 """
 
 from collections.abc import Callable
@@ -18,8 +18,8 @@ from typing import Annotated, Any
 
 from pydantic import ConfigDict, Field, ValidationError, validate_call
 
-from app.planning.semantics import TimeIntent, TimeKind, Urgency
-from app.planning.state import MAX_HISTORY, EditableState, Sort
+from app.discovery.semantics import TimeIntent, TimeKind, Urgency
+from app.discovery.state import MAX_HISTORY, EditableState, Sort
 from app.providers.base import Mode
 
 Latitude = Annotated[float, Field(ge=-90, le=90)]
@@ -38,7 +38,7 @@ class ToolInputError(ValueError):
 def _edit(state: EditableState) -> EditableState:
     """편집용 사본. **history 는 건드리지 않는다.**
 
-    되돌림 지점은 툴이 아니라 턴 경계에서 찍는다 (`checkpoint`, app/refine/engine.py).
+    되돌림 지점은 툴이 아니라 턴 경계에서 찍는다 (`checkpoint`, app/discovery/refine/engine.py).
     툴마다 찍으면 "걸어서 15분 안에" 한 마디(set_mode + set_max_total_min)가 스택 두 칸을 먹고,
     undo 한 번이 사용자가 말한 적 없는 중간 상태를 만든다.
     """

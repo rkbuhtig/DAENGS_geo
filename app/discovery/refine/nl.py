@@ -11,8 +11,8 @@ from dataclasses import dataclass, field
 from typing import Any, Protocol
 
 from app.core.config import settings
-from app.planning.state import EditableState
-from app.refine.tools import TOOL_SPECS
+from app.discovery.refine.tools import TOOL_SPECS
+from app.discovery.state import EditableState
 from app.usage.gate import UsageGate
 from app.usage.models import LanguageParseIntent
 from app.usage.registry import usage_gate

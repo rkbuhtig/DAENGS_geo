@@ -166,7 +166,7 @@ chain_index 같은 산책 어휘를 가진 타입이라 단순히 `geo`로 내�
 |---|---|---|
 | 1 | `providers.registry` 의 게이트 조립 → `usage/composition.py` | `git grep 'from app.usage' app/providers/` 0건 |
 | 2 | 계약 소유권 분할 (§3) + 공용 시간 원천 `core.clock` 이동 | `plans.py:23` 의 `Companion = str` 삭제 **그리고** `git grep 'app\.planning' app/geo` 0건 |
-| 3 | `planning` + `refine` → `discovery` | `git grep 'app\.planning\|app\.refine'` 전체 0건 |
+| 3 | `planning` + `refine` → `discovery` | `git grep 'app\.planning\|app\.refine' -- . ':!docs/decisions/'` 0건 |
 | 4 | `scene` → `features/scene` | — |
 | 5 | import 방향 테스트로 잠금 | 알려진 위반 포함 아래 게이트 통과 |
 | 6 | API 소유 집행 (§4) | 별도 트랙 |
@@ -187,6 +187,10 @@ PR 2 에 `Clock` 이 함께 들어가는 이유: 계약만 옮기면 `geo → pl
 `pytest` 는 실행되지 않는 CLI·문서·문자열 module path 를 보지 못한다. 이번 조사에서
 `ingest/anchors.py` 가 import 그래프 분석에서 빠졌던 것과 같은 사각지대다.
 
+`docs/decisions/` 를 제외하는 이유: 결정문의 옛 경로는 **역사 서술**이다. "plans.py 의
+`Companion = str` 을 지웠다" 같은 문장의 경로를 현재 이름으로 바꾸면 그 문장이 거짓이 된다.
+역사는 남기고, 검증 범위가 역사를 밟지 않게 게이트 쪽에서 비켜 간다.
+
 게이트 자체도 틀릴 수 있다. `grep -E` 에서 `\|` 는 alternation 이 아니라 **리터럴 파이프**라
 `from app\.(geo\|place)` 는 아무것도 못 찾는다 — 0건이 "깨끗하다"가 아니라 "검사가 안 돌았다"가
 된다. PR 5 가 이 명령들을 테스트로 승격할 때 정규식을 그대로 옮기지 말고 각각 **일부러 실패하는
@@ -197,7 +201,7 @@ uv run pytest -q
 uv run ruff check .
 python -m compileall -q app
 uv run python -m app.ingest --help
-git grep -n 'app\.planning\|app\.refine\|app\.scene'   # docs · tools 포함 전체
+git grep -n 'app\.planning\|app\.refine\|app\.scene' -- . ':!docs/decisions/'
 git grep -En 'from app\.(geo|place|journey|planning|profile|features|providers|usage)' -- app/core
 ```
 

@@ -54,4 +54,4 @@
   parked다. 커뮤니티 근거(`evidence[]`)는 결정 #63 으로 계약에서 **제거**됐다 — parked 가 아니다.
 
 구현: `app/geo/schemas.py`, `app/features/hospital/api.py`,
-`app/features/hospital/actions.py`, `app/refine/actions.py`.
+`app/features/hospital/actions.py`, `app/discovery/refine/actions.py`.

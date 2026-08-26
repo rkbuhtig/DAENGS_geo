@@ -17,7 +17,7 @@
 
 from dataclasses import dataclass, field
 
-from app.planning.state import Sort
+from app.discovery.state import Sort
 
 
 @dataclass(frozen=True)
