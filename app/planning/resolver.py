@@ -2,17 +2,11 @@
 
 from dataclasses import dataclass
 
+from app.geo.contract import SearchMust, SearchPlan, SearchPrefer
 from app.geo.ranking import preference_tags
-from app.journey.models import Companion
+from app.journey.contract import Companion, JourneyPlan, WalkPlan
 from app.planning.facts import RuntimeFacts
-from app.planning.plans import (
-    JourneyPlan,
-    SearchMust,
-    SearchPlan,
-    SearchPrefer,
-    ViewPlan,
-    WalkPlan,
-)
+from app.planning.plans import ViewPlan
 from app.planning.semantics import UrgencySignal, planning_urgency, safety_urgency
 from app.planning.state import EditableState
 from app.planning.trace import ResolutionTrace

@@ -14,6 +14,7 @@ from app.api.facility import (
     PetAxesOut,
     facility_search,
 )
+from app.geo.contract import SearchMust, SearchPlan
 from app.geo.schemas import PlaceOut
 from app.geo.search import find_places
 from app.ingest.facility_store import upsert_rows
@@ -25,7 +26,6 @@ from app.place.contracts import (
     PlaceRef,
     PlaceResult,
 )
-from app.planning.plans import SearchMust, SearchPlan
 from tests.conftest import TEST_ORIGIN, db_session
 
 

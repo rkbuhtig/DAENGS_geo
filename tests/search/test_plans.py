@@ -10,7 +10,9 @@ from datetime import UTC, datetime
 
 import pytest
 
-from app.planning.plans import JourneyPlan, SearchMust, SearchPlan, SearchPrefer, ViewPlan
+from app.geo.contract import SearchMust, SearchPlan, SearchPrefer
+from app.journey.contract import JourneyPlan
+from app.planning.plans import ViewPlan
 from app.planning.trace import ResolutionTrace
 
 NOW = datetime(2026, 8, 21, 3, 0, tzinfo=UTC)

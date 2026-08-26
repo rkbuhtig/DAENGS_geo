@@ -34,10 +34,15 @@ Companion = str  # journey.models.Companion 과 같은 값. 순환 import 를 �
 
 | 축 | 패키지 | 무엇인가 |
 |---|---|---|
-| 기반 | `core` | config·db. 아무도 모른다 |
+| 기반 | `core` | config·db·clock. 아무도 모른다 |
 | 인프라 | `providers` `usage` | 외부 세계의 어댑터와 그 정책 |
 | 도메인 | `profile` `geo` `discovery` `place` `journey` | 제품 어휘 |
 | 진입점 | `api` `features` `ingest` `main` | 바깥에서 안으로 들어오는 문 |
+
+`core` 는 특정 제품 도메인을 모르는 공용 기반만 소유한다. 판정 기준은 **"그 모듈이 어떤
+도메인 어휘도 import 하지 않는가"** 이고, 애매하면 core 가 아니다. `clock` 이 여기 있는 이유는
+`datetime`·`Protocol` 외에 아무것도 모르면서 네 패키지가 공유하기 때문이다 — 갈 곳이 없어서
+온 것이 아니다.
 
 `ingest` 는 인프라가 아니라 **batch 진입점**이다. HTTP 가 `api`·`features` 로 들어오듯
 `python -m app.ingest` 로 들어온다. `ingest/anchors.py:29` 가 `geo.cells` 를 쓰는 것은
@@ -105,7 +110,7 @@ feature 인가**의 규칙이다.
 
 ```
 app/
-├── core/          config · db                          아무도 모름
+├── core/          config · db · clock                  아무도 모름
 ├── providers/     base(계약) · kakao · naver · tmap · fake
 ├── usage/         gate · policy · ledger · metered · composition · http
 ├── profile/
@@ -160,11 +165,16 @@ chain_index 같은 산책 어휘를 가진 타입이라 단순히 `geo`로 내�
 | PR | 내용 | 완료 조건 |
 |---|---|---|
 | 1 | `providers.registry` 의 게이트 조립 → `usage/composition.py` | `git grep 'from app.usage' app/providers/` 0건 |
-| 2 | 계약 소유권 분할 (§3) | `plans.py:23` 의 `Companion = str` 별칭·주석 삭제 |
+| 2 | 계약 소유권 분할 (§3) + 공용 시간 원천 `core.clock` 이동 | `plans.py:23` 의 `Companion = str` 삭제 **그리고** `git grep 'app\.planning' app/geo` 0건 |
 | 3 | `planning` + `refine` → `discovery` | `git grep 'app\.planning\|app\.refine'` 전체 0건 |
 | 4 | `scene` → `features/scene` | — |
 | 5 | import 방향 테스트로 잠금 | 알려진 위반 포함 아래 게이트 통과 |
 | 6 | API 소유 집행 (§4) | 별도 트랙 |
+
+PR 2 에 `Clock` 이 함께 들어가는 이유: 계약만 옮기면 `geo → planning` 에지가 하나 남아
+(`geo/search.py` 의 `SystemClock`) 순환이 안 풀린다. 착수 전 그래프 시뮬레이션으로 확인했다.
+소유권으로 봐도 같은 종류의 작업이다 — `planning/facts.py` 에 planning 개념을 모르는 시간
+원천과 진짜 planning 어휘(`RuntimeFacts`)가 섞여 있었고, 넷이 이미 밖에서 꺼내 쓰고 있었다.
 
 순서가 강제인 이유: 계약이 먼저 빠져야 3의 diff 가 순수 이동으로 읽히고, 방향 테스트는
 위반이 0일 때만 넣을 수 있다.
@@ -177,12 +187,18 @@ chain_index 같은 산책 어휘를 가진 타입이라 단순히 `geo`로 내�
 `pytest` 는 실행되지 않는 CLI·문서·문자열 module path 를 보지 못한다. 이번 조사에서
 `ingest/anchors.py` 가 import 그래프 분석에서 빠졌던 것과 같은 사각지대다.
 
+게이트 자체도 틀릴 수 있다. `grep -E` 에서 `\|` 는 alternation 이 아니라 **리터럴 파이프**라
+`from app\.(geo\|place)` 는 아무것도 못 찾는다 — 0건이 "깨끗하다"가 아니라 "검사가 안 돌았다"가
+된다. PR 5 가 이 명령들을 테스트로 승격할 때 정규식을 그대로 옮기지 말고 각각 **일부러 실패하는
+입력**으로 한 번 확인한다.
+
 ```
 uv run pytest -q
 uv run ruff check .
 python -m compileall -q app
 uv run python -m app.ingest --help
 git grep -n 'app\.planning\|app\.refine\|app\.scene'   # docs · tools 포함 전체
+git grep -En 'from app\.(geo|place|journey|planning|profile|features|providers|usage)' -- app/core
 ```
 
 ## 하지 않는 것
