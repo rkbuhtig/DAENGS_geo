@@ -61,6 +61,7 @@ class Facilities:
     big_road_ratio: float = 0.0
     big_crossings: int = 0
 
+
 @dataclass(frozen=True)
 class Spot:
     """반려견 관심 지점 — 출발 전 한 장에 찍히는 것. 네비 스텝이 아니다.

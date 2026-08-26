@@ -89,7 +89,6 @@
   </div>
   <div class="row" style="margin-left:14px;border-left:2px solid #ddd;padding-left:8px">
     <span class="chip" data-tool="set_walk_option" data-args='{"option":"no_stairs"}' data-off='{"option":"recommended"}' data-key="walk.option=no_stairs">계단제외</span>
-    <span class="chip" data-tool="set_walk_avoid" data-args='{"facilities":["underpass"]}' data-off-tool="unset_walk_avoid" data-off='{"facilities":["underpass"]}' data-key="avoid=underpass">지하도 피함</span>
     <span>도보 상한</span>
     <input type="number" id="walkmax" min="0" step="5" placeholder="분" style="width:64px">
     <button id="applywalkmax">적용</button>
@@ -309,7 +308,6 @@ function syncChips(st) {
     else if (k.startsWith('req=')) on = (tg.require_tags || []).includes(k.split('=')[1]);
     else if (k.startsWith('mode=')) on = jn.preferred_mode === k.split('=')[1];
     else if (k === 'walk.option=no_stairs') on = jn.walk.option === 'no_stairs';
-    else if (k === 'avoid=underpass') on = (jn.walk.avoid || []).includes('underpass');
     c.classList.toggle('on', !!on);
   });
   $('radius').value = tg.radius_m; $('radiusv').textContent = (tg.radius_m / 1000) + 'km';

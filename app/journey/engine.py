@@ -27,15 +27,6 @@ def cache_stats() -> dict:
     return route_cache_stats()
 
 
-def can_measure(mode: Mode) -> bool:
-    """이 모드를 **진짜로** 실측할 수 있나. fake·none·미구현은 전부 아니다."""
-    name = route_provider_name(mode)
-    if name in ("none", "fake"):
-        return False
-    provider = route_provider(mode)
-    return provider.name != "none" and mode in provider.route_modes
-
-
 @dataclass(frozen=True)
 class RouteOutcome:
     """경로 하나와 **그 숫자를 얼마나 믿을 수 있는지**. 강등은 조용히 일어나면 안 된다."""

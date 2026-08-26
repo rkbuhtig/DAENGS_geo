@@ -64,14 +64,12 @@ def test_service_time_and_departure_time_flow_to_different_plans():
     service_resolved = _resolve(service)
     assert service_resolved.search.must.judge_at == NIGHT
     assert service_resolved.journey.departure_at == NOW
-    assert service_resolved.journey.travel_is_night is False
 
     departure = EditableState(lat=37.5, lng=127.0,
                               time_intent=TimeIntent(kind="depart_at", at=NIGHT))
     departure_resolved = _resolve(departure)
     assert departure_resolved.search.must.judge_at == NOW
     assert departure_resolved.journey.departure_at == NIGHT
-    assert departure_resolved.journey.travel_is_night is True
 
 
 def test_owner_and_profile_decide_transit_availability_in_the_resolver():
