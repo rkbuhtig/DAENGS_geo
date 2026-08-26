@@ -35,15 +35,6 @@ class Handoff(BaseModel):
     tmap: str
 
 
-class Alt(BaseModel):
-    option: str
-    label: str                   # "골목 위주" / "큰길 위주" / "계단 제외" — 사용자에게 보이는 이름
-    min: int
-    m: int
-    facilities: dict[str, int | float]
-    delta_min: int
-
-
 class RoadMix(BaseModel):
     """길의 성격 — 큰길(대로/로) 구간 비율. 소음·차·밝기의 대리 지표."""
     big_road_m: int = 0
@@ -69,7 +60,6 @@ class Leg(BaseModel):
     fare: int | None = None
     advice: str | None = None       # ok | caution | avoid (dog만)
     why: list[str] = Field(default_factory=list)
-    alternatives: list[Alt] = Field(default_factory=list)
     spots: list[SpotOut] = Field(default_factory=list)
     polyline: str | None = None     # encoded polyline (precision 5) — 실측일 때
     polyline_points: int = 0

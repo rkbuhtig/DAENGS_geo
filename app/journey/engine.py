@@ -1,7 +1,7 @@
 """journey 엔진 — 출발지→목적지의 이동 스냅샷. 공용 (병원행·약국행·산책 코스).
 
 - measured=True: 제공사 실측(route_provider) + 캐시, 실패 시 휴리스틱 강등. False: 휴리스틱만(호출 0)
-- companion=dog: 개 계수·옵션 비교(골목 vs 큰길)·advice·spots 노트·대중교통 제한
+- companion=dog: 개 계수·advice·spots 노트·대중교통 제한
 - companion=none: 제공사 원값, 도착 앵커만, advice 없음 — 지도앱 수준
 """
 
@@ -11,15 +11,9 @@ from dataclasses import dataclass
 import httpx
 
 from app.geo.polyline import encode as encode_polyline
-from app.journey.advice import (
-    OPTION_LABEL,
-    choose_walk,
-    dog_time_factor,
-    walk_advice,
-    walk_options_to_try,
-)
+from app.journey.advice import OPTION_LABEL, dog_time_factor, walk_advice
 from app.journey.handoff import handoff_links
-from app.journey.models import Alt, Companion, Leg, RoadMix, Transport
+from app.journey.models import Companion, Leg, RoadMix, Transport
 from app.journey.spots import spots_out
 from app.planning.plans import JourneyPlan
 from app.providers.base import LatLng, Mode, RouteResult, RouteStatus, WalkOption
@@ -31,15 +25,6 @@ _fake = FakeProvider()
 
 def cache_stats() -> dict:
     return route_cache_stats()
-
-
-def can_measure(mode: Mode) -> bool:
-    """이 모드를 **진짜로** 실측할 수 있나. fake·none·미구현은 전부 아니다."""
-    name = route_provider_name(mode)
-    if name in ("none", "fake"):
-        return False
-    provider = route_provider(mode)
-    return provider.name != "none" and mode in provider.route_modes
 
 
 @dataclass(frozen=True)
@@ -126,7 +111,6 @@ async def snapshot(plan: JourneyPlan, dest: LatLng, *, dest_name: str = "",
                    arrive_note: str | None = None) -> Transport:
     origin = LatLng(plan.origin_lat, plan.origin_lng)
     companion: Companion = plan.companion  # type: ignore[assignment]
-    avoid = list(plan.walk.avoid)
     profile = plan.profile
     straight = int(haversine_m(origin, dest))
     dog = companion == "dog"
@@ -137,13 +121,10 @@ async def snapshot(plan: JourneyPlan, dest: LatLng, *, dest_name: str = "",
     measured_mode = plan.mode_priority[0] if plan.measured and plan.mode_priority else None
 
     walk_measured = measured_mode == "walk"
-    # 옵션 비교(골목 vs 큰길)는 **실측일 때만** 한다. 시설·큰길 비율을 모르는 채로 고르면
-    # 선택은 사실상 무작위인데 "개 반응이 있어 골목으로 골랐다" 같은 이유가 응답에 남는다 —
-    # 비교한 적 없는 비교를 설명하는 꼴이다.
-    compare_options = walk_measured and dog and can_measure("walk")
-    opts = (walk_options_to_try(walk_option, avoid, profile, plan.travel_is_night)
-            if compare_options else [walk_option])
-    walk_tasks = [asyncio.create_task(_route("walk", origin, dest, o, walk_measured)) for o in opts]
+    # 목적지당 도보 경로는 **하나만** 받는다. 옵션 여럿을 받아 점수로 고르던 것은 결정 #66 으로
+    # 없앴다 — 288경로 조사에서 추천 하나가 비교 결과와 99% 같은 선택이었고, 비교의 축이던
+    # 계단은 0/288 이었다. 콜은 1/3 이 되고 선택은 사실상 그대로다.
+    walk_tasks = [asyncio.create_task(_route("walk", origin, dest, walk_option, walk_measured))]
     car_task = asyncio.create_task(_route("car", origin, dest, walk_option, measured_mode == "car"))
     transit_task = (asyncio.create_task(_route("transit", origin, dest, walk_option,
                                                measured_mode == "transit"))
@@ -157,28 +138,13 @@ async def snapshot(plan: JourneyPlan, dest: LatLng, *, dest_name: str = "",
     if not walks:
         wl = _unavailable_leg("walk", walk_outcomes[0])
     else:
-        results = [o.result for o in walks]
-        if dog:
-            best_r, choose_why = choose_walk(
-                results, walk_option, avoid, profile, factor, plan.travel_is_night,
-            )
-            adv_lvl, adv_why = walk_advice(
-                best_r, profile, plan.walk.max_walk_min, avoid, plan.temp_c, factor,
-            )
-            advice = (adv_lvl, choose_why + adv_why)
-        else:
-            best_r, advice = results[0], None
-        best = next(o for o in walks if o.result is best_r)
+        best = walks[0]
+        best_r = best.result
+        advice = walk_advice(
+            best_r, profile, plan.walk.max_walk_min, plan.temp_c, factor,
+        ) if dog else None
 
         wl = _leg(best, factor, advice)
-        # 옵션 비교는 실측일 때만 의미가 있다 — 추정에서는 옵션이 숫자를 안 바꾼다
-        wl.alternatives = [
-            Alt(option=str(r.option), label=OPTION_LABEL.get(str(r.option), str(r.option)),
-                min=max(1, round(r.duration_s * factor / 60)), m=r.distance_m,
-                facilities=r.facilities.__dict__ if r.facilities else {},
-                delta_min=round((r.duration_s - best_r.duration_s) * factor / 60))
-            for r in results if r is not best_r
-        ] if best.status == "measured" else []
         wl.spots = spots_out(best_r, profile, companion, arrive_note)
         wl.handoff = handoff_links(origin, dest, dest_name, "walk")
         if with_polyline and best_r.polyline and best.status == "measured":

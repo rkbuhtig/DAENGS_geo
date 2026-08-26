@@ -1,8 +1,6 @@
 """편집 상태와 서버 사실을 엔진별 실행 계획으로 조립하는 유일한 관문."""
 
 from dataclasses import dataclass
-from datetime import datetime
-from zoneinfo import ZoneInfo
 
 from app.geo.ranking import preference_tags
 from app.journey.models import Companion
@@ -29,13 +27,6 @@ class ResolvedRequest:
     journey: JourneyPlan
     view: ViewPlan
     trace: ResolutionTrace
-
-
-def _is_night(at: datetime) -> bool:
-    if at.tzinfo is None:
-        raise ValueError("runtime and intent datetimes must include a timezone")
-    hour = at.astimezone(ZoneInfo("Asia/Seoul")).hour
-    return hour >= 20 or hour < 6
 
 
 def _available_modes(state: EditableState, facts: RuntimeFacts,
@@ -137,13 +128,11 @@ def resolve_request(
         departure_at=departure_at,
         companion=companion,
         measured=measured,
-        travel_is_night=_is_night(departure_at),
         mode_priority=tuple(modes),
         max_total_min=state.journey.max_total_min,
         hard_limit=state.journey.hard_limit,
         walk=WalkPlan(
             option=state.journey.walk.option,
-            avoid=tuple(state.journey.walk.avoid),
             max_walk_min=state.journey.walk.max_walk_min,
         ),
         profile=facts.profile,

@@ -16,7 +16,7 @@
 | [refine-loop](refine-loop.md) | parked | working-skeleton | 상태 편집·툴·undo는 구현됐으나 제품 코어에서 보류 |
 | [condition-schema](condition-schema.md) | adopted | verified | context/target/journey/view와 실행 plan 경계를 테스트로 고정 |
 | [journey-view](journey-view.md) | adopted | verified | 카드 선택 뒤 공용 `/journey`; 단발 경계만 코어 유지 |
-| [transport-snapshot](transport-snapshot.md) | parked | working-skeleton | 진실성 계약은 유지, 옵션 비교·시설 advice는 보류 |
+| [transport-snapshot](transport-snapshot.md) | parked | working-skeleton | 진실성 계약은 유지. 옵션 비교·계단 advice 는 #66 으로 기각 |
 | [homepage-enrich](homepage-enrich.md) | rejected | none | 홈페이지 있는 병원이 2차 센터 위주라 커버리지 부족 (#63) |
 | [session-record](session-record.md) | exploring | none | 검색 세션을 서버에 남겨 목록·복원 |
 

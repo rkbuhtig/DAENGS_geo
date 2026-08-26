@@ -6,9 +6,8 @@
 
 import pytest
 
-from app.journey.advice import dog_time_factor, prefers_quiet, walk_advice
+from app.journey.advice import dog_time_factor, prefers_quiet
 from app.profile.source import OWNER_OF, OWNERS, PERSONAS
-from tests.conftest import route
 
 
 # ------------------------------------------------------------------ 커버리지
@@ -43,18 +42,6 @@ def test_large_dogs_exist_so_transit_exclusion_is_exercised():
     assert [p.name for p in PERSONAS.values() if p.size_class == "large"]
 
 
-# ------------------------------------------------------------------- 문구
-def test_stairs_reason_names_only_what_applies():
-    """2세 관절 개에게 '노령'이라고 하면 안 된다 (뽀글)."""
-    _, why = walk_advice(route(stairs=1), PERSONAS["bbogeul"], None, [])
-    stairs_why = [w for w in why if "계단" in w]
-    assert stairs_why and "노령" not in stairs_why[0], stairs_why
-
-    _, why = walk_advice(route(stairs=1), PERSONAS["halmae"], None, [])
-    stairs_why = [w for w in why if "계단" in w]
-    assert stairs_why and "노령" in stairs_why[0] and "관절" in stairs_why[0], stairs_why
-
-
 # ------------------------------------------------------------------- 견주
 def test_every_dog_has_exactly_one_owner():
     owned = [d for o in OWNERS.values() for d in o.dog_ids]
@@ -74,7 +61,7 @@ def test_owner_literacy_spectrum_is_covered():
     ("seojun", "bau", False),         # 32kg
     ("jihyun", "samwol", True),       # 1.8kg 퍼피
 ])
-def test_can_carry_decides_whether_stairs_are_a_real_barrier(owner_id, dog_id, expected):
+def test_can_carry_compares_dog_weight_to_the_owner_limit(owner_id, dog_id, expected):
     assert OWNERS[owner_id].can_carry(PERSONAS[dog_id]) is expected
 
 

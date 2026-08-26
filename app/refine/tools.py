@@ -174,6 +174,12 @@ def set_walk_option(state: EditableState, option: WalkOption) -> EditableState:
 
 def set_walk_avoid(state: EditableState,
                    facilities: Annotated[list[WalkFacility], Field(max_length=3)]) -> EditableState:
+    """**지금 `avoid` 자체는 아무 판정도 만들지 않는다** (#66). 남은 효과는 아래 `stairs` →
+    `option` 한 줄뿐이고, 그건 요청하는 도보 옵션을 바꾸므로 경로에 실제로 닿는다.
+
+    상태 필드와 이 툴을 지우는 것은 `state_version` 을 올려야 해서 다음 단계로 미뤘다.
+    그때까지 이 함수가 "조건을 걸었다"고 읽히지 않게 여기 적어 둔다.
+    """
     s = _edit(state)
     s.journey.walk.avoid = sorted(set(s.journey.walk.avoid) | set(facilities))
     # option 도 도보 scope 안이라 같이 움직여도 된다 (계층을 넘지 않는다)
@@ -308,7 +314,7 @@ TOOL_SPECS: list[dict[str, Any]] = [
     {"policy": "journey", "scope": "any", "name": "set_mode", "desc": "선호 이동수단 walk|car|transit|null. 도보 설정을 바꾸고 싶으면 이걸 따로 부를 것", "args": {"mode": "str?"}},
     {"policy": "journey", "scope": "any", "name": "set_max_total_min", "desc": "전체 이동시간 상한(분), 수단 무관. hard=true면 초과를 결과에서 뺀다(기본 false: 표시만)", "args": {"minutes": "int?", "hard": "bool?"}},
     {"policy": "journey", "scope": "walk", "name": "set_walk_option", "desc": "도보 옵션 recommended|main_road|shortest|no_stairs", "args": {"option": "str"}},
-    {"policy": "journey", "scope": "walk", "name": "set_walk_avoid", "desc": "도보 시 피할 시설 stairs|underpass|overpass", "args": {"facilities": "list[str]"}},
+    {"policy": "journey", "scope": "walk", "name": "set_walk_avoid", "desc": "도보 시 피할 시설 stairs|underpass|overpass. **판정은 #66 으로 없어졌다** — stairs 만 도보 옵션을 바꿔 경로에 닿는다", "args": {"facilities": "list[str]"}},
     {"policy": "journey", "scope": "walk", "name": "unset_walk_avoid", "desc": "도보 피하기 해제", "args": {"facilities": "list[str]"}},
     {"policy": "journey", "scope": "walk", "name": "set_walk_max_min", "desc": "개가 걸어도 되는 시간 상한(분). 전체 이동시간과 다르다", "args": {"minutes": "int?"}},
     {"policy": "view", "scope": "any", "name": "set_sort", "desc": "정렬 distance|duration|open_first", "args": {"sort": "str"}},

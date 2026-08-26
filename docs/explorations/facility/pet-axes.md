@@ -5,7 +5,7 @@ implementation: working
 # `pet` 봉투 → 축 — 자유 텍스트를 필터 가능한 컬럼으로
 
 근거는 [커버리지 측정](../../research/2026-08-24-facility-pet-coverage.md) (2026-08-24).
-[결정 #63](../../decisions/2026-08-26-place-first-discovery.md)은 이 축을 `Place` 후보군 안의
+[결정 #65](../../decisions/2026-08-26-place-first-discovery.md)은 이 축을 `Place` 후보군 안의
 결정론적 사실 파생으로 재사용한다. 이 갈래의 status는 새 Place 계약에서 가능/불가/미상과
 필터·선호 순서를 실제로 고정할 때 별도로 정한다.
 

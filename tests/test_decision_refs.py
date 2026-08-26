@@ -21,8 +21,13 @@ _CITATION = re.compile(r"Decision:\s*((?:#\d+\s*,?\s*)+)")
 _NUMBER = re.compile(r"#(\d+)")
 
 
+def declared_decisions() -> list[int]:
+    """표에 적힌 순서 그대로. **중복을 지우지 않는다** — 아래 가드가 그걸 본다."""
+    return [int(n) for n in _DECISION_ROW.findall(DECISIONS_MD.read_text(encoding="utf-8"))]
+
+
 def known_decisions() -> set[int]:
-    return {int(n) for n in _DECISION_ROW.findall(DECISIONS_MD.read_text(encoding="utf-8"))}
+    return set(declared_decisions())
 
 
 def citations() -> list[tuple[Path, int]]:
@@ -61,3 +66,19 @@ def test_cited_decisions_exist():
 def test_the_convention_is_still_in_use():
     """인용이 0건이면 형식이 바뀌었거나 규칙이 조용히 사라진 것이다 — 위 검사가 무력해진다."""
     assert citations(), "Decision: #N 인용이 하나도 없다. 형식이 바뀌었는지 확인하라"
+
+
+def test_no_two_decisions_claim_the_same_number():
+    """번호는 결정의 이름이다. 둘이 같은 번호를 잡으면 인용이 어느 쪽인지 알 수 없다.
+
+    **어떻게 일어나나**: 두 PR 이 각자 브랜치에서 다음 번호를 집는다. 먼저 머지된 쪽이
+    쓰던 번호를 나중 쪽이 이미 문서에 박아둔 채로 들어온다. 실제로 #63 이 그렇게 두 번
+    쓰였고(커뮤니티 근거 기각 · Place 우선 발견), 인용 20여 곳이 파일마다 다른 결정을
+    가리키게 됐다. 존재 검사만으로는 안 잡힌다 — 둘 다 존재하니까.
+
+    `migrations/` 의 `011` 두 개와 같은 실패다. 그때는 우연히 무사했고, 이번엔 문서가
+    조용히 거짓말을 했다.
+    """
+    numbers = declared_decisions()
+    dupes = sorted({n for n in numbers if numbers.count(n) > 1})
+    assert not dupes, f"같은 번호를 두 결정이 잡았다: {dupes}"

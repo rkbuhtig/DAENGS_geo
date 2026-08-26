@@ -27,7 +27,6 @@ app/
 | | dog | none |
 |---|---|---|
 | 도보 시간 | 개 계수(1.2~2.0) × 제공사, `provider_min` 병기 | 제공사 원값 |
-| 옵션 비교 | 골목 섞인 추천(0) vs 큰길 위주(4) (+계단제외는 요청 시) | 없음 |
 | spots | 전부 + 프로필 노트 | 도착 앵커만 |
 | advice | ok/caution/avoid + why | 없음 |
 | 대중교통 | small만 | 항상 |
@@ -51,7 +50,7 @@ app/
 ```
 POST /hospital/search {…, companion, transport: "none"|"estimate"}   → 가벼운 리스트
 POST /journey {origin, dests[{id}|{lat,lng,name}], companion, dog_id?, prefs: JourneyPrefs, measured, with_polyline}
-   → items[{id,name,lat,lng, transport{walk{min,provider_min,option_label,road_mix,facilities,advice,why,alternatives[{label,delta_min}],spots,polyline,handoff}, car{taxi_fare,handoff}, transit?}}]
+   → items[{id,name,lat,lng, transport{walk{min,provider_min,option_label,road_mix,facilities,advice,why,spots,polyline,handoff}, car{taxi_fare,handoff}, transit?}}]
 GET  /pharmacy/search?lat&lng&radius_m&open_now
 ```
 콘솔: 검색 → 상위 5 `/journey` 배치 → 선. 카드 클릭 → 그 병원 `/journey`(캐시). 동반/나만 감 토글.

@@ -84,10 +84,10 @@ async def test_measured_request_without_a_key_degrades_and_says_why(monkeypatch)
 
 
 async def test_estimate_never_carries_facilities_or_route_shape():
-    """추정 leg 는 시설·비교·선을 싣지 않는다. 이것들은 전부 실측에서만 나오는 값이다."""
+    """추정 leg 는 시설과 선을 싣지 않는다. 둘 다 실측에서만 나오는 값이다."""
     leg = await _walk(measured=False)
     assert leg.facilities is None and leg.road_mix is None
-    assert leg.alternatives == [] and leg.polyline is None
+    assert leg.polyline is None
 
 
 async def test_estimate_advice_never_warns_about_facilities():
@@ -96,7 +96,7 @@ async def test_estimate_advice_never_warns_about_facilities():
     시간·기온 사유는 남는다 — 그건 프로필과 거리에서 나오지 시설에서 나오지 않는다.
     """
     leg = await _walk(measured=False)
-    banned = ("계단", "지하 통로", "육교", "횡단")
+    banned = ("지하 통로", "횡단")
     assert not [w for w in leg.why if any(b in w for b in banned)], leg.why
 
 
