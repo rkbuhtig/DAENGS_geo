@@ -94,8 +94,9 @@ RuntimeFacts · ViewPlan                  → resolver 의 입력·출력  → d
 
 **PR 6 이후 그 쌍은 아예 사라진다.** `journey → discovery` 에지는 전부 `journey/api.py`
 세 줄이었고, 그 파일이 §4 에 따라 `features/journey/` 로 나가면서 `journey` 는 `discovery`
-를 모르게 됐다. 남는 것은 `discovery → journey.contract` 단방향뿐이라 contract 예외조차
-필요 없다. 규칙 집행이 구조를 한 단계 더 정리한 경우다.
+를 모르게 됐다. 남는 것은 `discovery → journey.contract` 단방향뿐이라, **양방향 쌍을 정당화하기 위한
+예외 설명이 더는 필요 없다.** `journey.contract` 의 계약 지위와 §3 제약은 그대로다 —
+선언된 계약 모듈 집합에서 빼지 않는다. 규칙 집행이 구조를 한 단계 더 정리한 경우다.
 
 패키지 이름만으로 순환 여부를 판정하지 않고 모듈 단위 import-direction 테스트로 이 규칙을
 잠근다.
@@ -114,8 +115,8 @@ feature 인가**의 규칙이다.
 
 `main.py:11·14-17` 이 지금 세 곳에서 라우터를 가져온다. 이 규칙을 적용하면
 `journey/api.py` 하나가 위반이었다 — 도메인 패키지 안의 워크플로 엔드포인트다.
-**PR 6 에서 `features/journey/api.py` 로 옮겨 해소했다.**
-알려진 위반으로 기록하고 별도 PR 에서 처리한다.
+**PR 6 에서 `features/journey/api.py` 로 옮겨 해소했다.** 세 곳에서 오던 라우터는
+이제 `api/*`(공용 조회)와 `features/*/api.py`(워크플로) 둘로 정리됐다.
 
 ### 5. 최상위 패키지 신설은 결정 문서를 거친다
 
@@ -185,7 +186,7 @@ chain_index 같은 산책 어휘를 가진 타입이라 단순히 `geo`로 내�
 | 3 | `planning` + `refine` → `discovery` | `git grep 'app\.planning\|app\.refine' -- . ':!docs/decisions/'` 0건 |
 | 4 | `scene` → `features/scene` | `git grep 'app\.scene\|app/scene' -- . ':!docs/decisions/'` 0건 |
 | 5 | import 방향 테스트로 잠금 | 알려진 위반 포함 아래 게이트 통과 |
-| 6 | API 소유 집행 (§4) — `journey/api.py` → `features/journey/` | `git grep 'from app\.discovery' -- app/journey` 0건 |
+| 6 | API 소유 집행 (§4) — `journey/api.py` → `features/journey/` | `app/journey/api.py` 부재 **그리고** `git grep 'from app\.journey import api'` 0건. 덤으로 `git grep 'from app\.discovery' -- app/journey` 0건 |
 
 PR 2 에 `Clock` 이 함께 들어가는 이유: 계약만 옮기면 `geo → planning` 에지가 하나 남아
 (`geo/search.py` 의 `SystemClock`) 순환이 안 풀린다. 착수 전 그래프 시뮬레이션으로 확인했다.
