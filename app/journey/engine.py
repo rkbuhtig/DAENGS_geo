@@ -18,7 +18,8 @@ from app.journey.spots import spots_out
 from app.planning.plans import JourneyPlan
 from app.providers.base import LatLng, Mode, RouteResult, RouteStatus
 from app.providers.fake import FakeProvider, haversine_m
-from app.providers.registry import route_cache_stats, route_provider, route_provider_name
+from app.providers.registry import route_provider_name
+from app.usage.composition import route_cache_stats, route_provider
 from app.usage.models import UsageDenied
 
 _fake = FakeProvider()

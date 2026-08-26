@@ -20,8 +20,8 @@ from app.planning.resolver import resolve_request
 from app.planning.state import EditableState
 from app.profile.source import PERSONAS
 from app.providers.base import LatLng
-from app.providers.registry import route_capability_problems, route_provider
 from app.providers.tmap import TmapProvider
+from app.usage.composition import route_capability_problems, route_provider
 
 O, D = LatLng(37.4979, 127.0276), LatLng(37.5145, 127.0316)
 NOW = datetime(2026, 8, 21, 3, 0, tzinfo=UTC)

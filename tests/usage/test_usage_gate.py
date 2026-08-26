@@ -11,6 +11,7 @@ from app.planning.state import EditableState
 from app.providers import registry as provider_registry
 from app.providers.base import LatLng, RouteResult, StaticMapSpec
 from app.refine.nl import MeteredLLM, ToolCall
+from app.usage import composition as usage_composition
 from app.usage.gate import UsageGate, usage_request_scope
 from app.usage.ledger import InMemoryLedger
 from app.usage.metered import MeteredRouteProvider, MeteredStaticMapFetcher
@@ -234,15 +235,15 @@ def test_real_provider_factories_install_metered_adapters(monkeypatch):
     monkeypatch.setattr(settings, "llm_provider", "openai")
     monkeypatch.setattr(settings, "openai_api_key", "test-openai-key")
     usage_gate.cache_clear()
-    provider_registry.route_provider.cache_clear()
+    usage_composition.route_provider.cache_clear()
     provider_registry.static_map_provider.cache_clear()
-    provider_registry.static_map_fetcher.cache_clear()
+    usage_composition.static_map_fetcher.cache_clear()
     try:
-        assert isinstance(provider_registry.route_provider("walk"), MeteredRouteProvider)
-        assert isinstance(provider_registry.static_map_fetcher(), MeteredStaticMapFetcher)
+        assert isinstance(usage_composition.route_provider("walk"), MeteredRouteProvider)
+        assert isinstance(usage_composition.static_map_fetcher(), MeteredStaticMapFetcher)
         assert isinstance(llm(), MeteredLLM)
     finally:
-        provider_registry.route_provider.cache_clear()
-        provider_registry.static_map_fetcher.cache_clear()
+        usage_composition.route_provider.cache_clear()
+        usage_composition.static_map_fetcher.cache_clear()
         provider_registry.static_map_provider.cache_clear()
         usage_gate.cache_clear()
