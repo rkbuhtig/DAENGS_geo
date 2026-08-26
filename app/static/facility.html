@@ -17,6 +17,8 @@
   .row b { font-variant-numeric:tabular-nums }
   .muted { color:#6b6b6b; font-size:12px }
   .cut { color:#b3261e; font-weight:600 }
+  .unknown { color:#a15c00; font-weight:600 }
+  .error { color:#b3261e; font-size:12px; margin-top:6px }
   select, label { font:inherit }
   select { width:100%; margin-top:6px; padding:5px 6px; border:1px solid var(--line); border-radius:6px; background:#fff }
   hr { border:0; border-top:1px solid var(--line); margin:10px 0 8px }
@@ -32,7 +34,7 @@
 
 <div id="map"></div>
 <div class="hud">
-  <h1>시설 · 우리 개 기준</h1>
+  <h1>시설 · 반려견 입장 조건</h1>
 
   <label class="muted">카테고리 (하나씩)</label>
   <div class="tabs" id="tabs"></div>
@@ -68,19 +70,22 @@
 
   <hr>
   <div class="row"><span class="muted">이 카테고리</span><b id="n-all">–</b></div>
-  <div class="row"><span class="muted">갈 수 있음</span><b id="n-ok">–</b></div>
-  <div class="row"><span class="cut">크기 제약 제외</span><b class="cut" id="n-cut">–</b></div>
+  <div class="row"><span>입장 조건상 가능</span><b id="n-compatible">–</b></div>
+  <div class="row"><span class="cut">조건 불일치</span><b class="cut" id="n-incompatible">–</b></div>
+  <div class="row"><span class="unknown">확인 필요</span><b class="unknown" id="n-unknown">–</b></div>
   <div class="muted" id="basis" style="margin-top:6px"></div>
   <div class="cut" id="trunc" style="display:none;margin-top:6px"></div>
+  <div class="error" id="error" style="display:none"></div>
 
   <hr>
   <div style="font-size:12px">
-    <div><i class="dot" id="lg-ok"></i>갈 수 있음</div>
-    <div><i class="dot" style="background:#9aa0a6"></i>이 개는 못 감 (크기)</div>
+    <div><i class="dot" id="lg-compatible"></i>입장 조건상 가능</div>
+    <div><i class="dot" style="background:#9aa0a6"></i>조건 불일치</div>
+    <div><i class="dot" style="background:#f9a825"></i>정보 부족 · 확인 필요</div>
   </div>
   <div class="muted" style="margin-top:8px">
-    서버가 두 번 답한다 — 개 없이 한 번, 이 개로 한 번. 회색은 그 차집합이다.
-    크기 판정은 서버에만 있다.
+    서버의 장소 사실과 요청별 3상태 평가를 함께 표시한다. 평가는 결과를 숨기거나
+    거리순을 바꾸지 않는다.
   </div>
 </div>
 
@@ -129,61 +134,105 @@ function buildTabs() {
     $('tabs').appendChild(b);
   });
   const hit = CATS.find(function (c) { return c[0] === cat; });
-  $('lg-ok').style.background = GROUP_COLOR[hit ? hit[2] : 'etc'];
+  $('lg-compatible').style.background = GROUP_COLOR[hit ? hit[2] : 'etc'];
 }
 
-function marker(f, blocked) {
-  const color = blocked ? '#9aa0a6' : (GROUP_COLOR[f.icon_group] || '#546e7a');
+const EVALUATION_LABEL = {
+  compatible: '입장 조건상 가능',
+  incompatible: '조건 불일치',
+  unknown: '정보 부족 · 확인 필요',
+};
+
+const REASON_LABEL = {
+  size_allowed: '크기 등급 허용', size_exceeded: '크기 등급 초과',
+  weight_allowed: '무게 제한 허용', weight_exceeded: '무게 제한 초과',
+  weight_boundary_unknown: '미만·이하 경계 확인 필요',
+  dog_disallowed: '개 입장 불가', missing_dog_size: '개 크기 미상',
+  missing_dog_weight: '개 무게 미상', missing_restriction: '시설 제한 정보 없음',
+};
+
+function marker(hit) {
+  const f = hit.place;
+  const evaluation = hit.evaluations && hit.evaluations.dog_access;
+  const state = evaluation ? evaluation.state : null;
+  const color = state === 'incompatible'
+    ? '#9aa0a6'
+    : state === 'unknown' ? '#f9a825' : (GROUP_COLOR[f.icon_group] || '#546e7a');
   const m = L.circleMarker([f.lat, f.lng], {
-    radius: blocked ? 5 : 7, color: '#fff', weight: 1.5,
-    fillColor: color, fillOpacity: blocked ? .55 : .95,
+    radius: state === 'incompatible' ? 5 : state === 'unknown' ? 6 : 7,
+    color: '#fff', weight: 1.5, fillColor: color,
+    fillOpacity: state === 'incompatible' ? .55 : .95,
   });
-  const ax = f.pet_axes || {};
+  const ax = f.facts.pet_access || {};
   const size = ax.size_class
-    ? ax.size_class + (ax.max_kg ? ' (≤' + ax.max_kg + 'kg)' : '')
+    ? ax.size_class + (ax.max_kg ? ' (상한 ' + ax.max_kg + 'kg · 미만/이하 미확인)' : '')
     : '제한 표기 없음';
+  const primary = f.classifications.find(function (item) {
+    return item.source.source === f.key.source && item.source.ref === f.key.ref;
+  });
+  const evaluationText = evaluation
+    ? '<b style="color:' + (state === 'incompatible' ? '#b3261e' : state === 'unknown' ? '#a15c00' : '#1a1a1a') + '">' +
+      EVALUATION_LABEL[state] + '</b> · ' + (REASON_LABEL[evaluation.reason] || evaluation.reason) + '<br>'
+    : '';
   m.bindPopup(
     '<b>' + f.name + '</b><br>' +
-    '<span style="color:#6b6b6b">' + f.kind + ' · ' + f.distance_m + 'm</span><br>' +
-    (blocked ? '<b style="color:#b3261e">이 개는 못 감</b><br>' : '') +
+    '<span style="color:#6b6b6b">' + f.match.kind + ' · ' + f.distance_m + 'm</span><br>' +
+    evaluationText +
     '크기: ' + size + '<br>' +
     (ax.exclusive ? '반려동물 전용<br>' : '') +
-    (f.hours_text ? '시간: ' + f.hours_text + '<br>' : '') +
-    '<span style="color:#6b6b6b">출처 ' + f.source.name + ' · ' + f.source.as_of + '</span>'
+    (f.facts.hours_text ? '시간: ' + f.facts.hours_text + '<br>' : '') +
+    '<span style="color:#6b6b6b">출처 ' + f.key.source +
+    (primary && primary.as_of ? ' · ' + primary.as_of : '') + '</span>'
   );
   return m;
 }
 
+let searchSequence = 0;
+
 async function search() {
+  const sequence = ++searchSequence;
   const parts = $('where').value.split(',');
   const lat = Number(parts[0]), lng = Number(parts[1]);
-  const radius = $('radius').value, dog = $('dog').value;
-  // limit 을 안 보낸다 = 반경 안 전부. 카테고리 탭이 부하를 나눈다.
-  const base = '/facility/search?lat=' + lat + '&lng=' + lng +
-               '&radius_m=' + radius + '&kind=' + cat;
+  const radius = Number($('radius').value), dog = $('dog').value;
+  const body = {lat:lat, lng:lng, radius_m:radius, kinds:[cat]};
+  if (dog) body.conditions = {dog_id:dog};
 
-  // 개 없이 한 번, 이 개로 한 번. 차집합이 "이 개는 못 가는 곳"이다.
-  // 클라이언트가 크기 규칙을 다시 구현하지 않으려고 이렇게 한다 — 판정은 서버에만 있다.
-  const both = await Promise.all([
-    fetch(base).then(function (r) { return r.json(); }),
-    dog ? fetch(base + '&dog_id=' + dog).then(function (r) { return r.json(); }) : null,
-  ]);
-  const all = both[0], mine = both[1];
+  $('error').style.display = 'none';
+  try {
+    const response = await fetch('/v2/places/search', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body),
+    });
+    if (!response.ok) throw new Error('검색 실패 (' + response.status + ')');
+    const payload = await response.json();
+    if (sequence !== searchSequence) return;
+    const group = payload.groups.find(function (item) { return item.kind === cat; });
+    if (!group) throw new Error('서버 응답에 요청한 카테고리가 없습니다');
 
-  const okIds = new Set((mine ? mine.results : all.results).map(function (f) { return f.id; }));
-  layer.clearLayers();
-  all.results.forEach(function (f) { marker(f, !okIds.has(f.id)).addTo(layer); });
+    const counts = {compatible:0, incompatible:0, unknown:0};
+    layer.clearLayers();
+    group.results.forEach(function (hit) {
+      const evaluation = hit.evaluations && hit.evaluations.dog_access;
+      if (evaluation) counts[evaluation.state] += 1;
+      marker(hit).addTo(layer);
+    });
 
-  $('n-all').textContent = all.results.length;
-  $('n-ok').textContent = okIds.size;
-  $('n-cut').textContent = all.results.length - okIds.size;
-  $('basis').textContent = mine
-    ? '기준: 프로필 크기 ' + mine.params.dog_size
-    : '개를 고르면 크기 기준이 걸린다';
-  // 조용히 자르지 않는다 — 잘린 목록을 "이 동네엔 이만큼뿐"으로 읽으면 안 된다.
-  $('trunc').style.display = all.truncated ? 'block' : 'none';
-  $('trunc').textContent = all.truncated ? '상한 도달 — 일부만 표시' : '';
-  map.setView([lat, lng], radius <= 1500 ? 15 : radius <= 3000 ? 14 : 12);
+    $('n-all').textContent = group.results.length;
+    ['compatible', 'incompatible', 'unknown'].forEach(function (state) {
+      $('n-' + state).textContent = dog ? counts[state] : '–';
+    });
+    const applied = payload.conditions;
+    $('basis').textContent = applied
+      ? '기준: ' + (applied.dog_size || '크기 미상') + ' · ' +
+        (applied.dog_weight_kg == null ? '무게 미상' : applied.dog_weight_kg + 'kg')
+      : '개를 고르면 입장 조건을 대조한다';
+    $('trunc').style.display = group.truncated ? 'block' : 'none';
+    $('trunc').textContent = group.truncated ? '상한 도달 — 일부만 표시' : '';
+    map.setView([lat, lng], radius <= 1500 ? 15 : radius <= 3000 ? 14 : 12);
+  } catch (error) {
+    if (sequence !== searchSequence) return;
+    $('error').textContent = error.message || '검색 중 오류가 발생했습니다';
+    $('error').style.display = 'block';
+  }
 }
 
 ['dog', 'where', 'radius'].forEach(function (id) {

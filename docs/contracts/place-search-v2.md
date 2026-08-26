@@ -94,4 +94,4 @@ identity로 노출하지 않는다.
 - 태그/이름 추론 및 AI 제안
 - 서로 다른 kind 결과의 통합 순위
 - 검증되지 않은 `facility_link`를 Place alias로 승격
-- 기존 웹·Android 소비자의 자동 전환
+- Android와 나머지 legacy 소비자의 자동 전환 (`/facility-map`은 이 계약으로 이동 완료)
