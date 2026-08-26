@@ -56,6 +56,8 @@ backlog.md           갈래에 안 붙는 미결
 - [dev 콘솔 + spots(반려견 관심 지점)](research/2026-08-19-dev-console.md)
 - [facility.pet 커버리지 — 필터로 쓸 수 있나](research/2026-08-24-facility-pet-coverage.md)
 - [TMAP 보행자 옵션 조사 — 288경로, 계단 0, 옵션 71~91% 동일, 단발 99% 일치](research/2026-08-22-tmap-option-survey.md)
+- [셀로 면 체류를 근사할 수 있나 — 면÷셀 5배가 손익분기, 다이얼 상한 28~115m](research/2026-08-26-region-cell-fidelity.md)
+- [붓 감쇠 — 이진 도장은 구별 0, 심 반경은 3·8·20 (실제 OSM 도로망 24회 산책)](research/2026-08-26-brush-falloff.md)
 
 ## 새 갈래 만들 때
 `explorations/<주제>/<갈래>.md`, 상단에
