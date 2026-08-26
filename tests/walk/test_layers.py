@@ -31,6 +31,7 @@ EARTH_R = 6_371_000.0
 RADIUS_U = 8.0
 LAT, LNG = 37.4979, 127.0276
 BRUSH = NARROW_STEP.name
+BRUSH_FP = NARROW_STEP.fingerprint
 
 
 def _sheet(walk_id: str, at: datetime, offset_m: float):
@@ -53,7 +54,7 @@ def _spec(metric: str = "walks", **tags) -> LayerSpec:
     return LayerSpec(
         selector=Selector.of(**tags),
         aggregation=Aggregation(metric=metric),
-        projection=Projection(radius_u=RADIUS_U, brush=BRUSH),
+        projection=Projection(radius_u=RADIUS_U, brush=BRUSH, profile_fp=BRUSH_FP),
     )
 
 
@@ -97,25 +98,34 @@ def test_period_narrows_independently_of_tags():
     spec = LayerSpec(
         selector=Selector.of(since=date(2026, 4, 1), until=date(2026, 4, 30), season="spring"),
         aggregation=Aggregation(),
-        projection=Projection(radius_u=RADIUS_U, brush=BRUSH),
+        projection=Projection(radius_u=RADIUS_U, brush=BRUSH, profile_fp=BRUSH_FP),
     )
     assert len(select(sheets, spec)) == 1
 
 
-def test_same_name_different_curve_is_an_error_not_a_filter():
-    """같은 이름으로 감쇠를 바꾼 장이 섞여 있으면 **조용히 거르지 않고 에러다.**
+def test_spec_picks_the_brush_generation_by_fingerprint():
+    """같은 이름의 두 세대가 섞여 있으면 spec 이 명시한 지문의 장만 고른다."""
+    import dataclasses
 
-    이름은 표시용이고 지문(bands·weights·smooth)이 동일성이다. 데이터가 이미 두 세대라는
-    뜻이므로 어느 쪽을 원하는지는 호출자만 안다 — 골라 주는 척하면 안 된다.
+    old = _sheet("old", datetime(2026, 7, 1, 9, tzinfo=UTC), 0.0)
+    other_curve = dataclasses.replace(old, walk_id="other", profile_fp="deadbeef0000")
+    assert select([old, other_curve], _spec()) == [old]
+
+
+def test_missing_generation_is_an_error_not_an_empty_map():
+    """이름은 맞는데 그 세대가 하나도 없으면 **조용히 빈 지도를 주지 않는다.**
+
+    데이터가 다른 세대뿐이라는 사실을 호출자가 알아야 한다 — 빈 canvas 를 주면 "안 갔다"
+    로 읽힌다.
     """
     import dataclasses
 
     import pytest
 
-    old = _sheet("old", datetime(2026, 7, 1, 9, tzinfo=UTC), 0.0)
-    renamed_curve = dataclasses.replace(old, walk_id="new", profile_fp="deadbeef0000")
+    only_other = dataclasses.replace(
+        _sheet("other", datetime(2026, 7, 1, 9, tzinfo=UTC), 0.0), profile_fp="deadbeef0000")
     with pytest.raises(ValueError, match="지문"):
-        select([old, renamed_curve], _spec())
+        select([only_other], _spec())
 
 
 def test_grid_version_gates_mixing():
@@ -181,8 +191,20 @@ def test_changing_any_compartment_changes_the_fingerprint():
     assert _spec(season="winter").fingerprint() != base
     assert _spec(metric="occupancy", season="summer").fingerprint() != base
     other = LayerSpec(selector=Selector.of(season="summer"), aggregation=Aggregation(),
-                      projection=Projection(radius_u=15.0, brush=BRUSH))
+                      projection=Projection(radius_u=15.0, brush=BRUSH, profile_fp=BRUSH_FP))
     assert other.fingerprint() != base
+
+
+def test_spec_fingerprint_catches_a_curve_change_under_the_same_name():
+    """**이름을 안 바꾸고 감쇠만 바꾸면** spec 지문이 달라져야 한다.
+
+    화면에 띄우는 provenance 가 spec 지문 하나뿐이라, 여기서 안 갈리면 6 개월 뒤 "그 그림이
+    어느 붓이었나" 를 따라갈 수 없다.
+    """
+    changed = LayerSpec(
+        selector=Selector.of(season="summer"), aggregation=Aggregation(),
+        projection=Projection(radius_u=RADIUS_U, brush=BRUSH, profile_fp="deadbeef0000"))
+    assert changed.fingerprint() != _spec(season="summer").fingerprint()
 
 
 # ---- 값 연산 vs 존재 연산 --------------------------------------------------------------

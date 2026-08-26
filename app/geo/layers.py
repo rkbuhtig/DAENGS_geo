@@ -117,10 +117,16 @@ class Aggregation:
 
 @dataclass(frozen=True)
 class Projection:
-    """어떻게 공간에 놓나. `radius_u` 는 격자 **단위**다 (`cells.py`)."""
+    """어떻게 공간에 놓나. `radius_u` 는 격자 **단위**다 (`cells.py`).
+
+    `profile_fp` 가 붓의 실제 세대다 — 이름(`brush`)은 사람이 읽는 것이고 동일성은 지문이
+    정한다(`paint.BrushProfile.fingerprint`). 지문이 spec 에 없으면 `LayerSpec.fingerprint()`
+    가 곡선 변경을 못 잡아서, 화면에 띄운 spec 지문만 보고는 어느 세대의 붓이었는지 알 수 없다.
+    """
 
     radius_u: float
     brush: str
+    profile_fp: str
     grid_version: str = GRID_VERSION
 
 
@@ -139,7 +145,8 @@ class LayerSpec:
     @property
     def label(self) -> str:
         return (f"{self.selector.label} · {self.aggregation.metric} · "
-                f"{self.projection.brush}@{self.projection.radius_u:.0f}u")
+                f"{self.projection.brush}({self.projection.profile_fp[:6]})"
+                f"@{self.projection.radius_u:.0f}u")
 
 
 @dataclass(frozen=True)
@@ -165,24 +172,24 @@ def select(sheets: Iterable[Cellophane], spec: LayerSpec) -> list[Cellophane]:
     격자는 `grid_version` 까지 본다: radius 와 붓 이름이 같아도 격자 수학이 바뀌었으면
     (q, r) 이 다른 자리다.
 
-    붓은 이름으로 고르되 **지문이 갈리면 조용히 거르지 않고 에러다.** 이름이 같고 곡선이
-    다른 장이 섞여 있다는 것은 데이터가 이미 두 세대라는 뜻이고, 어느 쪽을 원하는지는
-    호출자만 안다 — 골라 주는 척하면 안 된다.
+    붓은 **지문으로** 고른다. spec 이 세대를 명시하므로 이름이 같고 곡선이 다른 장은 그냥
+    다른 장이다. 다만 이름은 맞는데 그 세대가 하나도 없으면 **조용히 빈 지도를 주지 않고
+    에러다** — 데이터가 다른 세대뿐이라는 사실을 호출자가 알아야 한다.
     """
-    chosen = [
+    named = [
         sheet for sheet in sheets
         if sheet.radius_u == spec.projection.radius_u
         and sheet.grid_version == spec.projection.grid_version
         and sheet.profile == spec.projection.brush
-        and spec.selector.matches(sheet.at)
     ]
-    fingerprints = {sheet.profile_fp for sheet in chosen}
-    if len(fingerprints) > 1:
+    same_curve = [s for s in named if s.profile_fp == spec.projection.profile_fp]
+    if named and not same_curve:
         raise ValueError(
-            f"붓 '{spec.projection.brush}' 이름에 곡선 지문이 {len(fingerprints)}개다: "
-            f"{sorted(fingerprints)} — 같은 이름으로 감쇠를 바꾼 장이 섞여 있다"
+            f"붓 '{spec.projection.brush}' 의 지문 {spec.projection.profile_fp} 인 장이 없다. "
+            f"있는 지문: {sorted({s.profile_fp for s in named})} — 같은 이름으로 감쇠를 바꾼 "
+            f"장만 남아 있다"
         )
-    return chosen
+    return [sheet for sheet in same_curve if spec.selector.matches(sheet.at)]
 
 
 def render(sheets: Iterable[Cellophane], spec: LayerSpec, note: str = "") -> Layer:
