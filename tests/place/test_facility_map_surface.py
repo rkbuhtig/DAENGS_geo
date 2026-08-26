@@ -61,7 +61,8 @@ def test_facility_map_sends_parking_preference_only_when_explicitly_enabled():
     assert 'id="prefer-parking" type="checkbox"' in HTML
     assert "if ($('prefer-parking').checked) body.preferences = {parking:true};" in HTML
     assert "['dog', 'where', 'radius', 'prefer-parking']" in HTML
-    assert "장소를 빼지 않고 같은 500m 거리 구간 안에서만 우선한다" in HTML
+    assert "장소를 빼지 않고 서버가 정한 거리 구간 안에서만 우선한다" in HTML
+    assert "같은 500m 거리 구간" not in HTML
 
 
 def test_facility_map_explains_server_sort_and_three_state_parking_coverage():
