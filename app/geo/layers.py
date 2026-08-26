@@ -33,12 +33,13 @@ LLM 이 "여름 밤에 이쪽을 많이 다니셨네요" 라고 했을 때 무�
 
 import hashlib
 import json
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime
 
-from app.geo.cells import GRID_VERSION, Cell
+from app.geo.cells import GRID_VERSION, Cell, hex_center_latlng
 from app.geo.paint import Cellophane, Paint, stack
+from app.geo.region import Region, _point_in_ring, _projector
 
 LAYER_SPEC_VERSION = 1
 
@@ -248,7 +249,12 @@ def normalized_distance(a: Layer, b: Layer) -> float:
 
 
 def mass_in(field_values: dict[Cell, float], region: set[Cell], positive_only: bool = True) -> float:
-    """값의 총량 중 `region` 안에 든 비율. 평가기가 회수율을 잴 때 쓴다."""
+    """값의 총량 중 `region` 안에 든 비율. 평가기가 회수율을 잴 때 쓴다.
+
+    **"산책의 몇 %가 여기를 갔나" 가 아니다.** 그건 `region_visit_rate` 다. 이 함수는 값의
+    질량을 나누므로 양재천을 3km 걸은 산책과 100m 스친 산책을 30 배 차이로 센다.
+    화면에 "산책의 42%" 라고 쓰려고 이 값을 가져오면 틀린 숫자에 맞는 문장이 붙는다.
+    """
     items = field_values.items()
     if positive_only:
         items = [(c, v) for c, v in items if v > 0]
@@ -256,3 +262,86 @@ def mass_in(field_values: dict[Cell, float], region: set[Cell], positive_only: b
     if not total:
         return 0.0
     return sum(v for c, v in items if c in region) / total
+
+
+# ---- 면 방문률 -----------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class VisitRate:
+    """면 하나의 방문률. **분자·분모를 늘 달고 다닌다.**
+
+    비율만 들고 다니면 안 되는 이유가 이 표면에 실재한다 — 조건을 겹치면(저녁 ∩ 최근 30일)
+    분모가 금방 한 자리로 떨어진다. `5/7 = 71%` 와 `17/24 = 71%` 는 화면에서 같은 문장이
+    되지만 믿을 값이 아니다. `Layer` 가 `selected` 를 늘 달고 다니는 것과 같은 이유다.
+    """
+
+    region_id: str
+    region_version: int
+    visited: int          # 조건에 걸린 산책 중 이 면을 밟은 수
+    selected: int         # 조건에 걸린 산책 수 (분모)
+    total: int            # 조건을 걸기 전 전체 장 수
+    min_peak: float       # 무엇을 "밟았다" 로 셌나
+
+    @property
+    def rate(self) -> float:
+        return self.visited / self.selected if self.selected else 0.0
+
+
+def _touches(sheet: Cellophane, inside: Callable[[Cell], bool], min_peak: float) -> bool:
+    """이 장이 면을 밟았나 — 칸 하나라도 면 안이고 세기가 문턱 이상이면."""
+    for cell in sheet.occupancy:
+        if sheet.peak.get(cell, 0.0) >= min_peak and inside(cell):
+            return True
+    return False
+
+
+def region_visit_rate(sheets: Iterable[Cellophane], spec: LayerSpec, region: Region,
+                      *, min_peak: float | None = None) -> VisitRate:
+    """조건에 걸린 산책 **중 몇 번이 이 면을 밟았나.**
+
+    `mass_in` 과 다른 질문이다. 저쪽은 물감 질량의 배분이고 이쪽은 **산책을 센다** —
+    양재천 3km 와 100m 가 여기서는 똑같이 1 회다. 화면 문장("최근 30일 산책의 42%,
+    저녁 산책에선 71%")이 뜻하는 것이 이 값이다.
+
+    ## "밟았다" 를 무엇으로 세나
+
+    붓은 번진다. 그래서 칠해진 칸이 면 안에 있다는 것만으로는 **15m 옆을 지나간 산책**도
+    방문으로 셀 수 있다. `min_peak` 이 그 손잡이다 — 0 이면 붓이 닿기만 해도 방문이고,
+    높이면 심 안까지 들어온 산책만 센다.
+
+    **여기서 문턱을 정하지 않는다.** 기본값은 `spec.aggregation.min_peak` 을 따라가고
+    (겹치기와 같은 눈으로 보려고), 손잡이만 열어 둔다. 등급 문턱은
+    [territory-paint §C](../../docs/explorations/walk/territory-paint.md) 가 실기기 데이터를
+    기다리는 열린 결정이라, 제품 질의가 그걸 몰래 정하면 안 된다.
+
+    다만 이 손잡이가 존재할 수 있는 것 자체가 결정 #69 가 `peak` 을 버리지 않은 덕이다.
+    `occupancy` 만 남겼으면 "닿았다" 와 "들어왔다" 를 나중에 가를 방법이 없다.
+
+    면 판정은 **칸 중심**으로 한다 — 칸을 면으로 근사하는 오차는
+    [면 근사 측정](../../docs/research/2026-08-26-region-cell-fidelity.md)에 있다.
+    """
+    pool = list(sheets)
+    chosen = select(pool, spec)
+    threshold = spec.aggregation.min_peak if min_peak is None else min_peak
+    radius_u = spec.projection.radius_u
+
+    project = _projector(region.ring[0][0], region.ring[0][1])
+    ring = [project(lat, lng) for lat, lng in region.ring]
+    cache: dict[Cell, bool] = {}
+
+    def inside(cell: Cell) -> bool:
+        hit = cache.get(cell)
+        if hit is None:
+            hit = _point_in_ring(*project(*hex_center_latlng(*cell, radius_u)), ring)
+            cache[cell] = hit
+        return hit
+
+    return VisitRate(
+        region_id=region.id,
+        region_version=region.version,
+        visited=sum(1 for sheet in chosen if _touches(sheet, inside, threshold)),
+        selected=len(chosen),
+        total=len(pool),
+        min_peak=threshold,
+    )
