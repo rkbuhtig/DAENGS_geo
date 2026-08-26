@@ -35,16 +35,17 @@
 그 사실을 먼저 처리해야 한다 (`home_bias` 로 얼마나 튀는지 잰다).
 """
 
+import hashlib
 import math
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 
 from app.features.walk.facts import Segment
 from app.geo.cells import (
+    GRID_VERSION,
     Cell,
     cell_area_m2,
     hex_cell,
-    hex_center,
     hex_center_latlng,
     mercator,
     metres_per_unit,
@@ -96,6 +97,12 @@ class Cellophane:
     profile: str
     occupancy: dict[Cell, float]
     peak: dict[Cell, float]
+    # 아래 둘이 "같은 장인가" 의 실제 계약이다. 이름(`profile`)은 사람 몫이고, 겹쳐도 되는지는
+    # 지문이 정한다 — 이름만 보면 3 개월 뒤 누가 같은 이름으로 weights 를 바꿨을 때 옛 장과
+    # 새 장이 조용히 섞인다. 격자도 같다: radius 와 이름이 같아도 격자 수학이 hex-v2 로
+    # 바뀌었다면 (q, r) 이 다른 자리다.
+    grid_version: str = GRID_VERSION
+    profile_fp: str = ""
 
 
 @dataclass(frozen=True)
@@ -119,28 +126,43 @@ class BrushProfile:
     bands: tuple[float, ...]
     weights: tuple[float, ...]
     smooth: bool = False
+    _pairs: tuple = field(default=(), repr=False, compare=False)
 
     def __post_init__(self) -> None:
         if len(self.bands) != len(self.weights) or not self.bands:
             raise ValueError("bands 와 weights 는 길이가 같고 비어 있지 않아야 한다")
         if list(self.bands) != sorted(self.bands):
             raise ValueError("bands 는 오름차순이어야 한다")
+        # (반경, 세기) 쌍을 미리 묶는다. weight_at 은 점 하나마다 수십 번 불리는 자리라
+        # 매번 zip 을 만들면 그것만으로 시간이 간다.
+        object.__setattr__(self, "_pairs", tuple(zip(self.bands, self.weights, strict=True)))
 
     @property
     def reach_m(self) -> float:
         return self.bands[-1]
 
+    @property
+    def fingerprint(self) -> str:
+        """감쇠 곡선의 지문 — bands · weights · smooth. 이름과 달리 **바꾸면 반드시 바뀐다.**
+
+        이름은 표시용이고 지문이 동일성이다. 같은 이름으로 곡선을 바꾸면 spec 상 같은 붓처럼
+        보이는 문제를 여기서 막는다 — "이름을 꼭 바꾼다" 는 규율에 기대지 않는다.
+        """
+        blob = f"{self.bands}|{self.weights}|{self.smooth}"
+        return hashlib.sha256(blob.encode()).hexdigest()[:12]
+
     def weight_at(self, distance: float) -> float:
         """중심에서 `distance` 만큼 떨어진 곳에 묻는 물감의 양. 밖이면 0."""
-        if distance > self.bands[-1]:
+        pairs = self._pairs
+        if distance > pairs[-1][0]:
             return 0.0
         if not self.smooth:
-            for band, weight in zip(self.bands, self.weights, strict=True):
+            for band, weight in pairs:
                 if distance <= band:
                     return weight
             return 0.0
-        previous_band, previous_weight = 0.0, self.weights[0]
-        for band, weight in zip(self.bands, self.weights, strict=True):
+        previous_band, previous_weight = 0.0, pairs[0][1]
+        for band, weight in pairs:
             if distance <= band:
                 span = band - previous_band
                 if span <= 0:
@@ -181,20 +203,31 @@ def brush_stamp(
 
     붓이 셀보다 작아도 **최소 한 칸**은 칠한다 — 지나갔는데 아무것도 안 남으면 구멍이 뚫린다.
     """
-    home = hex_cell(lat, lng, radius_u)
+    home_q, home_r = hex_cell(lat, lng, radius_u)
     scale = metres_per_unit(lat)                      # 단위 → 미터
     reach_u = profile.reach_m / scale
     reach = math.ceil(reach_u / (NEIGHBOUR_FACTOR * radius_u)) + 1
     x, y = mercator(lat, lng)
+    # hex_center 를 안쪽 루프에서 부르지 않고 선형 관계를 펼친다. 점 하나마다 수십 칸을
+    # 훑는 자리라 함수 호출 하나가 전체 시간을 지배한다.
+    span = radius_u * NEIGHBOUR_FACTOR
+    rise = radius_u * 1.5
+    limit_sq = reach_u * reach_u
+    weight_at = profile.weight_at
     out: list[tuple[Cell, float]] = []
     for dq in range(-reach, reach + 1):
+        q = home_q + dq
         for dr in range(max(-reach, -dq - reach), min(reach, -dq + reach) + 1):
-            cell = (home[0] + dq, home[1] + dr)
-            cx, cy = hex_center(*cell, radius_u)
-            weight = profile.weight_at(math.hypot(cx - x, cy - y) * scale)
+            r = home_r + dr
+            dx = span * (q + r * 0.5) - x
+            dy = rise * r - y
+            d_sq = dx * dx + dy * dy
+            if d_sq > limit_sq:                       # 도달 밖 — 제곱으로 먼저 자른다
+                continue
+            weight = weight_at(math.sqrt(d_sq) * scale)
             if weight > 0:
-                out.append((cell, weight))
-    return out or [(home, profile.weights[0])]
+                out.append(((q, r), weight))
+    return out or [((home_q, home_r), profile.weights[0])]
 
 
 def paint_sheet(
@@ -226,7 +259,8 @@ def paint_sheet(
                 if weight > peak.get(cell, 0.0):
                     peak[cell] = weight
     return Cellophane(walk_id=walk_id, at=at, radius_u=radius_u, profile=profile.name,
-                      occupancy=occupancy, peak=peak)
+                      occupancy=occupancy, peak=peak,
+                      grid_version=GRID_VERSION, profile_fp=profile.fingerprint)
 
 
 def stack(sheets: list[Cellophane], min_peak: float = 0.0) -> dict[Cell, Paint]:
