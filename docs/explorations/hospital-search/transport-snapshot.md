@@ -1,7 +1,7 @@
 ---
 status: parked
-implementation: working-skeleton
-last_verified: 2026-08-24
+implementation: none
+last_verified: 2026-08-26
 date: 2026-08-19
 depends-on: 네이버 or 카카오모빌리티 키(자동차), 카카오 신규 도보 API 스펙 확인(폴백)
 live: TMAP 도보 실호출 검증 완료 (research/2026-08-19-tmap-live.md)
@@ -9,10 +9,17 @@ research: ../../research/2026-08-19-route-apis.md
 ---
 # 교통 스냅샷 — 네비가 아니라 비교표
 
-> 공용 `POST /journey`, provider 경계와 `measured/estimate/unavailable` 계약은 유지한다.
-> 다중 도보 옵션 비교와 계단·육교 advice 는 결정 #66 으로 **기각**했다 — parked 가 아니라
-> 코드가 없다. 남은 advice 재료는 시간·개 프로필·기온·지하보도·횡단보도다. 기본 조립은
-> 모든 모드가 `fake` estimate다.
+> **이 문서에 남은 미결은 하나다 — 자동차·대중교통 실측 제공사.** 키와 선정만 있으면
+> 돌아오므로 `parked` 다.
+>
+> 나머지 둘은 여기 없다.
+> - **살아 있는 것**(`POST /journey` 응답 형태, provider 어댑터 계약, `measured/estimate/
+>   unavailable`)은 [journey-view](journey-view.md)(adopted)와
+>   [provider-assembly](../../provider-assembly.md)가 소유한다. 여기 있던 사본은 지웠다 —
+>   한 사실을 두 곳에서 고치다 실제로 한쪽을 빠뜨렸다
+> - **기각된 것**(다중 도보 옵션 비교, 계단·육교 advice)은 결정 #66 으로 코드가 없다.
+>   아래 `역할 분담`·`호출 전략`이 그 설계이고, 무엇을 하려 했는지가 288경로 조사를 읽는
+>   맥락이라 기록으로 남긴다
 
 병원마다 **같은 칸**에 이동 정보를 찍는다. 순간 안내는 제공사 앱으로 넘기고(딥링크), 우리는 "걸으면 35분인데 차로 11분"이 한눈에 보이는 정적 비교만.
 
@@ -59,22 +66,6 @@ research: ../../research/2026-08-19-route-apis.md
 ```
 **휴리스틱과 실측을 화면에서 구분.** "약 13분" ≠ "13분".
 
-## 응답 형태
-```jsonc
-"transport": {
-  "as_of": "2026-08-19T23:00+09:00",
-  "straight_m": 2100,
-  "walk": {
-    "min": 43, "m": 2500, "source": "estimate|tmap",
-    "facilities": { "crosswalk": 4, "stairs": 1, "underpass": 1, "overpass": 0, "elevator": 0 },
-    "advice": "ok|caution|avoid", "why": ["지하 통로 1곳 — 대형견 스트레스", "폭염"]
-  },
-  "car":     { "min": 10, "m": 2600, "taxi_fare": 5700, "source": "estimate|naver|kakaomobility" },
-  "transit": null   // size_class != small → 없음
-}
-```
-`advice`가 daengs 고유값. 나머지는 어느 앱에나 있음.
-
 ## 정렬
 초안은 직선. 모드 정하면 실측 소요시간. **직선 순위와 실측 순위가 크게 뒤집히면**(강·철도·단지 담장) `changes`에 한 줄: "직선은 가깝지만 실제론 돌아가요". 서버가 두 값 비교해 생성, LLM 아님.
 
@@ -82,10 +73,6 @@ research: ../../research/2026-08-19-route-apis.md
 - 큰길 횡단 대기·그늘·보도 폭 — TMAP도 안 줌 (서울동행맵은 주지만 API 없음)
 - 주차 — 데이터 없음. `condition-schema` 수기 항목
 - 챗봇 카드 정적 이미지에 경로선 — 네이버 Static Map에 `path` 없음. 경로선은 앱 지도에서. 카드는 마커+숫자 (`static-card` 갈래로 분리, 후순위)
-
-## 어댑터
-`MapProvider`에 `route(mode, from, to) → {distance_m, duration_s, polyline, facilities?, taxi_fare?}` 추가. 3→4메서드. 모드별 구현체 다름.
-(`option` 인자는 결정 #66 으로 제거했다.)
 
 ## 선이 1급 (2026-08-19, decisions #24)
 - 실측(상위 N) 도보 경로는 `walk.polyline`(Google encoded, precision 5)로 **기본 포함**. `polyline_points` 병기. 옵트인 제거
