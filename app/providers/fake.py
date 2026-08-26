@@ -7,13 +7,13 @@
 TMAP 이 죽은 날 노령·관절견의 경로에 **실측된 적 없는 "계단 1회 — 노령" 경고**가 붙었다.
 결정 #21 이 "폴백은 시간·거리만, 틀린 시설정보는 없는 것보다 나쁨" 이라 못박은 그 지점이다.
 
-같은 이유로 옵션(no_stairs·main_road)이 거리를 바꾸지 않는다. 계단이 있는지도 모르는데
-"계단을 피해서 8% 돌아간다"고 할 수 없다. 옵션 비교는 실측일 때만 의미가 있다.
+도보 옵션이라는 개념 자체는 결정 #66 으로 없앴다. 여기 있던 "옵션이 거리를 안 바꾼다"는
+설명도 그때 같이 사라졌다 — 바꾸지 않을 옵션이 없다.
 """
 
 import math
 
-from app.providers.base import LatLng, Mode, RouteResult, StaticMapSpec, WalkOption
+from app.providers.base import LatLng, Mode, RouteResult, StaticMapSpec
 
 DETOUR = {"walk": 1.3, "car": 1.4, "transit": 1.5}
 SPEED_MPS = {"walk": 1.0, "car": 5.5, "transit": 4.0}   # 도보 3.6km/h(횡단 대기 포함), 차 도심 20km/h
@@ -40,8 +40,7 @@ class FakeProvider:
     async def reverse_geocode(self, pos: LatLng) -> str | None:
         return None
 
-    async def route(self, mode: Mode, origin: LatLng, dest: LatLng,
-                    option: WalkOption = "recommended") -> RouteResult | None:
+    async def route(self, mode: Mode, origin: LatLng, dest: LatLng) -> RouteResult | None:
         straight = haversine_m(origin, dest)
         dist = straight * DETOUR[mode]
         dur = dist / SPEED_MPS[mode]
@@ -53,5 +52,4 @@ class FakeProvider:
         return RouteResult(
             mode=mode, distance_m=int(dist), duration_s=int(dur), source="estimate",
             polyline=(origin, dest), facilities=None, taxi_fare=taxi, fare=fare,
-            option=option if mode == "walk" else None,
         )

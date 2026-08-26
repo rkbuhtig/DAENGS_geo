@@ -52,8 +52,6 @@ class Leg(BaseModel):
     provider_min: int | None = None
     m: int | None = None
     source: str = "none"            # estimate | tmap | naver | kakaomobility
-    option: str | None = None
-    option_label: str | None = None
     facilities: dict[str, int | float] | None = None
     road_mix: RoadMix | None = None
     taxi_fare: int | None = None

@@ -10,7 +10,6 @@ from app.providers.base import (
     Mode,
     RouteResult,
     StaticMapSpec,
-    WalkOption,
 )
 from app.usage.gate import UsageGate
 from app.usage.models import MeasuredRouteIntent, StaticMapIntent
@@ -58,17 +57,11 @@ class MeteredRouteProvider:
     async def reverse_geocode(self, pos: LatLng) -> str | None:
         return await self._inner.reverse_geocode(pos)
 
-    async def route(
-        self,
-        mode: Mode,
-        origin: LatLng,
-        dest: LatLng,
-        option: WalkOption = "recommended",
-    ) -> RouteResult | None:
-        intent = MeasuredRouteIntent(mode=mode, option=option)
+    async def route(self, mode: Mode, origin: LatLng, dest: LatLng) -> RouteResult | None:
+        intent = MeasuredRouteIntent(mode=mode)
         permit = await self._gate.check(intent)
 
-        key = self._cache_key(mode, origin, dest, option)
+        key = self._cache_key(mode, origin, dest)
         hit = self._cache.get(key)
         if hit:
             if time.monotonic() - hit[0] < _ROUTE_TTL[mode]:
@@ -80,7 +73,7 @@ class MeteredRouteProvider:
             del self._cache[key]
 
         await self._gate.consume(intent, permit)
-        result = await self._inner.route(mode, origin, dest, option)
+        result = await self._inner.route(mode, origin, dest)
         if result is not None:
             if len(self._cache) >= _ROUTE_CACHE_MAX:
                 self._cache.popitem(last=False)
@@ -91,12 +84,13 @@ class MeteredRouteProvider:
         return len(self._cache)
 
     @staticmethod
-    def _cache_key(mode: Mode, origin: LatLng, dest: LatLng, option: WalkOption) -> tuple:
+    def _cache_key(mode: Mode, origin: LatLng, dest: LatLng) -> tuple:
+        # 도보 옵션 차원은 #66 으로 없앴다 — 가능한 값이 하나뿐이라 분할 역할을 못 했다.
+        # 캐시는 프로세스 메모리라 배포 시 그냥 비워진다.
         return (
             mode,
             round(origin.lat, 4),
             round(origin.lng, 4),
             round(dest.lat, 4),
             round(dest.lng, 4),
-            option if mode == "walk" else "",
         )

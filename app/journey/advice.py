@@ -11,8 +11,6 @@
 from app.profile.contract import DogProfile
 from app.providers.base import Facilities, RouteResult
 
-OPTION_LABEL = {"recommended": "골목 섞인 추천", "main_road": "큰길 위주", "shortest": "최단", "no_stairs": "계단 제외"}
-
 
 def dog_time_factor(profile: DogProfile | None) -> float:
     """제공사 도보 시간은 성인 4.4km/h(TMAP 실측). 개 데리고는 느리다."""

@@ -40,14 +40,13 @@ class SpyRouteProvider:
     async def reverse_geocode(self, pos):
         return None
 
-    async def route(self, mode, origin, dest, option="recommended"):
+    async def route(self, mode, origin, dest):
         self.calls += 1
         return RouteResult(
             mode=mode,
             distance_m=100,
             duration_s=60,
             source=self.name,
-            option=option,
         )
 
 
@@ -105,7 +104,7 @@ async def test_default_policy_denies_all_three_real_call_edges():
 
 async def test_dev_policy_enforces_request_and_window_limits_without_refund():
     gate = small_dev_gate(request_units=2, window_units=3)
-    intent = MeasuredRouteIntent(mode="walk", option="recommended")
+    intent = MeasuredRouteIntent(mode="walk")
 
     async with usage_request_scope():
         for _ in range(2):
