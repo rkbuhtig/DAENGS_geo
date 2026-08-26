@@ -143,6 +143,55 @@ async def test_identical_rank_is_stable_before_the_limit_cutoff():
             await _clean(session)
 
 
+async def test_null_source_ref_legacy_tie_falls_back_to_id():
+    """외부 ref가 없는 legacy 동률은 마지막 내부 id로 LIMIT 후보를 안정화한다."""
+    async with db_session() as session:
+        await _clean(session)
+        try:
+            lng = TEST_ORIGIN[1] + 250 / 91_000.0
+            await session.execute(text("""
+                INSERT INTO facility (
+                    source, source_ref, name, kind, category3, location,
+                    snapshot, parking, pet
+                ) VALUES
+                    (:source, NULL, 'legacy-first', 'cafe', 'cafe',
+                     ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography,
+                     :snapshot, true, '{}'::jsonb),
+                    (:source, NULL, 'legacy-second', 'cafe', 'cafe',
+                     ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography,
+                     :snapshot, true, '{}'::jsonb)
+            """), {
+                "source": SOURCES[0],
+                "lat": TEST_ORIGIN[0],
+                "lng": lng,
+                "snapshot": SNAPSHOT,
+            })
+            await session.commit()
+
+            expected_id = (await session.execute(text("""
+                SELECT id
+                FROM facility
+                WHERE source = :source AND source_ref IS NULL
+                ORDER BY id
+                LIMIT 1
+            """), {"source": SOURCES[0]})).scalar_one()
+
+            out = await facility_search(
+                FacilityParams(
+                    lat=TEST_ORIGIN[0], lng=TEST_ORIGIN[1], radius_m=RADIUS_M,
+                    kind="cafe", parking=True, limit=1,
+                ),
+                session,
+            )
+
+            assert out.results[0].id == expected_id
+            assert out.results[0].source_ref is None
+            assert out.results[0].name == "legacy-first"
+            assert out.truncated is True
+        finally:
+            await _clean(session)
+
+
 async def test_borrowed_parking_also_earns_the_boost():
     """
     Contract: `parking` 은 빌려올 수 있는 필드다. 병합 전 자기 컬럼만 보고 순위를 매기면
