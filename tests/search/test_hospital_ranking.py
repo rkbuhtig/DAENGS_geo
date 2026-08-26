@@ -13,8 +13,8 @@
 남의 행이 사이에 끼어도 계약은 그대로 검증된다.
 """
 
+from app.discovery.state import EditableState
 from app.features.hospital.api import HospitalSearchIn, hospital_search
-from app.planning.state import EditableState
 from tests.conftest import TEST_ORIGIN, place_row, seeded_places
 
 # 같은 500m 밴드 안의 두 곳. 밴드가 같아야 boost 가 순서를 뒤집을 수 있어서 —

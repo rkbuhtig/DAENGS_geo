@@ -9,12 +9,12 @@ from datetime import datetime
 import pytest
 from pydantic import ValidationError
 
+from app.discovery.refine import tools
+from app.discovery.refine.engine import refine
+from app.discovery.refine.nl import ToolCall
+from app.discovery.refine.tools import ToolInputError
+from app.discovery.state import CURRENT_STATE_VERSION, EditableState
 from app.features.hospital.api import Edit, HospitalSearchIn, hospital_search
-from app.planning.state import CURRENT_STATE_VERSION, EditableState
-from app.refine import tools
-from app.refine.engine import refine
-from app.refine.nl import ToolCall
-from app.refine.tools import ToolInputError
 from tests.conftest import TEST_ORIGIN, seeded_places
 
 

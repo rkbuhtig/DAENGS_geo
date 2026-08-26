@@ -4,10 +4,10 @@ v0는 LLM을 부르지 않는다. 결과 0곳의 복구와 불명확한 질문�
 전화는 후보마다 대상이 다르므로 검색 전체 액션이 아니라 결과 카드의 기본 행동으로 남긴다.
 """
 
-from app.planning.state import EditableState
-from app.refine import tools
-from app.refine.actions import Edit, SuggestedAction
-from app.refine.labels import format_distance_m, value_label
+from app.discovery.refine import tools
+from app.discovery.refine.actions import Edit, SuggestedAction
+from app.discovery.refine.labels import format_distance_m, value_label
+from app.discovery.state import EditableState
 
 MAX_ACTIONS = 3
 MAX_RADIUS_M = 20_000

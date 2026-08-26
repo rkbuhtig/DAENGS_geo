@@ -10,6 +10,9 @@ from datetime import UTC, datetime
 import pytest
 from sqlalchemy import text
 
+from app.discovery.facts import RuntimeFacts
+from app.discovery.resolver import resolve_request
+from app.discovery.state import EditableState
 from app.geo.ranking import (
     DISTANCE_BAND_M,
     band_boost_sorted,
@@ -19,9 +22,6 @@ from app.geo.ranking import (
 )
 from app.geo.schemas import SearchParams
 from app.geo.search import search_places
-from app.planning.facts import RuntimeFacts
-from app.planning.resolver import resolve_request
-from app.planning.state import EditableState
 from tests.conftest import TEST_ORIGIN, TEST_SOURCE, place_row, seeded_places
 
 AT = datetime(2026, 8, 25, 22, 0, tzinfo=UTC)

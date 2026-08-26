@@ -1,13 +1,13 @@
 import pytest
 from pydantic import ValidationError
 
+from app.discovery.refine import tools
+from app.discovery.refine.actions import Edit, SuggestedAction
+from app.discovery.refine.engine import refine
+from app.discovery.refine.nl import ToolCall
+from app.discovery.state import EditableState
 from app.features.hospital.actions import build_actions
 from app.features.hospital.api import HospitalSearchIn, hospital_search
-from app.planning.state import EditableState
-from app.refine import tools
-from app.refine.actions import Edit, SuggestedAction
-from app.refine.engine import refine
-from app.refine.nl import ToolCall
 from tests.conftest import TEST_ORIGIN, seeded_places
 
 

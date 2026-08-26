@@ -3,12 +3,12 @@ from datetime import UTC, datetime
 
 import pytest
 
-from app.planning.state import EditableState
+from app.discovery.refine import tools
+from app.discovery.refine.diff import changes
+from app.discovery.refine.engine import draft, refine
+from app.discovery.refine.nl import FakeLLM, ToolCall
+from app.discovery.state import EditableState
 from app.profile.source import PERSONAS
-from app.refine import tools
-from app.refine.diff import changes
-from app.refine.engine import draft, refine
-from app.refine.nl import FakeLLM, ToolCall
 
 S = EditableState(lat=37.4979, lng=127.0276)
 
@@ -197,7 +197,13 @@ async def test_refine_question_leaves_state():
 
 # --- 정책 경계 (state.py) --------------------------------------------------
 def test_every_tool_belongs_to_exactly_one_policy():
-    from app.refine.tools import CONTEXT_TOOLS, JOURNEY_TOOLS, TARGET_TOOLS, TOOLS, VIEW_TOOLS
+    from app.discovery.refine.tools import (
+        CONTEXT_TOOLS,
+        JOURNEY_TOOLS,
+        TARGET_TOOLS,
+        TOOLS,
+        VIEW_TOOLS,
+    )
     groups = [set(CONTEXT_TOOLS), set(TARGET_TOOLS), set(JOURNEY_TOOLS), set(VIEW_TOOLS)]
     assert set().union(*groups) == set(TOOLS)                  # 빠진 툴 없음
     for i, a in enumerate(groups):                             # 겹치는 툴 없음
@@ -211,7 +217,7 @@ def test_context_tools_touch_neither_target_nor_journey():
     '급하다'가 target 을 직접 건드리면 journey 는 그걸 영영 못 본다 — `emergency` 가
     정확히 그 상태였다. 사영은 resolver 한 곳에서만 일어나야 하고, 툴은 사실만 적는다.
     """
-    from app.refine.tools import CONTEXT_TOOLS
+    from app.discovery.refine.tools import CONTEXT_TOOLS
     args = {"set_urgency": {"level": "urgent"},
             "set_time_intent": {"kind": "service_at", "at": datetime(2026, 8, 20, 15, 0, tzinfo=UTC)}}
     for name, fn in CONTEXT_TOOLS.items():
@@ -230,14 +236,14 @@ def test_reset_clears_filters_but_keeps_the_situation():
 
 
 def test_tool_specs_cover_all_tools_with_policy():
-    from app.refine.tools import TOOL_SPECS, TOOLS, policy_of
+    from app.discovery.refine.tools import TOOL_SPECS, TOOLS, policy_of
     spec_names = {t["name"] for t in TOOL_SPECS} - {"ask"}
     assert spec_names == set(TOOLS)
     assert all(t["policy"] == policy_of(t["name"]) for t in TOOL_SPECS if t["name"] != "ask")
 
 
 def test_journey_tools_never_touch_target():
-    from app.refine.tools import JOURNEY_TOOLS
+    from app.discovery.refine.tools import JOURNEY_TOOLS
     args = {"set_mode": {"mode": "car"}, "set_max_total_min": {"minutes": 10},
             "set_walk_max_min": {"minutes": 10}}
     assert set(args) == set(JOURNEY_TOOLS), "툴이 늘거나 줄었는데 이 표가 안 따라왔다"
@@ -247,7 +253,7 @@ def test_journey_tools_never_touch_target():
 
 
 def test_target_tools_never_touch_journey():
-    from app.refine.tools import TARGET_TOOLS
+    from app.discovery.refine.tools import TARGET_TOOLS
     args = {"set_origin": {"lat": 37.6, "lng": 127.1}, "set_radius": {"m": 500}, "widen": {},
             "narrow": {}, "set_open_now": {}, "set_night_service": {},
             "set_emergency_service": {},
@@ -260,7 +266,7 @@ def test_target_tools_never_touch_journey():
 
 
 def test_diff_groups_by_policy():
-    from app.refine.diff import changes_by_policy
+    from app.discovery.refine.diff import changes_by_policy
     s = tools.set_walk_max_min(tools.narrow(S), 10)
     g = changes_by_policy(S, s)
     assert any("반경" in c for c in g["target"])
@@ -291,7 +297,7 @@ def test_nl_emits_mode_explicitly_instead_of_letting_a_tool_set_it():
     """
     import asyncio
 
-    from app.refine.nl import FakeLLM
+    from app.discovery.refine.nl import FakeLLM
     plan = asyncio.run(FakeLLM().plan("걸어서 15분 안에", S, [], ""))
     assert [c.tool for c in plan] == ["set_mode", "set_max_total_min"]
 
@@ -304,7 +310,7 @@ def test_nl_merges_accumulating_tools_instead_of_dropping():
     """
     import asyncio
 
-    from app.refine.nl import FakeLLM
+    from app.discovery.refine.nl import FakeLLM
     plan = asyncio.run(FakeLLM().plan("24시 하는 큰 병원", S, [], ""))
     tags = next(c.args["tags"] for c in plan if c.tool == "require")
     assert set(tags) == {"24h", "center"}, tags
@@ -317,7 +323,7 @@ def test_symptoms_stay_verbatim_and_translate_to_nothing():
     """
     import asyncio
 
-    from app.refine.nl import FakeLLM
+    from app.discovery.refine.nl import FakeLLM
     for utt in ("숨을 헐떡여요", "뒷다리를 절뚝거려요", "눈이 뿌옇게 됐어요", "자꾸 긁어요"):
         plan = asyncio.run(FakeLLM().plan(utt, S, [], ""))
         assert [c.tool for c in plan] == ["note_symptoms"], f"{utt} -> {plan}"

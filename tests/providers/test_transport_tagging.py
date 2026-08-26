@@ -1,10 +1,10 @@
 from datetime import UTC, datetime
 
+from app.discovery.facts import RuntimeFacts
+from app.discovery.resolver import resolve_request
+from app.discovery.state import EditableState
 from app.geo.tagging import dog_ok, tags_for
 from app.journey.advice import walk_advice
-from app.planning.facts import RuntimeFacts
-from app.planning.resolver import resolve_request
-from app.planning.state import EditableState
 from app.profile.source import PERSONAS
 from app.providers.base import LatLng
 from app.providers.fake import FakeProvider

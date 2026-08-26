@@ -9,7 +9,7 @@
 import pytest
 from pydantic import ValidationError
 
-from app.planning.semantics import (
+from app.discovery.semantics import (
     TimeIntent,
     UrgencySignal,
     planning_urgency,

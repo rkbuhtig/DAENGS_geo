@@ -10,12 +10,12 @@
 
 from dataclasses import dataclass, field
 
-from app.planning.state import EditableState
+from app.discovery.refine import tools
+from app.discovery.refine.diff import changes as diff_changes
+from app.discovery.refine.diff import changes_by_policy
+from app.discovery.refine.nl import ToolCall, llm
+from app.discovery.state import EditableState
 from app.profile.contract import DogProfile
-from app.refine import tools
-from app.refine.diff import changes as diff_changes
-from app.refine.diff import changes_by_policy
-from app.refine.nl import ToolCall, llm
 
 
 @dataclass
