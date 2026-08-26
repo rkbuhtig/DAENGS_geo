@@ -1,0 +1,151 @@
+{
+  "conditions": {
+    "dog_id": "janggun",
+    "dog_size": "large",
+    "dog_weight_kg": 34.0
+  },
+  "groups": [
+    {
+      "kind": "cafe",
+      "sort": {
+        "type": "distance_preferred",
+        "basis": ["distance_band", "parking", "distance_m"],
+        "applied": ["parking"],
+        "band_m": 500,
+        "coverage": {
+          "parking": {"known_true": 1, "known_false": 0, "unknown": 1}
+        }
+      },
+      "limit": 2,
+      "truncated": false,
+      "results": [
+        {
+          "place": {
+            "key": {"source": "kcisa", "ref": "cafe-parking"},
+            "aliases": [],
+            "name": "먼 주차 카페",
+            "lat": 37.556,
+            "lng": 126.923,
+            "distance_m": 420,
+            "match": {
+              "source": {"source": "kcisa", "ref": "cafe-parking"},
+              "kind": "cafe"
+            },
+            "classifications": [
+              {
+                "source": {"source": "kcisa", "ref": "cafe-parking"},
+                "source_category": "반려동물 동반 카페",
+                "kind": "cafe",
+                "mapping_version": "2026-08-26",
+                "as_of": "2026-08-26"
+              }
+            ],
+            "facts": {
+              "address": "서울 마포구",
+              "phone": "02-000-0000",
+              "parking": true,
+              "indoor": true,
+              "outdoor": null,
+              "pet_access": {
+                "raw": {"restriction": "대형견 제한"},
+                "allowed": true,
+                "exclusive": false,
+                "dog_ok": true,
+                "size_class": "medium",
+                "max_kg": null
+              }
+            },
+            "field_sources": {
+              "facts.parking": {
+                "source": {"source": "kcisa", "ref": "cafe-parking"},
+                "as_of": "2026-08-26"
+              }
+            },
+            "icon_group": "food"
+          },
+          "evaluations": {
+            "dog_access": {"state": "incompatible", "reason": "size_exceeded"}
+          }
+        },
+        {
+          "place": {
+            "key": {"source": "kto", "ref": "cafe-unknown"},
+            "aliases": [],
+            "name": "가까운 정보 미상 카페",
+            "lat": 37.555,
+            "lng": 126.922,
+            "distance_m": 110,
+            "match": {
+              "source": {"source": "kto", "ref": "cafe-unknown"},
+              "kind": "cafe"
+            },
+            "classifications": [
+              {
+                "source": {"source": "kto", "ref": "cafe-unknown"},
+                "source_category": "카페",
+                "kind": "cafe",
+                "mapping_version": "2026-08-26",
+                "as_of": null
+              }
+            ],
+            "facts": {"parking": null},
+            "field_sources": {},
+            "icon_group": "future-icon"
+          },
+          "evaluations": {
+            "dog_access": {"state": "unknown", "reason": "missing_restriction"}
+          }
+        }
+      ]
+    },
+    {
+      "kind": "hospital",
+      "sort": {
+        "type": "distance",
+        "basis": ["distance_m"]
+      },
+      "limit": 2,
+      "truncated": false,
+      "results": [
+        {
+          "place": {
+            "key": {"source": "mois_vet", "ref": "vet-1"},
+            "aliases": [],
+            "name": "댕스동물병원",
+            "lat": 37.557,
+            "lng": 126.924,
+            "distance_m": 90,
+            "match": {
+              "source": {"source": "mois_vet", "ref": "vet-1"},
+              "kind": "hospital"
+            },
+            "classifications": [
+              {
+                "source": {"source": "mois_vet", "ref": "vet-1"},
+                "source_category": "동물병원",
+                "kind": "hospital",
+                "mapping_version": "2026-08-26",
+                "as_of": "2026-08-26"
+              }
+            ],
+            "facts": {
+              "parking": null,
+              "medical": {
+                "active": true,
+                "license_status_code": "01",
+                "license_status_name": "영업",
+                "open_now": null,
+                "hours_today": [["09:00", "18:00"]],
+                "area_m2": 84.5,
+                "staff_count": 3
+              }
+            },
+            "field_sources": {},
+            "icon_group": "medical"
+          },
+          "evaluations": {}
+        }
+      ]
+    }
+  ]
+}
