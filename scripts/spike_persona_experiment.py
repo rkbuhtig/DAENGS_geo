@@ -74,7 +74,8 @@ def spec(metric: str = "walks", **tags) -> LayerSpec:
     return LayerSpec(
         selector=Selector.of(**tags),
         aggregation=Aggregation(metric=metric),
-        projection=Projection(radius_u=RADIUS_U, brush=PROFILE.name),
+        projection=Projection(radius_u=RADIUS_U, brush=PROFILE.name,
+                              profile_fp=PROFILE.fingerprint),
     )
 
 

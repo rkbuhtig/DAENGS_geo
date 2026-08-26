@@ -1,6 +1,8 @@
 """스파이크 뷰어에 넣을 OSM 배경 타일을 받아 data URI 로 굽는다.
 
     uv run python -m scripts.spike_basemap --walks walks.json --out basemap.json
+    uv run python -m scripts.spike_basemap --scenes layer-scenes.json --out basemap.json
+    uv run python -m scripts.spike_basemap --bbox 37.485 127.041 37.493 127.056 --out basemap.json
 
 ## 왜 미리 받나
 
@@ -49,19 +51,34 @@ def main(argv: list[str] | None = None) -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--walks", required=True)
+    parser.add_argument("--walks", help="spike_real_route/persona_year 가 만든 경로 JSON")
+    parser.add_argument("--scenes", help="spike_layer_scenes 가 만든 JSON — bbox 를 그대로 쓴다")
+    parser.add_argument("--bbox", nargs=4, type=float,
+                        metavar=("SOUTH", "WEST", "NORTH", "EAST"))
     parser.add_argument("--out", required=True)
     parser.add_argument("--zoom", type=int, default=17)
     parser.add_argument("--margin", type=float, default=0.0012, help="bbox 여유(도)")
     args = parser.parse_args(argv)
 
-    with open(args.walks, encoding="utf-8") as handle:
-        source = json.load(handle)
-    points = [p for walk in source["walks"] for p in walk]
-    lats = [p[0] for p in points]
-    lngs = [p[1] for p in points]
-    south, north = min(lats) - args.margin, max(lats) + args.margin
-    west, east = min(lngs) - args.margin, max(lngs) + args.margin
+    # 입력 셋을 받는 이유: 장면 생성기가 이미 bbox 를 정확히 계산해 두는데, 그걸 쓰려고
+    # 경로 배열 흉내를 낸 임시 파일을 만들게 하면 재현 명령이 그만큼 거짓말이 된다.
+    if args.scenes:
+        with open(args.scenes, encoding="utf-8") as handle:
+            south, west, north, east = json.load(handle)["bbox"]
+    elif args.bbox:
+        south, west, north, east = args.bbox
+    elif args.walks:
+        with open(args.walks, encoding="utf-8") as handle:
+            source = json.load(handle)
+        points = [p for walk in source["walks"] for p in walk]
+        lats = [p[0] for p in points]
+        lngs = [p[1] for p in points]
+        south, north = min(lats), max(lats)
+        west, east = min(lngs), max(lngs)
+    else:
+        parser.error("--walks · --scenes · --bbox 중 하나는 있어야 한다")
+    south, north = south - args.margin, north + args.margin
+    west, east = west - args.margin, east + args.margin
 
     x0, y1 = deg2num(south, west, args.zoom)
     x1, y0 = deg2num(north, east, args.zoom)

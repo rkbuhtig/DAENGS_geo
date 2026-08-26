@@ -90,6 +90,7 @@ def main(argv: list[str] | None = None) -> int:
                     selector=Selector.of(**tags),
                     aggregation=Aggregation(metric="walks", min_peak=min_peak),
                     projection=Projection(radius_u=RADIUS_U, brush=PROFILE.name,
+                                          profile_fp=PROFILE.fingerprint,
                                           grid_version=GRID_VERSION),
                 )
                 layer = render(person.sheets, spec)
