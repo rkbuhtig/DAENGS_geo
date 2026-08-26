@@ -29,6 +29,8 @@ from app.ingest.facility_store import prune_unseen, upsert_rows
 from app.ingest.linking import rebuild_links
 
 SOURCE = "public:kcisa:pet_facility"
+# v1은 KCISA/KTO 용품을 모두 goods로 접었던 규칙. v2부터 원천 category를 보존해 pet_shop이다.
+KIND_MAPPING_VERSION = "kcisa-category3/2"
 
 # 카테고리3 → kind 슬러그. 새 값이 나타나면 'etc'로 눕히고 category3 원문으로 추적한다.
 KINDS = {

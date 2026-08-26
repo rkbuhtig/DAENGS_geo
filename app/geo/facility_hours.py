@@ -14,7 +14,7 @@ from app.geo.schemas import PlaceOut
 _HOURS = text("""
 SELECT DISTINCT ON (l.source_ref)
        l.source_ref::bigint AS place_id,
-       f.hours_text, f.closed_days, f.source,
+       f.hours_text, f.closed_days, f.source, f.source_ref,
        COALESCE(f.last_written::text, f.snapshot) AS as_of
 FROM facility_link l
 JOIN facility f ON f.id = l.facility_id
@@ -35,3 +35,4 @@ async def attach_facility_hours(db: AsyncSession, places: list[PlaceOut]) -> Non
         p.hours_text = r.hours_text
         p.closed_days = r.closed_days
         p.hours_source = {"name": r.source, "as_of": r.as_of}
+        p.hours_source_ref = r.source_ref
