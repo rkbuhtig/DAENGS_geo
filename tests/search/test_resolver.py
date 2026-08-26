@@ -5,8 +5,8 @@ from app.discovery.facts import RuntimeFacts
 from app.discovery.resolver import resolve_request
 from app.discovery.semantics import TimeIntent, UrgencySignal
 from app.discovery.state import EditableState, JourneyPrefs
+from app.features.journey.api import Dest, JourneyIn, journey
 from app.geo.search import find_places
-from app.journey.api import Dest, JourneyIn, journey
 from app.journey.engine import snapshot
 from app.profile.source import OWNERS, PERSONAS
 from app.providers.base import LatLng
