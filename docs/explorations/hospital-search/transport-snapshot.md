@@ -37,6 +37,10 @@ research: ../../research/2026-08-19-route-apis.md
 - 폴백: 직선 × 우회계수(도보 1.3, 차 1.4) ÷ 속도. 호출 0. 화면엔 "약" 표기 + `source: estimate`
 
 ## 역할 분담
+
+> 아래 표의 "옵션" 칸들 — 프로필→searchOption, 옵션 4종, 옵션 비교, 옵션 4개 받아 고르기 —
+> 은 **기각된 설계**다 (결정 #66, 위 배너). 남겨 두는 이유는 그때 무엇을 하려 했는지가
+> 조사 결과를 읽는 맥락이기 때문이고, 지금 코드가 그렇다는 뜻이 아니다.
 | TMAP이 함 | 우리가 함 |
 |---|---|
 | 조건 주면 경로 계산 → 좌표열(동선) | **어떤 옵션으로 부를지**: 프로필→searchOption (senior/joint → 30 계단제외, 기본 0, 폭염 → 4 대로우선) |
@@ -50,8 +54,8 @@ research: ../../research/2026-08-19-route-apis.md
 ```
 초안           → 전부 휴리스틱. 호출 0
 모드 선택/정렬  → 상위 5개만 실측, 나머지 휴리스틱 유지 (source로 구분 표시)
-카드 상세       → 그 병원 1개 도보(0 + 필요시 30) + 차량
-캐시           → (출발지 100m 격자, 목적지, 모드, 옵션). 도보 오래(길 안 변함), 차량 10분
+카드 상세       → 그 병원 1개 도보 + 차량
+캐시           → (출발지 100m 격자, 목적지, 모드). 도보 오래(길 안 변함), 차량 10분
 ```
 **휴리스틱과 실측을 화면에서 구분.** "약 13분" ≠ "13분".
 
@@ -80,7 +84,8 @@ research: ../../research/2026-08-19-route-apis.md
 - 챗봇 카드 정적 이미지에 경로선 — 네이버 Static Map에 `path` 없음. 경로선은 앱 지도에서. 카드는 마커+숫자 (`static-card` 갈래로 분리, 후순위)
 
 ## 어댑터
-`MapProvider`에 `route(mode, from, to, option) → {distance_m, duration_s, polyline, facilities?, taxi_fare?}` 추가. 3→4메서드. 모드별 구현체 다름.
+`MapProvider`에 `route(mode, from, to) → {distance_m, duration_s, polyline, facilities?, taxi_fare?}` 추가. 3→4메서드. 모드별 구현체 다름.
+(`option` 인자는 결정 #66 으로 제거했다.)
 
 ## 선이 1급 (2026-08-19, decisions #24)
 - 실측(상위 N) 도보 경로는 `walk.polyline`(Google encoded, precision 5)로 **기본 포함**. `polyline_points` 병기. 옵트인 제거
