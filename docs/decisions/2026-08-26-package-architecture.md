@@ -37,19 +37,27 @@ Companion = str  # journey.models.Companion 과 같은 값. 순환 import 를 �
 | 기반 | `core` | config·db·clock. 아무도 모른다 |
 | 인프라 | `providers` `usage` | 외부 세계의 어댑터와 그 정책 |
 | 도메인 | `profile` `geo` `discovery` `place` `journey` | 제품 어휘 |
-| 진입점 | `api` `features` `ingest` `main` | 바깥에서 안으로 들어오는 문 |
+| 응용 | `api` `features` `ingest` `main` | 도메인을 조립해 사용자 기능을 만든다 |
 
 `core` 는 특정 제품 도메인을 모르는 공용 기반만 소유한다. 판정 기준은 **"그 모듈이 어떤
 도메인 어휘도 import 하지 않는가"** 이고, 애매하면 core 가 아니다. `clock` 이 여기 있는 이유는
 `datetime`·`Protocol` 외에 아무것도 모르면서 네 패키지가 공유하기 때문이다 — 갈 곳이 없어서
 온 것이 아니다.
 
-`ingest` 는 인프라가 아니라 **batch 진입점**이다. HTTP 가 `api`·`features` 로 들어오듯
+**응용 층이 곧 진입점은 아니다.** 진입점(HTTP·CLI)은 이 층 안에 있지만 전부는 아니다 —
+`features/*/api.py` 와 `ingest/__main__.py` 가 진입점이고, `features/scene/judgment.py` 나
+`features/walk/facts.py` 는 도메인을 조립한 기능 로직이지 바깥에서 들어오는 문이 아니다.
+층을 가르는 기준은 "문인가"가 아니라 **"도메인을 조립하는가"** 이다.
+
+같은 층 안(`features/*` 형제끼리, `api` ↔ `features`)의 의존은 방향 규칙이 아니라 **DAG
+규칙**을 받는다 — `features.scene → features.walk`(소비자 → 생산자)는 허용이고 그 역은 아니다.
+
+`ingest` 는 인프라가 아니라 **batch 응용**이다. HTTP 가 `api`·`features` 로 들어오듯
 `python -m app.ingest` 로 들어온다. `ingest/anchors.py:29` 가 `geo.cells` 를 쓰는 것은
-위반이 아니라 진입점이 도메인을 조립하는 정상 동작이다. 그래서 `ingest` 는 최상위에 남고
+위반이 아니라 응용이 도메인을 조립하는 정상 동작이다. 그래서 `ingest` 는 최상위에 남고
 `place` 밑으로 내려가지 않는다.
 
-### 2. 화살표는 진입점 → 도메인 → 인프라 → core 한 방향
+### 2. 화살표는 응용 → 도메인 → 인프라 → core 한 방향
 
 **이것은 clean architecture 가 아니다.** 도메인이 인프라를 직접 안다 —
 `geo/search.py:18` 이 `providers.base` 의 `LatLng`·`MapMarker` 를,
@@ -120,9 +128,9 @@ app/
 ├── place/
 ├── journey/       contract.py(Companion · WalkPlan · JourneyPlan) · engine · models …
 ├── features/      hospital/ · pharmacy/ · walk/ · scene/
-├── ingest/        batch 진입점
+├── ingest/        batch 응용 — __main__ 이 진입점
 ├── api/           공용 조회 어댑터
-└── main.py        진입점 조립
+└── main.py        HTTP 진입점 조립
 ```
 
 `planning` 과 `refine` 은 다른 bounded context 가 아니라 한 컨텍스트를 읽기/쓰기로 찢어
@@ -140,7 +148,7 @@ app/
 
 초안은 provider 생성과 Usage Gate 래핑을 최상위 `app/wiring.py` 로 옮기려 했다. 실제 호출
 그래프를 따라가니 `journey.engine` 이 `route_provider()` 를 직접 당기고 있었다. 이 상태에서
-조립을 진입점인 `wiring.py` 로 옮기면 도메인 → 진입점 역방향 import가 생긴다.
+조립을 응용 층인 `wiring.py` 로 옮기면 도메인 → 응용 역방향 import가 생긴다.
 
 그래서 PR 1은 **현재 이미 존재하는 방향**인 `usage → providers` 를 따라
 `usage/composition.py` 에 metered provider 조립을 둔다. `providers.registry` 는 raw provider
@@ -153,7 +161,7 @@ app/
 
 PR 1에서 전체 import 그래프를 다시 검사해 추가 위반을 찾았다. `geo/paint.py`와
 `geo/region.py`가 `features.walk.facts.Segment`를 import 한다. 현재 축 정의대로면 도메인이
-진입점을 아는 방향이라 위반이다.
+응용을 아는 방향이라 위반이다.
 
 여기서 **`Segment`를 어디로 옮긴다고 선결정하지 않는다.** `Segment`는 `WalkFix`·moving·
 chain_index 같은 산책 어휘를 가진 타입이라 단순히 `geo`로 내리는 것도 소유권을 왜곡할 수
@@ -167,7 +175,7 @@ chain_index 같은 산책 어휘를 가진 타입이라 단순히 `geo`로 내�
 | 1 | `providers.registry` 의 게이트 조립 → `usage/composition.py` | `git grep 'from app.usage' app/providers/` 0건 |
 | 2 | 계약 소유권 분할 (§3) + 공용 시간 원천 `core.clock` 이동 | `plans.py:23` 의 `Companion = str` 삭제 **그리고** `git grep 'app\.planning' app/geo` 0건 |
 | 3 | `planning` + `refine` → `discovery` | `git grep 'app\.planning\|app\.refine' -- . ':!docs/decisions/'` 0건 |
-| 4 | `scene` → `features/scene` | — |
+| 4 | `scene` → `features/scene` | `git grep 'app\.scene\|app/scene' -- . ':!docs/decisions/'` 0건 |
 | 5 | import 방향 테스트로 잠금 | 알려진 위반 포함 아래 게이트 통과 |
 | 6 | API 소유 집행 (§4) | 별도 트랙 |
 
