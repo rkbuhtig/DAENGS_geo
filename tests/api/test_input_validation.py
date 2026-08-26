@@ -161,7 +161,9 @@ def test_v2_openapi_exposes_the_shared_place_kind_vocabulary():
     request_schema = schema["PlaceSearchRequest"]
     assert request_schema["properties"]["kinds"]["maxItems"] == 6
     assert "conditions" in request_schema["properties"]
-    assert set(schema["PlaceSearchConditions"]["properties"]) == {"dog_id", "dog_size"}
+    assert set(schema["PlaceSearchConditions"]["properties"]) == {
+        "dog_id", "dog_size", "dog_weight_kg",
+    }
 
 
 def test_v2_place_search_rejects_empty_dog_conditions_before_reading_the_db():

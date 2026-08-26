@@ -74,6 +74,7 @@ class PlaceSearchConditions(BaseModel):
 
     dog_id: str | None = Field(None, min_length=1, max_length=128)
     dog_size: SizeClass | None = None
+    dog_weight_kg: float | None = Field(None, gt=0, le=200)
 
     @model_validator(mode="after")
     def require_a_dog_subject(self) -> Self:
@@ -87,6 +88,7 @@ class AppliedPlaceSearchConditions(BaseModel):
 
     dog_id: str | None = None
     dog_size: SizeClass | None = None
+    dog_weight_kg: float | None = Field(None, gt=0, le=200)
 
 
 class PlaceSearchRequest(BaseModel):
@@ -169,10 +171,17 @@ def _distance_key(result: PlaceResult) -> tuple[int, str, str]:
     return result.distance_m, result.key.source, result.key.ref
 
 
-def _hit(result: PlaceResult, dog_size: SizeClass | None) -> PlaceSearchHit:
+def _hit(
+    result: PlaceResult,
+    conditions: AppliedPlaceSearchConditions | None,
+) -> PlaceSearchHit:
     dog_access = None
-    if dog_size is not None and result.match.kind not in MEDICAL_KINDS:
-        dog_access = evaluate_dog_access(result.facts.pet_access, dog_size)
+    if conditions is not None and result.match.kind not in MEDICAL_KINDS:
+        dog_access = evaluate_dog_access(
+            result.facts.pet_access,
+            conditions.dog_size,
+            conditions.dog_weight_kg,
+        )
     return PlaceSearchHit(
         place=result,
         evaluations=PlaceEvaluations(dog_access=dog_access),
@@ -184,7 +193,7 @@ async def _medical_group(
     request: PlaceSearchRequest,
     kind: PlaceKind,
     limit: int,
-    dog_size: SizeClass | None,
+    conditions: AppliedPlaceSearchConditions | None,
 ) -> PlaceSearchGroup:
     rows = await resolve_medical_places(
         db,
@@ -197,7 +206,7 @@ async def _medical_group(
     )
     truncated = len(rows) > limit
     places = sorted((medical_place_result(row) for row in rows), key=_distance_key)[:limit]
-    results = [_hit(place, dog_size) for place in places]
+    results = [_hit(place, conditions) for place in places]
     return PlaceSearchGroup(kind=kind, limit=limit, truncated=truncated, results=results)
 
 
@@ -206,7 +215,7 @@ async def _facility_group(
     request: PlaceSearchRequest,
     kind: PlaceKind,
     limit: int,
-    dog_size: SizeClass | None,
+    conditions: AppliedPlaceSearchConditions | None,
 ) -> PlaceSearchGroup:
     resolved = await resolve_facilities(
         FacilityParams(
@@ -223,7 +232,7 @@ async def _facility_group(
     places = sorted(
         (facility_place_result(row) for row in resolved.results), key=_distance_key,
     )
-    results = [_hit(place, dog_size) for place in places]
+    results = [_hit(place, conditions) for place in places]
     return PlaceSearchGroup(
         kind=kind,
         limit=limit,
@@ -238,11 +247,19 @@ async def _resolve_conditions(
     if conditions is None:
         return None
     dog_size = conditions.dog_size
+    dog_weight_kg = conditions.dog_weight_kg
+    # dog_size 명시는 다른 개를 뜻할 수 있다. 그때 기존 프로필 무게를 조용히 섞지 않는다.
     if dog_size is None and conditions.dog_id is not None:
         profile = await profile_source().get(conditions.dog_id)
         if profile is not None:
             dog_size = profile.size_class
-    return AppliedPlaceSearchConditions(dog_id=conditions.dog_id, dog_size=dog_size)
+            if dog_weight_kg is None:
+                dog_weight_kg = profile.weight_kg
+    return AppliedPlaceSearchConditions(
+        dog_id=conditions.dog_id,
+        dog_size=dog_size,
+        dog_weight_kg=dog_weight_kg,
+    )
 
 
 async def search_place_groups(
@@ -252,12 +269,11 @@ async def search_place_groups(
     """요청 kind 순서를 보존하고, 서로 다른 kind 사이에는 순위를 만들지 않는다."""
     limit = request.effective_limit_per_kind
     conditions = await _resolve_conditions(request.conditions)
-    dog_size = conditions.dog_size if conditions is not None else None
     groups: list[PlaceSearchGroup] = []
     for kind in request.kinds:
         if kind in MEDICAL_KINDS:
-            group = await _medical_group(db, request, kind, limit, dog_size)
+            group = await _medical_group(db, request, kind, limit, conditions)
         else:
-            group = await _facility_group(db, request, kind, limit, dog_size)
+            group = await _facility_group(db, request, kind, limit, conditions)
         groups.append(group)
     return PlaceSearchResponse(conditions=conditions, groups=groups)

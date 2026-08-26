@@ -34,3 +34,36 @@ def test_a_large_dog_exceeds_a_small_only_place():
         PetAccessFacts(allowed=True, size_class="small"), "large",
     )
     assert (evaluation.state, evaluation.reason) == ("incompatible", "size_exceeded")
+
+
+@pytest.mark.parametrize(
+    ("dog_weight_kg", "expected"),
+    [
+        (9.0, ("incompatible", "weight_exceeded")),
+        (4.0, ("compatible", "weight_allowed")),
+        (5.0, ("unknown", "weight_boundary_unknown")),
+    ],
+)
+def test_exact_weight_beats_the_coarser_size_class(dog_weight_kg, expected):
+    pet_access = PetAccessFacts(allowed=True, size_class="small", max_kg=5)
+    evaluation = evaluate_dog_access(pet_access, "small", dog_weight_kg)
+    assert (evaluation.state, evaluation.reason) == expected
+
+
+def test_a_numeric_limit_without_dog_weight_is_not_called_compatible():
+    evaluation = evaluate_dog_access(
+        PetAccessFacts(allowed=True, size_class="small", max_kg=5), "small",
+    )
+    assert (evaluation.state, evaluation.reason) == ("unknown", "missing_dog_weight")
+
+
+def test_dog_exclusion_does_not_require_a_known_dog_size():
+    evaluation = evaluate_dog_access(PetAccessFacts(dog_ok=False), None)
+    assert (evaluation.state, evaluation.reason) == ("incompatible", "dog_disallowed")
+
+
+def test_a_known_facility_limit_without_dog_size_is_unknown():
+    evaluation = evaluate_dog_access(
+        PetAccessFacts(allowed=True, size_class="large"), None,
+    )
+    assert (evaluation.state, evaluation.reason) == ("unknown", "missing_dog_size")

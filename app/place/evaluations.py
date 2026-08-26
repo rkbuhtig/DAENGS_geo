@@ -8,6 +8,7 @@ from typing import Literal
 
 from pydantic import BaseModel
 
+from app.geo.pet import size_class_accepts
 from app.place.contracts import PetAccessFacts
 from app.profile.contract import SizeClass
 
@@ -15,11 +16,14 @@ DogAccessState = Literal["compatible", "incompatible", "unknown"]
 DogAccessReason = Literal[
     "size_allowed",
     "size_exceeded",
+    "weight_allowed",
+    "weight_exceeded",
+    "weight_boundary_unknown",
     "dog_disallowed",
+    "missing_dog_size",
+    "missing_dog_weight",
     "missing_restriction",
 ]
-
-_SIZE_ORDER = {"small": 0, "medium": 1, "large": 2, "any": 3}
 
 
 class DogAccessEvaluation(BaseModel):
@@ -29,7 +33,8 @@ class DogAccessEvaluation(BaseModel):
 
 def evaluate_dog_access(
     pet_access: PetAccessFacts | None,
-    dog_size: SizeClass,
+    dog_size: SizeClass | None,
+    dog_weight_kg: float | None = None,
 ) -> DogAccessEvaluation:
     """원천에서 파생한 입장 축만으로 이 크기의 개와 시설을 대조한다."""
     if pet_access is None:
@@ -38,8 +43,28 @@ def evaluate_dog_access(
         return DogAccessEvaluation(state="incompatible", reason="dog_disallowed")
 
     facility_limit = pet_access.size_class
-    if facility_limit not in _SIZE_ORDER:
+    if pet_access.max_kg is not None:
+        if dog_weight_kg is not None:
+            if dog_weight_kg > pet_access.max_kg:
+                return DogAccessEvaluation(state="incompatible", reason="weight_exceeded")
+            if dog_weight_kg < pet_access.max_kg:
+                return DogAccessEvaluation(state="compatible", reason="weight_allowed")
+            # 파서가 `미만`과 `이하`를 같은 max_kg로 보존한다. 경계값은 지어내지 않는다.
+            return DogAccessEvaluation(state="unknown", reason="weight_boundary_unknown")
+
+        class_answer = size_class_accepts(facility_limit, dog_size)
+        if class_answer is False:
+            return DogAccessEvaluation(state="incompatible", reason="size_exceeded")
+        return DogAccessEvaluation(state="unknown", reason="missing_dog_weight")
+
+    if facility_limit is None:
         return DogAccessEvaluation(state="unknown", reason="missing_restriction")
-    if _SIZE_ORDER[dog_size] <= _SIZE_ORDER[facility_limit]:
+    if dog_size is None:
+        return DogAccessEvaluation(state="unknown", reason="missing_dog_size")
+
+    class_answer = size_class_accepts(facility_limit, dog_size)
+    if class_answer is None:
+        return DogAccessEvaluation(state="unknown", reason="missing_restriction")
+    if class_answer:
         return DogAccessEvaluation(state="compatible", reason="size_allowed")
     return DogAccessEvaluation(state="incompatible", reason="size_exceeded")

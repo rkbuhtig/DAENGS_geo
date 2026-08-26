@@ -13,7 +13,7 @@
   "radius_m": 3000,
   "kinds": ["pet_shop", "shopping"],
   "limit_per_kind": 2500,
-  "conditions": { "dog_id": "janggun", "dog_size": null }
+  "conditions": { "dog_id": "janggun", "dog_size": null, "dog_weight_kg": null }
 }
 ```
 
@@ -23,14 +23,16 @@
 - 그룹 한도는 최대 3000, 한 요청의 전체 결과 예산은 최대 5000이다. `limit_per_kind`를
   생략하면 `min(3000, floor(5000 / kinds 수))`를 적용한다. 명시한 한도와 kinds 수의 곱이
   5000을 넘으면 422다. 실제 적용한 값은 그룹의 `limit`, 잘렸는지는 `truncated`로 알린다.
-- `conditions`는 선택이다. `dog_id`만 주면 프로필의 크기를 읽고, `dog_size`를 함께 주면
-  명시한 크기가 우선한다. 프로필을 찾지 못하면 크기를 꾸며내지 않고 응답에 `null`로 남긴다.
+- `conditions`는 선택이다. `dog_id`만 주면 프로필의 크기와 무게를 읽는다. `dog_size`를
+  명시하면 다른 개를 뜻할 수 있으므로 기존 프로필 무게를 조용히 섞지 않는다. 정확한 숫자 제한을
+  평가하려면 `dog_weight_kg`도 함께 명시한다. 프로필을 찾지 못하면 값을 꾸며내지 않고 응답에
+  `null`로 남긴다.
 
 ## 응답
 
 ```jsonc
 {
-  "conditions": { "dog_id": "janggun", "dog_size": "large" },
+  "conditions": { "dog_id": "janggun", "dog_size": "large", "dog_weight_kg": 34.0 },
   "groups": [
     {
       "kind": "pet_shop",
@@ -72,11 +74,18 @@ identity로 노출하지 않는다.
 |---|---|---|
 | `compatible` | `size_allowed` | 시설의 명시된 허용 상한이 이 개 크기를 받는다 |
 | `incompatible` | `size_exceeded` | 이 개가 명시된 허용 상한보다 크다 |
+| `compatible` | `weight_allowed` | 실제 무게가 숫자 상한보다 작다 |
+| `incompatible` | `weight_exceeded` | 실제 무게가 숫자 상한보다 크다 |
+| `unknown` | `weight_boundary_unknown` | 무게가 상한과 같지만 원문의 `미만/이하`가 보존되지 않았다 |
 | `incompatible` | `dog_disallowed` | 반려동물 불가 또는 개 제외가 명시됐다 |
+| `unknown` | `missing_dog_size` | 시설 크기 제한은 있지만 개 크기를 알 수 없다 |
+| `unknown` | `missing_dog_weight` | 시설 숫자 제한은 있지만 개 무게를 알 수 없다 |
 | `unknown` | `missing_restriction` | 입장·크기 정보가 없어 판단할 수 없다 |
 
-평가는 결과를 빼거나 순서를 바꾸지 않는다. 의료 kind에는 이 축이 적용되지 않으므로
-`dog_access` 자체가 없다. `unknown`은 `incompatible`이 아니며 UI도 둘을 합치지 않는다.
+숫자 상한은 등급보다 먼저 본다. 현재 적재 축은 `5kg 미만`과 `5kg 이하`를 모두
+`max_kg=5`로 보존하므로 정확히 5kg인 경우는 확정하지 않는다. 조건이 요청된 비의료 결과에는
+크기를 못 구해도 평가가 있으며, 의료 kind에만 `dog_access`가 없다. 평가는 결과를 빼거나
+순서를 바꾸지 않고, `unknown`은 `incompatible`과 합치지 않는다.
 
 ## 현재 하지 않는 것
 
