@@ -13,7 +13,8 @@
   "radius_m": 3000,
   "kinds": ["pet_shop", "shopping"],
   "limit_per_kind": 2500,
-  "conditions": { "dog_id": "janggun", "dog_size": null, "dog_weight_kg": null }
+  "conditions": { "dog_id": "janggun", "dog_size": null, "dog_weight_kg": null },
+  "preferences": { "parking": true }
 }
 ```
 
@@ -27,6 +28,9 @@
   명시하면 다른 개를 뜻할 수 있으므로 기존 프로필 무게를 조용히 섞지 않는다. 정확한 숫자 제한을
   평가하려면 `dog_weight_kg`도 함께 명시한다. 프로필을 찾지 못하면 값을 꾸며내지 않고 응답에
   `null`로 남긴다.
+- `preferences.parking=true`는 결과를 제거하지 않고 시설 kind의 같은 500m 거리 밴드 안에서
+  `parking=true`를 우선한다. `false`와 `null`은 같은 비적중 층에서 거리순을 유지하며,
+  `null`을 주차 불가로 판정하지 않는다. 현재 지원하지 않는 선호 키는 422다.
 
 ## 응답
 
@@ -36,7 +40,15 @@
   "groups": [
     {
       "kind": "pet_shop",
-      "sort": { "type": "distance", "basis": ["distance_m"] },
+      "sort": {
+        "type": "distance_preferred",
+        "basis": ["distance_band", "parking", "distance_m"],
+        "applied": ["parking"],
+        "band_m": 500,
+        "coverage": {
+          "parking": { "known_true": 120, "known_false": 35, "unknown": 2345 }
+        }
+      },
       "limit": 2500,
       "truncated": false,
       "results": [{
@@ -48,7 +60,15 @@
     },
     {
       "kind": "shopping",
-      "sort": { "type": "distance", "basis": ["distance_m"] },
+      "sort": {
+        "type": "distance_preferred",
+        "basis": ["distance_band", "parking", "distance_m"],
+        "applied": ["parking"],
+        "band_m": 500,
+        "coverage": {
+          "parking": { "known_true": 0, "known_false": 0, "unknown": 0 }
+        }
+      },
       "limit": 2500,
       "truncated": false,
       "results": []
@@ -57,8 +77,13 @@
 }
 ```
 
-그룹은 요청한 kind 순서다. 각 그룹 안에서만 거리순이며 서로 다른 kind 사이에는 전역 순위를
-만들지 않는다. 같은 거리의 반환 결과는 `(source, ref)`로 안정화한다.
+그룹은 요청한 kind 순서다. 기본은 각 그룹 안의 거리순이며 서로 다른 kind 사이에는 전역 순위를
+만들지 않는다. 같은 순위 키의 반환 결과는 `(source, ref)`로 안정화한다.
+
+주차 선호가 켜진 시설 그룹은 순수 거리순 대신 응답에 적힌 밴드 정렬을 사용한다. `coverage`는
+전체 데이터 통계가 아니라 **그룹에 실제 반환된 결과**의 주차 사실 3상태 개수다. 따라서
+`truncated=true`이면 잘린 결과 밖까지 대표하는 숫자가 아니다. 병원·약국은 주차 사실 계약이
+없으므로 요청에 주차 선호가 있어도 `sort.type=distance`와 `basis=[distance_m]`를 유지한다.
 
 `hospital`과 `pharmacy`는 각각의 MOIS 인허가 source만 읽는 MedicalResolver가 존재 권위를
 갖고, dev나 임의 source의 같은 kind는 섞지 않는다. 그 밖의 kind는 ref가 있는 KCISA/KTO만
@@ -89,7 +114,7 @@ identity로 노출하지 않는다.
 
 ## 현재 하지 않는 것
 
-- 주차·영업 중 hard filter 또는 선호 정렬
+- 주차 hard filter와 영업 중 hard filter 또는 선호 정렬
 - 반려견 입장 평가를 이용한 자동 필터·자동 순위 변경
 - 태그/이름 추론 및 AI 제안
 - 서로 다른 kind 결과의 통합 순위
