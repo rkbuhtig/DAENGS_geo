@@ -10,11 +10,14 @@
 ## 여기서 가르는 두 가지
 
     보간         공백을 가로지르는 Segment 를 만드나        — **절대 안 된다**
-    붓 겹침      공백 양쪽 붓이 만나 시각적으로 이어지나    — 붓 폭의 성질이다
+    붓 겹침      공백 양쪽 붓이 만나 시각적으로 이어지나    — 붓 폭 · 격자 크기의 성질이다
 
 둘은 다르다. 보간은 관측하지 않은 이동을 지어내는 것이고, 붓 겹침은 각 관측점 주변을
 정당하게 칠한 결과가 우연히 만나는 것이다. 전자는 금지고 후자는 **재서 알아 두는 것**이다 —
 지도에서는 둘 다 "이어져 보이는" 같은 모양이 되기 때문에.
+
+그래서 이 파일의 제목은 "붓이 공백을 넘지 않는다" 가 아니다. **붓은 넘는다** — 40m 안팎까지.
+넘지 않는 것은 Segment 다.
 
 ## 페르소나 실험이 못 본 자리
 
@@ -25,10 +28,12 @@
 import math
 from datetime import UTC, datetime, timedelta
 
+import pytest
+
 from app.features.walk.facts import MAX_GAP_S, MAX_JUMP_M, Segment, compute_facts
 from app.features.walk.models import WalkFix
 from app.geo.cells import cell_size_m, hex_cell
-from app.geo.paint import NARROW_STEP, paint_sheet, stack
+from app.geo.paint import NARROW_STEP, BrushProfile, paint_sheet, stack
 from app.geo.region import Region, region_encounters
 
 EARTH_R = 6_371_000.0
@@ -161,7 +166,7 @@ def test_a_wide_gap_leaves_a_hole_in_the_paint():
     assert len(painted) < len(_gap_cells(gap)) / 2, "넓은 공백이 메워졌다"
 
 
-# ---- 붓 겹침은 폭의 성질이다 (재서 알아 둔다) --------------------------------------------
+# ---- 붓 겹침은 붓 폭과 격자 크기의 성질이다 (재서 알아 둔다) ----------------------------
 
 
 def test_a_narrow_gap_is_visually_bridged_by_brush_width():
@@ -178,22 +183,51 @@ def test_a_narrow_gap_is_visually_bridged_by_brush_width():
     assert len({s.chain_index for s in computed.segments}) == 2
 
 
-def test_the_bridging_boundary_is_twice_the_brush_reach():
-    """이어져 보이는 최대 공백 ≈ 붓 도달 × 2 (+ 셀 크기만큼 여유).
+def _unbroken(gap_m: float, radius_u: float, profile) -> bool:
+    """공백 구간의 셀이 하나도 안 빠지고 칠해졌나 — 화면에서 이어져 보이나."""
+    computed = _split_walk(gap_m)
+    sheet = paint_sheet("w", START, computed.segments, radius_u, profile)
+    return _gap_cells(gap_m, radius_u) <= set(sheet.occupancy)
 
-    2026-08-26 실측: 셀 8 단위에서 41m · 15 단위에서 44m · 30 단위에서 66m (도달 20m).
-    셀이 클수록 여유가 커진다 — 공백 끝 셀 하나가 양쪽을 다 삼키기 때문이다.
+
+def _bridging_boundary(radius_u: float, profile) -> int:
+    """이어져 보이는 **최대** 공백(m). 1m 눈금으로 훑어 마지막으로 이어진 값."""
+    last = 0
+    for gap in range(1, 121):
+        if _unbroken(float(gap), radius_u, profile):
+            last = gap
+    return last
+
+
+@pytest.mark.parametrize(("radius_u", "expected"), [(8.0, 41), (15.0, 44), (30.0, 66)])
+def test_the_bridging_boundary_holds_at_each_cell_size(radius_u: float, expected: int):
+    """이어져 보이는 최대 공백은 셀 크기마다 다르고, 그 값을 여기 고정한다.
+
+    2026-08-26 실측값이다. 붓 도달은 셋 다 20m 인데 경계는 41 → 44 → 66m 로 벌어진다 —
+    **셀이 클수록 여유가 커진다.** 공백 양 끝의 큰 셀 하나가 붓과 공백을 함께 삼켜서,
+    실제로는 안 닿는 자리도 "칠해진 셀" 로 올라오기 때문이다.
+
+    그래서 이 여유는 붓의 성질이 아니라 **저장 격자의 성질**이다. 격자를 키우는 변경은
+    보간을 만들지 않고도 화면상 끊김을 지운다 — 그게 여기 숫자로 박혀 있어야 하는 이유다.
     """
-    reach = NARROW_STEP.reach_m
-    cell_m = cell_size_m(RADIUS_U, LAT)
+    assert _bridging_boundary(radius_u, NARROW_STEP) == expected
 
-    def unbroken(gap_m: float) -> bool:
-        computed = _split_walk(gap_m)
-        sheet = paint_sheet("w", START, computed.segments, RADIUS_U, NARROW_STEP)
-        return _gap_cells(gap_m) <= set(sheet.occupancy)
 
-    assert unbroken(reach * 2 - cell_m), "도달×2 보다 좁은데 끊겼다"
-    assert not unbroken(reach * 2 + 2 * cell_m), "도달×2 보다 넓은데 이어졌다"
+def test_the_bridging_boundary_tracks_the_brush_not_the_grid():
+    """경계가 격자만의 성질은 아니다 — 같은 격자에서 붓을 넓히면 같이 벌어진다.
+
+    도달 20m 붓과 25m 붓을 같은 15 단위 격자에서 잰다. 위 테스트가 격자 쪽 기여를
+    고정하고, 이 테스트가 붓 쪽 기여를 고정한다. 둘이 같이 있어야 "도달 × 2 + 셀 여유"
+    라는 읽기가 성립한다.
+    """
+    wider = BrushProfile("이진 25m", (25.0,), (1.0,))
+    assert wider.reach_m > NARROW_STEP.reach_m
+    narrow_edge = _bridging_boundary(RADIUS_U, NARROW_STEP)
+    wide_edge = _bridging_boundary(RADIUS_U, wider)
+    assert wide_edge == 50
+    assert wide_edge - narrow_edge == pytest.approx(
+        2 * (wider.reach_m - NARROW_STEP.reach_m), abs=cell_size_m(RADIUS_U, LAT)
+    ), "붓 도달 차이의 2 배만큼 경계가 움직여야 한다"
 
 
 # ---- 소비자들도 경계를 본다 ------------------------------------------------------------
