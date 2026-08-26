@@ -134,7 +134,7 @@ class MotionEventOccurrence(ContractModel):
 class FacilityEncounter(ContractModel):
     """동선 주변에 시설 좌표가 있었다는 관측 — 기하값까지만.
 
-    "지나쳤다/봤다/들렀다"는 여기 없다. 그 판정은 이 사실을 소비하는 쪽(app/scene)이
+    "지나쳤다/봤다/들렀다"는 여기 없다. 그 판정은 이 사실을 소비하는 쪽(app/features/scene)이
     규칙표+버전으로 한다. 시설 좌표는 대표점(건물 중심)이지 출입구가 아니다.
 
     밴드(10/15/20m)를 전부 저장하는 이유: 원좌표는 finish에서 지워지므로, 판정 반지름을

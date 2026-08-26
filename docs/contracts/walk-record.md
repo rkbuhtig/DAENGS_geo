@@ -83,7 +83,7 @@ FacilityEncounter   동선 주변에 시설 좌표가 있었다는 관측 — �
   stop_overlap_10m/15m/20m, stop_s_10m   같은 시간 구간의 원 안 정지 이벤트 겹침
   accuracy_p50_m                  20m 원 안 관측 정확도 — 판정 가능성의 근거
 
-"지나쳤다/봤다/들렀다"는 여기 없다. 그 판정은 `app/scene/judgment.py` 가 규칙표
+"지나쳤다/봤다/들렀다"는 여기 없다. 그 판정은 `app/features/scene/judgment.py` 가 규칙표
 (JUDGMENT_VERSION, 상수 잠정)로 한다 — 사실은 안 바뀌고 판정 상수만 바뀔 수 있게
 층을 가른 것. 틱은 GPS 점이고 원 경계 통과는 선분 위 보간이라 체류가 점 간격보다 정밀하다.
 판정은 현재 버전의 occurrence만 받는다. 원좌표 삭제로 분할할 수 없는 v1 집계행과, 밴드가
