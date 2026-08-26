@@ -103,6 +103,46 @@ async def test_preferred_row_survives_a_crowded_band():
             await _clean(session)
 
 
+async def test_identical_rank_is_stable_before_the_limit_cutoff():
+    """같은 rank key의 후보도 LIMIT 전에 (source, ref)로 안정화한다."""
+    async with db_session() as session:
+        await _clean(session)
+        try:
+            # 물리 삽입은 의도한 외부 키 순서의 반대다. 안정 키가 없으면 먼저 들어간 newer
+            # 두 행이 LIMIT에 남을 수 있다.
+            await _seed(session, [
+                row(
+                    "newer-c", east_m=250, source_ref="tie-c", parking=True,
+                ),
+                row(
+                    "newer-b", east_m=250, source_ref="tie-b", parking=True,
+                ),
+            ], source=SOURCES[1])
+            await _seed(session, [
+                row(
+                    "base-z", east_m=250, source_ref="tie-z", parking=True,
+                ),
+            ], source=SOURCES[0])
+
+            out = await facility_search(
+                FacilityParams(
+                    lat=TEST_ORIGIN[0], lng=TEST_ORIGIN[1], radius_m=RADIUS_M,
+                    kind="cafe", parking=True, limit=2,
+                ),
+                session,
+            )
+
+            assert [
+                (item.source.name, item.source_ref) for item in out.results
+            ] == [
+                (SOURCES[0], "tie-z"),
+                (SOURCES[1], "tie-b"),
+            ]
+            assert out.truncated is True
+        finally:
+            await _clean(session)
+
+
 async def test_borrowed_parking_also_earns_the_boost():
     """
     Contract: `parking` 은 빌려올 수 있는 필드다. 병합 전 자기 컬럼만 보고 순위를 매기면
