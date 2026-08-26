@@ -60,6 +60,7 @@ backlog.md           갈래에 안 붙는 미결
 - [셀로 면 체류를 근사할 수 있나 — 면÷셀 4~5배가 손익분기, 다이얼 범위 실제 22~91m](research/2026-08-26-region-cell-fidelity.md)
 - [붓 감쇠 — 이진 도장은 구별 0, 심 반경은 3·8·20 (실제 OSM 도로망 24회 산책)](research/2026-08-26-brush-falloff.md)
 - [셀로판 회수 실험 — 정답 심은 1년치 7명, 6 기준 통과. 연간 누적이 같은 두 사람이 계절 조건에서 정반대로 갈린다](research/2026-08-26-cellophane-recovery.md)
+- [복구한 맥락이 지도에서 읽히나 — 전체 장면에선 지문까지 같고 계절 버튼 하나로 갈린다](research/2026-08-26-layer-viewer.md)
 
 ## 새 갈래 만들 때
 `explorations/<주제>/<갈래>.md`, 상단에

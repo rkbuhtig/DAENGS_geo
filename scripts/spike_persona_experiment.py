@@ -30,6 +30,7 @@
 """
 
 import argparse
+import dataclasses
 import json
 import math
 import os
@@ -82,6 +83,10 @@ def load(path: str, cache: str | None = None) -> list[Person]:
 
     캐시는 **칠한 결과**만 담는다 — 정답지 대조는 매번 다시 한다. 격자·붓이 바뀌면 캐시가
     무효이므로 키에 넣는다.
+
+    담는 것은 dataclass 가 아니라 순수 자료다. 클래스로 저장하면 pickle 이 정의 모듈을
+    이름으로 찾는데, `-m scripts.X` 로 돌린 것과 다른 스크립트에서 읽을 때 그 이름이 달라져
+    깨진다(`__main__.Person`). 캐시는 진입점에 묶이면 안 된다.
     """
     key = (f"{GRID_VERSION}|{RADIUS_U:.0f}|{PROFILE.name}|{PROFILE.fingerprint}|"
            f"{JITTER_SEED}|{os.path.getmtime(path):.0f}")
@@ -90,7 +95,12 @@ def load(path: str, cache: str | None = None) -> list[Person]:
             blob = pickle.load(handle)
         if blob.get("key") == key:
             print(f"장 캐시 사용 ({cache})")
-            return blob["people"]
+            return [
+                Person(row["persona"], row["kind"],
+                       [Cellophane(**sheet) for sheet in row["sheets"]],
+                       row["truth"], {f: set(c) for f, c in row["exclusive"].items()})
+                for row in blob["people"]
+            ]
 
     with open(path, encoding="utf-8") as handle:
         payload = json.load(handle)
@@ -117,8 +127,16 @@ def load(path: str, cache: str | None = None) -> list[Person]:
         people.append(Person(entry["id"], entry["kind"], sheets, truth, exclusive))
         print(f"  칠함 {entry['id']:3} {len(sheets):4}장")
     if cache:
+        plain = [
+            {
+                "persona": p.persona, "kind": p.kind, "truth": p.truth,
+                "exclusive": {f: list(c) for f, c in p.exclusive.items()},
+                "sheets": [dataclasses.asdict(s) for s in p.sheets],
+            }
+            for p in people
+        ]
         with open(cache, "wb") as handle:
-            pickle.dump({"key": key, "people": people}, handle)
+            pickle.dump({"key": key, "people": plain}, handle)
     return people
 
 
