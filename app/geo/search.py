@@ -78,6 +78,10 @@ async def find_places(
             staff_count=place.staff_count,
             prefer_hit=sorted(set(tags) & prefer),
             boost=prefer_boost(sorted(set(tags) & prefer)),
+            source=place.source, source_ref=place.source_id,
+            source_updated_at=place.source_updated_at, active=place.active,
+            license_status_code=place.license_status_code,
+            license_status_name=place.license_status_name,
         ))
     # 선호 부스트는 거리 밴드(500m) 안에서만 순서를 바꾼다 — 결정 #20, geo/ranking.py.
     # 이전에는 prefer_hit 을 계산해 놓고 정렬에 쓰지 않아 `night=true` 가 순서를 안 바꿨다 (#24).

@@ -19,6 +19,8 @@ Kind = Literal["hospital", "pharmacy"]
 BASE_URL = "https://apis.data.go.kr/1741000"
 SUCCESS_CODES = {"0", "00", "0000"}
 KST = ZoneInfo("Asia/Seoul")
+# 병원/약국이 서로 다른 원천 endpoint라는 사실을 canonical kind로 옮기는 첫 명시 버전.
+KIND_MAPPING_VERSION = "mois-source/1"
 
 # 공공데이터포털 공식 '개방자치단체코드_영업상태코드.xlsx' (2026-08-20 확인).
 STATUS_NAMES = {

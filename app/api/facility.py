@@ -92,6 +92,8 @@ class PetAxesOut(BaseModel):
 class FacilitySourceOut(BaseModel):
     name: str                          # kcisa | kto
     as_of: str                         # 스냅샷 날짜 또는 원천 수정일
+    # 새 Place adapter 전용. 기존 `/facility/search` JSON에는 노출하지 않는다.
+    ref: str | None = Field(None, exclude=True, repr=False)
 
 
 class FacilityOut(BaseModel):
@@ -116,6 +118,13 @@ class FacilityOut(BaseModel):
     field_sources: dict[str, FacilitySourceOut] = Field(default_factory=dict)
     prefer_hit: list[str] = Field(default_factory=list)  # 선호와 이 행의 교집합 — 부스트 근거
     boost: int = 0                     # 거리 밴드 안에서만 순서를 바꾼다
+    # 실제 kind 매핑 입력. KTO의 legacy category3는 상세분류라 raw.contenttypeid를 따로 쓴다.
+    classification_category: str | None = Field(None, exclude=True, repr=False)
+    indoor: bool | None = Field(None, exclude=True, repr=False)
+    outdoor: bool | None = Field(None, exclude=True, repr=False)
+    place_field_sources: dict[str, FacilitySourceOut] = Field(
+        default_factory=dict, exclude=True, repr=False,
+    )
 
 
 class FacilitySearchOut(BaseModel):
@@ -135,6 +144,9 @@ class FacilitySearchOut(BaseModel):
 _SEARCH = text("""
 WITH merged AS (
     SELECT f.id, f.source_ref, f.name, f.kind, f.category3,
+           CASE WHEN f.source = 'kto'
+                THEN COALESCE(f.raw->>'contenttypeid', f.category3)
+                ELSE f.category3 END AS classification_category,
            ST_Y(f.location::geometry) AS lat, ST_X(f.location::geometry) AS lng,
            ST_Distance(f.location, o.geom) AS distance_m,
            f.address, f.phone, f.homepage, f.hours_text, f.closed_days,
@@ -143,6 +155,12 @@ WITH merged AS (
            CASE WHEN f.parking IS NULL AND b.parking IS NOT NULL
                 THEN b.parking ELSE f.parking END AS parking,
            (f.parking IS NULL AND b.parking IS NOT NULL) AS parking_borrowed,
+           CASE WHEN f.indoor IS NULL AND b.indoor IS NOT NULL
+                THEN b.indoor ELSE f.indoor END AS indoor,
+           (f.indoor IS NULL AND b.indoor IS NOT NULL) AS indoor_borrowed,
+           CASE WHEN f.outdoor IS NULL AND b.outdoor IS NOT NULL
+                THEN b.outdoor ELSE f.outdoor END AS outdoor,
+           (f.outdoor IS NULL AND b.outdoor IS NOT NULL) AS outdoor_borrowed,
            CASE WHEN (f.pet IS NULL OR f.pet = '{}'::jsonb)
                      AND b.pet IS NOT NULL AND b.pet <> '{}'::jsonb
                 THEN b.pet ELSE f.pet END AS pet,
@@ -166,13 +184,15 @@ WITH merged AS (
            f.source, COALESCE(f.last_written::text, f.snapshot) AS as_of,
            b.homepage AS b_homepage, b.hours_text AS b_hours_text,
            b.closed_days AS b_closed_days,
-           b.source AS b_source, COALESCE(b.last_written::text, b.snapshot) AS b_as_of
+           b.source AS b_source, b.source_ref AS b_source_ref,
+           COALESCE(b.last_written::text, b.snapshot) AS b_as_of
     FROM facility f
     CROSS JOIN (SELECT ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography AS geom) o
     LEFT JOIN LATERAL (
-        SELECT f2.homepage, f2.hours_text, f2.closed_days, f2.parking, f2.pet,
+        SELECT f2.homepage, f2.hours_text, f2.closed_days,
+               f2.parking, f2.indoor, f2.outdoor, f2.pet,
                f2.pet_allowed, f2.pet_exclusive, f2.pet_dog_ok, f2.pet_size_class, f2.pet_max_kg,
-               f2.source, f2.last_written, f2.snapshot
+               f2.source, f2.source_ref, f2.last_written, f2.snapshot
         FROM facility_link l
         JOIN facility f2 ON f2.id = l.source_ref::bigint
         WHERE l.source = 'facility' AND l.facility_id = f.id
@@ -223,7 +243,7 @@ _BORROWABLE = ("homepage", "hours_text", "closed_days")
 # SQL `merged` 가 이미 effective 를 정한 필드. 순위에 쓰이는 것은 전부 여기 있어야 한다 —
 # 파이썬 병합을 기다리면 SQL 이 순위 키를 만들 수 없다. 여기서는 출처 라벨만 붙인다.
 _SQL_MERGED = (
-    "parking",
+    "parking", "indoor", "outdoor",
     "pet", "pet_allowed", "pet_exclusive", "pet_dog_ok", "pet_size_class", "pet_max_kg",
 )
 
@@ -234,7 +254,7 @@ def _merge(row) -> tuple[dict, dict]:
     borrowed: dict[str, FacilitySourceOut] = {}
     if row.b_source is None:
         return values, borrowed
-    source = FacilitySourceOut(name=row.b_source, as_of=row.b_as_of)
+    source = FacilitySourceOut(name=row.b_source, ref=row.b_source_ref, as_of=row.b_as_of)
     for name in _BORROWABLE:
         own, other = values[name], getattr(row, f"b_{name}")
         if own in (None, {}, "") and other not in (None, {}, ""):
@@ -242,8 +262,9 @@ def _merge(row) -> tuple[dict, dict]:
             borrowed[name] = source
     if row.pet_borrowed:
         borrowed["pet"] = source
-    if row.parking_borrowed:
-        borrowed["parking"] = source
+    for name in ("parking", "indoor", "outdoor"):
+        if getattr(row, f"{name}_borrowed"):
+            borrowed[name] = source
     return values, borrowed
 
 
@@ -304,15 +325,23 @@ async def facility_search(
             address=r.address, phone=r.phone,
             homepage=values["homepage"], hours_text=values["hours_text"],
             closed_days=values["closed_days"], parking=values["parking"],
+            indoor=values["indoor"], outdoor=values["outdoor"],
             pet=values["pet"] or {},
             pet_axes=PetAxesOut(
                 allowed=values["pet_allowed"], exclusive=values["pet_exclusive"],
                 dog_ok=values["pet_dog_ok"], size_class=values["pet_size_class"],
                 max_kg=values["pet_max_kg"],
             ),
-            source=FacilitySourceOut(name=r.source, as_of=r.as_of),
-            field_sources=borrowed,
+            source=FacilitySourceOut(name=r.source, ref=r.source_ref, as_of=r.as_of),
+            # 기존 API는 표시하는 필드의 출처만 유지한다. Place adapter는 숨은 실내외 사실까지
+            # 포함한 내부 맵을 쓴다.
+            field_sources={
+                name: source for name, source in borrowed.items()
+                if name not in {"indoor", "outdoor"}
+            },
+            place_field_sources=borrowed,
             prefer_hit=hit, boost=prefer_boost(hit),
+            classification_category=r.classification_category,
         ))
     # SQL 은 **어느 행을 후보로 삼을지**를 정하고, 최종 순서는 여기서 정의된다 —
     # 결정 #20 의 rank key 는 `geo/ranking.py` 한 곳에만 산다. 둘이 어긋나면 순서가 아니라

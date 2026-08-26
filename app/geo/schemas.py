@@ -43,6 +43,14 @@ class PlaceOut(BaseModel):
     hours_source: dict | None = None    # {"name": 원천, "as_of": 기준일} — 빌린 값엔 딱지
     prefer_hit: list[str] = Field(default_factory=list)  # 선호 조건과 태그 교집합 — 부스트 근거
     boost: int = 0                      # 선호 적중 부스트. 거리 밴드 안에서만 순서를 바꾼다
+    # 새 Place adapter가 쓰는 내부 provenance. exclude라 기존 의료 API JSON은 바뀌지 않는다.
+    source: str | None = Field(None, exclude=True, repr=False)
+    source_ref: str | None = Field(None, exclude=True, repr=False)
+    source_updated_at: datetime | None = Field(None, exclude=True, repr=False)
+    active: bool = Field(True, exclude=True, repr=False)
+    license_status_code: str | None = Field(None, exclude=True, repr=False)
+    license_status_name: str | None = Field(None, exclude=True, repr=False)
+    hours_source_ref: str | None = Field(None, exclude=True, repr=False)
 
     @computed_field  # type: ignore[prop-decorator]
     @property
