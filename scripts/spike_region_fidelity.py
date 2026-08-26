@@ -40,6 +40,7 @@ from app.features.walk.facts import compute_facts
 from app.features.walk.models import WalkFix
 from app.geo.cells import (
     cell_id,
+    cell_size_m,
     hex_boundary_latlng,
     hex_center_latlng,
     hex_sample_points,
@@ -65,7 +66,8 @@ STARTED = datetime(2026, 8, 26, 9, 0, tzinfo=UTC)
 # 재는 축 둘. 공원 크기는 한 변(m), 지터는 수평 오차 표준편차(m).
 PARK_SIDES = (50.0, 150.0, 400.0)
 JITTERS = (5.0, 12.0)
-RADII = (28.0, 50.0, 115.0, 250.0)               # 28=Android 실험값, 115=anchors.py
+# 격자 **단위**. 위도 37.5° 에서 실제 22.2 · 39.7 · 91.2 · 198.3m.
+RADII = (28.0, 50.0, 115.0, 250.0)
 
 
 def to_latlng(x: float, y: float) -> tuple[float, float]:
@@ -204,13 +206,13 @@ def summarise(rows: list[dict]) -> None:
                   f"GPS 지터 σ={jitter:.0f}m · 시행 {len(group)}회")
             print(f"  참 체류 {truth:6.1f}s · exact 오차(중앙) {exact_err:5.1f}s "
                   f"({exact_err / truth * 100:4.1f}%)  ← GPS 가 이미 내는 값")
-            print(f"  {'반지름':>6} {'셀수':>4} │ {'면적가중':>18} │ {'중심판정':>18}")
+            print(f"  {'셀(실제)':>7} {'셀수':>4} │ {'면적가중':>18} │ {'중심판정':>18}")
             for radius in RADII:
                 cells = statistics.median(r[f"n{int(radius)}"] for r in group)
                 we, ce = err(group, f"w{int(radius)}"), err(group, f"c{int(radius)}")
                 # 셀이 추가로 내는 값 = 전체 오차 − GPS 가 이미 내던 값
                 w_add, c_add = we - exact_err, ce - exact_err
-                print(f"  {radius:5.0f}m {cells:4.0f} │ "
+                print(f"  {cell_size_m(radius, ORIGIN_LAT):5.1f}m {cells:4.0f} │ "
                       f"{we:6.1f}s ({we / truth * 100:5.1f}%) +{w_add:5.1f} │ "
                       f"{ce:6.1f}s ({ce / truth * 100:5.1f}%) +{c_add:5.1f}")
 
@@ -226,13 +228,13 @@ def summarise_by_ratio(rows: list[dict]) -> None:
         if row["truth"] <= 0:
             continue
         for radius in RADII:
-            ratio = row["side"] / radius
-            key = min((b for b in (1, 2, 3, 5, 8, 15) if ratio <= b), default=15)
+            ratio = row["side"] / cell_size_m(radius, ORIGIN_LAT)
+            key = min((b for b in (1, 2, 3, 4, 5, 6, 7, 8, 10, 15) if ratio <= b), default=15)
             err = abs(row[f"w{int(radius)}"] - row["truth"]) / row["truth"] * 100
             buckets.setdefault(key, []).append(err)
 
     print("\n" + "=" * 62)
-    print("면 한 변 ÷ 셀 반지름  →  면적가중 근사 오차 (중앙값)")
+    print("면 한 변 ÷ 셀 반지름(실제 미터)  →  면적가중 근사 오차 (중앙값)")
     print("=" * 62)
     for key in sorted(buckets):
         vals = buckets[key]
@@ -280,7 +282,7 @@ def scene(side: float, jitter: float, seed: int) -> dict:
             "cells": cells,
             "weighted": round(region_dwell_from_cells(visits, region, radius, True), 1),
             "centre": round(region_dwell_from_cells(visits, region, radius, False), 1),
-            "ratio": round(side / radius, 2),
+            "ratio": round(side / cell_size_m(radius, ORIGIN_LAT), 2),
         }
 
     return {

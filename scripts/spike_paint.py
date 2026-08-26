@@ -33,12 +33,11 @@ from app.geo.paint import (
     FACILITY_STEP,
     NARROW_SMOOTH,
     NARROW_STEP,
-    accumulate,
     canvas_stats,
     flat,
-    paint_walk,
-    paint_walk_peaks,
+    paint_sheet,
     shift_times,
+    stack,
 )
 
 EARTH_R = 6_371_000.0
@@ -46,7 +45,7 @@ WALK_SPEED_MPS = 1.2
 JITTER_M = 8.0
 BASE = datetime(2026, 7, 1, tzinfo=UTC)
 
-CELL_RADII = (8.0, 15.0)
+CELL_RADII = (8.0, 15.0)   # 격자 단위. 위도 37.5°에서 실제 6.3m · 11.9m
 PROFILES = (flat(25.0), NARROW_STEP, NARROW_SMOOTH, FACILITY_STEP, FACILITY_SMOOTH)
 
 
@@ -105,24 +104,24 @@ def main(argv: list[str] | None = None) -> int:
 
     scenes = {}
     print(f"\n  {'셀':>4} {'프로파일':<14} │ {'칸수':>5} {'넓이':>8} {'핵심':>5} "
-          f"{'밟은칸':>6} {'가장자리':>7} {'집튐':>6}")
+          f"{'심안':>6} {'가장자리':>7} {'집튐':>6}")
     for cell_radius in CELL_RADII:
         for profile in PROFILES:
-            per_walk = [paint_walk(t, cell_radius, profile) for t in tracks]
-            peaks = [paint_walk_peaks(t, cell_radius, profile) for t in tracks]
-            canvas = accumulate(
-                [(p, shift_times(BASE, d)) for d, p in enumerate(per_walk)], peaks
-            )
+            sheets = [
+                paint_sheet(f"w{d}", shift_times(BASE, d), t, cell_radius, profile)
+                for d, t in enumerate(tracks)
+            ]
+            canvas = stack(sheets)
             stats = canvas_stats(canvas, cell_radius, len(tracks))
             print(f"  {cell_radius:3.0f}m {profile.name:<14} │ {stats.cells:5} "
                   f"{stats.area_m2 / 10000:6.1f}ha {stats.core_cells:5} "
-                  f"{stats.trodden_cells:6} {stats.fringe_cells:7} {stats.home_bias:5.1f}배")
+                  f"{stats.core_hit_cells:6} {stats.fringe_cells:7} {stats.home_bias:5.1f}배")
             top = max(p.occupancy for p in canvas.values())
             scenes[f"{cell_radius:.0f}|{profile.name}"] = {
                 "cell_radius": cell_radius, "profile": profile.name,
                 "bands": list(profile.bands), "smooth": profile.smooth,
                 "cells": stats.cells, "area_ha": round(stats.area_m2 / 10000, 1),
-                "core": stats.core_cells, "trodden": stats.trodden_cells,
+                "core": stats.core_cells, "core_hit": stats.core_hit_cells,
                 "fringe": stats.fringe_cells, "home_bias": round(stats.home_bias, 2),
                 "max_walks": stats.max_walks,
                 # 필드 표시용: 중심 좌표 + 세 값. 육각 테두리는 안 보낸다 —
@@ -137,10 +136,10 @@ def main(argv: list[str] | None = None) -> int:
             }
 
     # 기준 조합 하나로 "가장 진한 곳이 집인가" 를 잰다. 조합을 바꿔도 결론은 안 바뀐다.
-    reference = accumulate(
-        [(paint_walk(t, 15.0, NARROW_STEP), shift_times(BASE, d)) for d, t in enumerate(tracks)],
-        [paint_walk_peaks(t, 15.0, NARROW_STEP) for t in tracks],
-    )
+    reference = stack([
+        paint_sheet(f"w{d}", shift_times(BASE, d), t, 15.0, NARROW_STEP)
+        for d, t in enumerate(tracks)
+    ])
     hottest = max(reference.values(), key=lambda p: p.occupancy)
     home_dist = _dist(hex_center_latlng(*hottest.cell, 15.0), home)
     print(f"\n물감이 가장 많은 칸과 집의 거리: {home_dist:.0f}m "

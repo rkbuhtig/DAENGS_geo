@@ -6,7 +6,7 @@
 ## 왜 이 모양인가 — 앞의 두 시도가 왜 접혔나
 
 **면을 그리게 하기**: 사용자가 폴리곤을 그리고 궤적이 그 안에 얼마나 있었나를 쟀다
-(`region.py`). 되긴 하는데 사용자가 먼저 그려야 하고, 셀이 면보다 5배는 작아야 답이 맞았다
+(`region.py`). 되긴 하는데 사용자가 먼저 그려야 하고, 셀이 면보다 4~5배는 작아야 답이 맞았다
 (2026-08-26 측정).
 
 **궤적이 면을 만들게 하기**: 산책은 집에서 나가 집으로 오니 고리일 것이라 봤다. 실제
@@ -15,13 +15,17 @@
 
 붓은 둘 다 필요 없다. **선에 두께를 주면 그게 면이다.** 그리고 두께는 우리가 정한다.
 
-## 반경이 둘인 것에 주의
+## 반경이 둘이고, 단위가 다르다
 
-    brush_m      "지나갔으니 칠한다" 고 볼 반경. 제품이 정하는 값이다
-    cell_radius  칠한 것을 저장하는 격자 해상도. 저장·프라이버시가 정하는 값이다
+    brush_m   "지나갔으니 칠한다" 고 볼 반경. **실제 지상 미터.** 제품이 정한다
+    radius_u  칠한 것을 저장하는 격자 해상도. **격자 단위.** 저장·프라이버시가 정한다
 
 둘을 같은 숫자로 두면 안 된다. 붓이 셀보다 작으면 한 걸음이 셀 하나를 통째로 칠해
 그림이 실제보다 뭉툭해지고, 붓이 셀보다 훨씬 크면 저장이 커진다.
+
+**단위도 다르다.** 격자는 Web Mercator 라 위도 37.5° 에서 1 단위가 실제 0.79m 다.
+`brush_stamp` 이 거리를 견줄 때 `metres_per_unit` 으로 되돌리는 이유이고, 넓이를 말할 때
+`cells.cell_area_m2` 를 거치는 이유다.
 
 ## 집이 가장 진해진다
 
@@ -36,7 +40,15 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 
 from app.features.walk.facts import Segment
-from app.geo.cells import Cell, hex_cell, hex_center, mercator
+from app.geo.cells import (
+    Cell,
+    cell_area_m2,
+    hex_cell,
+    hex_center,
+    hex_center_latlng,
+    mercator,
+    metres_per_unit,
+)
 
 # 이웃 셀 중심 사이 거리 = sqrt(3) × 반지름 (육각 격자)
 NEIGHBOUR_FACTOR = math.sqrt(3)
@@ -44,17 +56,15 @@ NEIGHBOUR_FACTOR = math.sqrt(3)
 
 @dataclass
 class Paint:
-    """셀 한 칸에 쌓인 물감.
-
-    숫자가 셋인 이유는 **하나로는 근접과 빈도가 구별되지 않기 때문**이다.
+    """셀 한 칸의 **질의 결과**. 저장물이 아니라 `stack()` 이 그때그때 만든 값이다.
 
         occupancy  물감 총량. 가까이 오래 있을수록 큰다 (감쇠 반영)
-        walks      이 칸에 물감이 조금이라도 묻은 산책 수 — 빈도
-        peak       한 번의 산책에서 받은 최대 세기 — **가장 가까웠던 정도**
+        walks      문턱 이상으로 이 칸을 칠한 산책 수 — 빈도
+        peak       그중 가장 강했던 세기
 
-    `peak` 이 결정적이다. 늘 18m 옆으로 지나가는 칸은 24 번 칠해져도 peak 이 낮고, 한 번이라도
-    밟은 칸은 peak 이 1.0 이다. "자주 가는 길목에 붙어 있어서 자주 가는 것처럼 보이는 곳"이
-    여기서 갈린다.
+    `walks` 가 문턱에 달려 있다는 것이 핵심이다. 문턱 없이 세면 늘 12m 옆으로 지나간 49 회와
+    한 번 밟은 1 회가 같은 빈도가 된다 — "자주 가는 길목에 붙어 있어서 자주 가는 것처럼
+    보이는 곳" 이 거기서 생긴다.
     """
 
     cell: Cell
@@ -67,6 +77,25 @@ class Paint:
     @property
     def id(self) -> str:
         return f"{self.cell[0]}:{self.cell[1]}"
+
+
+@dataclass(frozen=True)
+class Cellophane:
+    """산책 한 번의 셀 맵 — **셀로판 한 장**.
+
+    이것이 저장 단위 후보다. 조건(계절·시간대)으로 장을 골라 겹치면 그 조건에서의 행동이
+    지도로 나온다. 장을 미리 접어 한 장으로 만들면 되돌릴 수 없다 (`stack` 참고).
+
+    `radius_u` 와 `profile` 을 같이 들고 다니는 이유: 격자나 붓이 바뀌면 다른 장이다.
+    섞어서 겹치면 조용히 틀린 그림이 된다.
+    """
+
+    walk_id: str
+    at: datetime
+    radius_u: float
+    profile: str
+    occupancy: dict[Cell, float]
+    peak: dict[Cell, float]
 
 
 @dataclass(frozen=True)
@@ -138,7 +167,7 @@ FACILITY_SMOOTH = BrushProfile(
 
 
 def brush_stamp(
-    lat: float, lng: float, cell_radius: float, profile: BrushProfile
+    lat: float, lng: float, radius_u: float, profile: BrushProfile
 ) -> list[tuple[Cell, float]]:
     """점 하나가 남기는 자국 — (셀, 물감량) 목록.
 
@@ -146,35 +175,45 @@ def brush_stamp(
     것과 다르다: 그렇게 하면 셀이 밴드보다 클 때 세 밴드가 같은 칸을 칠해 구별이 사라진다.
     거리로 재면 셀 크기는 값을 어디에 보관할지만 정하고 답의 해상도는 정하지 않는다.
 
+    **거리는 실제 지상 미터다.** 격자 좌표는 Web Mercator 라 위도만큼 늘어나 있으므로
+    `metres_per_unit` 로 되돌린 뒤 밴드와 견준다 — 이걸 안 하면 `3·8·20` 밴드가 위도
+    37.5° 에서 실제 2.4·6.3·15.9m 로 동작한다.
+
     붓이 셀보다 작아도 **최소 한 칸**은 칠한다 — 지나갔는데 아무것도 안 남으면 구멍이 뚫린다.
     """
-    home = hex_cell(lat, lng, cell_radius)
-    reach = math.ceil(profile.reach_m / (NEIGHBOUR_FACTOR * cell_radius)) + 1
+    home = hex_cell(lat, lng, radius_u)
+    scale = metres_per_unit(lat)                      # 단위 → 미터
+    reach_u = profile.reach_m / scale
+    reach = math.ceil(reach_u / (NEIGHBOUR_FACTOR * radius_u)) + 1
     x, y = mercator(lat, lng)
     out: list[tuple[Cell, float]] = []
     for dq in range(-reach, reach + 1):
         for dr in range(max(-reach, -dq - reach), min(reach, -dq + reach) + 1):
             cell = (home[0] + dq, home[1] + dr)
-            cx, cy = hex_center(*cell, cell_radius)
-            weight = profile.weight_at(math.hypot(cx - x, cy - y))
+            cx, cy = hex_center(*cell, radius_u)
+            weight = profile.weight_at(math.hypot(cx - x, cy - y) * scale)
             if weight > 0:
                 out.append((cell, weight))
     return out or [(home, profile.weights[0])]
 
 
-def paint_walk(
-    segments: list[Segment], cell_radius: float, profile: BrushProfile, step_m: float = 0.0
-) -> dict[Cell, float]:
-    """산책 한 번 → 셀별 물감량.
+def paint_sheet(
+    walk_id: str,
+    at: datetime,
+    segments: list[Segment],
+    radius_u: float,
+    profile: BrushProfile,
+    step_m: float = 0.0,
+) -> "Cellophane":
+    """산책 한 번 → 셀로판 한 장. 물감과 최대 세기를 **같이** 만든다.
 
-    세그먼트를 잘라 각 조각의 시간을 그 지점의 자국에 묻힌다. 한 조각이 여러 칸에 묻으면
-    시간을 **나누지 않고 각 칸에 세기만큼 준다** — 물감은 시간의 분배가 아니라 "그 칸
-    근처에 있었던 정도" 라서다.
-
-    **그래서 칸 값을 다 더하면 산책 시간보다 크다.** 시간 예산이 아니라 점유량이다.
+    한 번 훑으면서 둘 다 뽑는 이유는 서로 다른 질문에 답하기 때문이다 — 물감은 "얼마나
+    오래", 최대 세기는 "얼마나 가까이". 옆으로만 스쳐도 오래 걸으면 물감은 커지지만 세기는
+    낮게 남는다.
     """
-    step = step_m or max(min(cell_radius, profile.bands[0]) / 2.0, 1.5)
-    painted: dict[Cell, float] = {}
+    step = step_m or max(min(radius_u, profile.bands[0]) / 2.0, 1.5)
+    occupancy: dict[Cell, float] = {}
+    peak: dict[Cell, float] = {}
     for seg in segments:
         pieces = max(1, math.ceil(seg.dist / step))
         share = seg.dt / pieces
@@ -182,75 +221,73 @@ def paint_walk(
             frac = (index + 0.5) / pieces
             lat = seg.a.lat + (seg.b.lat - seg.a.lat) * frac
             lng = seg.a.lng + (seg.b.lng - seg.a.lng) * frac
-            for cell, weight in brush_stamp(lat, lng, cell_radius, profile):
-                painted[cell] = painted.get(cell, 0.0) + share * weight
-    return painted
+            for cell, weight in brush_stamp(lat, lng, radius_u, profile):
+                occupancy[cell] = occupancy.get(cell, 0.0) + share * weight
+                if weight > peak.get(cell, 0.0):
+                    peak[cell] = weight
+    return Cellophane(walk_id=walk_id, at=at, radius_u=radius_u, profile=profile.name,
+                      occupancy=occupancy, peak=peak)
 
 
-def accumulate(
-    walks: list[tuple[dict[Cell, float], datetime]],
-    peaks: list[dict[Cell, float]] | None = None,
-) -> dict[Cell, Paint]:
-    """여러 산책의 물감을 겹친다. `walks` 는 (셀별 물감, 그 산책 시각).
+def stack(sheets: list[Cellophane], min_peak: float = 0.0) -> dict[Cell, Paint]:
+    """셀로판 여러 장을 겹친다. **집계는 질의이지 저장이 아니다.**
 
-    `peaks` 는 산책별 셀 최대 세기 — `paint_walk_peaks` 가 준다. 없으면 `peak` 은 0 이다.
+    `min_peak` 미만으로만 스친 산책은 그 칸에서 **세지 않는다.** 문턱이 인자인 것이 핵심이다:
+
+        직접 통과 1 회(peak 1.0) + 12m 옆 통과 49 회(peak 0.15)
+
+    를 장별로 들고 있으면 `min_peak=0.9` 로 "밟은 건 1 회" 를 답할 수 있다. 장을 미리 접어
+    칸마다 최대값 하나로 만들면 `walks=50 · peak=1.0` 이 되어 "50 번 다 밟았다" 와 구별되지
+    않는다 — 이 설계가 막으려던 바로 그 혼동이 집계 단계에서 되살아난다.
+
+    그래서 원본은 장으로 남기고, 문턱은 물을 때마다 고른다.
     """
     canvas: dict[Cell, Paint] = {}
-    for index, (painted, at) in enumerate(walks):
-        peak_map = peaks[index] if peaks else {}
-        for cell, amount in painted.items():
+    for sheet in sheets:
+        for cell, amount in sheet.occupancy.items():
+            weight = sheet.peak.get(cell, 0.0)
+            if weight < min_peak:
+                continue
             paint = canvas.get(cell)
             if paint is None:
                 paint = canvas[cell] = Paint(cell=cell)
             paint.occupancy += amount
             paint.walks += 1
-            paint.peak = max(paint.peak, peak_map.get(cell, 0.0))
-            paint.first_at = at if paint.first_at is None else min(paint.first_at, at)
-            paint.last_at = at if paint.last_at is None else max(paint.last_at, at)
+            paint.peak = max(paint.peak, weight)
+            paint.first_at = sheet.at if paint.first_at is None else min(paint.first_at, sheet.at)
+            paint.last_at = sheet.at if paint.last_at is None else max(paint.last_at, sheet.at)
     return canvas
 
 
-def paint_walk_peaks(
-    segments: list[Segment], cell_radius: float, profile: BrushProfile, step_m: float = 0.0
-) -> dict[Cell, float]:
-    """산책 한 번에서 각 칸이 받은 **최대 세기**. 누적이 아니라 최댓값이다.
-
-    누적(`paint_walk`)은 "오래 있었나"를, 이건 "얼마나 가까이 왔나"를 답한다. 옆으로만
-    스쳐도 오래 걸으면 누적은 커지지만 최대 세기는 낮게 남는다.
-    """
-    step = step_m or max(min(cell_radius, profile.bands[0]) / 2.0, 1.5)
-    peaks: dict[Cell, float] = {}
-    for seg in segments:
-        pieces = max(1, math.ceil(seg.dist / step))
-        for index in range(pieces):
-            frac = (index + 0.5) / pieces
-            lat = seg.a.lat + (seg.b.lat - seg.a.lat) * frac
-            lng = seg.a.lng + (seg.b.lng - seg.a.lng) * frac
-            for cell, weight in brush_stamp(lat, lng, cell_radius, profile):
-                if weight > peaks.get(cell, 0.0):
-                    peaks[cell] = weight
-    return peaks
+def peak_counts(sheets: list[Cellophane], cell: Cell) -> list[float]:
+    """한 칸이 장마다 받은 최대 세기 목록. 문턱을 정하기 전에 분포를 보는 용도."""
+    return sorted((s.peak.get(cell, 0.0) for s in sheets), reverse=True)
 
 
 @dataclass
 class CanvasStats:
-    """칠한 지도 한 장의 성질. 계약이 아니라 판단 재료다."""
+    """겹친 결과 한 장의 성질. 계약이 아니라 판단 재료다."""
 
     cells: int = 0
     area_m2: float = 0.0
     total_occupancy: float = 0.0
     max_walks: int = 0
     core_cells: int = 0                 # 전체 산책의 절반 이상에서 칠해진 칸
-    trodden_cells: int = 0              # peak 이 높은 칸 — 실제로 밟은 곳
-    fringe_cells: int = 0               # 자주 칠해졌지만 peak 이 낮은 칸 — 옆을 지난 곳
+    # 심 밴드 안까지 들어온 칸. **"밟았다" 가 아니다** — GPS 오차가 심보다 크면 심 안에
+    # 찍혔다는 것이 실제로 그 자리에 있었다는 뜻이 못 된다. 이름이 주장을 넘지 않게 둔다.
+    core_hit_cells: int = 0
+    fringe_cells: int = 0               # 자주 칠해졌지만 세기가 낮은 칸 — 옆을 지난 곳
     home_bias: float = 0.0              # 최다 방문 칸 ÷ 중앙값 — 집이 얼마나 튀나
     walks_hist: list[int] = field(default_factory=list)
 
 
-def canvas_stats(canvas: dict[Cell, Paint], cell_radius: float, walk_count: int) -> CanvasStats:
+def canvas_stats(canvas: dict[Cell, Paint], radius_u: float, walk_count: int) -> CanvasStats:
+    """넓이는 **실제 지상 면적**이다. 위도는 칸들의 중앙값에서 얻는다."""
     if not canvas:
         return CanvasStats()
-    hex_area = 1.5 * math.sqrt(3) * cell_radius**2
+    lats = sorted(hex_center_latlng(*p.cell, radius_u)[0] for p in canvas.values())
+    lat = lats[len(lats) // 2]
+    hex_area = cell_area_m2(radius_u, lat)
     counts = sorted(p.walks for p in canvas.values())
     middle = counts[len(counts) // 2]
     often = max(1, walk_count / 2)
@@ -260,7 +297,7 @@ def canvas_stats(canvas: dict[Cell, Paint], cell_radius: float, walk_count: int)
         total_occupancy=sum(p.occupancy for p in canvas.values()),
         max_walks=counts[-1],
         core_cells=sum(1 for c in counts if c >= often),
-        trodden_cells=sum(1 for p in canvas.values() if p.peak >= 0.9),
+        core_hit_cells=sum(1 for p in canvas.values() if p.peak >= 0.9),
         # 자주 칠해졌는데 한 번도 가까이 안 간 칸. 이 수가 크면 "옆동네가 내 영역인 척" 한다
         fringe_cells=sum(1 for p in canvas.values() if p.walks >= often and p.peak < 0.5),
         home_bias=counts[-1] / middle if middle else 0.0,

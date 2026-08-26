@@ -2,7 +2,7 @@
 
 import math
 
-from app.ingest.anchors import HEX_RADIUS_M, hex_cell, hex_center, select
+from app.ingest.anchors import HEX_RADIUS_U, hex_cell, hex_center, select
 
 
 def _lamp(lat, lng, kind="한전주"):
@@ -22,7 +22,7 @@ def test_kepco_pole_wins_over_dedicated():
     cx, cy = hex_center(q, r)
     # 전용주를 중심에, 한전주를 살짝 떨어뜨려 놓아도 한전주가 뽑혀야 한다
     picked = select([_lamp(37.5, 127.0, "전용주"), _lamp(37.50008, 127.00008, "한전주")])
-    kinds = [p["kind"] for p in picked if p["cell"] == f"anchor-hex:{round(HEX_RADIUS_M)}:{q}:{r}"]
+    kinds = [p["kind"] for p in picked if p["cell"] == f"anchor-hex:{round(HEX_RADIUS_U)}:{q}:{r}"]
     assert kinds == ["한전주"]
     assert math.isfinite(cx) and math.isfinite(cy)
 
@@ -43,5 +43,5 @@ def test_empty_cells_get_no_anchor():
 
 def test_cell_id_carries_radius():
     """반지름이 id 에 박혀야 격자를 바꿔도 옛 앵커와 섞이지 않는다."""
-    picked = select([_lamp(37.5, 127.0)], radius_m=200.0)
+    picked = select([_lamp(37.5, 127.0)], radius_u=200.0)
     assert picked[0]["cell"].startswith("anchor-hex:200:")
