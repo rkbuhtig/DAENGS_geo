@@ -12,10 +12,10 @@ import httpx
 
 from app.geo.polyline import encode as encode_polyline
 from app.journey.advice import dog_time_factor, walk_advice
+from app.journey.contract import JourneyPlan
 from app.journey.handoff import handoff_links
 from app.journey.models import Companion, Leg, RoadMix, Transport
 from app.journey.spots import spots_out
-from app.planning.plans import JourneyPlan
 from app.providers.base import LatLng, Mode, RouteResult, RouteStatus
 from app.providers.fake import FakeProvider, haversine_m
 from app.providers.registry import route_provider_name

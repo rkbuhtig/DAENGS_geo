@@ -5,13 +5,11 @@ companion: dog  = 개 동반. 개 계수·spots 노트·advice·대중교통 제
 """
 
 from datetime import datetime
-from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from app.journey.contract import Companion
 from app.providers.base import Mode, RouteStatus
-
-Companion = Literal["dog", "none"]
 
 
 class SpotOut(BaseModel):

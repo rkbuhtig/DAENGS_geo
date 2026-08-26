@@ -12,11 +12,12 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sqlalchemy import cast, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.clock import SystemClock
 from app.core.db import get_session
 from app.geo.models import Place
 from app.journey.engine import snapshot
 from app.journey.models import Companion, Transport
-from app.planning.facts import RuntimeFacts, SystemClock
+from app.planning.facts import RuntimeFacts
 from app.planning.resolver import resolve_request
 from app.planning.state import EditableState, JourneyPrefs
 from app.profile.source import owner_of, profile_source

@@ -12,16 +12,18 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.clock import SystemClock
 from app.core.config import settings
 from app.core.db import get_session
 from app.features.hospital.actions import build_actions
 from app.geo.ranking import DISTANCE_BAND_M, DURATION_BAND_MIN, band_of
 from app.geo.schemas import MapOut, PlaceOut
 from app.geo.search import build_map, find_places
+from app.journey.contract import JourneyPlan
 from app.journey.engine import snapshot
 from app.journey.models import Companion, Transport
-from app.planning.facts import RuntimeFacts, SystemClock
-from app.planning.plans import JourneyPlan, ViewPlan
+from app.planning.facts import RuntimeFacts
+from app.planning.plans import ViewPlan
 from app.planning.resolver import resolve_request
 from app.planning.state import EditableState
 from app.profile.source import owner_of, profile_source

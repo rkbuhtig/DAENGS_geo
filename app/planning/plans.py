@@ -1,8 +1,10 @@
-"""엔진별 **실행 계획**. resolver 가 만들고, 엔진은 자기 계획만 받는다.
+"""표시 계획. resolver 가 만들고, 렌더가 받는다.
 
-    find_places(plan.search)      검색은 journey 를 볼 방법이 없다
-    snapshot(plan.journey)        경로는 target 을 볼 방법이 없다
     render(plan.view)
+
+검색·이동 계획은 각 실행자가 소유한다 — `geo.contract` 와 `journey.contract` (결정 #67 §3).
+셋을 한 파일에 두었더니 실행자가 자기 입력을 가지러 상위 패키지를 import 해야 했고,
+`Companion` 은 순환을 피하려고 `str` 로 뭉개져 있었다.
 
 계획을 따로 두는 이유는 경계를 **구조로** 막기 위해서다. 조각을 여러 개 넘기면
 (`find_places(target, derived)`) 결국 누군가 필요한 걸 하나 더 끌어다 쓰고, 그렇게
@@ -14,87 +16,10 @@
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime
 
 from app.planning.state import Sort
-from app.profile.contract import DogProfile
-from app.providers.base import Mode
-
-Companion = str  # journey.models.Companion 과 같은 값. 순환 import 를 피한다
 
 
-# ------------------------------------------------------------------ 검색
-@dataclass(frozen=True)
-class SearchMust:
-    """만족하지 못하면 **결과에서 빠진다.** 사용자가 명시한 요구만 여기 온다."""
-
-    lat: float
-    lng: float
-    radius_m: int
-    judge_at: datetime                         # 영업 판정 시각 (TimeIntent.service_at 사영)
-    kind: str | None = None
-    open_now: bool = False
-    require_tags: tuple[str, ...] = field(default_factory=tuple)
-    exclude_ids: tuple[int, ...] = field(default_factory=tuple)
-    limit: int = 20
-
-
-@dataclass(frozen=True)
-class SearchPrefer:
-    """**빼지 않는다. 순위만 올린다.**
-
-야간·응급의 재료는 간판 이름 정규식이다 (`geo/tagging.py`). 실측 2026-08-20 활성 병원
-    5,457곳 중 night 1 · emergency 2. 이 신뢰도로는 거를 자격이 없다.
-
-    같은 재료를 쓰던 과목 축은 아예 없앴다 (#64) — 한국 수의 진료에 과목 제도가 없어서
-    태그가 자격이 아니라 상호였다. 신뢰도가 낮은 것과 존재하지 않는 것은 다른 처분을 받는다.
-    """
-
-    tags: tuple[str, ...] = field(default_factory=tuple)
-    confidence: str = "name_regex"       # 어디서 온 신호인지. 표시·감사용
-
-
-@dataclass(frozen=True)
-class SearchPlan:
-    must: SearchMust
-    prefer: SearchPrefer = field(default_factory=SearchPrefer)
-
-
-# ------------------------------------------------------------------ 이동
-@dataclass(frozen=True)
-class WalkPlan:
-    """도보로 갈 때만 의미 있는 것. 차량 판정에 적용되면 안 된다."""
-
-    max_walk_min: int | None = None      # **개가 걸어도 되는 시간.** 전체 이동시간과 다르다
-    # 도보 옵션·피하기는 여기 없다 (#66). 상태에서도 사라졌다.
-
-
-@dataclass(frozen=True)
-class JourneyPlan:
-    """어떻게 갈까. 판정에 필요한 **재료와 우선순위**까지만.
-
-    `mode_priority` 가 '선호 수단' 하나가 아닌 이유: 급할 때 차가 없으면 택시, 그것도
-    아니면 도보다. 무엇이 실제로 가능한지는 경로를 받아봐야 알기 때문에 순서만 준다.
-    """
-
-    origin_lat: float
-    origin_lng: float
-    resolved_at: datetime
-    departure_at: datetime
-    companion: Companion = "dog"
-    measured: bool = False
-
-    mode_priority: tuple[Mode, ...] = field(default_factory=tuple)
-    max_total_min: int | None = None
-    hard_limit: bool = False
-    walk: WalkPlan = field(default_factory=WalkPlan)
-
-    # --- 상황이 먹인 것
-    profile: DogProfile | None = None
-    temp_c: float | None = None
-
-
-# ------------------------------------------------------------------ 표시
 @dataclass(frozen=True)
 class ViewPlan:
     """어떻게 보여줄까. 결과 집합도 경로도 안 바꾼다."""

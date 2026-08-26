@@ -10,6 +10,7 @@ from typing import Literal, Self
 from pydantic import BaseModel, Field, field_validator, model_validator
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.clock import SystemClock
 from app.ingest.kcisa import KINDS as KCISA_KINDS
 from app.ingest.kto import KINDS as KTO_KINDS
 from app.ingest.mois import SOURCES as MOIS_SOURCES
@@ -22,7 +23,6 @@ from app.place.facility_resolver import (
     resolve_facilities,
 )
 from app.place.medical_resolver import resolve_medical_places
-from app.planning.facts import SystemClock
 from app.profile.contract import SizeClass
 from app.profile.source import profile_source
 

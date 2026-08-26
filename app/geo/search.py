@@ -6,15 +6,15 @@ from geoalchemy2 import Geography, Geometry
 from sqlalchemy import cast, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.clock import SystemClock
 from app.core.config import settings
+from app.geo.contract import SearchMust, SearchPlan, SearchPrefer
 from app.geo.facility_hours import attach_facility_hours
 from app.geo.hours import is_open_at, today_ranges
 from app.geo.models import Place
 from app.geo.ranking import band_boost_sorted, prefer_boost, preference_tags
 from app.geo.schemas import MapOut, PlaceOut, SearchOut, SearchParams
 from app.geo.tagging import dog_ok
-from app.planning.facts import SystemClock
-from app.planning.plans import SearchMust, SearchPlan, SearchPrefer
 from app.providers.base import LatLng, MapMarker, StaticMapSpec
 from app.providers.registry import static_map_provider
 
