@@ -131,10 +131,7 @@ def resolve_request(
         mode_priority=tuple(modes),
         max_total_min=state.journey.max_total_min,
         hard_limit=state.journey.hard_limit,
-        walk=WalkPlan(
-            option=state.journey.walk.option,
-            max_walk_min=state.journey.walk.max_walk_min,
-        ),
+        walk=WalkPlan(max_walk_min=state.journey.walk.max_walk_min),
         profile=facts.profile,
         temp_c=facts.temp_c,
     )

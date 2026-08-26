@@ -36,8 +36,8 @@ class RouteOutcome:
     reason: str | None = None
 
 
-async def _route(mode: Mode, o: LatLng, d: LatLng, option: WalkOption,
-                 measured: bool) -> RouteOutcome:
+async def _route(mode: Mode, o: LatLng, d: LatLng, measured: bool,
+                 option: WalkOption = "recommended") -> RouteOutcome:
     """네 갈래뿐이다.
 
         설정이 none        → unavailable. 숫자를 만들지 않는다
@@ -114,9 +114,6 @@ async def snapshot(plan: JourneyPlan, dest: LatLng, *, dest_name: str = "",
     profile = plan.profile
     straight = int(haversine_m(origin, dest))
     dog = companion == "dog"
-    walk_option = plan.walk.option
-    if not dog and walk_option == "no_stairs":
-        walk_option = "recommended"       # 사람만 갈 땐 프로필 유래 기본값을 안 쓴다
     show_transit = "transit" in plan.mode_priority
     measured_mode = plan.mode_priority[0] if plan.measured and plan.mode_priority else None
 
@@ -124,9 +121,9 @@ async def snapshot(plan: JourneyPlan, dest: LatLng, *, dest_name: str = "",
     # 목적지당 도보 경로는 **하나만** 받는다. 옵션 여럿을 받아 점수로 고르던 것은 결정 #66 으로
     # 없앴다 — 288경로 조사에서 추천 하나가 비교 결과와 99% 같은 선택이었고, 비교의 축이던
     # 계단은 0/288 이었다. 콜은 1/3 이 되고 선택은 사실상 그대로다.
-    walk_tasks = [asyncio.create_task(_route("walk", origin, dest, walk_option, walk_measured))]
-    car_task = asyncio.create_task(_route("car", origin, dest, walk_option, measured_mode == "car"))
-    transit_task = (asyncio.create_task(_route("transit", origin, dest, walk_option,
+    walk_tasks = [asyncio.create_task(_route("walk", origin, dest, walk_measured))]
+    car_task = asyncio.create_task(_route("car", origin, dest, measured_mode == "car"))
+    transit_task = (asyncio.create_task(_route("transit", origin, dest,
                                                measured_mode == "transit"))
                     if show_transit else None)
     walk_outcomes = [await t for t in walk_tasks]

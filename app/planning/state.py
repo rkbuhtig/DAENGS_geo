@@ -20,11 +20,10 @@ from typing import Annotated, Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.planning.semantics import TimeIntent, Urgency
-from app.providers.base import Mode, WalkOption
+from app.providers.base import Mode
 
 Sort = Literal["distance", "duration", "open_first"]
-WalkFacility = Literal["underpass", "overpass", "stairs"]
-CURRENT_STATE_VERSION = 3
+CURRENT_STATE_VERSION = 4
 # undo 스택 깊이. 되돌림 지점은 **턴당 하나**다 (app/refine/engine.py)
 MAX_HISTORY = 10
 PositiveId = Annotated[int, Field(ge=1)]
@@ -69,9 +68,9 @@ class WalkPrefs(ContractModel):
     다 반환하므로 도보 대안에는 계속 적용되고, 사용자가 도보로 돌아오면 설정이 살아 있어야 한다.
     """
 
-    option: WalkOption = "recommended"
-    avoid: list[WalkFacility] = Field(default_factory=list, max_length=3)
     max_walk_min: int | None = Field(None, ge=1, le=1440)
+    # `option`·`avoid` 는 여기 없다 (#66). 사용자가 고르던 도보 옵션·피하기는 재료가 없어
+    # 판정이 사라졌고, 고를 수 있는 척하는 손잡이만 남아 있었다.
 
 
 class JourneyPrefs(ContractModel):
@@ -118,14 +117,18 @@ class EditableState(ContractModel):
         """옛 payload 를 현재 의미로 명시적으로 옮긴다.
 
         v1 → v2: `target.night/emergency/at` 의 의미 분리.
-        v2 → v3: `target.specialty` 제거 (결정 #64). 캐시된 옛 state 를 들고 오는 앱이
-        422 를 맞지 않게 **알려진 옛 필드로 보고 버린다** — 오타는 여전히 extra=forbid 가 잡는다.
+        v2 → v3: `target.specialty` 제거 (결정 #64).
+        v3 → v4: `journey.walk.option`·`avoid` 제거 (결정 #66).
+
+        지운 축은 **알려진 옛 필드로 보고 버린다** — 캐시된 옛 state 를 들고 오는 클라이언트가
+        422 를 맞지 않게. 오타는 여전히 extra=forbid 가 잡는다. `history` 스냅샷도 같은 검증을
+        타므로(`validate_history_snapshots`) undo 스택의 옛 상태가 저절로 따라온다.
         """
         if not isinstance(value, dict):
             return value
         data = deepcopy(value)
         version = data.get("state_version", 1)
-        if version not in (1, 2, CURRENT_STATE_VERSION):
+        if version not in (1, 2, 3, CURRENT_STATE_VERSION):
             raise ValueError(f"unsupported state_version: {version}")
 
         target = data.get("target")
@@ -138,6 +141,11 @@ class EditableState(ContractModel):
             legacy_at = target.pop("at", None)
             if legacy_at is not None and data.get("time_intent") is None:
                 data["time_intent"] = {"kind": "service_at", "at": legacy_at}
+
+        journey = data.get("journey")
+        if isinstance(journey, dict) and isinstance(journey.get("walk"), dict):
+            journey["walk"].pop("option", None)     # v3 축. 재료가 없어 #66 으로 제거
+            journey["walk"].pop("avoid", None)
         data["state_version"] = CURRENT_STATE_VERSION
         return data
 

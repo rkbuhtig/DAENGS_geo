@@ -19,8 +19,8 @@ from typing import Annotated, Any
 from pydantic import ConfigDict, Field, ValidationError, validate_call
 
 from app.planning.semantics import TimeIntent, TimeKind, Urgency
-from app.planning.state import MAX_HISTORY, EditableState, Sort, WalkFacility
-from app.providers.base import Mode, WalkOption
+from app.planning.state import MAX_HISTORY, EditableState, Sort
+from app.providers.base import Mode
 
 Latitude = Annotated[float, Field(ge=-90, le=90)]
 Longitude = Annotated[float, Field(ge=-180, le=180)]
@@ -39,7 +39,7 @@ def _edit(state: EditableState) -> EditableState:
     """편집용 사본. **history 는 건드리지 않는다.**
 
     되돌림 지점은 툴이 아니라 턴 경계에서 찍는다 (`checkpoint`, app/refine/engine.py).
-    툴마다 찍으면 "계단은 빼줘" 한 마디(set_mode + set_walk_avoid)가 스택 두 칸을 먹고,
+    툴마다 찍으면 "걸어서 15분 안에" 한 마디(set_mode + set_max_total_min)가 스택 두 칸을 먹고,
     undo 한 번이 사용자가 말한 적 없는 중간 상태를 만든다.
     """
     return state.model_copy(deep=True)
@@ -167,35 +167,6 @@ def set_max_total_min(state: EditableState, minutes: PositiveMinutes | None,
 # ------------------------------------------------ JOURNEY / 도보 (scope: walk)
 # 이 그룹은 preferred_mode 를 건드리지 않는다. '계단 없는 길로'가 도보를 함의한다면
 # 그건 자연어 층이 set_mode(walk) 를 **따로 내는** 것이지, 툴이 몰래 세울 일이 아니다.
-def set_walk_option(state: EditableState, option: WalkOption) -> EditableState:
-    s = _edit(state); s.journey.walk.option = option
-    return s
-
-
-def set_walk_avoid(state: EditableState,
-                   facilities: Annotated[list[WalkFacility], Field(max_length=3)]) -> EditableState:
-    """**지금 `avoid` 자체는 아무 판정도 만들지 않는다** (#66). 남은 효과는 아래 `stairs` →
-    `option` 한 줄뿐이고, 그건 요청하는 도보 옵션을 바꾸므로 경로에 실제로 닿는다.
-
-    상태 필드와 이 툴을 지우는 것은 `state_version` 을 올려야 해서 다음 단계로 미뤘다.
-    그때까지 이 함수가 "조건을 걸었다"고 읽히지 않게 여기 적어 둔다.
-    """
-    s = _edit(state)
-    s.journey.walk.avoid = sorted(set(s.journey.walk.avoid) | set(facilities))
-    # option 도 도보 scope 안이라 같이 움직여도 된다 (계층을 넘지 않는다)
-    if "stairs" in s.journey.walk.avoid: s.journey.walk.option = "no_stairs"
-    return s
-
-
-def unset_walk_avoid(state: EditableState,
-                     facilities: Annotated[list[WalkFacility], Field(max_length=3)]) -> EditableState:
-    s = _edit(state)
-    s.journey.walk.avoid = [f for f in s.journey.walk.avoid if f not in facilities]
-    if "stairs" in facilities and s.journey.walk.option == "no_stairs":
-        s.journey.walk.option = "recommended"
-    return s
-
-
 def set_walk_max_min(state: EditableState, minutes: PositiveMinutes | None) -> EditableState:
     """**개가 걸어도 되는 시간** 상한. 전체 이동시간(`set_max_total_min`)과 다르다."""
     s = _edit(state); s.journey.walk.max_walk_min = minutes
@@ -241,10 +212,7 @@ CONTEXT_TOOLS: dict[str, Callable[..., EditableState]] = {
 MODE_TOOLS: dict[str, Callable[..., EditableState]] = {
     "set_mode": set_mode, "set_max_total_min": set_max_total_min,
 }
-WALK_TOOLS: dict[str, Callable[..., EditableState]] = {
-    "set_walk_option": set_walk_option, "set_walk_avoid": set_walk_avoid,
-    "unset_walk_avoid": unset_walk_avoid, "set_walk_max_min": set_walk_max_min,
-}
+WALK_TOOLS: dict[str, Callable[..., EditableState]] = {"set_walk_max_min": set_walk_max_min}
 JOURNEY_TOOLS: dict[str, Callable[..., EditableState]] = {**MODE_TOOLS, **WALK_TOOLS}
 VIEW_TOOLS: dict[str, Callable[..., EditableState]] = {
     "set_sort": set_sort, "undo": undo, "reset": reset,
@@ -313,9 +281,6 @@ TOOL_SPECS: list[dict[str, Any]] = [
     {"policy": "target", "scope": "any", "name": "pin", "desc": "위로 고정할 병원 id", "args": {"ids": "list[int]"}},
     {"policy": "journey", "scope": "any", "name": "set_mode", "desc": "선호 이동수단 walk|car|transit|null. 도보 설정을 바꾸고 싶으면 이걸 따로 부를 것", "args": {"mode": "str?"}},
     {"policy": "journey", "scope": "any", "name": "set_max_total_min", "desc": "전체 이동시간 상한(분), 수단 무관. hard=true면 초과를 결과에서 뺀다(기본 false: 표시만)", "args": {"minutes": "int?", "hard": "bool?"}},
-    {"policy": "journey", "scope": "walk", "name": "set_walk_option", "desc": "도보 옵션 recommended|main_road|shortest|no_stairs", "args": {"option": "str"}},
-    {"policy": "journey", "scope": "walk", "name": "set_walk_avoid", "desc": "도보 시 피할 시설 stairs|underpass|overpass. **판정은 #66 으로 없어졌다** — stairs 만 도보 옵션을 바꿔 경로에 닿는다", "args": {"facilities": "list[str]"}},
-    {"policy": "journey", "scope": "walk", "name": "unset_walk_avoid", "desc": "도보 피하기 해제", "args": {"facilities": "list[str]"}},
     {"policy": "journey", "scope": "walk", "name": "set_walk_max_min", "desc": "개가 걸어도 되는 시간 상한(분). 전체 이동시간과 다르다", "args": {"minutes": "int?"}},
     {"policy": "view", "scope": "any", "name": "set_sort", "desc": "정렬 distance|duration|open_first", "args": {"sort": "str"}},
     {"policy": "view", "scope": "any", "name": "undo", "desc": "직전 상태로", "args": {}},

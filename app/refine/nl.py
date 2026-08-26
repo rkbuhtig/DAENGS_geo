@@ -56,19 +56,13 @@ _RULES: list[tuple[re.Pattern[str], Any]] = [
     (re.compile(r"걸어|도보|산책\s*겸|걷"), lambda m, s, ids: [ToolCall("set_mode", {"mode": "walk"})]),
     (re.compile(r"차로|차\s*타|운전|택시"), lambda m, s, ids: [ToolCall("set_mode", {"mode": "car"})]),
     (re.compile(r"버스|지하철|대중교통"), lambda m, s, ids: [ToolCall("set_mode", {"mode": "transit"})]),
-    (re.compile(r"계단\s*(없|싫|말|빼|피)|계단은"), lambda m, s, ids: [ToolCall("set_mode", {"mode": "walk"}), ToolCall("set_walk_avoid", {"facilities": ["stairs"]})]),
-    (re.compile(r"지하도\s*(없|싫|말|빼|피)|지하도는"), lambda m, s, ids: [ToolCall("set_mode", {"mode": "walk"}), ToolCall("set_walk_avoid", {"facilities": ["underpass"]})]),
-    (re.compile(r"육교\s*(없|싫|말|빼|피)"), lambda m, s, ids: [ToolCall("set_mode", {"mode": "walk"}), ToolCall("set_walk_avoid", {"facilities": ["overpass"]})]),
-    (re.compile(r"큰\s*길|대로\s*(로|따라|우선|위주)"), lambda m, s, ids: [ToolCall("set_mode", {"mode": "walk"}), ToolCall("set_walk_option", {"option": "main_road"})]),
     (re.compile(r"(\d+)\s*분\s*(안|이내|내로|넘지)"), lambda m, s, ids: [ToolCall("set_max_total_min", {"minutes": int(m.group(1))})]),
     (re.compile(r"영업\s*중\s*(먼저|우선)|열린\s*데\s*(먼저|우선)"), lambda m, s, ids: [ToolCall("set_sort", {"sort": "open_first"})]),
     (re.compile(r"가까운\s*순|거리\s*순"), lambda m, s, ids: [ToolCall("set_sort", {"sort": "distance"})]),
 ]
 
 # 같은 툴이 여러 번 나오면 인자를 합쳐야 하는 것들 (툴 -> 리스트 인자 이름)
-ACCUMULATING = {"note_symptoms": "terms", "require": "tags",
-                "unrequire": "tags", "set_walk_avoid": "facilities",
-                "unset_walk_avoid": "facilities"}
+ACCUMULATING = {"note_symptoms": "terms", "require": "tags", "unrequire": "tags"}
 
 _EXCL = re.compile(r"(첫번째|두번째|세번째|네번째|다섯번째|[1-5]번|첫|두|세|네|다섯)\s*(번째)?\s*(거|곳|병원|데)?\s*(는|은|말고|빼|제외)")
 _HERE = re.compile(r"(여기|거기|이\s*병원|이\s*데)\s*(는|은)?\s*(말고|빼|제외|싫)")
@@ -127,7 +121,7 @@ class OpenAILLM:
                              k: {"type": _jt(v)} for k, v in t["args"].items()}}},
         } for t in TOOL_SPECS]
         sys = ("너는 동물병원 검색 조건 편집기다. 사용자의 말을 툴 호출로만 바꿔라. 병원을 추천하거나 정보를 만들지 마라. "
-               "의도가 불명확하면 ask 툴을 써라. 화면 순번(첫번째, 두번째…)은 shown_ids 순서로 id를 골라라. 각 툴에는 scope가 있다. scope=walk 툴은 도보로 갈 때만 의미가 있다. '계단 없는 길로' 처럼 도보를 함의하는 말이면 set_mode(walk)와 set_walk_avoid를 둘 다 호출해라 — 하나만 부르면 수단이 안 바뀐다. 'N분 안에'는 전체 이동시간(set_max_total_min)이지 도보 시간이 아니다.\n"
+               "의도가 불명확하면 ask 툴을 써라. 화면 순번(첫번째, 두번째…)은 shown_ids 순서로 id를 골라라. 각 툴에는 scope가 있다. scope=walk 툴은 도보로 갈 때만 의미가 있다. '걸어서 15분 안에' 처럼 도보를 함의하는 말이면 set_mode(walk)를 따로 호출해라 — 안 부르면 수단이 안 바뀐다. 'N분 안에'는 전체 이동시간(set_max_total_min)이지 도보 시간이 아니다.\n"
                f"현재 상태: {json.dumps(state.snapshot(), ensure_ascii=False, default=str)}\n"
                f"shown_ids: {shown_ids}\n프로필 힌트: {profile_hint}")
         async with httpx.AsyncClient(timeout=20) as c:

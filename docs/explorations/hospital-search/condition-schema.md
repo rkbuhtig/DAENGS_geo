@@ -102,7 +102,7 @@ state(`symptoms`·`specialty`)에서 만들면 **같은 state가 같은 근거·
 
 ## 요청 계약 v2
 
-클라이언트가 왕복시키는 `EditableState`에는 `state_version: 3`이 붙는다. 서버는
+클라이언트가 왕복시키는 `EditableState`에는 `state_version: 4`가 붙는다. 서버는
 버전 없는 v1 state의 `target.night`, `target.emergency`, `target.at`을 각각
 `night_service`, `emergency_service`, `time_intent(kind=service_at)`으로 이행한다.
 옛 `set_time(open_now, night, emergency)` 편집도 입력 호환용으로만 받으며 새 툴

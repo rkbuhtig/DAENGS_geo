@@ -28,7 +28,7 @@
 
 ```jsonc
 {
-  "state": { "state_version": 3, "lat", "lng", "time_intent", "urgency",
+  "state": { "state_version": 4, "lat", "lng", "time_intent", "urgency",
              "target", "journey", "sort", "history" },
   "results": [
     { "...PlaceOut", "transport", "boost" }
