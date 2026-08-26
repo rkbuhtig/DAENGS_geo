@@ -2,9 +2,10 @@
 
 문서는 한 줄기가 아니라 **갈래**로 자란다. 뭐가 확정이고 뭐가 탐색 중인지 여기서 본다.
 
-현재 제품 범위의 기준은 [결정 #51](decisions/2026-08-22-walk-as-spine.md), 현재 구현 조립의
-기준은 [provider-assembly.md](provider-assembly.md)다. 날짜가 파일명에 들어간 `research/`는 당시
-관찰 기록이며 현재 상태 문서로 읽지 않는다.
+현재 제품 범위의 기준은 [결정 #51](decisions/2026-08-22-walk-as-spine.md), 장소 발견의 다음
+제품 축은 [결정 #63](decisions/2026-08-26-place-first-discovery.md), 현재 구현 조립의 기준은
+[provider-assembly.md](provider-assembly.md)다. 날짜가 파일명에 들어간 `research/`는 당시 관찰
+기록이며 현재 상태 문서로 읽지 않는다.
 
 ```
 overview.md          컨셉·범위. 거의 안 바뀜
@@ -30,6 +31,7 @@ backlog.md           갈래에 안 붙는 미결
 - [산책](explorations/walk/README.md) — 코어는 수집 계약, 갈래는 전부 소비자 옵션
 - [모바일 셸](explorations/mobile-shell/README.md) — 폰에서의 제품 화면. 공간 표면 vs 에피소드 표면
 - [결정 #51 — 병원은 산책의 모드, 산책이 척추](decisions/2026-08-22-walk-as-spine.md) — 08-19 → 08-22의 사슬과 2026-08-24 채택 범위
+- [결정 #63 — Place 우선 장소 발견](decisions/2026-08-26-place-first-discovery.md) — 원천 kind 후보군 → 조건 → 사실 순서, 의미 제안은 선택층
 
 ## 계약
 - [반려견 프로필](contracts/dog-profile.md) — 외부에서 받는 형태 + 가상 페르소나 8마리 (축: 지도 위 난점)
