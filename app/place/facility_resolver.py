@@ -227,7 +227,10 @@ WHERE
 -- 선호 시설이 자른 창 밖에 남는다. `limit` 20 인데 0~400m 에 40곳이 있으면 450m 의 주차
 -- 가능 시설은 같은 밴드인데도 후보에 못 들어와 부스트가 아예 작동하지 않는다.
 -- 이건 태그 우선 정렬(`geo/search.py` 가 금지한 것)이 아니라 결정 #20 의 rank key 그대로다.
-ORDER BY floor(distance_m / :band_m), prefer_hits DESC, distance_m
+-- 같은 rank key가 LIMIT 경계에 걸려도 후보 집합이 실행계획에 따라 흔들리지 않아야 한다.
+-- canonical 행은 (source, source_ref)가 unique이고, ref가 없는 legacy 행은 마지막 id가 닫는다.
+ORDER BY floor(distance_m / :band_m), prefer_hits DESC, distance_m,
+         source, source_ref NULLS LAST, id
 LIMIT :limit
 """)
 
