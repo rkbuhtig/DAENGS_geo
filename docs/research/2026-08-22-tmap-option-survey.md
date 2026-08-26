@@ -98,7 +98,16 @@ TMAP 보행자 응답이 실제로 주는 시설은 **횡단보도**(풍부) 와
 
 ## 재현
 
+실호출은 Usage Gate 의 조사 작업으로 계량한다. `--provider` 기본값이 `fake` 이고 실호출은
+`dev` 정책과 배치 상한을 **둘 다 명시**해야 열린다 — 조사를 실수로 다시 돌리는 일이 없게.
+
 ```bash
-DAENGS_TMAP_APP_KEY=... uv run python scripts/tmap_option_survey.py          # 288콜, raw/ 캐시
-uv run python scripts/tmap_option_survey.py --reparse                         # 호출 없이 재집계
+uv run python scripts/tmap_option_survey.py --provider tmap --dry-run        # 호출 수만 센다
+
+DAENGS_USAGE_POLICY=dev DAENGS_TMAP_APP_KEY=... uv run python   scripts/tmap_option_survey.py --provider tmap --max-live-calls 288         # 실호출 288
 ```
+
+`--reparse` 는 호출 없이 다시 집계하지만 **`raw/` 가 있어야 한다.** 원본 JSON 은
+`.gitignore` 라 이 레포를 새로 클론한 사람에게는 없다 — 위 실호출을 한 번 돌린 기계에서만
+쓸 수 있다. 커밋된 것은 집계 결과인 [`summary.md`](tmap-option-survey/summary.md) 와
+`rows.csv` 이고, 이 문서의 결론은 그것으로 검증된다.

@@ -79,9 +79,9 @@ DB 이미지는 팀 공용 환경과 같은 PostgreSQL 18 · PostGIS 3.6 · pgve
 
 ### 스키마 변경
 
-`alembic` 한 경로다. `migrations/*.sql` 은 동결된 역사이고 새로 추가해도 실행되지 않는다
-([migrations/README.md](migrations/README.md)). 그 12개는 리비전 `0001`~`0012` 로 한 글자도
-바뀌지 않은 채 들어가 있다.
+`alembic` 한 경로다. 옛 `migrations/*.sql` 12개는 리비전 `0001`~`0012` 안에 주석까지 그대로
+들어 있어서 두 벌이 되므로 지웠다 — 원문은 git history 에 있다
+([migrations/README.md](migrations/README.md)). `migrations/` 에 남은 것은 개발용 시드뿐이다.
 
 ```bash
 uv run alembic upgrade head                      # 현재까지 적용
