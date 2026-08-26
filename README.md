@@ -19,8 +19,9 @@ fix·`WalkFacts`·정지/시설 occurrence 파생과 원좌표 purge를 구현�
 **다음 장소 발견 축: 2026-08-26.** [결정 #65](docs/decisions/2026-08-26-place-first-discovery.md)은
 병원·약국·카페·여행·미용·숙박을 공통 `Place`로 보고, 원천 category에서 정규화한 `kind`를
 검색 입구로 삼는다. 기본 결과는 사실 기반이고 태그·AI는 사용자가 적용하는 제안층이다.
-공통 `POST /v2/places/search`는 종류별 독립 그룹과 거리순으로 구현됐다. 기존 웹 검증 표면과
-Android 병원 화면은 아직 이 계약으로 전환하지 않았으며 작은 PR로 순차 이동한다.
+공통 `POST /v2/places/search`는 종류별 독립 그룹·거리순·반려견 입장 3상태 평가로 구현됐고,
+웹 검증 표면 `/facility-map`이 이 계약을 소비한다. Android 병원 화면은 아직 전환하지 않았으며
+작은 PR로 이어서 이동한다.
 
 ```
 app/
