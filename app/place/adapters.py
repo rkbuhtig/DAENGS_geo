@@ -7,12 +7,6 @@ facility_link는 검증된 identity가 아니므로 aliases로 자동 변환하�
 from datetime import datetime
 
 from app.geo.schemas import PlaceOut
-from app.ingest.kcisa import KIND_MAPPING_VERSION as KCISA_MAPPING_VERSION
-from app.ingest.kcisa import KINDS as KCISA_KINDS
-from app.ingest.kto import KIND_MAPPING_VERSION as KTO_MAPPING_VERSION
-from app.ingest.kto import KINDS as KTO_KINDS
-from app.ingest.mois import KIND_MAPPING_VERSION as MOIS_MAPPING_VERSION
-from app.ingest.mois import SOURCES
 from app.place.contracts import (
     FieldProvenance,
     MedicalFacts,
@@ -24,6 +18,22 @@ from app.place.contracts import (
     PlaceResult,
 )
 from app.place.facility_resolver import FacilityOut
+from app.place.source_catalog import (
+    KCISA_KIND_MAPPING_VERSION as KCISA_MAPPING_VERSION,
+)
+from app.place.source_catalog import (
+    KCISA_KINDS,
+    KTO_KINDS,
+)
+from app.place.source_catalog import (
+    KTO_KIND_MAPPING_VERSION as KTO_MAPPING_VERSION,
+)
+from app.place.source_catalog import (
+    MOIS_KIND_MAPPING_VERSION as MOIS_MAPPING_VERSION,
+)
+from app.place.source_catalog import (
+    MOIS_SOURCES as SOURCES,
+)
 
 _FACILITY_MAPPING_VERSIONS = {
     "kcisa": KCISA_MAPPING_VERSION,

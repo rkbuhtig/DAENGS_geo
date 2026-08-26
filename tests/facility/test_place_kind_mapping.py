@@ -1,7 +1,6 @@
 """원천 카테고리에서 canonical kind로 가는 사실 매핑."""
 
-from app.ingest.kcisa import KINDS as KCISA_KINDS
-from app.ingest.kto import KINDS as KTO_KINDS
+from app.place.source_catalog import KCISA_KINDS, KTO_KINDS
 
 
 def test_pet_supplies_and_general_shopping_are_distinct_kinds():
