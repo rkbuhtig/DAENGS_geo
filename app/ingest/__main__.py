@@ -10,10 +10,11 @@ import json
 
 from app.core.config import settings
 from app.core.db import SessionLocal
-from app.ingest.mois import SOURCES, MoisClient
+from app.ingest.mois import MoisClient
 from app.ingest.mois_store import MoisStore
 from app.ingest.mois_sync import SyncMode, sync_source
 from app.ingest.pet_axes import derive_all
+from app.place.source_catalog import MOIS_SOURCES as SOURCES
 
 # 원천을 호출하지 않는 모드. 서비스 키 검사에서 빠진다.
 LOCAL_MODES = ("pet-axes",)

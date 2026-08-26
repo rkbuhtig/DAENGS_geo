@@ -6,13 +6,13 @@ import httpx
 import pytest
 
 from app.ingest.mois import (
-    SOURCES,
     STATUS_NAMES,
     MoisApiError,
     MoisClient,
     normalize,
 )
 from app.ingest.mois_sync import overlap_watermark, sync_source
+from app.place.source_catalog import MOIS_SOURCES as SOURCES
 
 
 def _item(**overrides):

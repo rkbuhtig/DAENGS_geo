@@ -7,20 +7,23 @@ OpenAPI 좌표는 EPSG:5174다. 이 모듈은 원본 x/y를 보존하고, 실제
 import asyncio
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Literal, Self
+from typing import Self
 from urllib.parse import unquote
 from zoneinfo import ZoneInfo
 
 import httpx
 
 from app.geo.tagging import tags_for
+from app.place.source_catalog import (
+    MoisKind as Kind,
+)
+from app.place.source_catalog import (
+    MoisSource,
+)
 
-Kind = Literal["hospital", "pharmacy"]
 BASE_URL = "https://apis.data.go.kr/1741000"
 SUCCESS_CODES = {"0", "00", "0000"}
 KST = ZoneInfo("Asia/Seoul")
-# 병원/약국이 서로 다른 원천 endpoint라는 사실을 canonical kind로 옮기는 첫 명시 버전.
-KIND_MAPPING_VERSION = "mois-source/1"
 
 # 공공데이터포털 공식 '개방자치단체코드_영업상태코드.xlsx' (2026-08-20 확인).
 STATUS_NAMES = {
@@ -30,27 +33,6 @@ STATUS_NAMES = {
     "04": "취소/말소/만료/정지/중지",
     "05": "제외/삭제/전출",
     "06": "기타",
-}
-
-
-@dataclass(frozen=True)
-class MoisSource:
-    kind: Kind
-    slug: str
-    source: str
-
-
-SOURCES: dict[Kind, MoisSource] = {
-    "hospital": MoisSource(
-        kind="hospital",
-        slug="animal_hospitals",
-        source="public:mois:animal_hospital",
-    ),
-    "pharmacy": MoisSource(
-        kind="pharmacy",
-        slug="animal_pharmacies",
-        source="public:mois:animal_pharmacy",
-    ),
 }
 
 

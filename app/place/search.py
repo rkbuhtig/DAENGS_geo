@@ -11,9 +11,6 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.clock import SystemClock
-from app.ingest.kcisa import KINDS as KCISA_KINDS
-from app.ingest.kto import KINDS as KTO_KINDS
-from app.ingest.mois import SOURCES as MOIS_SOURCES
 from app.place.adapters import facility_place_result, medical_place_result
 from app.place.contracts import PlaceResult
 from app.place.evaluations import DogAccessEvaluation, evaluate_dog_access
@@ -23,6 +20,7 @@ from app.place.facility_resolver import (
     resolve_facilities,
 )
 from app.place.medical_resolver import resolve_medical_places
+from app.place.source_catalog import KCISA_KINDS, KTO_KINDS, MOIS_SOURCES
 from app.profile.contract import SizeClass
 from app.profile.source import profile_source
 

@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.geo.contract import SearchMust, SearchPlan
 from app.geo.schemas import PlaceOut
 from app.geo.search import find_authoritative_places
-from app.ingest.mois import SOURCES
+from app.place.source_catalog import MOIS_SOURCES as SOURCES
 
 
 async def resolve_medical_places(

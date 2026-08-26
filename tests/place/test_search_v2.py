@@ -7,10 +7,8 @@ from datetime import UTC, datetime
 from sqlalchemy import text
 
 from app.ingest.facility_store import upsert_rows
-from app.ingest.kcisa import KINDS as KCISA_KINDS
-from app.ingest.kto import KINDS as KTO_KINDS
-from app.ingest.mois import SOURCES as MOIS_SOURCES
 from app.place.search import PlaceKind, PlaceSearchRequest, search_place_groups
+from app.place.source_catalog import KCISA_KINDS, KTO_KINDS, MOIS_SOURCES
 from tests.conftest import TEST_ORIGIN, db_session
 
 _MEDICAL_SOURCE = "public:mois:animal_hospital"

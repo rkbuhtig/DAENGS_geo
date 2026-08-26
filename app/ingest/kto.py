@@ -31,22 +31,12 @@ from app.core.config import settings
 from app.core.db import SessionLocal
 from app.ingest.facility_store import prune_unseen, upsert_rows
 from app.ingest.linking import rebuild_links
+from app.place.source_catalog import (
+    KTO_KINDS as KINDS,
+)
 
 SOURCE = "public:kto:pet_tour"
 BASE_URL = "https://apis.data.go.kr/B551011/KorPetTourService2"
-# v1은 KCISA/KTO 용품을 모두 goods로 접었던 규칙. v2부터 contenttypeid=38은 shopping이다.
-KIND_MAPPING_VERSION = "kto-contenttypeid/2"
-
-# contenttypeid → kind. KCISA와 다른 분류 체계라 겹치는 슬러그만 겹치게 맞춘다.
-KINDS = {
-    "12": "travel",
-    "14": "culture",
-    "28": "leisure",
-    "32": "stay",
-    "38": "shopping",
-    "39": "restaurant",
-}
-
 
 class KtoApiError(RuntimeError):
     pass
