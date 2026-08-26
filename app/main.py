@@ -12,9 +12,9 @@ from app.api import anchor, facility, places, places_v2, static_map
 from app.core.config import settings
 from app.core.db import get_session
 from app.features.hospital import api as hospital
+from app.features.journey import api as journey
 from app.features.pharmacy import api as pharmacy
 from app.features.walk import api as walk
-from app.journey import api as journey
 from app.usage.composition import route_capability_problems
 from app.usage.gate import usage_request_scope
 

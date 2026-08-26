@@ -12,7 +12,7 @@ from app.core.config import settings
 from app.core.db import get_session
 from app.discovery.state import EditableState, JourneyPrefs
 from app.features.hospital.api import HospitalSearchIn
-from app.journey.api import Dest, JourneyIn
+from app.features.journey.api import Dest, JourneyIn
 from app.main import app
 
 

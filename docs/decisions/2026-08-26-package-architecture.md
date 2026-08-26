@@ -88,10 +88,17 @@ RuntimeFacts · ViewPlan                  → resolver 의 입력·출력  → d
 `Companion` 은 `Literal["dog", "none"]` 이고 "이번 이동에 개가 동반하는가"를 뜻한다.
 프로필 종류가 아니므로 `profile` 로 보내지 않는다 — `none` 프로필은 없다.
 
-이 규칙으로 `discovery ↔ journey` 의 양방향 패키지 참조는 허용 가능한 모듈 방향으로
-분해한다. `discovery.resolver` 는 `journey.contract` 를 향하고(역방향, contract 이므로 허용),
-`journey.api` 는 `discovery` 를 향한다(순방향). 패키지 이름만으로 순환 여부를 판정하지 않고
-모듈 단위 import-direction 테스트로 이 규칙을 잠근다.
+이 규칙으로 `discovery ↔ journey` 의 양방향 패키지 참조를 허용 가능한 모듈 방향으로
+분해했다 — `discovery.resolver` 가 `journey.contract` 를 향하는 역방향은 contract 이므로
+허용이고, 반대 방향은 `journey.api` 가 `discovery` 를 보는 순방향이었다.
+
+**PR 6 이후 그 쌍은 아예 사라진다.** `journey → discovery` 에지는 전부 `journey/api.py`
+세 줄이었고, 그 파일이 §4 에 따라 `features/journey/` 로 나가면서 `journey` 는 `discovery`
+를 모르게 됐다. 남는 것은 `discovery → journey.contract` 단방향뿐이라 contract 예외조차
+필요 없다. 규칙 집행이 구조를 한 단계 더 정리한 경우다.
+
+패키지 이름만으로 순환 여부를 판정하지 않고 모듈 단위 import-direction 테스트로 이 규칙을
+잠근다.
 
 ### 4. HTTP 엔드포인트 소유
 
@@ -106,7 +113,8 @@ app/api/*           공용 조회 어댑터 — places · anchor · static_map
 feature 인가**의 규칙이다.
 
 `main.py:11·14-17` 이 지금 세 곳에서 라우터를 가져온다. 이 규칙을 적용하면
-`journey/api.py` 하나가 위반으로 남는다 — 도메인 패키지 안의 워크플로 엔드포인트다.
+`journey/api.py` 하나가 위반이었다 — 도메인 패키지 안의 워크플로 엔드포인트다.
+**PR 6 에서 `features/journey/api.py` 로 옮겨 해소했다.**
 알려진 위반으로 기록하고 별도 PR 에서 처리한다.
 
 ### 5. 최상위 패키지 신설은 결정 문서를 거친다
@@ -177,7 +185,7 @@ chain_index 같은 산책 어휘를 가진 타입이라 단순히 `geo`로 내�
 | 3 | `planning` + `refine` → `discovery` | `git grep 'app\.planning\|app\.refine' -- . ':!docs/decisions/'` 0건 |
 | 4 | `scene` → `features/scene` | `git grep 'app\.scene\|app/scene' -- . ':!docs/decisions/'` 0건 |
 | 5 | import 방향 테스트로 잠금 | 알려진 위반 포함 아래 게이트 통과 |
-| 6 | API 소유 집행 (§4) | 별도 트랙 |
+| 6 | API 소유 집행 (§4) — `journey/api.py` → `features/journey/` | `git grep 'from app\.discovery' -- app/journey` 0건 |
 
 PR 2 에 `Clock` 이 함께 들어가는 이유: 계약만 옮기면 `geo → planning` 에지가 하나 남아
 (`geo/search.py` 의 `SystemClock`) 순환이 안 풀린다. 착수 전 그래프 시뮬레이션으로 확인했다.
