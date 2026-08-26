@@ -21,7 +21,7 @@
 - [ ] 업로드 주기와 실행 보장 (배터리 vs 유실) — 현재는 종료 직후 1회, 실패하면 재시도 없음.
       WorkManager 는 업로드 의미가 아니라 실행 보장 장치로 들어간다
 - [ ] GPS 품질·어뷰징 검증 임계값 (accuracy, 속도, 점프, 가속도)
-- [ ] 병원 **영업시간 데이터 출처** — 공공데이터에 없음. 수기·제휴 또는 parked `homepage-enrich.md`
+- [ ] 병원 **영업시간 데이터 출처** — 공공데이터에 없음. 수기·제휴만 남았다 (홈페이지 추출은 #63 기각)
 - [ ] 검색 후처리로 후보가 빠질 때 반경 안의 다음 후보를 refill하는 방식
 - [ ] Android 실기기 위치·지도·백그라운드 smoke test와 release 서버 설정
 - [x] PostGIS 통합 테스트를 포함한 CI (`.github/workflows/ci.yml`)
@@ -38,8 +38,7 @@
 - [ ] 공공데이터포털 행안부 동물병원·동물약국 조회서비스 활용신청 및 운영키 등록
 
 ## parked 기능을 다시 채택할 때만
-- [ ] 네이버 개발자센터 검색 API 앱 등록 (`community-search.md`)
-- [ ] 카카오 REST 키 (`kakao-category.md`, 지오코딩)
+- [ ] 카카오 REST 키 (지오코딩용. `kakao-category.md` 는 #64 기각)
 - [ ] TMAP 키·요금 재확인 (`transport-snapshot.md` 도보)
 - [ ] 자동차·대중교통 실측 provider 선정
 - [ ] 이동 중 알림 빈도와 프로필 기반 권장 시간·거리 규칙 결정

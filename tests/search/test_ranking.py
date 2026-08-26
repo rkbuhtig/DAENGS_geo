@@ -31,7 +31,6 @@ AT = datetime(2026, 8, 25, 22, 0, tzinfo=UTC)
 def test_night_and_emergency_expand_to_the_same_tags():
     assert preference_tags(night=True) == ("24h", "emergency", "night")
     assert preference_tags(emergency=True) == ("24h", "emergency")
-    assert preference_tags(["eye"], night=True) == ("24h", "emergency", "eye", "night")
     assert preference_tags() == ()
 
 

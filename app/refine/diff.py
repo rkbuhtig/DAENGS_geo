@@ -42,8 +42,6 @@ def changes_by_policy(before: EditableState | None, after: EditableState) -> dic
                        ("emergency_service", "응급 표방 우선", "응급 우선 해제")):
         if getattr(bt, f) != getattr(at_, f):
             out["target"].append(on if getattr(at_, f) else off)
-    if bt.specialty != at_.specialty:
-        out["target"].append("특화 우선: " + (", ".join(value_label(t) for t in at_.specialty) or "없음"))
     if bt.symptoms != at_.symptoms:
         out["target"].append("증상 메모: " + (", ".join(at_.symptoms) or "없음"))
     if bt.require_tags != at_.require_tags:

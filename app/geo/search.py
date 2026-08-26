@@ -43,7 +43,7 @@ async def find_places(
         stmt = stmt.where(Place.kind == must.kind)
     # **야간·응급은 거르지 않는다.** 인허가 원천엔 진료 능력이 없어서 이 태그들은 간판 이름
     # 정규식이 전부다 (geo/tagging.py). 실측 2026-08-20, 활성 병원 5,457곳 중
-    # night 1곳 · emergency 2곳 · ortho 2곳 — WHERE 로 쓰면 반경 안 결과가 통째로 사라진다.
+    # night 1곳 · emergency 2곳 — WHERE 로 쓰면 반경 안 결과가 통째로 사라진다.
     # '미상은 제외하지 않는다'(open_now)와 같은 판단이다: 모르는 걸 없는 것으로 취급하지 않는다.
     # 진짜 요구('24시만 보여줘')는 require_tags 로 온다 — 그건 사용자가 명시했으니 거른다.
     if must.require_tags:

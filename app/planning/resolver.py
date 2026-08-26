@@ -92,7 +92,6 @@ def resolve_request(
     # 상황 정책(긴급도가 응급 선호를 켠다)은 여기 남는다: 무엇을 선호로 볼지와
     # 언제 그것을 켤지는 다른 결정이다.
     prefer = set(preference_tags(
-        state.target.specialty,
         night=state.target.night_service,
         emergency=state.target.emergency_service or plan_urgency == "urgent",
     ))

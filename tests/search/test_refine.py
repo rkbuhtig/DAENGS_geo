@@ -53,7 +53,7 @@ async def test_one_utterance_is_one_undo_step():
 
 async def test_stack_depth_counts_turns_not_tools():
     s = await _turn(None)
-    for utterance in ("계단은 빼줘", "안과 잘 보는 데", "너무 멀어"):
+    for utterance in ("계단은 빼줘", "밤에 갈 수 있는 곳", "너무 멀어"):
         s = await _turn(s, utterance)
     assert len(s.history) == 3
 
@@ -139,7 +139,6 @@ def test_diff_draft():
     ("지금 열린 데", "set_open_now", {"on": True}),
     ("밤에 갈 수 있는 곳", "set_night_service", {"on": True}),
     ("급해요 지금 당장", "set_urgency", {"level": "urgent"}),
-    ("뒷다리 절뚝거려서 관절 잘 보는 데", "set_specialty", {"tags": ["ortho"]}),
     ("계단 없는 길로 걸어갈래", "set_walk_avoid", {"facilities": ["stairs"]}),
     ("15분 안에 갈 수 있는 데", "set_max_total_min", {"minutes": 15}),
     ("차로 갈게", "set_mode", {"mode": "car"}),
@@ -167,7 +166,7 @@ async def test_fake_llm_asks_when_clueless():
 def test_draft_uses_profile_only_as_default():
     s = draft(37.5, 127.0, PERSONAS["halmae"], 2000)
     assert s.journey.walk.option == "no_stairs"             # journey 기본값만
-    assert s.target.open_now is False and s.target.specialty == []   # target 필터는 안 건드림
+    assert s.target.open_now is False and s.target.require_tags == []  # target 필터는 안 건드림
     s2 = draft(37.5, 127.0, PERSONAS["kong"], 2000)
     assert s2.journey.walk.option == "recommended"
 
@@ -240,7 +239,7 @@ def test_target_tools_never_touch_journey():
     from app.refine.tools import TARGET_TOOLS
     args = {"set_origin": {"lat": 37.6, "lng": 127.1}, "set_radius": {"m": 500}, "widen": {},
             "narrow": {}, "set_open_now": {}, "set_night_service": {},
-            "set_emergency_service": {}, "set_specialty": {"tags": ["eye"]},
+            "set_emergency_service": {},
             "note_symptoms": {"terms": ["눈이 뿌옇"]}, "clear_symptoms": {},
             "require": {"tags": ["24h"]}, "unrequire": {"tags": ["24h"]},
             "exclude": {"ids": [1]}, "pin": {"ids": [2]}}
@@ -286,25 +285,25 @@ def test_nl_emits_mode_explicitly_for_walk_scoped_intent():
 def test_nl_merges_accumulating_tools_instead_of_dropping():
     """같은 툴이 두 번 나오면 인자를 합친다. 마지막 것만 남기면 조건이 조용히 사라진다.
 
-    증상이 아니라 **과목**을 두 개 말한 경우다 — 증상→과목 추론은 하지 않는다 (nl.py).
+    "24시"와 "큰 병원"은 각각 다른 규칙인데 둘 다 `require` 를 낸다. 마지막 것만 남기면
+    사용자가 말한 조건 하나가 조용히 사라진다.
     """
     import asyncio
 
     from app.refine.nl import FakeLLM
-    plan = asyncio.run(FakeLLM().plan("안과랑 정형 둘 다 보는 데", S, [], ""))
-    tags = next(c.args["tags"] for c in plan if c.tool == "set_specialty")
-    assert set(tags) == {"eye", "ortho"}, tags
+    plan = asyncio.run(FakeLLM().plan("24시 하는 큰 병원", S, [], ""))
+    tags = next(c.args["tags"] for c in plan if c.tool == "require")
+    assert set(tags) == {"24h", "center"}, tags
 
 
-def test_symptoms_do_not_become_specialties():
-    """증상은 진단이 아니다. "숨을 헐떡여요" → 심장은 관할 밖이고 재료도 없다.
+def test_symptoms_stay_verbatim_and_translate_to_nothing():
+    """증상은 진단이 아니다. "숨을 헐떡여요" → 심장은 관할 밖이고, 과목 축 자체가 없다 (#64).
 
-    (실측 2026-08-20: cardio 태그 전국 16곳 · ortho 2곳. 그것도 간판 이름일 뿐이다.)
-    증상 표현은 커뮤니티 근거 경로가 원문 그대로 받아 쓴다.
+    말은 `note_symptoms` 로 원문 그대로만 남고, 어떤 필터·부스트도 만들지 않는다.
     """
     import asyncio
 
     from app.refine.nl import FakeLLM
     for utt in ("숨을 헐떡여요", "뒷다리를 절뚝거려요", "눈이 뿌옇게 됐어요", "자꾸 긁어요"):
         plan = asyncio.run(FakeLLM().plan(utt, S, [], ""))
-        assert not [c for c in plan if c.tool == "set_specialty"], f"{utt} -> {plan}"
+        assert [c.tool for c in plan] == ["note_symptoms"], f"{utt} -> {plan}"

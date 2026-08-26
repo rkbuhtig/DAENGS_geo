@@ -136,7 +136,7 @@ async def test_omitting_origin_keeps_the_pinned_search_location():
         pinned = EditableState(lat=TEST_ORIGIN[0], lng=TEST_ORIGIN[1])
         out = await hospital_search(
             HospitalSearchIn(
-                state=pinned, transport="none", with_evidence=False,
+                state=pinned, transport="none",
                 edits=[Edit(tool="set_radius", args={"m": 1500})],
             ),
             db,
@@ -192,7 +192,6 @@ def test_legacy_set_time_tool_is_migrated_but_not_advertised():
     ("set_walk_max_min", {"minutes": -1}),
     ("set_radius", {"m": 99_999_999}),
     ("set_origin", {"lat": 999, "lng": 127}),
-    ("set_specialty", {"tags": ["fortune_telling"]}),
     ("set_time_intent", {"kind": "service_at"}),
     ("set_mode", {"mode": "walk", "surprise": True}),
 ])

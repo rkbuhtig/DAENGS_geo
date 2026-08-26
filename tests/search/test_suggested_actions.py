@@ -118,7 +118,7 @@ async def test_api_action_round_trips_through_existing_edits_contract():
     state.target.require_tags = ["tag-that-cannot-exist-in-seed"]
     async with seeded_places([]) as db:
         first = await hospital_search(
-            HospitalSearchIn(state=state, transport="none", with_evidence=False), db,
+            HospitalSearchIn(state=state, transport="none"), db,
         )
         action = _by_id(first.actions, "relax_required_tags")
         second = await hospital_search(
@@ -126,7 +126,6 @@ async def test_api_action_round_trips_through_existing_edits_contract():
                 state=first.state,
                 edits=action.edits,
                 transport="none",
-                with_evidence=False,
             ),
             db,
         )

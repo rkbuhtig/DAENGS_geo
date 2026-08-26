@@ -48,19 +48,11 @@ _RULES: list[tuple[re.Pattern[str], Any]] = [
      lambda m, s, ids: [ToolCall("set_urgency", {"level": "urgent"})]),
     (re.compile(r"24\s*시"), lambda m, s, ids: [ToolCall("require", {"tags": ["24h"]})]),
     (re.compile(r"큰\s*병원|의료센터|2차|종합"), lambda m, s, ids: [ToolCall("require", {"tags": ["center"]})]),
-    # **증상에서 과목을 추론하지 않는다.** "숨을 헐떡여요" → 심장은 진단이고, 우리 관할 밖이며
-    # (docs/overview.md), 재료도 없다 — cardio 태그는 전국 16곳, 그것도 간판 이름일 뿐이다.
-    # 증상은 **말 그대로** state.symptoms 에 남는다 (note_symptoms). 과목을 아는 건 우리가 아니라
-    # 커뮤니티 코퍼스다 — 증상 언어로 검색하면 그 증상을 잡으려고 병원이 써둔 FAQ·센터 페이지가
-    # 걸린다 (query-rewrite-experiment.md). 여기서는 사용자가 **과목을 말했을 때만** 선호로 세운다.
+    # **증상에서 과목을 추론하지 않는다.** "숨을 헐떡여요" → 심장은 진단이고 관할 밖이다
+    # (docs/overview.md). 과목 축 자체가 #64 로 없어졌으므로 추론할 대상도 없다.
+    # 증상은 **말 그대로** state.symptoms 에 남는다 (note_symptoms) — 지금은 기록까지다.
     (re.compile(r"(절뚝|다리를?\s*(절|저는)|눈이?\s*뿌옇|숨을?\s*헐떡|헐떡거|기침|귀를?\s*긁|피부를?\s*긁|자꾸\s*긁|토했|토를|설사)"),
      lambda m, s, ids: [ToolCall("note_symptoms", {"terms": [m.group(1)]})]),
-    (re.compile(r"정형|관절"), lambda m, s, ids: [ToolCall("set_specialty", {"tags": s.target.specialty + ["ortho"]})]),
-    (re.compile(r"안과"), lambda m, s, ids: [ToolCall("set_specialty", {"tags": s.target.specialty + ["eye"]})]),
-    (re.compile(r"치과"), lambda m, s, ids: [ToolCall("set_specialty", {"tags": s.target.specialty + ["dental"]})]),
-    (re.compile(r"피부과"), lambda m, s, ids: [ToolCall("set_specialty", {"tags": s.target.specialty + ["derma"]})]),
-    (re.compile(r"심장\s*(과|전문|진료|잘)"), lambda m, s, ids: [ToolCall("set_specialty", {"tags": s.target.specialty + ["cardio"]})]),
-    (re.compile(r"재활"), lambda m, s, ids: [ToolCall("set_specialty", {"tags": s.target.specialty + ["rehab"]})]),
     (re.compile(r"걸어|도보|산책\s*겸|걷"), lambda m, s, ids: [ToolCall("set_mode", {"mode": "walk"})]),
     (re.compile(r"차로|차\s*타|운전|택시"), lambda m, s, ids: [ToolCall("set_mode", {"mode": "car"})]),
     (re.compile(r"버스|지하철|대중교통"), lambda m, s, ids: [ToolCall("set_mode", {"mode": "transit"})]),
@@ -74,7 +66,7 @@ _RULES: list[tuple[re.Pattern[str], Any]] = [
 ]
 
 # 같은 툴이 여러 번 나오면 인자를 합쳐야 하는 것들 (툴 -> 리스트 인자 이름)
-ACCUMULATING = {"set_specialty": "tags", "note_symptoms": "terms", "require": "tags",
+ACCUMULATING = {"note_symptoms": "terms", "require": "tags",
                 "unrequire": "tags", "set_walk_avoid": "facilities",
                 "unset_walk_avoid": "facilities"}
 

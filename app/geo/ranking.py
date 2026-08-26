@@ -15,21 +15,19 @@ from collections.abc import Callable, Sequence
 DISTANCE_BAND_M = 500
 DURATION_BAND_MIN = 5
 
-# 야간·응급은 간판 이름 정규식이 전부다 (name-tagging.md). 특화(specialty)와 같은 재료라
-# 신뢰도가 같고, 그래서 권한도 같다 — 셋 다 순위만 바꾸고 결과 집합은 안 건드린다.
+# 야간·응급은 간판 이름 정규식이 전부다 (name-tagging.md). 신뢰도가 낮아서 순위만 바꾸고
+# 결과 집합은 안 건드린다. 같은 재료였던 과목 축은 원천이 없어 #64 로 없앴다.
 NIGHT_TAGS = ("night", "24h", "emergency")
 EMERGENCY_TAGS = ("emergency", "24h")
 
 
-def preference_tags(
-    specialty: Sequence[str] | None = None, *, night: bool = False, emergency: bool = False
-) -> tuple[str, ...]:
+def preference_tags(*, night: bool = False, emergency: bool = False) -> tuple[str, ...]:
     """조건 → 선호 태그. 두 진입 경로가 이 함수만 쓴다 (이슈 #24).
 
     상황 정책(예: 긴급도가 emergency 를 켠다)은 여기 없다 — 호출자가 결정해서 불 값으로
     넘긴다. 이 함수는 '무엇을 선호로 볼 것인가'의 **의미**만 안다.
     """
-    prefer = set(specialty or ())
+    prefer: set[str] = set()
     if night:
         prefer.update(NIGHT_TAGS)
     if emergency:
