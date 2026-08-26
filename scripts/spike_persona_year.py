@@ -25,7 +25,7 @@
     A  null       패턴 없음. 계절·시간대별 횟수를 **균형 고정**              거짓 양성 통제
     B  seasonal   봄가을 공원 / 여름 하천 / 겨울 골목                        단일 축 회수
     C  time       아침 골목 / 저녁 공원                                      다른 단일 축
-    D  drift      달이 갈수록 활동권이 넓어진다                              시간에 따른 변화
+    D  drift      분기마다 갈 곳이 하나씩 는다 (이전 것도 계속)              활동권 확장
     E  correlated 여름은 대부분 밤 · 밤은 하천                               얽힌 태그 자르기
     F1 mirror-a   봄여름 하천 / 가을겨울 공원  ┐ 연간 누적은 같고            숨은 구조 회수
     F2 mirror-b   봄여름 공원 / 가을겨울 하천  ┘ 조건부는 정반대
@@ -86,6 +86,9 @@ USED_FAMILIES = {
     "null-balanced": ("alley", "park", "river"),
     "seasonal": ("alley", "park", "river"),
     "time-of-day": ("alley", "park"),
+    # D 는 분기마다 갈 곳이 하나씩 는다. 네 family 를 다 요구해 봤더니 이 동네에는 그런 집이
+    # 하나도 없어서(전부 겹침 상한에 걸림) 셋으로 둔다 — 그러면 Q1→Q2→Q3 가 확장이고
+    # Q4 는 Q3 와 같은 집합이라 **정체**다. 평가 기준이 그 모양을 그대로 말해야 한다.
     "drift": ("alley", "park", "river"),
     "correlated": ("alley", "river"),
     "mirror-a": ("park", "river"),
@@ -236,12 +239,18 @@ def build_persona(persona: str, kind: str, graph, kinds, component, home, per_mo
                           has(family)[0], f"{band}_{family}", per_month // 2)
 
             elif kind == "drift":
-                # 달이 갈수록 먼 family 로 옮겨간다. 1~4월 골목, 5~8월 공원, 9~12월 하천
-                index = (month - 1) // 4
-                family = has(("alley", "park", "river")[index])[0]
+                # 활동권이 **넓어진다** — 분기마다 갈 곳이 하나씩 늘고 이전 것도 계속 간다.
+                #
+                # 처음엔 "옮겨간다"로 짰다(1~4월 골목, 5~8월 공원, 9~12월 하천). 그건 확장이
+                # 아니라 이주라, 두 family 가 섞인 분기가 순수 분기보다 넓어져 support 가
+                # 205→338→410→216 로 오르내렸다. 평가기가 그 모순을 잡았다.
+                order = [f for f in ("alley", "park", "river", "bigroad") if f in routes]
+                active = order[: min(len(order), (month - 1) // 3 + 1)]
                 for band in ("morning", "evening"):
-                    _emit(walks, None, persona, routes, rng, month, band,
-                          family, f"m{month:02d}_{family}", per_month // 2)
+                    share = max(1, (per_month // 2) // len(active))
+                    for family in active:
+                        _emit(walks, None, persona, routes, rng, month, band,
+                              family, f"q{(month - 1) // 3 + 1}_{family}", share)
 
             elif kind == "correlated":
                 # 여름은 대부분 밤, 밤은 하천. 낮은 어느 계절이든 골목.
