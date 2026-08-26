@@ -28,27 +28,37 @@ def test_specialty_words_in_a_name_are_not_tags():
     assert tags_for("강남재활동물병원") == []
 
 
-def test_advice_senior_joint_avoids_stairs():
-    lvl, why = walk_advice(route(10, stairs=1), PERSONAS["halmae"], None, [])
-    assert lvl == "avoid" and any("계단" in w for w in why)
+def test_advice_says_nothing_about_stairs_anymore():
+    """계단 판정은 #66 으로 없앴다 — 288경로에서 0회였다.
+
+    시설을 넣어도 계단으로는 아무 말도 안 나온다. 노령+관절인 할매로 본다 —
+    예전에 이 조합이 `avoid` 를 내던 자리다.
+    """
+    lvl, why = walk_advice(route(10, stairs=1), PERSONAS["halmae"], None)
+    assert not [w for w in why if "계단" in w], why
+    assert lvl == "ok"
 
 
 def test_advice_young_dog_ok_long_walk():
-    assert walk_advice(route(30), PERSONAS["kong"], None, [])[0] == "ok"
+    assert walk_advice(route(30), PERSONAS["kong"], None)[0] == "ok"
 
 
 def test_advice_brachy_caution_over_cap():
-    lvl, _ = walk_advice(route(25), PERSONAS["dubu"], None, [])
+    lvl, _ = walk_advice(route(25), PERSONAS["dubu"], None)
     assert lvl == "caution"
 
 
 def test_advice_user_max_min():
-    assert walk_advice(route(12), None, 10, [])[0] == "avoid"
+    assert walk_advice(route(12), None, 10)[0] == "avoid"
 
 
-def test_advice_avoid_request_flags_caution():
-    lvl, why = walk_advice(route(5, underpass=1), None, None, ["underpass"])
-    assert lvl == "caution" and "지하 통로" in why[0]
+def test_advice_underpass_still_warns_for_large_dogs():
+    """지하보도는 288경로 중 6% 에 실재한다 — 재료가 있으니 판정도 남는다.
+
+    계단(0/288)과 갈리는 지점이다. 없는 것은 걷어내고 있는 것은 지킨다.
+    """
+    lvl, why = walk_advice(route(5, underpass=1, underpass_m=40), PERSONAS["janggun"], None)
+    assert lvl == "caution" and any("지하 통로" in w for w in why), why
 
 
 async def test_fake_route_gives_numbers_but_never_facilities():
@@ -99,50 +109,35 @@ def test_dog_time_factor_orders_personas():
     assert dog_time_factor(None) == 1.2
 
 
-def test_walk_options_to_try():
-    from app.journey.advice import walk_options_to_try
-    # 콩이(반응성)·할매(겁) → 골목 vs 큰길 비교. 두부(성격 플래그 없음, 낮) → 비교 없음. 밤이면 누구나 큰길 후보
-    assert walk_options_to_try("recommended", [], PERSONAS["kong"]) == ["recommended", "main_road"]
-    assert walk_options_to_try("no_stairs", [], PERSONAS["halmae"]) == ["no_stairs", "recommended", "main_road"]  # 추천은 항상 기준선
-    assert walk_options_to_try("recommended", [], PERSONAS["dubu"]) == ["recommended"]
-    assert walk_options_to_try("recommended", [], PERSONAS["dubu"], is_night=True) == ["recommended", "main_road"]
-    assert walk_options_to_try("recommended", ["stairs"], None) == ["recommended", "no_stairs"]
-
-
-def test_facilities_penalty_weights_avoid():
-    from app.providers.base import Facilities
-    f = Facilities(crosswalk=2, stairs=1, underpass=1)
-    assert f.penalty() < f.penalty(("underpass",)) < f.penalty(("underpass", "stairs"))
-
-
 # ------------------------------------------------- 수단별 적용 범위 (계층 불변식)
-async def test_walk_avoid_changes_walk_leg_only():
+async def test_walk_only_settings_change_the_walk_leg_only():
     """도보 설정은 도보 leg 에만 닿는다. Transport 가 셋을 다 반환하므로
-    '차량 모드인데 도보 판정이 있다'는 정상 — 문제는 **범위가 새는 것**이다."""
+    '차량 모드인데 도보 판정이 있다'는 정상 — 문제는 **범위가 새는 것**이다.
+
+    축은 `walk.max_walk_min` 이다. `walk.avoid` 로 보던 것을 #66 이후 이걸로 본다."""
     from app.journey.engine import snapshot
     from app.providers.base import LatLng as LL
 
     o, d = LL(37.4979, 127.0276), LL(37.5145, 127.0316)
     facts = RuntimeFacts(now=datetime(2026, 8, 21, 3, 0, tzinfo=UTC), profile=PERSONAS["halmae"])
     plain_state = EditableState(lat=o.lat, lng=o.lng)
-    avoided_state = EditableState(lat=o.lat, lng=o.lng)
-    avoided_state.journey.walk.avoid = ["stairs", "underpass"]
+    capped_state = EditableState(lat=o.lat, lng=o.lng)
+    capped_state.journey.walk.max_walk_min = 1
     plain_plan = resolve_request(
         plain_state, facts, kind=None, companion="dog", measured=False,
     ).journey
-    avoided_plan = resolve_request(
-        avoided_state, facts, kind=None, companion="dog", measured=False,
+    capped_plan = resolve_request(
+        capped_state, facts, kind=None, companion="dog", measured=False,
     ).journey
     plain = await snapshot(plain_plan, d)
-    avoided = await snapshot(avoided_plan, d)
+    capped = await snapshot(capped_plan, d)
 
     assert (plain.car.min, plain.car.m, plain.car.advice, plain.car.why) == \
-           (avoided.car.min, avoided.car.m, avoided.car.advice, avoided.car.why), "차량 leg 가 변했다"
+           (capped.car.min, capped.car.m, capped.car.advice, capped.car.why), "차량 leg 가 변했다"
     # 설정은 도보 plan 에만 실린다 — 범위가 새지 않는다
-    assert avoided_plan.walk.avoid == ("stairs", "underpass") and plain_plan.walk.avoid == ()
-    # **추정에서는 avoid 가 경고를 못 만든다.** 시설을 모르니 "계단 있음" 이라 말할 재료가 없다.
-    # 재료가 있을 때 경고가 뜨는지는 test_advice_avoid_request_flags_caution 이 본다.
-    assert plain.walk.why == avoided.walk.why
+    assert capped_plan.walk.max_walk_min == 1 and plain_plan.walk.max_walk_min is None
+    # 도보 쪽에서는 실제로 달라져야 한다 — 안 그러면 이 테스트가 아무것도 안 본다
+    assert capped.walk.why != plain.walk.why and capped.walk.advice == "avoid"
     assert plain.walk.status == "estimate" and plain.walk.facilities is None
 
 

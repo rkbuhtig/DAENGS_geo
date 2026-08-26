@@ -61,15 +61,6 @@ class Facilities:
     big_road_ratio: float = 0.0
     big_crossings: int = 0
 
-    def penalty(self, avoid: tuple[str, ...] = ()) -> int:
-        """비교용 점수. 낮을수록 좋다. avoid에 든 시설은 가중."""
-        w = {"stairs": 3, "underpass": 1, "overpass": 2, "crosswalk": 0.3}
-        for a in avoid:
-            if a in w: w[a] *= 4
-        return int(self.stairs * w["stairs"] + self.underpass * w["underpass"]
-                   + self.overpass * w["overpass"] + self.crosswalk * w["crosswalk"])
-
-
 @dataclass(frozen=True)
 class Spot:
     """반려견 관심 지점 — 출발 전 한 장에 찍히는 것. 네비 스텝이 아니다.

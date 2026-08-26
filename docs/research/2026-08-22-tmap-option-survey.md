@@ -83,6 +83,11 @@ TMAP 보행자 응답이 실제로 주는 시설은 **횡단보도**(풍부) 와
 
 ## 판단
 
+> **이행됨 (2026-08-26, 결정 #66).** 아래 1·2 는 코드에서 걷어냈다. 3 은 `draft()` 가
+> 아직 `no_stairs` 를 깔고 있어 남아 있고, `walk.option`·`walk.avoid` 상태 축과 함께
+> 다음 단계에서 정리한다.
+
+
 1. **옵션 fan-out 폐기.** 추천(0) 하나만 받는다. `walk_options_to_try` · `choose_walk` · `alternatives[]` 는 비교할 재료가 없다 (#29).
 2. **계단·육교는 advice 와 점수에서 뺀다.** `walk_advice` 의 "계단 N회 — 노령" 은 288경로에서 한 번도 발화할 수 없었다 — 살아 있는 것처럼 보이는 죽은 코드다. `Facilities.stairs/overpass` 필드는 두되 "TMAP 은 안 준다"를 적는다. `WalkFacility` 의 `stairs`·`overpass` 도 사용자가 고를 수 있는 척하면 안 된다.
 3. **계단제외(30) 는 기본값으로 쓰지 않는다.** `draft()` 의 노령·관절 → `no_stairs` 제거. 사용자가 명시적으로 켤 때만, 그리고 그때도 "경로가 크게 길어질 수 있다"를 같이 말한다.
@@ -98,16 +103,16 @@ TMAP 보행자 응답이 실제로 주는 시설은 **횡단보도**(풍부) 와
 
 ## 재현
 
-실호출은 Usage Gate 의 조사 작업으로 계량한다. `--provider` 기본값이 `fake` 이고 실호출은
-`dev` 정책과 배치 상한을 **둘 다 명시**해야 열린다 — 조사를 실수로 다시 돌리는 일이 없게.
+**측정 스크립트(`scripts/tmap_option_survey.py`)는 결정 #66 과 함께 지웠다.** 이 조사가
+기각한 `choose_walk` 를 import 해서 돌아가던 도구라, 기각을 이행하면 같이 멈춘다. 원문은
+git history 에 있다:
 
 ```bash
-uv run python scripts/tmap_option_survey.py --provider tmap --dry-run        # 호출 수만 센다
-
-DAENGS_USAGE_POLICY=dev DAENGS_TMAP_APP_KEY=... uv run python   scripts/tmap_option_survey.py --provider tmap --max-live-calls 288         # 실호출 288
+git log --oneline -- scripts/tmap_option_survey.py
+git show <커밋>:scripts/tmap_option_survey.py
 ```
 
-`--reparse` 는 호출 없이 다시 집계하지만 **`raw/` 가 있어야 한다.** 원본 JSON 은
-`.gitignore` 라 이 레포를 새로 클론한 사람에게는 없다 — 위 실호출을 한 번 돌린 기계에서만
-쓸 수 있다. 커밋된 것은 집계 결과인 [`summary.md`](tmap-option-survey/summary.md) 와
-`rows.csv` 이고, 이 문서의 결론은 그것으로 검증된다.
+`raw/` 원본 JSON 은 `.gitignore` 라 애초에 이 레포에 없었다. **커밋된 것은 집계 결과인**
+[`summary.md`](tmap-option-survey/summary.md) **와** `rows.csv` **이고, 이 문서의 결론은
+그것으로 검증된다.** 같은 질문을 다시 재려면 스크립트를 되살리기보다, 그때는 무엇이
+달라졌는지(공급자·요금·표본)를 먼저 적고 새로 짜는 게 맞다.

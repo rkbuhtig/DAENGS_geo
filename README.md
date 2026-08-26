@@ -25,7 +25,7 @@ fix·`WalkFacts`·정지/시설 occurrence 파생과 원좌표 purge를 구현�
 ```
 app/
 ├── geo/         search(PostGIS) · hours · tagging · polyline                       공용
-├── journey/     engine(route+캐시) · advice(개 계수·옵션 비교) · spots · handoff  공용 ← POST /journey
+├── journey/     engine(route+캐시) · advice(개 계수·시간·기온) · spots · handoff  공용 ← POST /journey
 ├── providers/   MapProvider 4메서드 — kakao/naver/tmap/fake/null, 모드별 선택      공용
 ├── profile/     Dog/OwnerProfile 계약 + 개 8마리·견주 5명 페르소나                 공용
 ├── refine/      검색 상태 편집기 — state(target/journey/view) · tools · nl · diff
@@ -43,10 +43,10 @@ android/         Kotlin/Compose — 위치→검색→NAVER 지도 + walk foregr
 
 현재 코어는 [결정 #51](docs/decisions/2026-08-22-walk-as-spine.md)에 따라 장소 데이터,
 위치 인프라, Android 위치→검색→지도 셸, 산책 사실 계약이다. 자연어 refine/LLM,
-경로 옵션 비교·시설 advice, suggested actions는 코드와 테스트가 있지만 제품 코어에서는
+suggested actions는 코드와 테스트가 있지만 제품 코어에서는
 **parked**다. 다시 채택하기 전까지 다음 구현 순서나 제품 차별점으로 세지 않는다.
 
-커뮤니티 근거·홈페이지 추출은 [결정 #65](docs/decisions/README.md)으로 **기각**했다 — 원천이
+커뮤니티 근거·홈페이지 추출은 [결정 #63](docs/decisions/README.md)으로 **기각**했다 — 원천이
 없어서 재료가 생길 경로가 없다. 코드(`app/enrich/`)와 응답의 `evidence[]` 는 제거했다.
 
 parked된 LLM 경계는 `utterance`가 있을 때만 “말 → 툴 호출” 번역 한 겹으로 동작하며 병원

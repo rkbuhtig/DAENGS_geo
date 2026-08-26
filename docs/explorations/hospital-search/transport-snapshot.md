@@ -9,8 +9,9 @@ research: ../../research/2026-08-19-route-apis.md
 ---
 # 교통 스냅샷 — 네비가 아니라 비교표
 
-> 공용 `POST /journey`, provider 경계와 `measured/estimate/unavailable` 계약은 유지한다. 다중
-> 도보 옵션 비교·시설 advice를 제품 차별점으로 쓰는 것은 결정 #51 이후 parked이며, 기본 조립은
+> 공용 `POST /journey`, provider 경계와 `measured/estimate/unavailable` 계약은 유지한다.
+> 다중 도보 옵션 비교와 계단·육교 advice 는 결정 #66 으로 **기각**했다 — parked 가 아니라
+> 코드가 없다. 남은 advice 재료는 시간·개 프로필·기온·지하보도·횡단보도다. 기본 조립은
 > 모든 모드가 `fake` estimate다.
 
 병원마다 **같은 칸**에 이동 정보를 찍는다. 순간 안내는 제공사 앱으로 넘기고(딥링크), 우리는 "걸으면 35분인데 차로 11분"이 한눈에 보이는 정적 비교만.

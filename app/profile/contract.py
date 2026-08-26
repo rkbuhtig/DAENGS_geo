@@ -70,7 +70,8 @@ class OwnerProfile(BaseModel):
     개가 아니라 **사람**이 정하는 제약만 넣는다. 필드 하나하나가 바꾸는 판정이 있어야 한다:
 
       has_car       이동수단 선택지. 없으면 응급에 택시·도보뿐              → journey mode 기본값
-      can_carry_kg  안고 오를 수 있는 무게. 이걸 알아야 계단이 진짜 장벽인지 판단 → advice 계단 판정
+      can_carry_kg  안고 오를 수 있는 무게. 계단 판정은 재료가 없어 #66 으로 걷어냈고,
+                    지금 이 값을 읽는 코드는 없다 — 계약 필드로만 남는다
       transit_ok    대중교통 동반 의사. 개 크기만으로 정할 수 없다           → journey.show_transit
       vet_literacy  병원의 역할(1차/2차·응급·과목)을 아는 정도              → reply 상세도, ask 발동
 

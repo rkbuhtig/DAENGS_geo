@@ -411,7 +411,6 @@ function render(d) {
       ${t.walk ? `<div>🚶 <b>${w.min}분</b>${w.provider_min ? `<span class="muted">(성인 ${w.provider_min})</span>` : ''} ${w.m}m <span class="tag">${w.status === 'measured' ? w.source : '약'}</span>${w.status !== 'measured' ? `<span class="tag muted">${w.status_reason || w.status}</span>` : ''}${w.option_label ? `<span class="tag">${w.option_label}</span>` : ''} ${w.advice ? `<span class="${advCls}">${w.advice}</span>` : ''}</div>` : ''}
       ${w.road_mix && w.status === 'measured' ? `<div class="muted">이 길: 큰길 ${Math.round(w.road_mix.big_ratio * 100)}% · 큰길 횡단 ${w.road_mix.big_crossings}회 · 횡단 총 ${fac.crosswalk ?? 0}${fac.stairs ? ` · 계단 ${fac.stairs}` : ''}${fac.underpass ? ` · 지하 ${fac.underpass}` : ''}</div>` : ''}
       ${(w.why || []).length ? `<div class="muted">${w.why.join(' / ')}</div>` : ''}
-      ${w.alternatives && w.alternatives.length ? `<div class="muted">다른 길: ${w.alternatives.map(a => `${a.label} ${a.min}분 (Δ${a.delta_min >= 0 ? '+' : ''}${a.delta_min}) 큰길 ${Math.round((a.facilities.big_road_ratio || 0) * 100)}%`).join(', ')}</div>` : ''}
       ${t.car ? `<div>🚗 ${c.min}분 ${c.m}m · 택시 ${c.taxi_fare ?? '-'}원 ${tr ? `· 🚌 ${tr.min}분 ${tr.fare}원` : ''}</div>` : ''}
        <div class="spots"></div>`;
     const call = card.querySelector('.call');

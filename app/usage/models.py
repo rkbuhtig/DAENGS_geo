@@ -10,7 +10,6 @@ from app.providers.base import Mode, WalkOption
 class MeteredOperation(StrEnum):
     STATIC_MAP = "map.render_static"
     MEASURED_ROUTE = "route.measure"
-    ROUTE_SURVEY = "route.research_survey"
     LANGUAGE_PARSE = "language.parse"
 
 
@@ -32,20 +31,13 @@ class MeasuredRouteIntent:
 
 
 @dataclass(frozen=True)
-class RouteSurveyIntent:
-    option: WalkOption
-    operation: ClassVar[MeteredOperation] = MeteredOperation.ROUTE_SURVEY
-    units: ClassVar[int] = 1
-
-
-@dataclass(frozen=True)
 class LanguageParseIntent:
     input_chars: int
     operation: ClassVar[MeteredOperation] = MeteredOperation.LANGUAGE_PARSE
     units: ClassVar[int] = 1
 
 
-type UsageIntent = StaticMapIntent | MeasuredRouteIntent | RouteSurveyIntent | LanguageParseIntent
+type UsageIntent = StaticMapIntent | MeasuredRouteIntent | LanguageParseIntent
 
 
 @dataclass(frozen=True)
