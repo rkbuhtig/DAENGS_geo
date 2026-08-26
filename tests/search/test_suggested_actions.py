@@ -39,7 +39,7 @@ def test_recovery_relaxes_specific_filters_without_resetting_journey():
     state.target.radius_m = 20_000
     state.target.open_now = True
     state.target.require_tags = ["24h", "center"]
-    state.journey.walk.option = "no_stairs"
+    state.journey.walk.max_walk_min = 10
 
     actions = build_actions(state, result_count=0, question=None)
 
@@ -49,7 +49,7 @@ def test_recovery_relaxes_specific_filters_without_resetting_journey():
         relaxed = tools.apply(relaxed, edit.tool, edit.args)
     assert relaxed.target.require_tags == []
     assert relaxed.target.open_now is True, "선택하지 않은 검색 조건까지 풀면 안 된다"
-    assert relaxed.journey.walk.option == "no_stairs", "검색 복구가 이동 안전 설정을 지웠다"
+    assert relaxed.journey.walk.max_walk_min == 10, "검색 복구가 이동 설정을 지웠다"
 
 
 def test_hard_limit_that_dropped_every_result_gets_the_first_recovery_action():
@@ -68,10 +68,17 @@ def test_hard_limit_that_dropped_every_result_gets_the_first_recovery_action():
 
 
 async def test_multi_edit_action_uses_one_refine_turn_and_one_undo_step():
+    """결정 #45 — 버튼 하나가 툴 여럿이어도 되돌림은 한 칸이다.
+
+    #66 으로 도보 옵션 축이 사라지면서 **현재 정책이 내는 액션은 전부 edit 하나짜리**가
+    됐다 (예전엔 `walk_without_stairs` 가 set_mode + set_walk_avoid 둘이었다). 계약은
+    그대로 여러 개를 허용하므로, 정책이 다시 둘을 낼 때 깨지지 않게 여기서 직접 만들어 본다.
+    """
     state = _state()
-    action = _by_id(
-        build_actions(state, result_count=1, question="어떤 조건을 바꿀까요?"),
-        "walk_without_stairs",
+    action = SuggestedAction(
+        id="walk_within_15", label="걸어서 15분 안에", source="policy",
+        edits=[Edit(tool="set_mode", args={"mode": "walk"}),
+               Edit(tool="set_max_total_min", args={"minutes": 15})],
     )
 
     out = await refine(
@@ -86,20 +93,20 @@ async def test_multi_edit_action_uses_one_refine_turn_and_one_undo_step():
     )
 
     assert out.state.journey.preferred_mode == "walk"
-    assert out.state.journey.walk.avoid == ["stairs"]
+    assert out.state.journey.max_total_min == 15
     assert len(out.state.history) == 1
 
 
 def test_question_actions_remove_noops_and_stay_bounded():
+    """이미 켜져 있는 조건은 제안하지 않는다 — 눌러도 아무 일 없는 버튼은 제안이 아니다."""
     state = _state()
-    state.journey.preferred_mode = "walk"
-    state.journey.walk.avoid = ["stairs"]
-    state.journey.walk.option = "no_stairs"
+    state.target.night_service = True          # 이미 켜짐 → prefer_night_service 는 no-op
 
     actions = build_actions(state, result_count=1, question="다시 물어보기")
 
     assert len(actions) <= 3
-    assert "walk_without_stairs" not in {action.id for action in actions}
+    assert "prefer_night_service" not in {action.id for action in actions}
+    assert [action.id for action in actions] == ["narrow_radius"]
     assert all(action.source == "policy" and action.kind == "edits" for action in actions)
 
 

@@ -176,7 +176,7 @@ POST /hospital/search
 { "dog_id":"halmae", "origin":[37.4979,127.0276] }                                   ← 메뉴 진입(초안)
 { "dog_id":"halmae", "state":{...}, "utterance":"눈이 뿌옇고 걸어서 갈 데", "shown_ids":[..] }  ← 자연어/음성
 { "dog_id":"halmae", "state":{...}, "edits":[{"tool":"set_walk_max_min","args":{"minutes":15}}] }  ← 필터 UI
-{ "dog_id":"dubu",   "state":{"state_version":3,"lat":..,"lng":..,
+{ "dog_id":"dubu",   "state":{"state_version":4,"lat":..,"lng":..,
   "target":{"open_now":true,"night_service":true},"journey":{},"sort":"distance","history":[]} }
 → { state, results[{..., tags, transport{walk{min,m,facilities,advice,why}, car{taxi_fare}, transit}}],
     map{preview_url,deeplink,web_url}, changes[], applied[], question?, reply,

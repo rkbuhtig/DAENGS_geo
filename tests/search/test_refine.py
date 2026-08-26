@@ -1,3 +1,4 @@
+import inspect
 from datetime import UTC, datetime
 
 import pytest
@@ -38,22 +39,23 @@ async def _turn(state, utterance=None, edits=(), profile=None):
 
 
 async def test_one_utterance_is_one_undo_step():
-    """"계단은 빼줘" 는 툴 2개(set_mode + set_walk_avoid)다. 되돌림은 한 번이어야 한다.
+    """"걸어서 15분 안에" 는 툴 2개(set_mode + set_max_total_min)다. 되돌림은 한 번이어야 한다.
 
-    툴마다 찍으면 undo 1회가 "도보는 유지, 계단 제외만 취소" — 사용자가 말한 적 없는 상태다.
+    툴마다 찍으면 undo 1회가 "도보는 유지, 시간 제한만 취소" — 사용자가 말한 적 없는 상태다.
+    예전 예제였던 "계단은 빼줘" 는 #66 으로 축이 사라졌다.
     """
     before = await _turn(None)
-    after = await _turn(before, "계단은 빼줘")
-    assert after.journey.preferred_mode == "walk" and after.journey.walk.avoid == ["stairs"]
+    after = await _turn(before, "걸어서 15분 안에")
+    assert after.journey.preferred_mode == "walk" and after.journey.max_total_min == 15
     assert len(after.history) == 1, "한 마디가 스택 두 칸을 먹었다"
 
     back = tools.undo(after)
-    assert back.journey.walk.avoid == [] and back.journey.preferred_mode is None
+    assert back.journey.max_total_min is None and back.journey.preferred_mode is None
 
 
 async def test_stack_depth_counts_turns_not_tools():
     s = await _turn(None)
-    for utterance in ("계단은 빼줘", "밤에 갈 수 있는 곳", "너무 멀어"):
+    for utterance in ("걸어서 15분 안에", "밤에 갈 수 있는 곳", "너무 멀어"):
         s = await _turn(s, utterance)
     assert len(s.history) == 3
 
@@ -75,10 +77,10 @@ async def test_turn_that_changes_nothing_keeps_the_stack():
 
 
 async def test_reset_is_undoable():
-    s = await _turn(await _turn(None), "계단은 빼줘")
+    s = await _turn(await _turn(None), "걸어서 15분 안에")
     cleared = await _turn(s, "다 풀어줘")
-    assert cleared.journey.walk.avoid == []
-    assert tools.undo(cleared).journey.walk.avoid == ["stairs"]
+    assert cleared.journey.max_total_min is None
+    assert tools.undo(cleared).journey.max_total_min == 15
 
 
 async def test_origin_refresh_is_not_undone():
@@ -88,20 +90,23 @@ async def test_origin_refresh_is_not_undone():
     assert tools.undo(moved.state).lat == 37.5100
 
 
-def test_walk_avoid_stays_inside_walk_scope():
-    """도보 툴은 option 까지만 건드린다. **수단(preferred_mode)은 절대 안 세운다.**"""
-    s = tools.set_walk_avoid(S, ["stairs"])
-    assert s.journey.walk.option == "no_stairs"
+def test_walk_scoped_tool_never_sets_the_mode():
+    """도보 하위 설정은 **수단(preferred_mode)을 절대 안 세운다.**
+
+    #66 이후 walk scope 에 남은 툴은 `set_walk_max_min` 하나다. 계층 규칙은 그대로다 —
+    도보를 함의하는 말이면 자연어 층이 set_mode 를 따로 낸다.
+    """
+    s = tools.set_walk_max_min(S, 10)
+    assert s.journey.walk.max_walk_min == 10
     assert s.journey.preferred_mode is None, "하위 설정이 상위(수단)를 몰래 세웠다"
-    assert tools.unset_walk_avoid(s, ["stairs"]).journey.walk.option == "recommended"
 
 
 def test_walk_settings_survive_switching_to_car():
     """차량으로 바꿔도 도보 설정은 남는다 — 도보 대안에 계속 쓰이고, 돌아오면 살아 있어야 한다."""
-    s = tools.set_walk_avoid(S, ["stairs"])
+    s = tools.set_walk_max_min(S, 10)
     s = tools.set_mode(s, "car")
     assert s.journey.preferred_mode == "car"
-    assert s.journey.walk.avoid == ["stairs"] and s.journey.walk.option == "no_stairs"
+    assert s.journey.walk.max_walk_min == 10
 
 
 def test_total_and_walk_time_limits_are_separate():
@@ -139,7 +144,6 @@ def test_diff_draft():
     ("지금 열린 데", "set_open_now", {"on": True}),
     ("밤에 갈 수 있는 곳", "set_night_service", {"on": True}),
     ("급해요 지금 당장", "set_urgency", {"level": "urgent"}),
-    ("계단 없는 길로 걸어갈래", "set_walk_avoid", {"facilities": ["stairs"]}),
     ("15분 안에 갈 수 있는 데", "set_max_total_min", {"minutes": 15}),
     ("차로 갈게", "set_mode", {"mode": "car"}),
     ("아까대로", "undo", {}),
@@ -163,12 +167,19 @@ async def test_fake_llm_asks_when_clueless():
     assert plan[0].tool == "ask"
 
 
-def test_draft_uses_profile_only_as_default():
-    s = draft(37.5, 127.0, PERSONAS["halmae"], 2000)
-    assert s.journey.walk.option == "no_stairs"             # journey 기본값만
-    assert s.target.open_now is False and s.target.require_tags == []  # target 필터는 안 건드림
-    s2 = draft(37.5, 127.0, PERSONAS["kong"], 2000)
-    assert s2.journey.walk.option == "recommended"
+def test_draft_sets_no_condition_from_the_profile():
+    """초안은 반경만 세운다. 프로필에서 유래한 기본값은 #66 으로 없앴다.
+
+    노령·관절견에 `no_stairs` 를 깔던 것이 유일한 프로필 유래 기본값이었고, 그건 보이는 것
+    없이 경로를 3배로 늘렸다 (28분 → 84분).
+    """
+    s = draft(37.5, 127.0, 2000)
+    assert s.target.radius_m == 2000
+    assert s.target.open_now is False and s.target.require_tags == []
+    assert s.journey == EditableState(lat=37.5, lng=127.0).journey, "초안이 이동 설정을 세웠다"
+
+    # 프로필은 아예 인자가 아니다 — 어느 개로 시작하든 초안이 갈릴 여지가 없다
+    assert "profile" not in inspect.signature(draft).parameters
 
 
 async def test_refine_edits_then_utterance():
@@ -250,11 +261,11 @@ def test_target_tools_never_touch_journey():
 
 def test_diff_groups_by_policy():
     from app.refine.diff import changes_by_policy
-    s = tools.set_walk_avoid(tools.narrow(S), ["stairs"])
+    s = tools.set_walk_max_min(tools.narrow(S), 10)
     g = changes_by_policy(S, s)
     assert any("반경" in c for c in g["target"])
-    assert any("피하기" in c or "도보 옵션" in c for c in g["journey"])
-    assert not g["target"] or all("계단" not in c for c in g["target"])
+    assert any("도보" in c for c in g["journey"])
+    assert all("도보" not in c for c in g["target"]), "이동 설정이 target 으로 샜다"
 
 
 def test_max_total_min_is_advice_only_unless_hard():
@@ -272,14 +283,17 @@ def test_every_tool_has_a_scope_and_walk_tools_are_marked():
             assert spec["scope"] == tools.scope_of(spec["name"]), spec["name"]
 
 
-def test_nl_emits_mode_explicitly_for_walk_scoped_intent():
-    """'계단 없는 길'은 도보를 함의한다 — 그럼 set_mode(walk)를 **따로** 내야 한다.
-    툴이 몰래 세우면 applied/diff 에 안 보여서 사용자가 왜 도보가 됐는지 모른다."""
+def test_nl_emits_mode_explicitly_instead_of_letting_a_tool_set_it():
+    """수단은 **자연어 층이 따로 낸다.** 툴이 몰래 세우면 applied/diff 에 안 보여서
+    사용자가 왜 도보가 됐는지 모른다.
+
+    예전 예제('계단 없는 길로' → set_mode + set_walk_avoid)는 #66 으로 축이 사라졌다.
+    """
     import asyncio
 
     from app.refine.nl import FakeLLM
-    plan = asyncio.run(FakeLLM().plan("계단 없는 길로", S, [], ""))
-    assert [c.tool for c in plan] == ["set_mode", "set_walk_avoid"]
+    plan = asyncio.run(FakeLLM().plan("걸어서 15분 안에", S, [], ""))
+    assert [c.tool for c in plan] == ["set_mode", "set_max_total_min"]
 
 
 def test_nl_merges_accumulating_tools_instead_of_dropping():

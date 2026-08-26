@@ -1,10 +1,10 @@
 """refine: (state | None, edits, utterance) → (new state, changes, question?)
 
-순서: 초안 생성(프로필 기본값) → UI edits 적용 → utterance를 LLM이 툴로 → 적용 → 되돌림 지점 → diff.
+순서: 초안 생성(반경만) → UI edits 적용 → utterance를 LLM이 툴로 → 적용 → 되돌림 지점 → diff.
 
 **undo 의 단위는 턴이다.** 한 마디가 툴을 몇 개 부르든 되돌림 지점은 하나만 찍는다 —
-"계단은 빼줘"는 set_mode(walk) + set_walk_avoid(stairs) 두 개인데, 툴마다 찍으면 undo 한 번이
-"도보는 유지, 계단 제외만 취소"라는 **사용자가 말한 적 없는 중간 상태**를 만든다. 스택 10칸도
+"걸어서 15분 안에"는 set_mode(walk) + set_max_total_min(15) 두 개인데, 툴마다 찍으면 undo 한 번이
+"도보는 유지, 시간 제한만 취소"라는 **사용자가 말한 적 없는 중간 상태**를 만든다. 스택 10칸도
 4~5턴이면 찬다.
 """
 
@@ -27,12 +27,16 @@ class RefineResult:
     question: str | None = None
 
 
-def draft(lat: float, lng: float, profile: DogProfile | None, radius_m: int) -> EditableState:
-    """초안. 필터 없음. 프로필은 도보 옵션 '기본값'에만 — 사용자가 끄면 꺼진다."""
+def draft(lat: float, lng: float, radius_m: int) -> EditableState:
+    """초안. **필터도 기본값도 없다.**
+
+    노령·관절견에 `no_stairs` 를 깔던 것은 조사 판단 3 대로 없앴다 (#66) — 계단제외는
+    보이는 것 없이 경로를 3배로 늘렸고(28분 → 84분), 그 트레이드오프를 말한 적이 없다.
+    그게 프로필을 읽던 유일한 자리였으므로 `profile` 인자도 같이 뺐다 — 다음 사람이
+    "여기 프로필 배선이 살아 있다" 고 읽지 않게.
+    """
     s = EditableState(lat=lat, lng=lng)
     s.target.radius_m = radius_m
-    if profile and (profile.is_senior or profile.has_joint_issue):
-        s.journey.walk.option = "no_stairs"      # journey 기본값만. 결과를 거르지 않는다
     return s
 
 
@@ -51,7 +55,7 @@ async def refine(state: EditableState | None, edits: list[ToolCall], utterance: 
                  shown_ids: list[int], profile: DogProfile | None,
                  lat: float, lng: float, default_radius: int) -> RefineResult:
     if state is None:
-        base = draft(lat, lng, profile, default_radius)
+        base = draft(lat, lng, default_radius)
     else:
         # origin은 매 요청의 현재 위치다. 클라이언트 state보다 새 요청 값을 우선한다.
         # history에는 넣지 않는다 — GPS 갱신은 사용자가 undo할 조건 편집이 아니다.

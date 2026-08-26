@@ -66,19 +66,6 @@ def build_actions(
                 actions, state, "prefer_night_service", "야간 표방 병원 우선",
                 [Edit(tool="set_night_service", args={"on": True})],
             )
-        stairs_goal_met = (
-            state.journey.preferred_mode == "walk"
-            and state.journey.walk.option == "no_stairs"
-            and "stairs" in state.journey.walk.avoid
-        )
-        if not stairs_goal_met:
-            _append(
-                actions, state, "walk_without_stairs", "계단 없는 길로 보기",
-                [
-                    Edit(tool="set_mode", args={"mode": "walk"}),
-                    Edit(tool="set_walk_avoid", args={"facilities": ["stairs"]}),
-                ],
-            )
 
     return actions[:MAX_ACTIONS]
 

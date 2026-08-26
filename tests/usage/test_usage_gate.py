@@ -150,7 +150,7 @@ async def test_route_denial_degrades_to_labelled_estimate_without_call(monkeypat
 
     async with usage_request_scope():
         outcome = await engine._route(
-            "walk", LatLng(37.5, 127.0), LatLng(37.51, 127.01), "recommended", True
+            "walk", LatLng(37.5, 127.0), LatLng(37.51, 127.01), measured=True
         )
 
     assert outcome.status == "estimate" and outcome.reason == "usage_denied"

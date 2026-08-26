@@ -43,6 +43,52 @@ def test_legacy_state_is_migrated_without_silent_loss():
     assert state.time_intent.at == datetime.fromisoformat("2026-08-21T12:00:00+00:00")
 
 
+def test_removed_axes_are_dropped_instead_of_rejecting_an_old_client():
+    """
+    Contract: 없앤 축을 담은 옛 state 는 422 가 아니라 **그 필드만 버리고** 통과한다.
+
+    Decision: #64, #66
+
+    이걸 안 하면 축을 하나 없앨 때마다 화면을 켜 두고 있던 클라이언트가 전부 422 를 맞는다.
+    `extra=forbid` 는 유지된다 — 아래 오타 검사가 그것을 본다.
+    """
+    old = {
+        "state_version": 3,
+        "lat": 37.5, "lng": 127.0,
+        "target": {"specialty": ["ortho"]},                     # v2 축 (#64)
+        "journey": {"walk": {"option": "no_stairs", "avoid": ["stairs"],
+                             "max_walk_min": 10}},              # v3 축 (#66)
+    }
+
+    state = EditableState.model_validate(old)
+
+    assert state.state_version == CURRENT_STATE_VERSION
+    assert state.journey.walk.max_walk_min == 10, "같이 온 살아 있는 값까지 버렸다"
+    with pytest.raises(ValidationError):
+        EditableState.model_validate({"lat": 37.5, "lng": 127.0,
+                                      "journey": {"walk": {"opshun": "x"}}})
+
+
+def test_removed_axes_are_dropped_inside_history_too():
+    """
+    Contract: undo 스택의 옛 스냅샷도 같은 이행을 탄다.
+
+    Decision: #66
+
+    `validate_history_snapshots` 가 각 스냅샷을 같은 계약으로 재검증하므로 저절로 따라온다.
+    저절로 따라오는 것과 따라온다고 **믿는 것**은 다르므로 여기서 고정한다.
+    """
+    state = EditableState.model_validate({
+        "state_version": 3,
+        "lat": 37.5, "lng": 127.0,
+        "history": [{"state_version": 3, "lat": 37.5, "lng": 127.0,
+                     "journey": {"walk": {"avoid": ["underpass"]}}}],
+    })
+
+    assert len(state.history) == 1
+    assert "avoid" not in state.history[0]["journey"]["walk"]
+
+
 def test_current_unversioned_state_is_stamped_and_unknown_fields_are_rejected():
     """
     Contract: 버전 없는 state 는 현재 버전으로 찍고, 모르는 필드·모르는 버전은 거부한다.

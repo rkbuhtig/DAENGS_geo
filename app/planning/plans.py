@@ -18,7 +18,7 @@ from datetime import datetime
 
 from app.planning.state import Sort
 from app.profile.contract import DogProfile
-from app.providers.base import Mode, WalkOption
+from app.providers.base import Mode
 
 Companion = str  # journey.models.Companion 과 같은 값. 순환 import 를 피한다
 
@@ -65,11 +65,8 @@ class SearchPlan:
 class WalkPlan:
     """도보로 갈 때만 의미 있는 것. 차량 판정에 적용되면 안 된다."""
 
-    option: WalkOption = "recommended"
     max_walk_min: int | None = None      # **개가 걸어도 되는 시간.** 전체 이동시간과 다르다
-    # `avoid` 는 여기 없다. 피하기 요청이 판정을 만들던 자리를 #66 이 없앴고, 읽는 사람이
-    # 없는 필드를 plan 에 실어 두면 "적용되는 조건"으로 읽힌다. 상태(`walk.avoid`)와 툴은
-    # 계약(`state_version`)이 걸려 있어 다음 단계에서 함께 뺀다.
+    # 도보 옵션·피하기는 여기 없다 (#66). 상태에서도 사라졌다.
 
 
 @dataclass(frozen=True)
