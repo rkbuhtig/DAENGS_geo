@@ -3,12 +3,19 @@ package com.daengs.geo.map
 import com.daengs.geo.hospital.HospitalApi
 import com.daengs.geo.hospital.HospitalRepository
 import com.daengs.geo.hospital.HospitalSearchResponse
+import com.daengs.geo.hospital.LocationMode
 import com.daengs.geo.location.GeoPoint
 import com.daengs.geo.location.LocationSample
 import com.daengs.geo.location.LocationSource
 import com.daengs.geo.location.LocationUpdateConfig
 import com.daengs.geo.map.layers.trail.TrackingState
 import com.daengs.geo.map.layers.trail.TrailSnapshot
+import com.daengs.geo.place.PlaceKey
+import com.daengs.geo.place.PlaceKind
+import com.daengs.geo.place.PlaceSearchRequest
+import com.daengs.geo.place.PlaceSearchResponse
+import com.daengs.geo.place.PlaceSearchRepository
+import com.daengs.geo.place.toPlaceSearchResponse
 import com.daengs.geo.territory.InMemoryTerritoryRepository
 import com.daengs.geo.territory.LocalHexCellIndexer
 import com.daengs.geo.walk.WalkTrackingController
@@ -29,7 +36,9 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.put
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -303,11 +312,110 @@ class MapViewModelTest {
         assertEquals(RequestKind.LOCATION, retryRequestFor(state))
     }
 
+    @Test
+    fun `canonical place search uses real device origin dog and explicit preference`() = runTest {
+        val source = FakeLocationSource(fix = fix(37.5665, 126.9780))
+        val places = FakePlaceSearchRepository(response = placeResponse())
+        val viewModel = viewModel(source, places = places, dogId = "janggun")
+
+        viewModel.searchPlaces(
+            kinds = listOf(PlaceKind.CAFE, PlaceKind.HOSPITAL),
+            preferParking = true,
+        )
+        advanceUntilIdle()
+
+        val request = places.requests.single()
+        val state = viewModel.uiState.value
+        assertEquals(GeoPoint(37.5665, 126.9780), request.origin)
+        assertEquals("janggun", request.dogId)
+        assertTrue(request.preferParking)
+        assertEquals(listOf(PlaceKind.CAFE, PlaceKind.HOSPITAL), request.kinds)
+        assertEquals(places.response, state.placeDiscovery.response)
+        assertEquals(PlaceKey("kcisa", "cafe-parking"), state.placeDiscovery.selectedPlaceKey)
+        assertEquals(request.origin, state.searchOrigin)
+        assertNull(state.request)
+    }
+
+    @Test
+    fun `camera place search pins exactly the visible center`() = runTest {
+        val places = FakePlaceSearchRepository(response = PlaceSearchResponse(null, emptyList()))
+        val viewModel = viewModel(
+            FakeLocationSource(fix = fix(37.5665, 126.9780)),
+            places = places,
+        )
+        val camera = GeoPoint(35.1796, 129.0756)
+        viewModel.onCameraIdle(camera)
+
+        viewModel.searchPlacesAtCamera(listOf(PlaceKind.SHOPPING))
+        advanceUntilIdle()
+
+        assertEquals(camera, places.requests.single().origin)
+        assertEquals(LocationMode.PINNED, viewModel.uiState.value.locationMode)
+        assertEquals(false, viewModel.uiState.value.followDevice)
+    }
+
+    @Test
+    fun `failed canonical search retries the exact typed request`() = runTest {
+        val source = FakeLocationSource(fix = fix(37.5665, 126.9780))
+        val places = FakePlaceSearchRepository(
+            response = PlaceSearchResponse(null, emptyList()),
+            failure = IOException("place api unavailable"),
+        )
+        val viewModel = viewModel(source, places = places)
+        viewModel.useDeviceLocation()
+        advanceUntilIdle()
+
+        viewModel.searchPlaces(listOf(PlaceKind.PET_SHOP), preferParking = true)
+        advanceUntilIdle()
+
+        assertEquals("place api unavailable", viewModel.uiState.value.placeDiscovery.error)
+        val failedRequest = places.requests.single()
+
+        places.failure = null
+        viewModel.retryPlaceSearch()
+        advanceUntilIdle()
+
+        assertEquals(listOf(failedRequest, failedRequest), places.requests)
+        assertNull(viewModel.uiState.value.placeDiscovery.error)
+    }
+
+    @Test
+    fun `place location timeout keeps canonical search as the retry target`() = runTest {
+        val places = FakePlaceSearchRepository(response = PlaceSearchResponse(null, emptyList()))
+        val source = FakeLocationSource(fix = fix(37.5665, 126.9780)).apply {
+            gate = CompletableDeferred()
+        }
+        val viewModel = viewModel(
+            source,
+            places = places,
+        )
+
+        viewModel.searchPlaces(listOf(PlaceKind.CAFE))
+        advanceUntilIdle()
+
+        assertTrue(places.requests.isEmpty())
+        assertEquals(RequestKind.LOCATION, viewModel.uiState.value.failedRequest)
+        assertTrue(viewModel.uiState.value.error.orEmpty().startsWith("위치를 찾지 못했어요."))
+
+        source.gate.complete(Unit)
+        viewModel.retry()
+        advanceUntilIdle()
+
+        assertEquals(PlaceKind.CAFE, places.requests.single().kinds.single())
+        assertNull(viewModel.uiState.value.failedRequest)
+    }
+
     private fun viewModel(
         source: LocationSource,
         walk: WalkTrackingController = FakeWalkTrackingController(),
+        places: PlaceSearchRepository = FakePlaceSearchRepository(
+            response = PlaceSearchResponse(null, emptyList()),
+        ),
+        dogId: String = "",
     ) = MapViewModel(
         hospitalRepository = HospitalRepository(HospitalApi(baseUrl = { "http://127.0.0.1:1" })),
+        placeRepository = places,
+        dogId = dogId,
         deviceLocationSource = source,
         territoryRepository = InMemoryTerritoryRepository(LocalHexCellIndexer()),
         walkTrackingController = walk,
@@ -323,6 +431,24 @@ class MapViewModelTest {
         accuracyMeters = 6f,
         isMock = isMock,
     )
+
+    private fun placeResponse(): PlaceSearchResponse {
+        val text = javaClass.getResource("/place_search_response.json")!!.readText()
+        return Json.parseToJsonElement(text).jsonObject.toPlaceSearchResponse()
+    }
+}
+
+private class FakePlaceSearchRepository(
+    val response: PlaceSearchResponse,
+    var failure: Throwable? = null,
+) : PlaceSearchRepository {
+    val requests = mutableListOf<PlaceSearchRequest>()
+
+    override suspend fun search(request: PlaceSearchRequest): PlaceSearchResponse {
+        requests += request
+        failure?.let { throw it }
+        return response
+    }
 }
 
 private class FakeWalkTrackingController : WalkTrackingController {

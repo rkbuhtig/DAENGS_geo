@@ -44,6 +44,8 @@ class MainActivity : ComponentActivity() {
         val graph = (application as DaengsApplication).graph
         MapViewModel.Factory(
             graph.hospitalRepository,
+            graph.placeRepository,
+            graph.dogId,
             graph.locationSource,
             graph.territoryRepository,
             graph.walkTrackingController,
