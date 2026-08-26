@@ -35,7 +35,8 @@ app/
 ├── features/
 │   ├── hospital/  POST /hospital/search (편집+검색, transport=estimate만)
 │   ├── pharmacy/  GET /pharmacy/search (얇음, companion 기본 none)
-│   └── walk/      수집만 — WalkFacts (contracts/walk-record.md). 판정·서술 없음, 테스트로 고정
+│   ├── walk/      수집만 — WalkFacts (contracts/walk-record.md). 판정·서술 없음, 테스트로 고정
+│   └── scene/     walk 사실의 소비자 — encounter 기하값 → 판정. 규칙표에 버전이 붙는다
 ├── api/         legacy GET /places/search · canonical POST /v2/places/search · GET /map/static
 ├── usage/       실제 외부 호출 Gate — 기본 거부, 제한형 dev 정책, 요청/시간당 사용량
 └── core/        config · db · clock

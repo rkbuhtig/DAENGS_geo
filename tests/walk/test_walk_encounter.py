@@ -5,10 +5,10 @@
 
 from datetime import timedelta
 
+from app.features.scene.judgment import JUDGMENT_VERSION, judge
 from app.features.walk.encounter import FacilityCandidate, compute_encounters
 from app.features.walk.facts import compute_facts
 from app.features.walk.models import WalkFix
-from app.scene.judgment import JUDGMENT_VERSION, judge
 from tests.conftest import TEST_ORIGIN, WALK_T0, walk_fix
 
 
@@ -132,7 +132,7 @@ def test_stop_is_attached_only_to_the_overlapping_occurrence():
     assert not enc[1].stop_overlap_10m and enc[1].stop_s_10m == 0
 
 
-# ------------------------------------------------------------------ 판정층 (app/scene)
+# ------------------------------------------------------------------ 판정층 (app/features/scene)
 def test_judgment_passed_vs_lingered_vs_visited():
     fixes = [walk_fix(t, t / 5 * 7) for t in range(0, 105, 5)]
     fixes += [walk_fix(t, 140) for t in range(105, 140, 5)]
