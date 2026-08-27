@@ -229,25 +229,45 @@ def test_dwell_contrast_depends_on_the_grid():
     assert contrast[COARSE] > 2.0, "성긴 격자에서도 멈춤은 보여야 한다"
 
 
-def test_on_a_coarse_grid_frequency_out_paints_dwell():
-    """**성긴 격자에서는 빈도가 체류를 이긴다** — 그러면 `occupancy` 는 dwell 축이 아니다.
+def test_comparing_totals_lets_frequency_masquerade_as_dwell():
+    """**총량끼리 견주면 빈도가 체류로 위장한다.** 처음에 이걸 격자 탓으로 읽었다.
 
-    2 분 머문 한 번 대 그냥 지나간 다섯 번:
+    2 분 머문 한 번 대 그냥 지나간 다섯 번을 **총량**으로 견주면 15 단위에서 통과가
+    이긴다(25.8 대 39.0). 그때 "성긴 격자에서는 `occupancy` 가 dwell 축이 아니다" 라고
+    결론냈는데 **틀렸다.**
 
-        15 단위   25.8  대  39.0   → 통과가 이긴다
-         8 단위  131.6  대  60.2   → 체류가 이긴다
+    5 회 통과는 **5 회분 시간**을 넣는다. 총량이 큰 것이 당연하다 —
+    `5 × 33 = 165` 대 `120 + 33 = 153`. 격자 탓이 아니라 비교 방식 탓이었다.
 
-    같은 값이 격자에 따라 다른 뜻이 된다. 반복 체류 영역을 찾으려면 이걸 먼저 정해야 하고,
-    #69 가 열어 둔 격자 선택에 **dwell 쪽 근거**가 붙는 지점이다 — 방향은 저장 비용과 반대다.
+    [질량 보존 kernel 측정](../../docs/research/2026-08-27-mass-conserving-kernel.md)이
+    갈랐다. 진짜 결함은 따로 있다 — 정규화가 없어서 관측 1 초가 격자에 따라 0.45~10.3
+    초어치로 쌓인다.
+
+    이 테스트는 **그 함정이 실재한다**는 것만 고정한다. 아래 테스트가 옳은 읽기다.
     """
-    verdicts = {}
-    for radius_u in (COARSE, FINE):
-        lingered = stack([_walk(stop_s=120, radius_u=radius_u)[1]])
-        passed = stack([_walk(stop_s=0, radius_u=radius_u, seed=i)[1] for i in range(5)])
-        long_cell = _at_stop({c: p.occupancy for c, p in lingered.items()}, radius_u)
-        quick_cell = _at_stop({c: p.occupancy for c, p in passed.items()}, radius_u)
-        assert lingered[long_cell].walks == 1 and passed[quick_cell].walks == 5
-        verdicts[radius_u] = lingered[long_cell].occupancy > passed[quick_cell].occupancy
+    lingered = stack([_walk(stop_s=120, radius_u=COARSE)[1]])
+    passed = stack([_walk(stop_s=0, radius_u=COARSE, seed=i)[1] for i in range(5)])
+    long_cell = _at_stop({c: p.occupancy for c, p in lingered.items()}, COARSE)
+    quick_cell = _at_stop({c: p.occupancy for c, p in passed.items()}, COARSE)
+    assert lingered[long_cell].walks == 1 and passed[quick_cell].walks == 5
+    assert lingered[long_cell].occupancy < passed[quick_cell].occupancy, (
+        "총량 비교의 함정이 사라졌다 — 아래 테스트의 전제가 바뀐 것이다")
 
-    assert verdicts[COARSE] is False, "성긴 격자에서 체류가 이겼다 — 측정이 바뀌었다"
-    assert verdicts[FINE] is True, "촘촘한 격자에서도 체류가 졌다 — dwell field 가 안 선다"
+
+@pytest.mark.parametrize("radius_u", [COARSE, FINE])
+def test_dwell_per_walk_beats_frequency_on_every_grid(radius_u):
+    """**산책당으로 나누면 체류가 어느 격자에서나 이긴다.** 이게 옳은 읽기다.
+
+    빈도로 나눠 읽지 않으면 빈도가 체류로 위장한다 — `rate_field` 가 `walks / selected`
+    로 하던 규율이 dwell 축에도 필요하다는 뜻이다.
+    """
+    lingered = stack([_walk(stop_s=120, radius_u=radius_u)[1]])
+    passed = stack([_walk(stop_s=0, radius_u=radius_u, seed=i)[1] for i in range(5)])
+    long_cell = _at_stop({c: p.occupancy for c, p in lingered.items()}, radius_u)
+    quick_cell = _at_stop({c: p.occupancy for c, p in passed.items()}, radius_u)
+
+    per_walk_lingered = lingered[long_cell].occupancy / lingered[long_cell].walks
+    per_walk_passed = passed[quick_cell].occupancy / passed[quick_cell].walks
+    assert per_walk_lingered > per_walk_passed * 2, (
+        f"격자 {radius_u}: 산책당 체류 {per_walk_lingered:.1f} 대 "
+        f"통과 {per_walk_passed:.1f}")
