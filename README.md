@@ -21,8 +21,8 @@ fix·`WalkFacts`·정지/시설 occurrence 파생과 원좌표 purge를 구현�
 검색 입구로 삼는다. 기본 결과는 사실 기반이고 태그·AI는 사용자가 적용하는 제안층이다.
 공통 `POST /v2/places/search`는 종류별 독립 그룹·기본 거리순·반려견 입장 3상태 평가와
 명시적인 주차 가능 우선 정렬로 구현됐다. 웹 검증 표면 `/facility-map`은 이 계약의 정렬 순서와
-주차 사실 3상태 커버리지를 목록으로 표시한다. Android 병원 화면은 아직 전환하지 않았으며
-작은 PR로 이어서 이동한다.
+주차 사실 3상태 커버리지를 목록으로 표시한다. Android 기본 장소 화면도 같은 계약을 사용한다.
+기존 병원 대화 화면만 별도 기능으로 임시 유지한다.
 
 ```
 app/
@@ -34,11 +34,10 @@ app/
 │   └── refine/  그 상태를 편집하는 방법 — tools · nl · diff · actions
 ├── place/       공통 PlaceResult · 의료/시설 resolver 조율 · POST /v2/places/search
 ├── features/
-│   ├── hospital/  POST /hospital/search (편집+검색, transport=estimate만)
-│   ├── pharmacy/  GET /pharmacy/search (얇음, companion 기본 none)
+│   ├── hospital/  legacy POST /hospital/search (대화형 편집+검색, transport=estimate만)
 │   ├── walk/      수집만 — WalkFacts (contracts/walk-record.md). 판정·서술 없음, 테스트로 고정
 │   └── scene/     walk 사실의 소비자 — encounter 기하값 → 판정. 규칙표에 버전이 붙는다
-├── api/         legacy GET /places/search · canonical POST /v2/places/search · GET /map/static
+├── api/         canonical POST /v2/places/search · GET /map/static
 ├── usage/       실제 외부 호출 Gate — 기본 거부, 제한형 dev 정책, 요청/시간당 사용량
 └── core/        config · db · clock
 android/         Kotlin/Compose — 위치→검색→NAVER 지도 + walk foreground service

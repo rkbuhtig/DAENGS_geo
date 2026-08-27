@@ -79,19 +79,17 @@ def test_static_map_rejects_bad_query_before_provider_call():
     assert bad_marker.status_code == 422
 
 
-def test_facility_search_rejects_the_retired_goods_kind():
-    """폐기된 분류를 빈 결과로 돌려주면 데이터가 없는 것으로 오독한다."""
-    app.dependency_overrides[get_session] = _no_db
-    try:
-        with TestClient(app) as client:
-            response = client.get(
-                "/facility/search?lat=37.5&lng=127&radius_m=3000&kind=goods"
-            )
-    finally:
-        app.dependency_overrides.pop(get_session, None)
+@pytest.mark.parametrize(
+    "path",
+    ["/places/search", "/pharmacy/search", "/facility/search"],
+)
+def test_retired_discovery_routes_are_not_exposed(path):
+    """장소 발견 입구가 다시 갈라지면 웹과 Android 계약이 재차 어긋난다."""
+    with TestClient(app) as client:
+        response = client.get(path)
 
-    assert response.status_code == 422
-    assert "goods was split into pet_shop and shopping" in response.text
+    assert response.status_code == 404
+    assert path not in app.openapi()["paths"]
 
 
 @pytest.mark.parametrize(

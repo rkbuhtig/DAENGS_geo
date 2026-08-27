@@ -1,30 +1,17 @@
-# 검색 응답 계약
+# 병원 대화 응답 계약
 
-마지막 코드 대조: 2026-08-24. 검색 표면은 두 개이며 응답 크기가 다르다.
+마지막 코드 대조: 2026-08-27.
 
-## 공용 장소 검색
+공용 장소 발견은 [`POST /v2/places/search`](place-search-v2.md) 한 곳에서 `PlaceResult`를
+반환한다. 과거 `GET /places/search`, `GET /pharmacy/search`, `GET /facility/search`가 반환하던
+`SearchOut` HTTP 표면은 소비자 전환 뒤 제거했다. 내부 의료·시설 resolver는 canonical 검색과
+아래 병원 대화 기능이 계속 사용한다.
 
-`GET /places/search`, `GET /pharmacy/search`는 `SearchOut`을 반환한다.
+## 기존 병원 검색·편집
 
-```jsonc
-{
-  "params": { "lat", "lng", "radius_m", "kind", "open_now", "night", "limit", "at" },
-  "results": [
-    { "id", "kind", "name", "lat", "lng", "distance_m", "address", "phone",
-      "open_now", "hours_today", "is_night", "is_24h", "tags",
-      "area_m2", "staff_count", "prefer_hit" }
-  ],
-  "map": { "preview_url", "deeplink", "web_url" }
-}
-```
-
-`open_now: null`은 영업시간 미상이다. `open_now=true` 검색에서도 미상은 제외하지 않고 확정
-영업 종료만 제외한다. `map`의 세 값은 같은 `results`에서 파생한다.
-
-## 병원 검색·편집
-
-`POST /hospital/search`는 위 장소 필드에 상태 편집, 추정 이동정보와 안전·복구 표면을 더한
-`HospitalSearchOut`을 반환한다.
+`POST /hospital/search`는 병원 후보와 상태 편집, 추정 이동정보와 안전·복구 표면을 묶은
+`HospitalSearchOut`을 반환한다. Android의 기존 병원 대화 화면이 아직 소비하므로 남아 있지만,
+공용 장소 발견 입구로 새 소비자를 붙이지 않는다.
 
 ```jsonc
 {

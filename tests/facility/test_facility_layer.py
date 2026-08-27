@@ -17,6 +17,7 @@ from app.geo.schemas import PlaceOut
 from app.ingest.facility_store import prune_unseen, upsert_rows
 from app.ingest.kcisa import source_ref
 from app.ingest.linking import _LINK_CROSS
+from app.place.facility_resolver import _SEARCH, MEDICAL, _merge
 from tests.conftest import TEST_ORIGIN, TEST_SOURCE, db_session, place_row, seeded_places
 
 # 동해 한복판 — place 쪽 테스트와 같은 격리 전략(좌표)을 쓴다.
@@ -117,10 +118,8 @@ async def test_empty_detail_does_not_erase_stored_detail():
             await _clean(session)
 
 
-async def test_cross_source_merge_keeps_richer_fields(monkeypatch):
+async def test_cross_source_merge_keeps_richer_fields():
     """두 원천에 같은 시설이 있어도 운영시간이 사라지면 안 된다 (행 승자독식 금지)."""
-    from app.api import facility as api
-
     async with db_session() as session:
         await _clean(session)
         try:
@@ -143,9 +142,9 @@ async def test_cross_source_merge_keeps_richer_fields(monkeypatch):
             """), {"new": ids["test:newer"], "old": str(ids["test:base"])})
             await session.commit()
 
-            rows = await session.execute(api._SEARCH, {
+            rows = await session.execute(_SEARCH, {
                 "lat": TEST_ORIGIN[0], "lng": TEST_ORIGIN[1], "radius_m": 1000,
-                "kind": "cafe", "limit": 10, "medical": list(api.MEDICAL),
+                "kind": "cafe", "limit": 10, "medical": list(MEDICAL),
                 "require_canonical_identity": False,
                 "canonical_sources": [],
                 # 이 테스트가 보는 것은 병합이라 pet 축 필터는 열어 둔다 (엔드포인트 기본값과 별개).
@@ -158,7 +157,7 @@ async def test_cross_source_merge_keeps_richer_fields(monkeypatch):
             assert len(rows) == 1, "링크된 두 행이 모두 노출되거나 모두 숨겨졌다"
             assert rows[0].source == "test:newer", "최신 원천이 노출돼야 한다"
 
-            values, borrowed = api._merge(rows[0])
+            values, borrowed = _merge(rows[0])
             assert values["hours_text"] == "매일 10:00~22:00", "빌려온 운영시간이 사라졌다"
             assert values["parking"] is True
             assert borrowed["hours_text"].name == "test:base", "빌린 필드에 출처가 없다"
@@ -169,8 +168,6 @@ async def test_cross_source_merge_keeps_richer_fields(monkeypatch):
 
 async def test_cross_kind_rows_are_neither_linked_nor_collapsed():
     """같은 장소 후보여도 shopping 때문에 pet_shop 후보군이 사라지면 안 된다."""
-    from app.api import facility as api
-
     async with db_session() as session:
         await _clean(session)
         try:
@@ -219,7 +216,7 @@ async def test_cross_kind_rows_are_neither_linked_nor_collapsed():
             assert cross_kind_linked == 0
             assert same_kind_linked == 1, "같은 kind까지 링크하지 않았다"
 
-            # migration 전 링크가 남거나 수동 링크가 생겨도 legacy 소비자는 방어해야 한다.
+            # migration 전 링크가 남거나 수동 링크가 생겨도 resolver는 방어해야 한다.
             await session.execute(text("""
                 INSERT INTO facility_link (facility_id, source, source_ref, method)
                 VALUES (:newer, 'facility', :base, 'test-cross-kind')
@@ -229,9 +226,9 @@ async def test_cross_kind_rows_are_neither_linked_nor_collapsed():
             })
 
             async def search(kind: str):
-                rows = await session.execute(api._SEARCH, {
+                rows = await session.execute(_SEARCH, {
                     "lat": TEST_ORIGIN[0], "lng": TEST_ORIGIN[1], "radius_m": 1000,
-                    "kind": kind, "limit": 10, "medical": list(api.MEDICAL),
+                    "kind": kind, "limit": 10, "medical": list(MEDICAL),
                     "require_canonical_identity": False,
                     "canonical_sources": [],
                     "only_dog_ok": False, "dog_size": None, "size_accepts": [],

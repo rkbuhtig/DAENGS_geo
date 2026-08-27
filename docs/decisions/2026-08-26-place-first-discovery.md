@@ -145,11 +145,11 @@ AI와 태그 기반 검색은 현재 제품 검색 권한을 갖지 않는다.
 표시한다. Android의 기존 병원 대화 화면은 상담 기능으로 임시 유지하며, canonical hospital
 카테고리로 장소 발견을 시작했다. `PlaceDiscoveryController`와 `LocationFeedCoordinator`가 검색
 수명주기와 화면 위치 구독을 각각 소유하므로 `MapViewModel`은 두 부수효과를 직접 관리하지 않는다.
-legacy 병원 검색 제거는 후속으로 진행한다.
+legacy 병원 대화 기능의 역할 결정과 검색 제거는 후속으로 진행한다.
 
-기존 `/hospital/search`, `/pharmacy/search`, `/facility/search`, `GET /places/search`는 소비자가
-새 계약으로 이동할 때까지 유지한다. HTTP method만 달리해 같은 경로를 legacy와 canonical로
-나누지 않는다.
+소비자 전환을 확인한 뒤 `GET /pharmacy/search`, `GET /facility/search`, `GET /places/search`를
+제거해 장소 발견 입구를 canonical API 하나로 닫았다. 기존 `/hospital/search`는 Android 병원
+대화 화면이 소비하므로 장소 발견의 예외가 아닌 별도 legacy capability로 임시 유지한다.
 
 ## 기존 결정과의 관계
 

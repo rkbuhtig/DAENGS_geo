@@ -8,12 +8,11 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api import anchor, facility, places, places_v2, static_map
+from app.api import anchor, places_v2, static_map
 from app.core.config import settings
 from app.core.db import get_session
 from app.features.hospital import api as hospital
 from app.features.journey import api as journey
-from app.features.pharmacy import api as pharmacy
 from app.features.walk import api as walk
 from app.usage.composition import route_capability_problems
 from app.usage.gate import usage_request_scope
@@ -25,10 +24,7 @@ if _problems:
 
 app = FastAPI(title="DAENGS_geo", version="0.1.0")
 app.include_router(places_v2.router)
-app.include_router(places.router)
-app.include_router(facility.router)
 app.include_router(hospital.router)
-app.include_router(pharmacy.router)
 app.include_router(walk.router)
 app.include_router(journey.router)
 app.include_router(static_map.router)

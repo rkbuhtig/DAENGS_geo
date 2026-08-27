@@ -1,4 +1,4 @@
-"""`GET /facility/search` 의 선호 순위 계약.
+"""FacilityResolver의 선호 순위 계약.
 
 `tests/discovery/` 에 있었다 — 검증 대상이 `api.facility` 와 `ingest` 라 discovery 와 무관하다.
 
@@ -14,10 +14,10 @@ from datetime import UTC, date, datetime
 
 from sqlalchemy import text
 
-from app.api.facility import FacilityParams, facility_search
 from app.ingest.facility_store import upsert_rows
 from app.ingest.kcisa import source_ref
 from app.ingest.pet_axes import derive_all
+from app.place.facility_resolver import FacilityParams, resolve_facilities
 from tests.conftest import TEST_ORIGIN, db_session
 
 SOURCES = ("test:rank_base", "test:rank_newer")
@@ -52,7 +52,7 @@ async def _seed(session, rows: list[dict], *, source: str = SOURCES[0]) -> None:
 
 
 async def _ranked(session, **params) -> list[str]:
-    out = await facility_search(
+    out = await resolve_facilities(
         FacilityParams(lat=TEST_ORIGIN[0], lng=TEST_ORIGIN[1], radius_m=RADIUS_M, **params),
         session,
     )
@@ -126,7 +126,7 @@ async def test_identical_rank_is_stable_before_the_limit_cutoff():
                 ),
             ], source=SOURCES[0])
 
-            out = await facility_search(
+            out = await resolve_facilities(
                 FacilityParams(
                     lat=TEST_ORIGIN[0], lng=TEST_ORIGIN[1], radius_m=RADIUS_M,
                     kind="cafe", parking=True, limit=2,
@@ -178,7 +178,7 @@ async def test_null_source_ref_legacy_tie_falls_back_to_id():
                 LIMIT 1
             """), {"source": SOURCES[0]})).scalar_one()
 
-            out = await facility_search(
+            out = await resolve_facilities(
                 FacilityParams(
                     lat=TEST_ORIGIN[0], lng=TEST_ORIGIN[1], radius_m=RADIUS_M,
                     kind="cafe", parking=True, limit=1,
