@@ -32,7 +32,7 @@ LAYERS = {
     "core": 0,
     "providers": 1, "usage": 1,
     "profile": 2, "geo": 2, "discovery": 2, "place": 2, "journey": 2,
-    "api": 3, "features": 3, "ingest": 3,
+    "api": 3, "features": 3, "ingest": 3, "main": 3,
 }
 LAYER_NAMES = {0: "core", 1: "인프라", 2: "도메인", 3: "응용"}
 
@@ -53,8 +53,23 @@ CONTRACT_MODULES = {
 KNOWN_VIOLATIONS: set[tuple[str, str]] = set()
 
 
-def _packages() -> set[str]:
-    return {p.name for p in _APP.iterdir() if p.is_dir() and (p / "__init__.py").exists()}
+def _units() -> set[str]:
+    """최상위 관할 단위 — 패키지 디렉토리 + 최상위 모듈.
+
+    `__init__.py` 유무를 묻지 않는다. namespace package 는 `__init__.py` 없이도 import
+    되므로 그 조건은 관할 회피 수단이 된다. 최상위 모듈(`main.py` · 미래의 `utils.py`)도
+    단위다 — 빼면 그쪽으로 들어오는 역방향 에지(`from app.main import app`)가 스캔에서
+    아예 사라지고, 층 배정도 안 받는 잡동사니 모듈이 규칙 밖에 생긴다.
+
+    Python 의 import 단위는 "패키지 디렉토리"보다 넓다. 관할도 그만큼 넓어야 한다.
+    """
+    units = set()
+    for p in _APP.iterdir():
+        if p.is_dir() and any(p.rglob("*.py")):
+            units.add(p.name)
+        elif p.suffix == ".py" and p.name != "__init__.py":
+            units.add(p.stem)
+    return units
 
 
 def _unit(parts: tuple[str, ...]) -> str:
@@ -75,15 +90,15 @@ def _edges() -> list[tuple[str, str, str, str]]:
     금지하는 것 중 하나인데, 내부를 버리면 그게 안 보인다. 층 검사 쪽에서 `src != tgt` 로
     거른다.
     """
-    pkgs = _packages()
+    units = _units()
     out = []
     for path in sorted(_APP.rglob("*.py")):
         if "__pycache__" in path.parts:
             continue
         rel = path.relative_to(_APP).parts
-        if not rel or rel[0] not in pkgs:
+        src = rel[0].removesuffix(".py")
+        if src == "__init__" or src not in units:
             continue
-        src = rel[0]
         src_mod = ".".join(rel).removesuffix(".py").removesuffix(".__init__")
         tree = ast.parse(path.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
@@ -94,7 +109,7 @@ def _edges() -> list[tuple[str, str, str, str]]:
             parts = node.module.split(".")
             tgt = parts[1]
             tgt_mod = ".".join(parts[1:])
-            if tgt in pkgs:
+            if tgt in units:
                 out.append((src, src_mod, tgt, tgt_mod))
     return out
 
@@ -103,18 +118,19 @@ def _edges() -> list[tuple[str, str, str, str]]:
 # 발견이 깨지면 아래 규칙 테스트가 0건을 훑고 조용히 통과한다. tests/test_script_imports.py
 # 가 같은 이유로 같은 방어를 한다.
 def test_discovery_actually_finds_the_app():
-    pkgs = _packages()
-    assert len(pkgs) >= 10, pkgs
-    assert {"core", "geo", "discovery", "features", "journey"} <= pkgs
+    units = _units()
+    assert len(units) >= 11, units
+    assert {"core", "geo", "discovery", "features", "journey", "main"} <= units
     assert len(_edges()) >= 50, len(_edges())
 
 
 def test_every_package_has_a_layer():
     """새 최상위 패키지는 층을 배정받아야 한다 — 결정 #67 §5 의 기계적 집행."""
-    unassigned = sorted(_packages() - set(LAYERS))
+    unassigned = sorted(_units() - set(LAYERS))
     assert not unassigned, (
-        f"층이 없는 최상위 패키지: {unassigned}. 결정 #67 §1 의 네 축 중 하나에 속함을 "
-        "결정 문서로 증명하고 LAYERS 에 등록하라."
+        f"층이 없는 최상위 단위: {unassigned}. 결정 #67 §1 의 네 축 중 하나에 속함을 "
+        "결정 문서로 증명하고 LAYERS 에 등록하라. 최상위 모듈 하나도, __init__ 없는 "
+        "디렉토리도 단위다 — 파일 하나라고 관할 밖이 아니다."
     )
 
 
