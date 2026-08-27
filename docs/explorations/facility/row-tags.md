@@ -41,7 +41,8 @@ implementation: none
 
 - [ ] 첫 태그 사전 확정 — 후보는 #70 에 장부로 있다. 이름 공간(`pet_zone:` · `access:` ·
       `feature:` …)과 어휘를 코드(`app/place/tags.py` 류)에 버전과 함께 고정한다
-- [ ] `restrictions` 291 문자열 매핑표 — `applies_to` 를 가진 구조로. 사람 전수 검토
+- [x] `restrictions` 291 문자열 매핑표 — `applies_to` 를 가진 구조로. 사람 전수 검토
+      → `app/place/restriction_map.py`. 291/291 상태 배정, mapped 행 94%
 - [ ] `travel` 유형어 목록 확정 (~25어). 토큰 채굴 결과가 씨앗
 - [ ] 태그 커버리지 계수의 응답 형식 — `PlaceSort.coverage` 와 같은 자리인가 별도인가
 - [ ] 배치 진입점 — `python -m app.ingest tags` 형태인가. `pet_axes` 가 선례
