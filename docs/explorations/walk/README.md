@@ -14,6 +14,7 @@
 | [session-engine-draft](session-engine-draft.md) | exploring | draft | 초기 start/locations/finish 흐름과 소비자 아이디어. 구현 현황은 Android README/계약이 더 최신 |
 | [session-continuity-and-dwell](session-continuity-and-dwell.md) | exploring | partial | 이미 있는 pause/chain/unfinished-session 위에서 세션 연속성·복구·체류·territory 의미를 정리 |
 | [territory-paint](territory-paint.md) | exploring | working-skeleton | 산책 점을 붓으로 지도를 칠한다. 산책 한 번 = 셀로판 한 장, 조건으로 골라 겹친다. §A(영구 형태)는 [결정 #69](../../decisions/2026-08-26-walk-permanent-spatial-form.md) 로 닫혔고 §B·§C 는 열려 있다 |
+| [evidence-layer](evidence-layer.md) | exploring | draft | **원시 행동 → 판단 가능한 상태.** 사람과 AI 가 같은 근거 계약을 다른 표현으로 읽는다. 지도는 그 인간용 투영이고 맨 마지막이다 |
 | [experience-scenario](experience-scenario.md) | exploring | draft | 저녁 산책 직전 화면 한 장. 셀로판이 기록·해석·행동 중 **어떤 가치를 만드는지** 가장 싼 형태로 검증한다. 금지 목록과 판정 기준이 여기 있다 |
 | [drawn-region](drawn-region.md) | parked | working | 사용자가 면을 그리고 그 안의 체류를 잰다. 붓 모델로 대체 — 5배 규칙은 남는다 |
 | [loop-and-balance](loop-and-balance.md) | parked | none | 3단 루프 · 케어 밸런스. 데이터 수집 전에는 결정하지 않음 |
