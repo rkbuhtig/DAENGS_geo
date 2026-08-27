@@ -1,7 +1,7 @@
 """HTTP 표면의 입력 검증과 노출 경계 — 잘못된 입력이 500 이나 외부 호출이 되지 않게.
 
 이 파일이 깨지는 이유는 하나다: **HTTP 경계의 거부 규칙이나 응답에 나가는 값이 바뀌었다.**
-state 자체의 해석은 `tests/search/test_state_contract.py` 가 지킨다.
+state 자체의 해석은 `tests/discovery/test_state_contract.py` 가 지킨다.
 """
 
 import pytest

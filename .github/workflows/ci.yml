@@ -21,7 +21,7 @@ jobs:
 
     # 실제 PostGIS 를 띄운다. tags && / @> 같은 연산자 불일치는 순수 파이썬 테스트로
     # 절대 안 잡힌다 — 실제로 단위 테스트 68개가 통과하는 동안 필터가 죽어 있었다
-    # (tests/search/test_search_db.py 주석). DB 없이 도는 CI 는 그 구멍을 그대로 둔다.
+    # (tests/discovery/test_search_db.py 주석). DB 없이 도는 CI 는 그 구멍을 그대로 둔다.
     services:
       db:
         image: postgis/postgis:18-3.6
