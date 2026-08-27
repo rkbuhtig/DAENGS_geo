@@ -159,6 +159,7 @@ Evidence 는 무엇을 묶었는지 · 어떤 조건인지 · 분자/분모 · �
 
 없는 장치도 알고 있다. **지금 안 만든다** — 장면이 요구하지 않는다.
 
+    반복 체류 검출기    정의는 섰다 ([repeated-dwell-area]) — 검출기·문턱은 M3
     등급 분기          §C. 실기기 데이터 대기
     "평소와 다른 산책"  이상치 탐지. 처음 질문 목록에 있었다
     계절 안정성        같은 곳을 사철 가나 계절마다 갈리나
@@ -230,6 +231,7 @@ LLM 도 아직 안 붙인다. `Evidence → 결정론적 순위 → 템플릿 �
 - **저장 열(원칙 3 왼쪽)에 뭔가 추가하고 싶어진다.** 그건 #69 를 바꾸는 일이라 결정 문서를
   거쳐야 한다. 읽는 방법으로 해결되는지 먼저 본다.
 
+[repeated-dwell-area]: repeated-dwell-area.md
 [territory-paint]: territory-paint.md
 [experience-scenario]: experience-scenario.md
 [#69]: ../../decisions/2026-08-26-walk-permanent-spatial-form.md
