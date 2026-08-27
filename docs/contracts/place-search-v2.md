@@ -1,8 +1,9 @@
 # Place v2 검색 계약
 
-`POST /v2/places/search`는 웹과 Android가 함께 사용할 장소 발견의 canonical 입구다. 기존
-`GET /places/search`, `/hospital/search`, `/pharmacy/search`, `/facility/search`는 소비자가
-이동할 때까지 유지한다.
+`POST /v2/places/search`는 웹과 Android가 함께 사용하는 장소 발견의 유일한 HTTP 입구다.
+기존 `GET /places/search`, `GET /pharmacy/search`, `GET /facility/search`는 소비자 전환 뒤
+제거했다. `POST /hospital/search`는 장소 발견 계약이 아니라 기존 병원 대화 기능을 위해서만
+임시 유지한다.
 
 ## 요청
 
@@ -124,5 +125,4 @@ identity로 노출하지 않는다.
 - 태그/이름 추론 및 AI 제안
 - 서로 다른 kind 결과의 통합 순위
 - 검증되지 않은 `facility_link`를 Place alias로 승격
-- 기존 Android 병원 상담과 나머지 legacy 소비자의 제거 (`/facility-map`과 Android 기본 장소
-  화면은 이 계약으로 이동 완료)
+- 기존 Android 병원 대화 기능의 역할 재결정과 `/hospital/search` 제거

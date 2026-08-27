@@ -33,10 +33,10 @@ relaAcdntRiskMtr 148 · relaPosesFclty 15 · relaFrnshPrdlst 2 · relaPurcPrdlst
 
 그리고 KTO 9,692행 중 상세가 붙은 건 **246행(2.5%)** 뿐이다. 나머지는 `pet = {}`.
 
-**이게 지금 계약의 문제다.** `app/api/facility.py` 의 `_BORROWABLE` 에 `pet` 이 들어 있어서,
-`pet` 이 빈 KTO 행은 링크된 KCISA 행에서 `pet` 을 통째로 빌린다. 결과적으로 `/facility/search`
-응답의 `pet` 필드는 **행마다 KCISA 스키마이거나 KTO 스키마이거나**다. 소비자(앱·챗봇)는
-어떤 키가 올지 모른 채 받는다. 원천이 셋이 되면 그대로 셋이 된다.
+**당시 계약의 문제였다.** facility resolver가 `pet`이 빈 KTO 행에 링크된 KCISA의 `pet`을
+통째로 빌려서, legacy `/facility/search` 응답은 **행마다 KCISA 스키마이거나 KTO
+스키마**였다. 후속 구현은 파생 축과 공통 `PlaceResult`를 추가했고, legacy HTTP 표면은
+2026-08-27 제거했다. 아래 측정은 그 설계 근거를 보존한다.
 
 정규화가 최적화가 아니라 **다원천의 전제 조건**인 이유가 이것이다.
 

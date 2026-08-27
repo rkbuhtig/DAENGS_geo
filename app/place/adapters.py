@@ -1,7 +1,7 @@
 """내부 의료·시설 resolver 결과를 공통 Place 계약으로 옮기는 순수 adapter.
 
-기존 API 응답은 유지한다. canonical `/v2/places/search`가 이 함수들을 호출하며, 현재
-facility_link는 검증된 identity가 아니므로 aliases로 자동 변환하지 않는다.
+canonical `/v2/places/search`가 이 함수들을 호출한다. 현재 facility_link는 검증된
+identity가 아니므로 aliases로 자동 변환하지 않는다.
 """
 
 from datetime import datetime

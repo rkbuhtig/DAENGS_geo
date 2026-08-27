@@ -7,13 +7,6 @@ import pytest
 from pydantic import ValidationError
 from sqlalchemy import text
 
-from app.api.facility import (
-    FacilityOut,
-    FacilityParams,
-    FacilitySourceOut,
-    PetAxesOut,
-    facility_search,
-)
 from app.geo.contract import SearchMust, SearchPlan
 from app.geo.schemas import PlaceOut
 from app.geo.search import find_places
@@ -25,6 +18,13 @@ from app.place.contracts import (
     PlaceMatch,
     PlaceRef,
     PlaceResult,
+)
+from app.place.facility_resolver import (
+    FacilityOut,
+    FacilityParams,
+    FacilitySourceOut,
+    PetAxesOut,
+    resolve_facilities,
 )
 from tests.conftest import TEST_ORIGIN, db_session
 
@@ -300,7 +300,7 @@ async def test_kto_mapping_category_is_recovered_from_raw_contenttypeid():
         try:
             now = datetime.now(UTC)
             await upsert_rows(session, "kto", [row], "2026-08-26", now)
-            result = await facility_search(
+            result = await resolve_facilities(
                 FacilityParams(
                     lat=TEST_ORIGIN[0], lng=TEST_ORIGIN[1], radius_m=1000, kind="shopping",
                 ),

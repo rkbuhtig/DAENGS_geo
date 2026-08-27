@@ -2,9 +2,9 @@
 
 import pytest
 
-from app.api.facility import MEDICAL
 from app.geo.icons import _GROUPS, IconGroup, icon_group
 from app.geo.schemas import PlaceOut
+from app.place.facility_resolver import MEDICAL
 
 
 def _place(kind: str) -> PlaceOut:

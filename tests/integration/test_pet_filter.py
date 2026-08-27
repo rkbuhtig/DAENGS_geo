@@ -11,10 +11,10 @@ from datetime import UTC, date, datetime
 
 from sqlalchemy import text
 
-from app.api.facility import FacilityParams, facility_search
 from app.ingest.facility_store import upsert_rows
 from app.ingest.kcisa import source_ref
 from app.ingest.pet_axes import derive_all
+from app.place.facility_resolver import FacilityParams, resolve_facilities
 from tests.conftest import TEST_ORIGIN, db_session
 
 SOURCES = ("test:pet_base", "test:pet_newer")
@@ -49,7 +49,7 @@ async def _seed(session, rows: list[dict], *, source: str = SOURCES[0]) -> None:
 
 
 async def _search(session, **params):
-    out = await facility_search(
+    out = await resolve_facilities(
         FacilityParams(lat=TEST_ORIGIN[0], lng=TEST_ORIGIN[1], radius_m=2000, **params),
         session,
     )
@@ -177,7 +177,7 @@ async def test_dog_id_fills_size_from_profile():
                 facility_row("모두가능", east_m=20, pet='{"allowed": "Y", "size": "모두 가능"}'),
             ])
             # 장군이 = 셰퍼드 34kg large (app/profile/source.py 페르소나)
-            out = await facility_search(
+            out = await resolve_facilities(
                 FacilityParams(lat=TEST_ORIGIN[0], lng=TEST_ORIGIN[1], radius_m=2000,
                                dog_id="janggun"),
                 session,
@@ -200,7 +200,7 @@ async def test_explicit_dog_size_wins_over_profile():
             await _seed(session, [
                 facility_row("소형만", east_m=10, pet='{"allowed": "Y", "size": "5kg 이하"}'),
             ])
-            out = await facility_search(
+            out = await resolve_facilities(
                 FacilityParams(lat=TEST_ORIGIN[0], lng=TEST_ORIGIN[1], radius_m=2000,
                                dog_id="janggun", dog_size="small"),
                 session,
@@ -225,12 +225,12 @@ async def test_truncation_is_reported_not_silent():
             base = {"lat": TEST_ORIGIN[0], "lng": TEST_ORIGIN[1],
                     "radius_m": 2000, "kind": "test_kind"}
 
-            cut = await facility_search(FacilityParams(**base, limit=2), session)
+            cut = await resolve_facilities(FacilityParams(**base, limit=2), session)
             assert cut.truncated is True
             assert len(cut.results) == 2, "상한을 넘겨 돌려주면 안 된다"
 
             # limit 미지정 = 전부. 지도가 반경 안을 다 그릴 수 있어야 한다.
-            whole = await facility_search(FacilityParams(**base), session)
+            whole = await resolve_facilities(FacilityParams(**base), session)
             assert whole.truncated is False
             assert len(whole.results) == 4
         finally:
@@ -251,13 +251,9 @@ async def test_unspecified_limit_is_still_bounded_by_the_server():
             base = {"lat": TEST_ORIGIN[0], "lng": TEST_ORIGIN[1],
                     "radius_m": 2000, "kind": "test_bulk"}
 
-            from app.api import facility as facility_api
-            original = facility_api.MAX_RESULTS
-            facility_api.MAX_RESULTS = 3          # 상한이 실제로 집행되는지만 본다
-            try:
-                out = await facility_search(FacilityParams(**base), session)
-            finally:
-                facility_api.MAX_RESULTS = original
+            out = await resolve_facilities(
+                FacilityParams(**base), session, max_results=3,
+            )
 
             assert len(out.results) == 3, "limit 미지정이 상한을 우회했다"
             assert out.truncated is True, "잘랐으면 말해야 한다"

@@ -82,7 +82,7 @@ class PetAxesOut(BaseModel):
 class FacilitySourceOut(BaseModel):
     name: str                          # kcisa | kto
     as_of: str                         # 스냅샷 날짜 또는 원천 수정일
-    # 새 Place adapter 전용. 기존 `/facility/search` JSON에는 노출하지 않는다.
+    # Place adapter 전용 내부 identity. resolver 모델의 직렬화 표면에는 노출하지 않는다.
     ref: str | None = Field(None, exclude=True, repr=False)
 
 
@@ -334,8 +334,8 @@ async def resolve_facilities(
                 max_kg=values["pet_max_kg"],
             ),
             source=FacilitySourceOut(name=r.source, ref=r.source_ref, as_of=r.as_of),
-            # 기존 API는 표시하는 필드의 출처만 유지한다. Place adapter는 숨은 실내외 사실까지
-            # 포함한 내부 맵을 쓴다.
+            # resolver 결과에는 표시하는 필드의 출처만 유지한다. Place adapter는 숨은
+            # 실내외 사실까지 포함한 내부 맵을 쓴다.
             field_sources={
                 name: source for name, source in borrowed.items()
                 if name not in {"indoor", "outdoor"}
