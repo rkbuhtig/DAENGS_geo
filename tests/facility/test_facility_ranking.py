@@ -1,6 +1,8 @@
 """`GET /facility/search` 의 선호 순위 계약.
 
-부스트 규칙 자체(밴드 안에서만 역전)는 `tests/search/test_ranking.py` 가 순수 함수로 고정한다.
+`tests/discovery/` 에 있었다 — 검증 대상이 `api.facility` 와 `ingest` 라 discovery 와 무관하다.
+
+부스트 규칙 자체(밴드 안에서만 역전)는 `tests/discovery/test_ranking.py` 가 순수 함수로 고정한다.
 여기서 보는 것은 그 규칙이 **시설 검색 한 요청을 통과하는 길**이다 — 순위 키가 SQL 에 있고
 표시값은 파이썬이 만들기 때문에, 둘이 어긋나면 순서가 아니라 후보 선택이 틀어진다.
 
