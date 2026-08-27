@@ -139,9 +139,11 @@ AI와 태그 기반 검색은 현재 제품 검색 권한을 갖지 않는다.
 5. 사실 기반 선호 정렬과 정렬 metadata 추가; hard filter는 명시할 때만
 6. Android를 Place 계약으로 옮긴 뒤 `MapViewModel`을 Place 기준으로 분리
 
-현재 1~5를 구현했다. `/facility-map`은 한 번의 canonical 요청으로 모든 후보를 유지하면서
+현재 1~6을 구현했다. `/facility-map`과 Android 기본 장소 화면은 한 번에 canonical kind
+하나를 선택해 서로 다른 후보군의 순위를 섞지 않는다. 두 화면 모두 모든 후보를 유지하면서
 `compatible / incompatible / unknown` 분포와 명시적 주차 선호의 정렬 순서·사실 커버리지를
-표시한다. Android 전환은 아직이다.
+표시한다. Android의 기존 병원 대화 화면은 상담 기능으로 임시 유지하며, canonical hospital
+카테고리로 장소 발견을 시작한 뒤 legacy 검색 제거는 후속으로 진행한다.
 
 기존 `/hospital/search`, `/pharmacy/search`, `/facility/search`, `GET /places/search`는 소비자가
 새 계약으로 이동할 때까지 유지한다. HTTP method만 달리해 같은 경로를 legacy와 canonical로

@@ -372,6 +372,22 @@ class MapViewModelTest {
     }
 
     @Test
+    fun `my location place action refreshes an older real fix before searching`() = runTest {
+        val source = FakeLocationSource(fix = fix(37.5665, 126.9780))
+        val places = FakePlaceSearchRepository(response = PlaceSearchResponse(null, emptyList()))
+        val viewModel = viewModel(source, places = places)
+        viewModel.useDeviceLocation()
+        advanceUntilIdle()
+
+        source.fix = fix(35.1796, 129.0756)
+        viewModel.locateAndSearchPlaces(listOf(PlaceKind.TRAVEL))
+        advanceUntilIdle()
+
+        assertEquals(GeoPoint(35.1796, 129.0756), places.requests.single().origin)
+        assertEquals(2, source.currentLocationCalls)
+    }
+
+    @Test
     fun `failed canonical search retries the exact typed request`() = runTest {
         val source = FakeLocationSource(fix = fix(37.5665, 126.9780))
         val places = FakePlaceSearchRepository(
@@ -505,7 +521,7 @@ private class FakeWalkTrackingController : WalkTrackingController {
 }
 
 private class FakeLocationSource(
-    private val fix: LocationSample,
+    var fix: LocationSample,
     private val updatesFailure: Throwable? = null,
 ) : LocationSource {
     val updates = MutableSharedFlow<LocationSample>(extraBufferCapacity = 8)
