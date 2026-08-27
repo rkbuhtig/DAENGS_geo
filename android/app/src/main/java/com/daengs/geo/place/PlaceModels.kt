@@ -47,6 +47,13 @@ enum class PlaceKind(val wire: String) {
     }
 }
 
+/**
+ * 병원·약국은 계약상 주차 사실을 제공하지 않는다. 선호를 보내도 서버가 쓸 사실이 없으므로
+ * 요청과 화면 양쪽에서 같은 판단을 쓴다.
+ */
+fun PlaceKind.supportsParkingPreference(): Boolean =
+    this != PlaceKind.HOSPITAL && this != PlaceKind.PHARMACY
+
 enum class DogSize(val wire: String) {
     SMALL("small"),
     MEDIUM("medium"),

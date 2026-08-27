@@ -19,7 +19,6 @@ class PlaceDiscoveryPanelTest {
         assertEquals(PlaceKind.entries.toSet(), PLACE_CATEGORIES.map { it.kind }.toSet())
         assertEquals(PlaceKind.entries.size, PLACE_CATEGORIES.size)
         assertEquals(PlaceKind.CAFE, DEFAULT_PLACE_KIND)
-        assertFalse(DEFAULT_PLACE_KIND == PlaceKind.SHOPPING)
     }
 
     @Test
@@ -69,6 +68,19 @@ class PlaceDiscoveryPanelTest {
             dogAccessCoverage(groups[0]),
         )
         assertEquals(null, dogAccessCoverage(groups[1]))
+    }
+
+    @Test
+    fun `the panel says which origin the results are from`() {
+        assertEquals("내 위치 기준", originLabel(PlaceOriginMode.DEVICE))
+        assertEquals("지도를 움직인 위치 기준", originLabel(PlaceOriginMode.PINNED))
+    }
+
+    @Test
+    fun `every canonical kind has a label without throwing`() {
+        PlaceKind.entries.forEach { kind ->
+            assertTrue(categoryLabel(kind).isNotBlank())
+        }
     }
 
     private fun response(): PlaceSearchResponse {

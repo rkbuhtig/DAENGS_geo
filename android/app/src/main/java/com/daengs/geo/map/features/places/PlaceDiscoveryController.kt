@@ -6,6 +6,7 @@ import com.daengs.geo.place.PlaceKind
 import com.daengs.geo.place.PlaceSearchRequest
 import com.daengs.geo.place.PlaceSearchResponse
 import com.daengs.geo.place.PlaceSearchRepository
+import com.daengs.geo.place.supportsParkingPreference
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -13,9 +14,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+/** 결과가 어느 지점 기준인지. 화면 문구와 "종류만 바꾸기"가 같은 사실을 봐야 한다. */
+enum class PlaceOriginMode { DEVICE, PINNED }
+
 data class PlaceDiscoveryState(
     val requestedKinds: List<PlaceKind> = emptyList(),
     val origin: GeoPoint? = null,
+    val originMode: PlaceOriginMode = PlaceOriginMode.DEVICE,
     val preferParking: Boolean = false,
     val response: PlaceSearchResponse? = null,
     val selectedPlaceKey: PlaceKey? = null,
@@ -36,20 +41,25 @@ class PlaceDiscoveryController(
     val state: StateFlow<PlaceDiscoveryState> = mutableState.asStateFlow()
 
     private var lastRequest: PlaceSearchRequest? = null
+    private var lastOriginMode = PlaceOriginMode.DEVICE
     private var requestGeneration = 0L
 
     fun search(
         origin: GeoPoint,
         kinds: List<PlaceKind>,
         preferParking: Boolean = false,
+        originMode: PlaceOriginMode = PlaceOriginMode.DEVICE,
     ) {
         submit(
             PlaceSearchRequest(
                 origin = origin,
                 kinds = kinds,
                 dogId = dogId.takeIf(String::isNotBlank),
-                preferParking = preferParking,
+                // 주차 사실 계약이 없는 kind만 요청했다면 선호를 들고 가지 않는다. 화면에서
+                // 칩이 사라진 뒤에도 이전 선택이 몰래 따라붙던 자리다.
+                preferParking = preferParking && kinds.any(PlaceKind::supportsParkingPreference),
             ),
+            originMode,
         )
     }
 
@@ -59,19 +69,21 @@ class PlaceDiscoveryController(
             mutableState.update { it.copy(error = "다시 실행할 장소 검색이 없습니다.") }
             return
         }
-        submit(request)
+        submit(request, lastOriginMode)
     }
 
     fun select(key: PlaceKey) {
         mutableState.update { it.copy(selectedPlaceKey = key) }
     }
 
-    private fun submit(request: PlaceSearchRequest) {
+    private fun submit(request: PlaceSearchRequest, originMode: PlaceOriginMode) {
         lastRequest = request
+        lastOriginMode = originMode
         val generation = ++requestGeneration
         mutableState.value = PlaceDiscoveryState(
             requestedKinds = request.kinds,
             origin = request.origin,
+            originMode = originMode,
             preferParking = request.preferParking,
             loading = true,
         )

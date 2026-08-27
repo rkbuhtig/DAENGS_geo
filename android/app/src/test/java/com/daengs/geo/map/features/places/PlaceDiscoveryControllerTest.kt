@@ -45,6 +45,24 @@ class PlaceDiscoveryControllerTest {
         assertSame(newResponse, controller.state.value.response)
     }
 
+    @Test
+    fun `retry repeats the same origin provenance, not a fresh device search`() = runTest {
+        val repository = PlaceSearchRepository { _: PlaceSearchRequest -> response("ok") }
+        val controller = PlaceDiscoveryController(repository, dogId = "", scope = this)
+
+        controller.search(
+            origin = GeoPoint(35.1796, 129.0756),
+            kinds = listOf(PlaceKind.CAFE),
+            originMode = PlaceOriginMode.PINNED,
+        )
+        advanceUntilIdle()
+        controller.retry()
+        advanceUntilIdle()
+
+        assertEquals(PlaceOriginMode.PINNED, controller.state.value.originMode)
+        assertEquals(GeoPoint(35.1796, 129.0756), controller.state.value.origin)
+    }
+
     private fun response(id: String) = PlaceSearchResponse(
         conditions = AppliedPlaceSearchConditions(
             dogId = id,
