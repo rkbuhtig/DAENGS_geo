@@ -284,8 +284,9 @@ class VisitRate:
     min_peak: float       # 무엇을 "밟았다" 로 셌나
 
     @property
-    def rate(self) -> float:
-        return self.visited / self.selected if self.selected else 0.0
+    def rate(self) -> float | None:
+        """방문 비율. 조건에 걸린 산책이 없으면 0%가 아니라 계산 불가다."""
+        return self.visited / self.selected if self.selected else None
 
 
 def _touches(sheet: Cellophane, inside: Callable[[Cell], bool], min_peak: float) -> bool:
