@@ -30,6 +30,7 @@ backlog.md           갈래에 안 붙는 미결
 - [지도 제공사](explorations/map-provider/README.md)
 - [문화시설](explorations/facility/README.md) — 기반층을 실제로 쓸 수 있게. 병원과 달리 조건 편집의 오른쪽 항이 있다
 - [산책](explorations/walk/README.md) — 코어는 수집 계약, 갈래는 전부 소비자 옵션
+- [반복 체류 영역 — 조작적 정의](explorations/walk/repeated-dwell-area.md) — 의미를 안 붙인 채로 "여러 산책에서 반복해 주변보다 우세한 자리" 를 못 박는다
 - [판단 가능한 상태로 — Evidence 층](explorations/walk/evidence-layer.md) — 원시 행동을 저장하는 게 목적이 아니라 사람과 AI 가 같은 근거를 읽고 판단하게 만드는 것. 지도는 맨 마지막
 - [산책 경험 장면](explorations/walk/experience-scenario.md) — 저녁 산책 직전 화면 한 장이 스펙 전부. 기록·해석·행동 중 무엇이 값어치인지 판정한다
 - [모바일 셸](explorations/mobile-shell/README.md) — 폰에서의 제품 화면. 공간 표면 vs 에피소드 표면
