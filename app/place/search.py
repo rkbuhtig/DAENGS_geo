@@ -154,6 +154,21 @@ class BooleanFactCoverage(BaseModel):
     unknown: int = Field(ge=0)
 
 
+class RestrictionCoverage(BaseModel):
+    """이 그룹에서 동반 조건을 **얼마나 아는가.** 3상태 커버리지의 제약 버전.
+
+    칩이 0개인 이유가 셋이고 사용자가 할 행동이 다르므로, 개수도 셋으로 센다.
+    이게 없으면 "이 동네는 조건 없는 곳뿐" 과 "정보가 없는 원천층" 이 같은 화면이 된다 —
+    `BooleanFactCoverage` 를 파킹에 둔 것과 같은 이유다 (결정 #70 §6).
+    """
+
+    none_confirmed: int = Field(0, ge=0)
+    restricted: int = Field(0, ge=0)
+    unknown: int = Field(0, ge=0)
+    # 술어가 원문을 다 담지 못한 행. UI 가 원문 보기를 강제해야 하는 수다.
+    needs_raw: int = Field(0, ge=0)
+
+
 class PlaceSort(BaseModel):
     type: Literal["distance", "distance_preferred"] = "distance"
     basis: tuple[Literal["distance_band", "parking", "distance_m"], ...] = (
@@ -182,6 +197,10 @@ class PlaceSearchHit(BaseModel):
 class PlaceSearchGroup(BaseModel):
     kind: PlaceKind
     sort: PlaceSort = Field(default_factory=PlaceSort)
+    # 의료 그룹에는 없다 — `restrictions` 는 시설 원천(KCISA)만 가진 사실이다.
+    restrictions: RestrictionCoverage | None = Field(
+        None, exclude_if=lambda value: value is None,
+    )
     limit: int = Field(ge=1)
     truncated: bool = False
     results: list[PlaceSearchHit]
@@ -217,6 +236,23 @@ def _parking_coverage(results: list[PlaceResult]) -> BooleanFactCoverage:
         known_false=sum(result.facts.parking is False for result in results),
         unknown=sum(result.facts.parking is None for result in results),
     )
+
+
+def _restriction_coverage(results: list[PlaceResult]) -> RestrictionCoverage:
+    """그룹 안 제약 상태 분포. **미상과 '제한 없음' 을 합치지 않는다.**"""
+    coverage = RestrictionCoverage()
+    for result in results:
+        facts = result.facts.restrictions
+        state = facts.state if facts is not None else "unknown"
+        if state == "none_confirmed":
+            coverage.none_confirmed += 1
+        elif state == "restricted":
+            coverage.restricted += 1
+        else:
+            coverage.unknown += 1
+        if facts is not None and facts.parse_state in ("partial", "raw_only"):
+            coverage.needs_raw += 1
+    return coverage
 
 
 def _hit(
@@ -299,6 +335,7 @@ async def _facility_group(
         limit=limit,
         truncated=resolved.truncated,
         results=results,
+        restrictions=_restriction_coverage(places),
     )
 
 

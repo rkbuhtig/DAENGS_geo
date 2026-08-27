@@ -69,6 +69,41 @@ class MedicalFacts(BaseModel):
     staff_count: int | None = None
 
 
+class RestrictionChip(BaseModel):
+    """동반 조건 하나 — 코드는 기계가, 라벨은 사람이 읽는다.
+
+    라벨을 서버가 소유하는 이유는 웹과 Android 가 같은 의미를 봐야 하기 때문이다
+    (결정 #65 §6). 클라이언트가 각자 번역하면 두 표면의 문구가 갈라진다.
+
+    `applies_to` 가 `all` 이 아니면 **모두에게 걸리는 조건이 아니다.** 개 조건이 없는
+    요청에서는 `label` 에 한정어가 붙고(`입마개·대형견`), 개가 지정되면 소비자가
+    해당 없는 칩을 걸러낸다.
+    """
+
+    code: str = Field(min_length=1)
+    label: str = Field(min_length=1)
+    applies_to: str = "all"
+
+
+class RestrictionFacts(BaseModel):
+    """`pet.restrictions` 문장에서 파생한 동반 조건 (결정 #70).
+
+    **칩이 0개인 이유가 셋이고 사용자가 할 행동이 다르다.** 그래서 `state` 를 함께 낸다:
+
+        unknown         원문 자체가 없다 → 전화로 확인해야 한다
+        none_confirmed  원천이 "제한 없음" 이라고 말했다 → 확인된 사실이다
+        restricted      제한이 있다 → 칩 또는 `raw` 를 보면 된다
+
+    `parse_state` 가 `partial`·`raw_only` 면 `raw` 가 함께 온다. 칩 목록만 보이면
+    완결로 읽히는데, 그건 조용한 truncation 과 같은 거짓말이다.
+    """
+
+    state: str = "unknown"
+    parse_state: str | None = None
+    chips: list[RestrictionChip] = Field(default_factory=list)
+    raw: str | None = None
+
+
 class PlaceFacts(BaseModel):
     """종류를 가로질러 전달하는 사실. 데이터가 없으면 false가 아니라 None이다."""
 
@@ -81,6 +116,7 @@ class PlaceFacts(BaseModel):
     indoor: bool | None = None
     outdoor: bool | None = None
     pet_access: PetAccessFacts | None = None
+    restrictions: RestrictionFacts | None = None
     medical: MedicalFacts | None = None
 
 

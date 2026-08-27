@@ -24,6 +24,7 @@ from app.place.facility_resolver import (
     FacilityParams,
     FacilitySourceOut,
     PetAxesOut,
+    RestrictionsOut,
     resolve_facilities,
 )
 from tests.conftest import TEST_ORIGIN, db_session
@@ -77,6 +78,7 @@ def facility_result(**overrides) -> FacilityOut:
         "outdoor": None,
         "pet": {},
         "pet_axes": PetAxesOut(),
+        "restrictions": RestrictionsOut(),
         "source": FacilitySourceOut(
             name="kto", ref="KTO:38:123", as_of="2026-08-20",
         ),

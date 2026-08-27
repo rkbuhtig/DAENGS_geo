@@ -16,8 +16,11 @@ from app.place.contracts import (
     PlaceMatch,
     PlaceRef,
     PlaceResult,
+    RestrictionChip,
+    RestrictionFacts,
 )
-from app.place.facility_resolver import FacilityOut
+from app.place.facility_resolver import FacilityOut, RestrictionsOut
+from app.place.restriction_map import LABELS, SUBJECT_LABELS, P, Subject
 from app.place.source_catalog import (
     KCISA_KIND_MAPPING_VERSION as KCISA_MAPPING_VERSION,
 )
@@ -56,6 +59,38 @@ def _required_ref(source: str | None, ref: str | None) -> PlaceRef:
     if not source or not ref:
         raise ValueError("PlaceResult requires an external (source, ref) key")
     return PlaceRef(source=source, ref=ref)
+
+
+def _restriction_facts(value: RestrictionsOut) -> RestrictionFacts:
+    """resolver 술어 → 라벨이 붙은 계약. **알 수 없는 코드는 조용히 버리지 않는다.**
+
+    코드가 라벨 사전에 없다는 것은 판독표와 라벨이 어긋났다는 뜻이다. 그 칩을 빼고
+    내보내면 사용자는 조건이 없는 줄 알게 되고, 우리는 그 사실을 영영 모른다 —
+    `mapping_version` 불일치를 adapter 가 오류로 거부하는 것과 같은 이유다.
+    """
+    chips: list[RestrictionChip] = []
+    for predicate in value.predicates:
+        if predicate.code not in LABELS:
+            raise ValueError(f"restriction code has no label: {predicate.code}")
+        subject = Subject(predicate.applies_to)
+        chips.append(RestrictionChip(
+            code=predicate.code,
+            label=_chip_label(P(predicate.code, subject)),
+            applies_to=subject.value,
+        ))
+    return RestrictionFacts(
+        state=value.state,
+        parse_state=value.parse_state,
+        chips=chips,
+        raw=value.raw,
+    )
+
+
+def _chip_label(predicate: P) -> str:
+    """`입마개·대형견`. 개 조건이 없는 요청에서 한정어가 사라지면 거짓이 된다."""
+    base = LABELS[predicate.code]
+    qualifier = SUBJECT_LABELS[predicate.applies_to]
+    return f"{base}·{qualifier}" if qualifier else base
 
 
 def medical_place_result(value: PlaceOut) -> PlaceResult:
@@ -174,6 +209,7 @@ def facility_place_result(value: FacilityOut) -> PlaceResult:
                 size_class=value.pet_axes.size_class,
                 max_kg=value.pet_axes.max_kg,
             ),
+            restrictions=_restriction_facts(value.restrictions),
         ),
         field_sources=field_sources,
     )
