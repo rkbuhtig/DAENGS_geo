@@ -85,6 +85,25 @@ class LocationOwnershipPolicyTest {
         assertFalse(LocationOwnershipPolicy.canStartWalk(LocationFeed.REPLAY))
     }
 
+    @Test
+    fun `a pending service handoff reserves ownership before recording is acknowledged`() {
+        WalkServiceHandoff.entries.filterNot { it == WalkServiceHandoff.NONE }.forEach { handoff ->
+            listOf(AppVisibility.FOREGROUND, AppVisibility.BACKGROUND).forEach { visibility ->
+                assertEquals(
+                    LocationOwner.WALK_SERVICE_PENDING,
+                    LocationOwnershipPolicy.owner(
+                        LocationOwnershipState(
+                            visibility = visibility,
+                            feed = LocationFeed.DEVICE,
+                            walk = TrackingState.OFF,
+                            handoff = handoff,
+                        ),
+                    ),
+                )
+            }
+        }
+    }
+
     private fun case(
         visibility: AppVisibility,
         feed: LocationFeed,

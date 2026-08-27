@@ -1,18 +1,22 @@
 # DAENGS Android 워킹 스켈레톤
 
-기존 스냅샷 검증: 2026-08-24 — 단위 테스트 32개와 `assembleDebug` 통과. 이 변경은 산책
-foreground service를 추가하며, 실기기 화면 OFF/다른 앱 전환 smoke는 별도 확인이 필요하다.
+기존 스냅샷 검증: 2026-08-27 — 단위 테스트·lint·`assembleDebug` 통과. 실기기 화면 OFF/다른
+앱 전환 smoke는 별도 확인이 필요하다.
 
-`android/app` 단일 모듈이 실제 위치에서 `POST /hospital/search`를 호출하고 NAVER 지도,
-마커, 하단 병원 카드, `actions[]`, 안전 통지, 전화 동작을 렌더링한다. 같은 지도에서 현재 위치,
-서비스 소유 산책 트레일과 로컬 territory 레이어도 실행한다.
+`android/app` 단일 모듈이 실제 위치에서 canonical `POST /v2/places/search`를 호출하고 NAVER
+지도, 장소 마커, 사실·평가 카드를 렌더링한다. 기존 `POST /hospital/search` 대화는 별도 병원
+상담 탭으로 임시 유지한다. 같은 지도에서 현재 위치, 서비스 소유 산책 트레일과 로컬 territory
+레이어도 실행한다.
 
 ## 경계
 
 ```text
 location/  단발·연속 위치 계약, Fused 제공자, 가상 경로 재생, 연속 구독 primitive
 hospital/  HTTP 계약. state와 actions[].edits는 JsonObject/JsonArray로 불투명 왕복
+place/     웹과 공유하는 canonical Place 요청·응답·(source, ref) identity 계약
 walk/      foreground service + 기록 상태/controller/store + TrailRecorder. 산책 중 GPS 소유자
+map/LocationFeedCoordinator  화면 위치·replay·앱 visibility·산책 상태 사이 구독 전환
+map/features/places          Place 검색 수명주기와 Android 장소 표시
 map/shell  단일 MapHost와 제공사 독립 MapScene
 map/layers 장소·트레일·territory의 구체적인 렌더 상태
 map/provider/naver  MapScene을 NAVER SDK 오버레이로 변환
@@ -31,8 +35,9 @@ app        DaengsApplication 조립점. DI 프레임워크 없음
 
 ### 화면 위치와 산책 기록의 소유권
 
-산책하지 않을 때 연속 위치는 `MapViewModel`의 screen-owned `LocationTracker`가 맡는다. 이 구독은
-Activity가 화면을 벗어나면 중단한다. `동선 기록 시작`을 누르면 screen-owned 구독을 먼저 멈추고
+산책하지 않을 때 연속 위치는 `LocationFeedCoordinator`의 screen-owned `LocationTracker`가 맡는다.
+`MapViewModel`은 위치를 검색·지도 상태에 투영하지만 tracker를 직접 시작하거나 중단하지 않는다.
+이 구독은 Activity가 화면을 벗어나면 중단한다. `동선 기록 시작`을 누르면 screen-owned 구독을 먼저 멈추고
 `WalkTrackingService`가 location foreground service로 승격한 뒤 자기 `LocationTracker`와
 `TrailRecorder`를 소유한다. 따라서 Activity의 `onStop()`은 화면용 구독만 끊고 진행 중 산책을
 중단하지 않는다.
@@ -41,6 +46,11 @@ Activity가 화면을 벗어나면 중단한다. `동선 기록 시작`을 누�
 보여주고, `계속 기록` 시 다시 서비스가 고정밀 연속 구독을 가져간다. 종료하면 서비스가
 foreground 상태를 내리고 화면용 구독이 다시 주인이 된다. UI는 `WalkTrackingStore`의 상태를
 관찰할 뿐 산책 세션이나 `TrailRecorder`를 소유하지 않는다.
+
+시작·재개 명령을 보낸 뒤 서비스가 `RECORDING`을 publish하기 전까지는
+`WALK_SERVICE_PENDING`으로 소유권을 예약한다. 이 짧은 구간에도 replay나 화면 GPS를 다시 열지
+않는다. Activity가 일시정지 상태에서 다시 만들어져도 coordinator는 과거 전이 없이 현재
+`PAUSED` 상태를 적용해 화면 device feed를 복구한다.
 
 서비스는 `foregroundServiceType="location"`과 `FOREGROUND_SERVICE_LOCATION`을 선언한다.
 산책 시작은 사용자가 보이는 Activity에서 직접 누르는 동작으로만 시작한다. 그래서 이 단계에서는

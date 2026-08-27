@@ -9,12 +9,9 @@ import com.daengs.geo.hospital.LocationMode
 import com.daengs.geo.hospital.SearchRequestBuilder
 import com.daengs.geo.hospital.SearchSession
 import com.daengs.geo.hospital.SuggestedAction
-import com.daengs.geo.location.FeedStatus
 import com.daengs.geo.location.GeoPoint
 import com.daengs.geo.location.LocationSample
 import com.daengs.geo.location.LocationSource
-import com.daengs.geo.location.LocationTracker
-import com.daengs.geo.location.ReplayLocationSource
 import com.daengs.geo.map.features.places.PlaceDiscoveryController
 import com.daengs.geo.map.features.places.PlaceDiscoveryState
 import com.daengs.geo.map.features.places.PlaceOriginMode
@@ -25,7 +22,6 @@ import com.daengs.geo.territory.ClaimRejectReason
 import com.daengs.geo.territory.ClaimResult
 import com.daengs.geo.territory.TerritoryCell
 import com.daengs.geo.territory.TerritoryRepository
-import com.daengs.geo.walk.TrackingState
 import com.daengs.geo.walk.TrailSnapshot
 import com.daengs.geo.walk.WalkTrackingController
 import com.daengs.geo.walk.WalkTrackingState
@@ -34,10 +30,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.JsonArray
-
-enum class LocationFeed { DEVICE, REPLAY }
 
 enum class RequestKind { LOCATION, HOSPITAL_SEARCH }
 
@@ -87,21 +80,20 @@ class MapViewModel(
     private val hospitalRepository: HospitalRepository,
     placeRepository: PlaceSearchRepository,
     dogId: String,
-    private val deviceLocationSource: LocationSource,
+    deviceLocationSource: LocationSource,
     private val territoryRepository: TerritoryRepository,
     private val walkTrackingController: WalkTrackingController,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(MapUiState())
     val uiState: StateFlow<MapUiState> = _uiState.asStateFlow()
 
-    /** Screen-only live feed. Walk recording itself is owned by WalkTrackingService. */
-    private val locationTracker = LocationTracker(viewModelScope)
-
-    private var appVisibility = AppVisibility.BACKGROUND
-    private var activeSource: LocationSource? = null
-    private var observedWalkState = TrackingState.OFF
     private var lastWalkError: String? = null
     private var pendingPlaceIntent: PlaceSearchIntent? = null
+    private val locationFeed = LocationFeedCoordinator(
+        deviceLocationSource = deviceLocationSource,
+        walkState = walkTrackingController.state,
+        scope = viewModelScope,
+    )
     private val placeDiscovery = PlaceDiscoveryController(
         repository = placeRepository,
         dogId = dogId,
@@ -110,10 +102,10 @@ class MapViewModel(
 
     init {
         viewModelScope.launch {
-            locationTracker.updates.collect(::acceptLocation)
+            locationFeed.state.collect(::acceptLocationFeedState)
         }
         viewModelScope.launch {
-            locationTracker.status.collect(::onFeedStatus)
+            locationFeed.events.collect(::acceptLocationFeedEvent)
         }
         viewModelScope.launch {
             walkTrackingController.state.collect(::acceptWalkTrackingState)
@@ -160,22 +152,15 @@ class MapViewModel(
     }
 
     fun startReplay(speedMultiplier: Double) {
-        if (!LocationOwnershipPolicy.canStartReplay(currentWalkState())) {
-            _uiState.update { it.copy(statusMessage = "동선 기록 중에는 가상 이동을 시작할 수 없어요.") }
-            return
+        when (val result = locationFeed.startReplay(speedMultiplier)) {
+            is LocationCommandResult.Accepted -> {
+                acceptLocationFeedState(locationFeed.state.value)
+                _uiState.update { it.copy(followDevice = true, statusMessage = result.message) }
+            }
+            is LocationCommandResult.Rejected -> {
+                _uiState.update { it.copy(statusMessage = result.message) }
+            }
         }
-        val state = _uiState.value
-        val origin = state.feedSample?.point ?: state.deviceLocation ?: DEFAULT_REPLAY_ORIGIN
-        val source = ReplayLocationSource(
-            points = ReplayLocationSource.loopAround(origin),
-            speedMultiplier = speedMultiplier,
-        )
-        // Replay is a UI/debug fixture. It never becomes the owner of a production walk session.
-        switchFeed(
-            feed = LocationFeed.REPLAY,
-            source = source,
-            statusMessage = "가상 이동 ${speedMultiplier.toInt()}배속 재생 중",
-        )
     }
 
     fun onCameraIdle(point: GeoPoint) {
@@ -187,18 +172,14 @@ class MapViewModel(
     }
 
     fun onAppForeground() {
-        if (appVisibility == AppVisibility.FOREGROUND) return
-        appVisibility = AppVisibility.FOREGROUND
-        val source = activeSource ?: return
-        if (currentLocationOwner().isScreenOwner) locationTracker.start(source)
+        locationFeed.onAppForeground()
     }
 
     fun onAppBackground() {
-        appVisibility = AppVisibility.BACKGROUND
-        // This stops only the screen-owned feed. A running WalkTrackingService keeps its own
-        // location subscription and recording state alive after the Activity leaves the screen.
-        locationTracker.stop()
-        endReplay("화면을 벗어나 가상 이동을 종료했어요.")
+        locationFeed.onAppBackground()?.let { message ->
+            acceptLocationFeedState(locationFeed.state.value)
+            _uiState.update { it.copy(followDevice = true, statusMessage = message) }
+        }
     }
 
     fun searchPinnedArea() {
@@ -303,14 +284,18 @@ class MapViewModel(
     }
 
     fun startTracking() {
-        if (!LocationOwnershipPolicy.canStartWalk(_uiState.value.locationFeed)) {
-            _uiState.update { it.copy(statusMessage = "실제 위치로 돌아온 뒤 동선 기록을 시작해주세요.") }
-            return
+        when (val result = locationFeed.prepareWalkStart()) {
+            is LocationCommandResult.Rejected -> {
+                _uiState.update { it.copy(statusMessage = result.message) }
+                return
+            }
+            is LocationCommandResult.Accepted -> {
+                runCatching(walkTrackingController::start).onFailure { error ->
+                    locationFeed.cancelWalkHandoff()
+                    showError(error)
+                }
+            }
         }
-        // There must be one high-accuracy continuous subscription. The service takes ownership
-        // before the Activity is allowed to disappear.
-        locationTracker.stop()
-        walkTrackingController.start()
     }
 
     fun pauseTracking() {
@@ -318,8 +303,17 @@ class MapViewModel(
     }
 
     fun resumeTracking() {
-        locationTracker.stop()
-        walkTrackingController.resume()
+        when (val result = locationFeed.prepareWalkResume()) {
+            is LocationCommandResult.Rejected -> {
+                _uiState.update { it.copy(statusMessage = result.message) }
+            }
+            is LocationCommandResult.Accepted -> {
+                runCatching(walkTrackingController::resume).onFailure { error ->
+                    locationFeed.cancelWalkHandoff()
+                    showError(error)
+                }
+            }
+        }
     }
 
     fun stopTracking() {
@@ -374,20 +368,13 @@ class MapViewModel(
      * 앱이 멈춘 건지 구분할 방법이 없다. 기다림에는 끝이 있어야 하고, 끝났으면 왜 실패했는지
      * 말해야 한다.
      */
-    private suspend fun fetchDeviceFix(): LocationSample? =
-        runCatching {
-            withTimeoutOrNull(LOCATION_TIMEOUT_MS) { deviceLocationSource.currentLocation() }
-                ?: throw IllegalStateException(
-                    "위치를 찾지 못했어요. 실내에서는 오래 걸릴 수 있어요 - " +
-                        "창가로 나가거나 위치 설정을 확인한 뒤 다시 눌러주세요.",
-                )
+    private suspend fun fetchDeviceFix(): LocationSample? = locationFeed.requestDeviceFix()
+        .onSuccess {
+            acceptLocationFeedState(locationFeed.state.value)
+            _uiState.update { state -> state.copy(followDevice = true, statusMessage = null) }
         }
-            .onSuccess { sample ->
-                switchFeed(LocationFeed.DEVICE, deviceLocationSource, statusMessage = null)
-                acceptLocation(sample)
-            }
-            .onFailure { error -> showError(error, RequestKind.LOCATION) }
-            .getOrNull()
+        .onFailure { error -> showError(error, RequestKind.LOCATION) }
+        .getOrNull()
 
     /** Canonical searches may use only the state slot that already rejects replay/mock fixes. */
     private suspend fun fetchRealDevicePoint(): GeoPoint? {
@@ -401,65 +388,47 @@ class MapViewModel(
         }
     }
 
-    /** The only place the screen-owned feed starts. Walk recording has a different owner. */
-    private fun switchFeed(
-        feed: LocationFeed,
-        source: LocationSource,
-        statusMessage: String?,
-    ) {
-        locationTracker.stop()
-        activeSource = source
-        _uiState.update {
-            it.copy(
-                locationFeed = feed,
-                feedSample = null,
-                followDevice = true,
-                statusMessage = statusMessage,
-            )
-        }
-        if (currentLocationOwner().isScreenOwner) {
-            locationTracker.start(source)
-        }
-    }
-
-    private fun endReplay(message: String) {
-        if (_uiState.value.locationFeed != LocationFeed.REPLAY) return
-        switchFeed(LocationFeed.DEVICE, deviceLocationSource, statusMessage = message)
-    }
-
-    private fun onFeedStatus(status: FeedStatus) {
-        when (status) {
-            is FeedStatus.Failed -> {
-                endReplay("가상 이동을 이어가지 못했어요.")
-                showError(status.cause)
-            }
-            FeedStatus.Completed -> endReplay("가상 이동 재생을 마쳤어요.")
-            FeedStatus.Running, FeedStatus.Idle -> Unit
-        }
-    }
-
-    private fun acceptLocation(sample: LocationSample) {
+    private fun acceptLocationFeedState(location: LocationFeedState) {
         _uiState.update { state ->
             state.copy(
-                feedSample = sample,
-                deviceLocation = if (sample.isMock) state.deviceLocation else sample.point,
-                currentTerritoryCell = if (state.layers.showTerritory) {
-                    territoryRepository.cellAt(sample.point)
+                feedSample = location.feedSample,
+                deviceLocation = location.deviceLocation,
+                locationFeed = location.feed,
+                currentTerritoryCell = if (
+                    state.layers.showTerritory &&
+                    location.feedSample != null
+                ) {
+                    territoryRepository.cellAt(location.feedSample.point)
                 } else {
-                    null
+                    state.currentTerritoryCell
                 },
             )
         }
     }
 
+    private fun acceptLocationFeedEvent(event: LocationFeedEvent) {
+        acceptLocationFeedState(locationFeed.state.value)
+        when (event) {
+            is LocationFeedEvent.Notice -> {
+                _uiState.update { it.copy(followDevice = true, statusMessage = event.message) }
+            }
+            is LocationFeedEvent.Failed -> {
+                _uiState.update {
+                    it.copy(
+                        followDevice = if (event.notice != null) true else it.followDevice,
+                        statusMessage = event.notice ?: it.statusMessage,
+                    )
+                }
+                showError(event.cause)
+            }
+        }
+    }
+
     private fun acceptWalkTrackingState(walk: WalkTrackingState) {
-        val previousWalkState = observedWalkState
         val previousWalkError = lastWalkError
-        observedWalkState = walk.trail.state
         lastWalkError = walk.errorMessage
 
         _uiState.update { state ->
-            val sample = walk.lastSample
             val statusMessage = when {
                 walk.errorMessage != null -> walk.errorMessage
                 previousWalkError != null && state.statusMessage == previousWalkError -> null
@@ -467,62 +436,10 @@ class MapViewModel(
             }
             state.copy(
                 trail = walk.trail,
-                feedSample = if (state.locationFeed == LocationFeed.DEVICE && sample != null) {
-                    sample
-                } else {
-                    state.feedSample
-                },
-                deviceLocation = if (
-                    state.locationFeed == LocationFeed.DEVICE &&
-                    sample != null &&
-                    !sample.isMock
-                ) {
-                    sample.point
-                } else {
-                    state.deviceLocation
-                },
-                currentTerritoryCell = if (
-                    state.layers.showTerritory &&
-                    state.locationFeed == LocationFeed.DEVICE &&
-                    sample != null
-                ) {
-                    territoryRepository.cellAt(sample.point)
-                } else {
-                    state.currentTerritoryCell
-                },
                 statusMessage = statusMessage,
             )
         }
-
-        if (previousWalkState == walk.trail.state) return
-        when (currentLocationOwner(walk.trail.state)) {
-            LocationOwner.WALK_SERVICE, LocationOwner.NONE -> locationTracker.stop()
-            LocationOwner.SCREEN_DEVICE -> {
-                val source = activeSource ?: deviceLocationSource.also { activeSource = it }
-                locationTracker.start(source)
-            }
-            // REPLAY 소유자에게 device source 를 쥐어주지 않는다. feed 가 REPLAY 라는 것은
-            // switchFeed 가 replay source 를 넣었다는 뜻이라 activeSource 는 이미 그것이다.
-            LocationOwner.SCREEN_REPLAY -> activeSource?.let(locationTracker::start)
-        }
     }
-
-    /**
-     * The controller, never `uiState.trail`. The screen state is a mirror filled by the collector,
-     * so between `walkTrackingController.start()` and the next emission it still reads OFF — and an
-     * ownership decision taken in that window starts a second subscription.
-     */
-    private fun currentWalkState(): TrackingState = walkTrackingController.state.value.trail.state
-
-    private fun currentLocationOwner(
-        walk: TrackingState = currentWalkState(),
-    ): LocationOwner = LocationOwnershipPolicy.owner(
-        LocationOwnershipState(
-            visibility = appVisibility,
-            feed = _uiState.value.locationFeed,
-            walk = walk,
-        ),
-    )
 
     private fun search(edits: JsonArray = JsonArray(emptyList())) {
         val before = _uiState.value
@@ -594,12 +511,6 @@ class MapViewModel(
             ) as T
     }
 
-    companion object {
-        private val DEFAULT_REPLAY_ORIGIN = GeoPoint(latitude = 37.5665, longitude = 126.9780)
-
-        /** 실측으로 잰 값이 아니라 "사람이 버튼을 다시 누르기 전에 답이 와야 한다" 는 상한이다. */
-        private const val LOCATION_TIMEOUT_MS = 15_000L
-    }
 }
 
 internal fun retryRequestFor(state: MapUiState): RequestKind =

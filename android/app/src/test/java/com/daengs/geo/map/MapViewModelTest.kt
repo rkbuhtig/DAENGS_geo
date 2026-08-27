@@ -174,6 +174,25 @@ class MapViewModelTest {
     }
 
     @Test
+    fun `a service-owned walk fix still reaches the map and real device slot`() = runTest {
+        val source = FakeLocationSource(fix = fix(37.5665, 126.9780))
+        val walk = FakeWalkTrackingController()
+        val viewModel = viewModel(source, walk)
+        viewModel.onAppForeground()
+        viewModel.useDeviceLocation()
+        advanceUntilIdle()
+        viewModel.startTracking()
+
+        val serviceFix = fix(37.5700, 126.9800)
+        walk.publish(serviceFix)
+        advanceUntilIdle()
+
+        assertEquals(serviceFix, viewModel.uiState.value.feedSample)
+        assertEquals(serviceFix.point, viewModel.uiState.value.deviceLocation)
+        assertEquals(TrackingState.RECORDING, viewModel.uiState.value.trail.state)
+    }
+
+    @Test
     fun `pausing a visible walk returns the device feed to the screen`() = runTest {
         val source = FakeLocationSource(fix = fix(37.5665, 126.9780))
         val walk = FakeWalkTrackingController()
@@ -227,6 +246,47 @@ class MapViewModelTest {
 
         assertEquals(LocationFeed.DEVICE, viewModel.uiState.value.locationFeed)
         assertEquals("동선 기록 중에는 가상 이동을 시작할 수 없어요.", viewModel.uiState.value.statusMessage)
+    }
+
+    @Test
+    fun `start handoff blocks replay while the real service state is still off`() = runTest {
+        val source = FakeLocationSource(fix = fix(37.5665, 126.9780))
+        val walk = FakeWalkTrackingController(acknowledgeStartImmediately = false)
+        val viewModel = viewModel(source, walk)
+        viewModel.onAppForeground()
+        viewModel.useDeviceLocation()
+        advanceUntilIdle()
+
+        viewModel.startTracking()
+        assertEquals(TrackingState.OFF, walk.state.value.trail.state)
+        viewModel.startReplay(10.0)
+
+        assertEquals(1, source.subscriptions)
+        assertEquals(LocationFeed.DEVICE, viewModel.uiState.value.locationFeed)
+        assertEquals("동선 기록 중에는 가상 이동을 시작할 수 없어요.", viewModel.uiState.value.statusMessage)
+
+        walk.acknowledgeRecording()
+        advanceUntilIdle()
+        assertEquals(TrackingState.RECORDING, viewModel.uiState.value.trail.state)
+    }
+
+    @Test
+    fun `a synchronous service start failure rolls ownership back to the screen`() = runTest {
+        val source = FakeLocationSource(fix = fix(37.5665, 126.9780))
+        val walk = FakeWalkTrackingController(
+            startFailure = IllegalStateException("service start rejected"),
+        )
+        val viewModel = viewModel(source, walk)
+        viewModel.onAppForeground()
+        viewModel.useDeviceLocation()
+        advanceUntilIdle()
+
+        viewModel.startTracking()
+        advanceUntilIdle()
+
+        assertEquals("service start rejected", viewModel.uiState.value.error)
+        assertEquals(2, source.subscriptions)
+        assertEquals(LocationFeed.DEVICE, viewModel.uiState.value.locationFeed)
     }
 
     @Test
@@ -538,7 +598,10 @@ private class FakePlaceSearchRepository(
     }
 }
 
-private class FakeWalkTrackingController : WalkTrackingController {
+private class FakeWalkTrackingController(
+    private val acknowledgeStartImmediately: Boolean = true,
+    private val startFailure: Throwable? = null,
+) : WalkTrackingController {
     private val mutableState = MutableStateFlow(WalkTrackingState())
     override val state: StateFlow<WalkTrackingState> = mutableState.asStateFlow()
 
@@ -549,6 +612,12 @@ private class FakeWalkTrackingController : WalkTrackingController {
 
     override fun start() {
         startCalls++
+        startFailure?.let { throw it }
+        if (!acknowledgeStartImmediately) return
+        acknowledgeRecording()
+    }
+
+    fun acknowledgeRecording() {
         mutableState.value = WalkTrackingState(
             trail = TrailSnapshot(state = TrackingState.RECORDING),
         )
@@ -571,6 +640,10 @@ private class FakeWalkTrackingController : WalkTrackingController {
         mutableState.value = mutableState.value.copy(
             trail = mutableState.value.trail.copy(state = TrackingState.OFF),
         )
+    }
+
+    fun publish(sample: LocationSample) {
+        mutableState.value = mutableState.value.copy(lastSample = sample)
     }
 }
 
