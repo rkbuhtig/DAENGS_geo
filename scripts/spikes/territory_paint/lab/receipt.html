@@ -231,23 +231,54 @@ function drawMap(){
   const cellDeg = S.grid.cell_m / (111320 * Math.cos(S.home[0]*D2R));
   const rPx = Math.max(2, cellDeg * Math.abs(k) * dpr * 1.6);
 
+  /* 감마로 중간 농도를 살린다. `occ` 는 최대 대비 정규화라 중앙값이 0.05 언저리인데,
+     선형으로 알파를 주면 대부분이 거의 안 보이고 몇 칸만 하얗게 뜬다. 0.6 승이면
+     옅은 쪽이 올라와서 자주 간 곳과 한두 번 간 곳이 **둘 다 보이면서 갈린다.** */
   hx.globalCompositeOperation = "lighter";
-  for (const [slot, walks, , occ] of (f ? f.v : [])){
+  for (const [slot, , , occ] of (f ? f.v : [])){
     const [lat, lng] = S.cells[slot];
     const x = sx(projX(lng))*dpr, y = sy(projY(lat))*dpr;
     const g = hx.createRadialGradient(x,y,0,x,y,rPx);
-    g.addColorStop(0, `rgba(255,255,255,${Math.min(1, occ)})`);
+    g.addColorStop(0, `rgba(255,255,255,${Math.pow(Math.min(1, occ), 0.6)})`);
     g.addColorStop(1, "rgba(255,255,255,0)");
     hx.fillStyle = g; hx.beginPath(); hx.arc(x,y,rPx,0,7); hx.fill();
   }
+
+  /* 쌓인 밝기를 **색 램프**로 바꾼다. 단색 + 알파로 두면 조금 칠해진 곳이나 많이 칠해진
+     곳이나 결국 같은 주황으로 포화돼서 지도가 평면이 된다 — 붓 감쇠 측정이 데이터에서
+     죽인 "이진 도장" 이 표시 단계에서 되살아난 꼴이었다. 데이터에는 농담이 다 있다.
+
+     등급을 **나누지는 않는다.** 몇 단계로 자를지는 territory-paint §C 의 열린 결정이고,
+     연속 램프면 문턱 없이도 농담이 산다. */
+  const RAMP = [
+    [0.00, [ 82,  62,  32]],   /* 아주 옅게 스친 자리 — 바탕에 가깝게 */
+    [0.25, [186, 132,  46]],
+    [0.50, [226, 158,  58]],
+    [0.75, [230, 108,  56]],
+    [1.00, [226,  60,  52]],   /* 제일 자주 간 자리 */
+  ];
+  const rampAt = t => {
+    for (let i = 1; i < RAMP.length; i++){
+      if (t <= RAMP[i][0]){
+        const [t0,c0] = RAMP[i-1], [t1,c1] = RAMP[i];
+        const u = (t - t0) / (t1 - t0);
+        return [0,1,2].map(j => Math.round(c0[j] + (c1[j]-c0[j])*u));
+      }
+    }
+    return RAMP[RAMP.length-1][1];
+  };
+  const LUT = Array.from({length:256}, (_,i) => rampAt(i/255));
+
   const img = hx.getImageData(0,0,heat.width,heat.height);
   const px = img.data;
   for (let i = 0; i < px.length; i += 4){
-    const a = px[i+3]/255; if (!a) continue;
-    px[i] = 224; px[i+1] = 163; px[i+2] = 92;
-    px[i+3] = Math.min(255, a*255*0.92);
+    const a = px[i+3]; if (!a) continue;
+    const [r,g2,b] = LUT[a];
+    px[i] = r; px[i+1] = g2; px[i+2] = b;
+    /* 알파는 옅은 쪽도 보이게 바닥을 준다 — 색이 농도를 말하니 투명도까지 겹칠 필요가 없다 */
+    px[i+3] = Math.round(90 + (a/255) * 150);
   }
-  hx.putImageData(img,0,0);
+  hx.putImageData(img, 0, 0);
   ctx.drawImage(heat, 0, 0, box.width, box.height);
 
   /* 영역 — 브리핑이 고른 곳만 강조 */
@@ -277,11 +308,16 @@ function drawMap(){
   }
 
   const label = (S.chips.find(c => c.key === chip) || {}).label || chip;
+  const ramp = RAMP.map(([, c]) => `rgb(${c.join(",")})`).join(",");
   document.getElementById("legend").innerHTML =
-    `<span><span class="sw" style="background:#e0a35c"></span>${label} 산책이 칠한 자리
-       (${f ? f.selected : 0}/${f ? f.total : 0}회)</span>
-     <span><span class="sw" style="background:#f0c894"></span>오늘 말한 영역</span>
-     <span style="opacity:.7">숫자는 그 조건에서 이 영역을 밟은 산책 수</span>`;
+    `<span>${label} 산책 ${f ? f.selected : 0}/${f ? f.total : 0}회</span>
+     <span style="display:inline-flex;align-items:center;gap:7px">
+       <span style="opacity:.75">가끔</span>
+       <span style="width:96px;height:9px;border-radius:5px;
+                    background:linear-gradient(90deg,${ramp})"></span>
+       <span style="opacity:.75">자주</span>
+     </span>
+     <span><span class="sw" style="background:#f0c894"></span>오늘 말한 영역</span>`;
 }
 
 /* ---- 조립 -------------------------------------------------------------------------- */

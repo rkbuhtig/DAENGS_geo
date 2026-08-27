@@ -274,12 +274,44 @@ def brief(scene: Experience) -> Briefing:
 # ---- 문장은 여기서 끝난다 ---------------------------------------------------------------
 
 
+# 문장은 **관찰 통보가 아니라 제안**이다.
+#
+# 첫 판이 "도곡공원은(는) 저녁 산책에서 유난히 자주 가시네요" 였는데 **시비조로 읽혔다.**
+# 사용자를 관찰한 결과를 사용자에게 통보하는 어법이라서다 — "너 거기 자주 가더라?" 는
+# 도움이 아니라 감시의 말투다. `은(는)` 같은 기계 티가 차가움을 더했다.
+#
+# 이게 실험을 오염시킨다. **말투가 반감을 사면 D(도착 가치) 판정에서 "짜증" 이 나왔을 때
+# 정보가 쓸모없어서인지 말투가 재수없어서인지 못 가른다.** LLM 을 안 붙이는 이유("매끈한
+# 문장이 부실한 정보를 가린다")는 반대 방향의 교란을 막자는 것이었지, 반감을 그대로 두자는
+# 뜻이 아니었다. 그래서 템플릿 자체를 고친다 — 여전히 결정론이고 LLM 은 없다.
+#
+# 숫자는 문장에 안 넣는다. 근거는 영수증 ② 에 통째로 펼쳐진다.
 TEMPLATES = {
-    "condition_bias": "{name}은(는) {cohort_label} 산책에서 유난히 자주 가시네요.",
-    "visit_drop": "{name} 쪽은 요즘 꽤 뜸했어요. 오늘 가볼까요?",
-    "visit_rise": "{name} 쪽 산책이 부쩍 늘었네요.",
-    "unexplored": "{name}은(는) 아직 거의 안 가보신 곳이에요.",
+    "condition_bias": "{cohort_label} 산책은 {name}{i_ga} 단골이죠.",
+    "visit_drop": "{name}, 오랜만에 어때요?",
+    "visit_rise": "요즘 {name}{i_ga} 부쩍 늘었어요.",
+    "unexplored": "{name}, 아직 안 가보신 곳이에요. 오늘 한번?",
 }
+
+# 받침이 있으면 앞, 없으면 뒤. 한글 음절은 `(코드 − 0xAC00) % 28` 로 종성 유무가 갈린다.
+PARTICLES = {"i_ga": ("이", "가"), "eun_neun": ("은", "는"), "eul_reul": ("을", "를")}
+
+
+def has_final(word: str) -> bool:
+    """마지막 글자에 받침이 있나. 한글이 아니면 없는 것으로 본다."""
+    if not word:
+        return False
+    code = ord(word[-1])
+    if not 0xAC00 <= code <= 0xD7A3:
+        return False
+    return (code - 0xAC00) % 28 != 0
+
+
+def particles_for(word: str) -> dict[str, str]:
+    """`{name}{i_ga}` 같은 자리에 넣을 조사들. 결정론이라 규율에 안 걸린다."""
+    final = has_final(word)
+    return {key: (with_final if final else without)
+            for key, (with_final, without) in PARTICLES.items()}
 
 
 def sentence(row: Ranked) -> str:
@@ -298,4 +330,5 @@ def sentence(row: Ranked) -> str:
             f"말하지 않기로 한 근거로 문장을 만들려 했다 ({row.dropped}): "
             f"{row.evidence.kind} · {row.evidence.name}")
     item = row.evidence
-    return TEMPLATES[item.kind].format(name=item.name, cohort_label=item.cohort_label)
+    return TEMPLATES[item.kind].format(
+        name=item.name, cohort_label=item.cohort_label, **particles_for(item.name))
