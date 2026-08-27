@@ -15,12 +15,13 @@ from datetime import UTC, datetime, timedelta
 
 from app.features.territory.experience import (
     CHIPS,
+    RECENT_DAYS,
     UNEXPLORED_CUT,
-    Card,
     NamedRegion,
     build,
     chip_selector,
-    pick_cards,
+    previous_window,
+    recent_window,
     region_stats,
 )
 from app.features.territory.layers import Projection
@@ -172,6 +173,41 @@ def test_moving_now_moves_the_recent_window():
     assert later.by_chip["recent"].selected == 0
 
 
+def test_the_recent_window_is_a_window_not_an_open_ended_since():
+    """**실제로 났던 버그의 회귀 테스트.** 리팩터링 중에 한 번 잃어버렸다 다시 넣는다.
+
+    "최근 30 일" 을 `since` 만으로 만들면 `now` 뒤의 산책까지 전부 들어온다. `now` 가 늘
+    자료 끝보다 뒤일 때는 티가 안 나다가, 자료 **한가운데**를 "지금" 으로 잡는 순간 최근
+    30 일이 261 회가 됐다.
+
+    위 `test_moving_now_moves_the_recent_window` 로는 이 회귀를 못 잡는다 — `until` 을
+    또 지워도 `NOW + 90일` 은 `since` 가 자료보다 미래라 0 개로 나와서 그냥 통과한다.
+    **자료 한가운데에 서야** 잡힌다.
+    """
+    middle = NOW - timedelta(days=10)
+    stats = region_stats(_planted(), NORTH, middle, PROJECTION)
+    assert stats.by_chip["recent"].selected < stats.by_chip["all"].selected
+
+    window = chip_selector("recent", middle.date())
+    future = [s for s in _planted() if s.at.date() > middle.date()]
+    assert future, "미래 쪽 산책이 없으면 이 테스트가 뜻이 없다"
+    assert all(not window.matches(s.at) for s in future), "`지금` 뒤의 산책이 들어왔다"
+
+
+def test_the_recent_window_is_exactly_thirty_days_and_abuts_the_previous_one():
+    """"최근 30 일" 이라고 **말하니까** 30 일이어야 한다.
+
+    `today - 30` 은 양끝을 다 세면 31 개 날짜다. 앞 창은 30 개였으므로 추세가 조용히
+    31 대 30 을 견주고 있었다. 화면 문구가 계약이라 맞춰 둔다.
+    """
+    today = NOW.date()
+    r_since, r_until = recent_window(today)
+    p_since, p_until = previous_window(today)
+    assert (r_until - r_since).days + 1 == RECENT_DAYS == 30
+    assert (p_until - p_since).days + 1 == RECENT_DAYS
+    assert p_until == r_since - timedelta(days=1), "두 창이 붙어 있지도 겹치지도 않아야 한다"
+
+
 def test_chip_selector_rejects_an_unknown_chip():
     """화면과 질의가 같은 사전을 쓴다 — 오타가 빈 지도로 조용히 안 흐르게."""
     try:
@@ -182,110 +218,18 @@ def test_chip_selector_rejects_an_unknown_chip():
         raise AssertionError("모르는 칩인데 통과했다")
 
 
-# ---- 4. 카드 --------------------------------------------------------------------------
+# ---- 4. 고르기는 여기 없다 -------------------------------------------------------------
+#
+# 처음엔 이 파일이 카드(익숙한 곳/덜 간 곳/미개척)까지 테스트했다. 고르기가 그 자체로
+# 장치라 `evidence.py` 로 갈랐고, 그쪽 계약은 `test_territory_evidence.py` 가 지킨다.
+# 여기는 **읽기 장치까지**다 — 조건별 방문률과 추세.
 
 
-def test_the_three_cards_come_out_of_the_planted_story():
-    """장면 5 번. 심은 이야기가 카드 셋으로 그대로 나온다."""
-    scene = build(_planted(), REGIONS, NOW, PROJECTION, context_chip="evening")
-    by_kind = {card.kind: card for card in scene.cards}
-
-    assert by_kind["familiar"].region_id == "north"       # 저녁엔 늘 북쪽
-    assert by_kind["neglected"].region_id == "south"      # 예전엔 갔는데 요즘 안 감
-    assert by_kind["unexplored"].region_id == "far"       # 한 번도 안 감
-
-
-def test_the_familiar_place_can_also_be_the_one_youre_going_to_less():
-    """겹침을 막지 않는다. **처음엔 막았다가 페르소나 D 에서 틀린 줄 알았다.**
-
-    D 의 골목은 저녁 방문률 54% 로 최다인데 추세가 −0.54 로 최대 낙폭이다. "제일 자주
-    가던 곳인데 요즘 부쩍 뜸하다" 는 자기모순이 아니라 그 화면에서 제일 할 말이 많은
-    사실인데, 겹침 금지 규칙이 그걸 지우고 있었다.
-
-    겹쳤다는 사실은 `same_as_familiar` 로 실어 보낸다 — 카드 둘로 그릴지 한 문장으로
-    합칠지는 화면이 정한다.
-    """
-    # 한 영역만 두고, 최근에 방문이 줄게 만든다
-    sheets = ([_walk(f"old{i}", NOW - timedelta(days=40 + i), 250.0, 850.0) for i in range(10)]
-              + [_walk(f"new{i}", NOW - timedelta(days=2 + i), 250.0, 850.0) for i in range(5)]
-              + [_walk(f"away{i}", NOW - timedelta(days=8 + i), 1_450.0, 2_050.0)
-                 for i in range(10)])
-    cards = {c.kind: c for c in pick_cards(
-        [region_stats(sheets, NORTH, NOW, PROJECTION)], "all")}
-    assert cards["familiar"].region_id == "north"
-    assert cards["neglected"].region_id == "north"
-    assert cards["neglected"].why["same_as_familiar"] is True
-
-
-def test_unexplored_never_overlaps_the_others():
-    """미개척은 겹치면 진짜 모순이다 — 자주 가는 곳이 안 가본 곳일 수 없다."""
+def test_the_scene_stops_at_instruments():
+    """이 층은 근거를 만들지 않는다. 장면은 통계까지고 고르기는 다음 단이다."""
     scene = build(_planted(), REGIONS, NOW, PROJECTION)
-    by_kind = {c.kind: c.region_id for c in scene.cards}
-    assert by_kind["unexplored"] not in {by_kind.get("familiar"), by_kind.get("neglected")}
-
-
-def test_the_recent_window_is_a_window_not_an_open_ended_since():
-    """**실제로 났던 버그의 회귀 테스트.**
-
-    "최근 30 일" 을 `since` 만으로 만들면 `now` 뒤의 산책까지 전부 들어온다. `now` 가 늘
-    자료 끝보다 뒤일 때는 티가 안 나다가, 자료 한가운데를 "지금" 으로 잡는 순간 최근 30 일이
-    261 회가 됐다. 창은 창이어야 한다.
-    """
-    middle = NOW - timedelta(days=10)
-    stats = region_stats(_planted(), NORTH, middle, PROJECTION)
-    assert stats.by_chip["recent"].selected < stats.by_chip["all"].selected
-    # `middle` 이후의 산책은 하나도 안 들어와야 한다
-    window = chip_selector("recent", middle.date())
-    assert all(not window.matches(s.at) for s in _planted() if s.at.date() > middle.date())
-
-
-def test_the_context_chip_changes_which_region_is_familiar():
-    """"익숙함" 은 조건에 딸린 값이다 — 아침에 열면 다른 답이 나와야 한다."""
-    sheets = _planted()
-    evening = {c.kind: c.region_id for c in build(
-        sheets, REGIONS, NOW, PROJECTION, context_chip="evening").cards}
-    morning = {c.kind: c.region_id for c in build(
-        sheets, REGIONS, NOW, PROJECTION, context_chip="morning").cards}
-    assert evening["familiar"] == "north"
-    assert morning["familiar"] == "park"
-
-
-def test_cards_carry_numbers_not_sentences():
-    """문장은 화면·에이전트 몫이다 (#53). 여기서 나가는 것은 근거 숫자다."""
-    scene = build(_planted(), REGIONS, NOW, PROJECTION)
-    for card in scene.cards:
-        assert card.why, card.kind
-        assert all(not isinstance(v, str) or k == "chip" for k, v in card.why.items())
-
-
-def test_no_unexplored_card_when_every_candidate_was_visited():
-    """후보가 전부 방문된 자료에서는 미개척 카드가 **없다** — 억지로 만들지 않는다."""
-    sheets = _planted() + [
-        _walk(f"far{i}", NOW - timedelta(days=i + 2), 3_850.0, 4_450.0) for i in range(5)
-    ]
-    far = region_stats(sheets, FAR, NOW, PROJECTION).by_chip["all"]
-    assert far.rate > UNEXPLORED_CUT, f"문턱을 못 넘으면 테스트가 뜻이 없다: {far}"
-    kinds = {card.kind for card in build(sheets, REGIONS, NOW, PROJECTION).cards}
-    assert "unexplored" not in kinds
-
-
-def test_empty_history_recommends_nothing_at_all():
-    """산책이 0 이면 카드가 **하나도** 없다.
-
-    처음엔 미개척 카드가 나왔다. 방문률이 전부 0/0 = 0 이라 문턱 아래로 떨어져서다 —
-    기록이 없는 사람에게 "여긴 안 가보셨네요" 라고 말하는 셈인데, 근거가 없는 게 아니라
-    **근거가 반대다**: 안 간 게 아니라 우리가 모르는 것이다.
-    """
-    scene = build([], REGIONS, NOW, PROJECTION)
-    assert scene.cards == [] and scene.walks_total == 0
-    assert all(stat.by_chip["all"].selected == 0 for stat in scene.regions)
-    # 0/0 은 0% 가 아니라 **잴 수 없음**이다 (#102 와 같은 규칙)
-    assert all(stat.by_chip["all"].rate is None for stat in scene.regions)
-    assert all(stat.trend.delta is None for stat in scene.regions)
-
-
-def test_pick_cards_on_nothing_is_empty():
-    assert pick_cards([], "evening") == []
+    assert not hasattr(scene, "cards"), "장면이 아직 고르기를 들고 있다"
+    assert scene.regions and scene.thresholds
 
 
 def test_thresholds_travel_with_the_result():
@@ -293,4 +237,3 @@ def test_thresholds_travel_with_the_result():
     scene = build(_planted(), REGIONS, NOW, PROJECTION)
     assert scene.thresholds["unexplored_cut"] == UNEXPLORED_CUT
     assert scene.thresholds["recent_days"] == 30
-    assert isinstance(scene.cards[0], Card)

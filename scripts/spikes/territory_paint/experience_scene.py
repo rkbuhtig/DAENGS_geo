@@ -62,12 +62,12 @@ C 에서 중요한 것 하나: **전체 지도만 보면 골목과 공원이 둘
 """
 
 import argparse
-import dataclasses
 import json
 import math
 import sys
 from datetime import date, datetime, timedelta
 
+from app.features.territory.evidence import brief, sentence
 from app.features.territory.experience import CHIPS, NamedRegion, build
 from app.features.territory.layers import Projection
 from app.features.territory.region import Region
@@ -120,7 +120,30 @@ def _rate(value) -> dict:
             "rate": None if value.rate is None else round(value.rate, 4)}
 
 
-def to_payload(scene, rings: dict) -> dict:
+def _evidence(row, *, chosen: bool = False) -> dict:
+    """근거 하나 → JSON. **고른 것도 떨어진 것도 같은 모양으로 나간다.**
+
+    화면이 "왜 이 말을 했지" 만이 아니라 "왜 저 말은 안 했지" 까지 펼칠 수 있어야 한다.
+    """
+    item = row.evidence
+    return {
+        "kind": item.kind, "region_id": item.region_id,
+        "region_version": item.region_version, "name": item.name,
+        "cohort": _rate(item.cohort), "cohort_label": item.cohort_label,
+        "baseline": None if item.baseline is None else _rate(item.baseline),
+        "baseline_label": item.baseline_label,
+        "delta": None if item.delta is None else round(item.delta, 4),
+        "trustworthy": item.trustworthy,
+        "score": round(row.score, 4), "reasons": row.reasons,
+        "dropped": row.dropped, "sayable": row.sayable,
+        "chosen": chosen,
+        # 말하지 않기로 한 근거에는 문장을 **안 만든다.** 붙여 두면 소비자가 `sayable`
+        # 검사를 한 번 빠뜨리는 순간 그대로 거짓 푸시가 된다.
+        "sentence": sentence(row) if row.sayable else None,
+    }
+
+
+def to_payload(scene, briefing, rings: dict) -> dict:
     """`Experience` → JSON. 여기서 값을 새로 만들지 않는다. 모양만 바꾼다."""
     return {
         "version": scene.version,
@@ -146,7 +169,15 @@ def to_payload(scene, rings: dict) -> dict:
             }
             for stat in scene.regions
         ],
-        "cards": [dataclasses.asdict(card) for card in scene.cards],
+        "briefing": {
+            "chosen": (None if briefing.chosen is None
+                       else _evidence(briefing.chosen, chosen=True)),
+            # 고른 것도 **후보 목록 안에 그대로 있다** — 화면이 순위 전체를 펼칠 수 있어야
+            # "왜 저건 안 골랐지" 가 검산된다. `chosen` 플래그로 어느 것인지만 표시한다.
+            "candidates": [_evidence(row, chosen=row is briefing.chosen)
+                           for row in briefing.candidates],
+            "thresholds": briefing.thresholds,
+        },
     }
 
 
@@ -186,7 +217,9 @@ def main(argv: list[str] | None = None) -> int:
         now = now.replace(hour=18, minute=30, second=0, microsecond=0)
         regions = regions_for(person.persona)
         scene = build(person.sheets, regions, now, projection, context_chip=args.chip)
-        payload = to_payload(scene, {r.region.id: r.region.ring for r in regions})
+        briefing = brief(scene)
+        payload = to_payload(scene, briefing,
+                             {r.region.id: r.region.ring for r in regions})
         payload["persona"] = {"id": person.persona, "kind": person.kind}
         scenes.append(payload)
         _report(person, scene, payload)
@@ -214,10 +247,21 @@ def _report(person, scene, payload) -> None:
               f"{chips['morning']['visited']:>5}/{chips['morning']['selected']:<6}"
               f"{chips['evening']['visited']:>5}/{chips['evening']['selected']:<6}"
               f"{trend}")
-    if not payload["cards"]:
-        print("  카드 없음 — 자료가 그렇게 생긴 것이지 규칙이 실패한 것이 아니다")
-    for card in payload["cards"]:
-        print(f"  → {card['kind']:<11}{card['name']:<14}{card['why']}")
+    said = payload["briefing"]["chosen"]
+    if said is None:
+        print("  말할 것 없음 — 자료가 그렇게 생긴 것이지 규칙이 실패한 것이 아니다")
+    else:
+        print(f"  → \"{said['sentence']}\"")
+        base = said["baseline"]
+        detail = f"{said['cohort']['visited']}/{said['cohort']['selected']}"
+        if base is not None:
+            detail += f" 대 {base['visited']}/{base['selected']}"
+        print(f"     {said['kind']} · {detail} · 점수 {said['score']}")
+    for row in payload["briefing"]["candidates"]:
+        if row["chosen"]:
+            continue
+        why = row["dropped"] or f"점수 {row['score']}"
+        print(f"     · {row['name']:<12}{row['kind']:<15}{why}")
 
 
 if __name__ == "__main__":
