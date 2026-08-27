@@ -62,9 +62,34 @@ docstring 이 적어놨다.
 
 - [x] **Pass 0** — 지도 (이 문서)
 - [x] **Pass 1** — `search/` → `discovery/`. 아래 참고
-- [ ] **Pass 2** — `walk/` 를 walk·scene·territory 로 가른다
+- [x] **Pass 2** — `walk/` 를 가른다. 아래 참고
 - [ ] **Pass 3** — `facility/` 해체 + `place/` 정합, `/anchor` 공백
 - [ ] **Pass 4** — providers·usage·api 정합 + 남은 공백 전부
+
+### Pass 2 결과
+
+`tests/walk/` 14파일을 검증 대상으로 갈랐다.
+
+    tests/geo/        test_cells_golden                                   geo.cells 만 본다
+    tests/territory/  paint · region · layers · multichain · sheet_cache
+                      · region_visit_rate · experience · evidence         8파일
+    tests/walk/       bundle · contract · curve · facts · store
+                      · encounter                                         6파일 잔류
+
+**`test_walk_encounter` 는 일부러 안 가른다.** scene 판정 테스트 3개가 섞여 있지만, 파일
+docstring 이 주제를 "관측(사실)과 판정의 **경계** 고정"으로 선언한다 — 생산자와 소비자를
+한 픽스처로 관통하는 것이 이 파일의 존재 이유다. 쪼개면 경계 테스트가 죽는다. 두 진입
+경로의 합의를 지키는 `test_ranking` 과 같은 종류다.
+
+**`test_territory_experience` · `test_territory_evidence` 도 함께 옮겼다.** 처음엔 #108(E3a)
+이 그 파일을 편집 중이라 보류했는데, #108 이 머지되면서 보류 근거가 사라졌다. 둘 다 주
+검증 대상이 `territory.experience` · `territory.evidence` 이고 `walk` 쪽은 픽스처용
+`facts`·`models` 만 쓴다. 남겨뒀으면 Pass 2 의 `[x]` 가 거짓이 됐다 — **보류는 근거가
+사라지는 순간 재검토해야 하고, 그 재검토를 안 하면 체크박스가 사실과 어긋난다.**
+
+경로 문자열 4건 갱신 — `hex-grid-golden.json` 의 generator 주석 포함. 전부 "그 테스트가
+지금 어디 있나"를 가리키는 살아있는 포인터라 갱신했다. 사건 서술(결정문의 옛 경로)과
+구분한다.
 
 ### Pass 1 결과
 

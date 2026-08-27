@@ -138,7 +138,7 @@ F2 여름−겨울 양의 질량 중 river   0.000
 ### 6. 재현성
 
 같은 spec → 같은 지문(`887e3de0a178`) · 같은 canvas. `LayerSpec` 의 세 구획 중 무엇이
-바뀌어도 지문이 달라진다(`tests/walk/test_layers.py`).
+바뀌어도 지문이 달라진다(`tests/territory/test_layers.py`).
 
 ## 평가기가 생성기 버그를 둘 잡았다
 
