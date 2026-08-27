@@ -52,7 +52,7 @@ docstring 이 적어놨다.
 |---|---|---|
 | ~~`GET /places` (legacy)~~ | — | **#114 가 라우트째 삭제, 공백 소멸** |
 | `/anchor/search` | `truncated` 경계 | **Pass 3 완료** |
-| `providers.naver` · `kakao` | 좌표 순서·인증 헤더 | **Pass 4 완료** |
+| `providers.naver` · `kakao` | 좌표 순서·인증 헤더 | **Pass 4.1 완료** (4 에서 절반만) |
 | `providers.registry.build_raw_provider` | 키 유무별 선택 | **Pass 4 완료** |
 | `journey.handoff` | 딥링크 좌표 순서 | **Pass 4 완료** |
 | `usage.http` | 503 분기와 `Retry-After` | **Pass 4 완료** |
@@ -65,6 +65,31 @@ docstring 이 적어놨다.
 - [x] **Pass 2** — `walk/` 를 가른다. 아래 참고
 - [x] **Pass 3** — `facility/` 해체. 아래 참고
 - [x] **Pass 4** — 공백 전부. 아래 참고
+- [x] **Pass 4.1** — provider 어댑터의 *나가는 요청*. Pass 4 의 자기 기준 미달을 닫는다
+
+### Pass 4.1 결과 — 주장과 검출력을 다시 맞춘다
+
+Pass 4 는 `providers.naver`·`kakao` 를 "완료" 로 체크했는데 **절반이었다.** 리뷰가 짚은 대로
+`test_naver_sends_both_apigw_headers` 가 필드만 봤다.
+
+    assert provider._headers == {...}          # 필드가 맞는지
+
+호출부에서 `headers=self._headers` 를 `headers={}` 로 바꿔도 통과한다 — **실제로 돌려서
+확인했다. 7개 전부 초록이었다.** 인증이 빠지면 401 인데 우리 쪽 로그엔 "경로 없음" 으로
+보이는 종류의 사고다.
+
+Pass 3 의 `kind` 테스트와 **정확히 같은 실수**다. 그때 "쓰기 전에 뒤집어 본다" 를 배웠다고
+적어놓고, 같은 PR 안의 다른 파일에서 또 필드만 봤다. 교훈은 파일 단위가 아니라 **단언 단위로**
+적용해야 한다.
+
+나가는 요청을 잡는 `_Recorder` 로 다시 쓰고, 그 김에 Pass 4 가 안 본 경로도 닫았다.
+
+    naver.geocode          헤더 실제 전달 · y=위도 · 빈 결과 None
+    naver.reverse_geocode  coords="경도,위도" · 헤더 · 지역명 순서 결합
+    kakao.reverse_geocode  x=경도 · 헤더 · 도로명 없을 때 지번 fallback
+
+mutation 5종(geocode y/x 뒤집기, reverse coords 뒤집기, 헤더 제거, kakao x/y 뒤집기,
+지번 fallback 제거)이 각각 잡히는 것을 확인했다. 헤더 제거는 **전에 0개, 지금 2개**가 죽는다.
 
 ### Pass 4 결과 — 공백을 메운다
 
