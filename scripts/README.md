@@ -65,3 +65,9 @@ git grep -n 'scripts/spikes/<갈래>'   # app · tests · docs · android 전부
 `detect_schema_revision.py` 는 [README 의 스키마 절](../README.md)이,
 `facility_pet_coverage.py` 는 [pet-axes 갈래](../docs/explorations/facility/pet-axes.md)가
 부른다. 소속이 애매하면 최상위가 아니라 `spikes/<갈래>/` 다.
+
+`export_copy.py` 는 [README 의 사본 절](../README.md)이 부른다. 이 저장소를 팀 모노레포의
+`geo/` 로 내보낸다 — `android/` · `.github/` · 이 저장소의 작업 방식 문서
+(`docs/{decisions,research,explorations}`)를 빼고, 그 문서를 가리키던 링크 47개를 원본
+절대 URL 로 바꾼다. **사본을 손으로 만들면 그 링크 변환이 빠지고, 깨진 링크는 diff 에서
+멀쩡한 마크다운으로 보인다.**

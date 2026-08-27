@@ -1,7 +1,6 @@
 package com.daengs.geo.territory
 
 import com.daengs.geo.location.GeoPoint
-import java.io.File
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.double
 import kotlinx.serialization.json.int
@@ -17,7 +16,9 @@ import org.junit.Test
  *
  * `app/geo/cells.py` claims Python, Android and the ingest share one cell id space. A test that
  * only runs in one language cannot keep that claim: both sides can pass while disagreeing.
- * So both read the same file, `docs/contracts/hex-grid-golden.json`.
+ * So both check the same vector: this module bundles a copy as a test resource, and
+ * `tests/geo/test_cells_golden.py` reads `docs/contracts/hex-grid-golden.json` and fails if the
+ * two stop matching.
  *
  * If these values must change, the grid changed — and every stored cell id changes meaning with
  * it (`anchor.cell`, 480k rows). Decide the migration before regenerating the golden file.
@@ -36,20 +37,19 @@ class HexGridGoldenTest {
         val note: String,
     )
 
-    private fun goldenFile(): File {
-        // Gradle runs unit tests with the module directory as the working directory, but do not
-        // rely on how deep that is — walk up until the contract turns up.
-        var dir: File? = File(".").absoluteFile
-        while (dir != null) {
-            val candidate = File(dir, "docs/contracts/hex-grid-golden.json")
-            if (candidate.exists()) return candidate
-            dir = dir.parentFile
-        }
-        throw AssertionError("hex-grid-golden.json not found from ${File(".").absolutePath}")
-    }
+    /**
+     * The bundled copy of `docs/contracts/hex-grid-golden.json`, not the file itself.
+     *
+     * The module must build wherever it lives, so it cannot reach out to a sibling directory in
+     * this repository. A drifting copy would defeat the point, so `tests/geo/test_cells_golden.py`
+     * fails if the two files stop being byte-identical — and drift is bounded anyway: `hex-v1` is
+     * frozen by definition, and changing the grid means a new version, not an edited file.
+     */
+    private fun goldenText(): String =
+        javaClass.getResource("/hex-grid-golden.json")!!.readText()
 
     private fun cases(): List<Case> =
-        Json.parseToJsonElement(goldenFile().readText())
+        Json.parseToJsonElement(goldenText())
             .jsonObject["cases"]!!
             .jsonArray
             .map { element ->
