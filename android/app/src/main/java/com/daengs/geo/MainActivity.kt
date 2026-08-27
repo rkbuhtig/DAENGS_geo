@@ -93,8 +93,7 @@ class MainActivity : ComponentActivity() {
                         mapConfigured = BuildConfig.NAVER_MAP_NCP_KEY_ID.isNotBlank(),
                         onCameraIdle = viewModel::onCameraIdle,
                         onCameraGesture = viewModel::onCameraGesture,
-                        onSearchHospitalArea = viewModel::searchPinnedArea,
-                        onHospitalMyLocation = viewModel::followMyLocation,
+                        onOpenHospital = viewModel::openHospitalPlaces,
                         onSearchPlaces = { kind, preferParking ->
                             viewModel.searchPlacesAtCurrentOrigin(listOf(kind), preferParking)
                         },
@@ -105,11 +104,8 @@ class MainActivity : ComponentActivity() {
                             viewModel.locateAndSearchPlaces(listOf(kind), preferParking)
                         },
                         onRetryPlaces = viewModel::retryPlaceSearch,
+                        onRetryLocation = viewModel::retry,
                         onSelectPlace = viewModel::selectPlace,
-                        onAction = viewModel::execute,
-                        onRetry = viewModel::retry,
-                        onHundredMeters = viewModel::searchAtHundredMeters,
-                        onSelectHospital = viewModel::selectHospital,
                         onCall = { phone -> dial(context = context, phone = phone) },
                         onStartTracking = viewModel::startTracking,
                         onPauseTracking = viewModel::pauseTracking,

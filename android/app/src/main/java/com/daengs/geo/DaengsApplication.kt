@@ -63,7 +63,7 @@ class DaengsApplication : Application() {
 
 data class AppGraph(
     val hospitalRepository: HospitalRepository,
-    /** Canonical Place v2 entry point. Legacy hospital screens migrate in later PRs. */
+    /** Product place entry point. Legacy hospital wiring remains only for the cleanup PR. */
     val placeRepository: PlaceRepository,
     val locationSource: LocationSource,
     val territoryRepository: TerritoryRepository,

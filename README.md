@@ -6,7 +6,7 @@
 | 기능 | 성격 | 진입 |
 |---|---|---|
 | **장소 찾기** | canonical Place kind별 검색 | Android 장소 지도 / `/facility-map` |
-| **기존 병원 화면** | legacy 조건 편집 + 병원 검색, 전환 예정 | Android `병원 상담` / `/dev` |
+| **동물병원 바로 찾기** | canonical `hospital` 검색 + 병원 전용 전화·운영정보 표현 | Android `동물병원` |
 | **산책 기록** | Android foreground service → Room → 종료 시 서버 업로드 → 세션·사실·시설 occurrence | Android 지도 기능 / `/walk` |
 
 ## 상태
@@ -23,9 +23,9 @@ fix·`WalkFacts`·정지/시설 occurrence 파생과 원좌표 purge를 구현�
 공통 `POST /v2/places/search`는 종류별 독립 그룹·기본 거리순·반려견 입장 3상태 평가와
 명시적인 주차 가능 우선 정렬로 구현됐다. 웹 검증 표면 `/facility-map`은 이 계약의 정렬 순서와
 주차 사실 3상태 커버리지를 목록으로 표시한다. Android 기본 장소 화면도 같은 계약을 사용한다.
-기존 병원 대화 화면만 전환 동안 임시 유지한다. [결정 #71](docs/decisions/2026-08-27-hospital-place-entry.md)에
-따라 `동물병원` 직통 진입은 보존하되 canonical `hospital` kind를 열도록 전환하고, 전화 등 병원
-전용 action은 선택한 Place 위로 옮긴다.
+[결정 #71](docs/decisions/2026-08-27-hospital-place-entry.md)에 따라 Android의 `동물병원` 직통
+진입도 canonical `hospital` kind를 열며, 전화·운영정보 안내는 선택한 Place 위에 표시한다.
+기존 `HospitalRepository`와 `/hospital/search`는 다음 cleanup에서 제거한다.
 
 ```
 app/
@@ -37,7 +37,7 @@ app/
 │   └── refine/  그 상태를 편집하는 방법 — tools · nl · diff · actions
 ├── place/       공통 PlaceResult · 의료/시설 resolver 조율 · POST /v2/places/search
 ├── features/
-│   ├── hospital/  legacy POST /hospital/search (대화형 편집+검색, transport=estimate만)
+│   ├── hospital/  cleanup 대기 중인 legacy POST /hospital/search (제품 Android 소비자 없음)
 │   ├── walk/      수집만 — WalkFacts (contracts/walk-record.md). 판정·서술 없음, 테스트로 고정
 │   └── scene/     walk 사실의 소비자 — encounter 기하값 → 판정. 규칙표에 버전이 붙는다
 ├── api/         canonical POST /v2/places/search · GET /map/static

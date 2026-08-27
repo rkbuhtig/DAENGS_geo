@@ -1,8 +1,6 @@
 package com.daengs.geo.map
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,8 +15,6 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -48,15 +44,12 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import com.daengs.geo.BuildConfig
 import com.daengs.geo.ServerAddress
-import com.daengs.geo.hospital.HospitalResult
-import com.daengs.geo.hospital.LocationMode
-import com.daengs.geo.hospital.SuggestedAction
 import com.daengs.geo.location.GeoPoint
+import com.daengs.geo.map.features.places.DEFAULT_PLACE_KIND
 import com.daengs.geo.map.features.places.PlaceDiscoveryPanel
 import com.daengs.geo.map.features.places.canonicalPlaceKeysByMarker
 import com.daengs.geo.map.features.places.canonicalPlaceMarkers
 import com.daengs.geo.map.features.places.selectedPlaceKind
-import com.daengs.geo.map.layers.places.PlaceMarkerState
 import com.daengs.geo.map.layers.territory.TerritoryLayerState
 import com.daengs.geo.map.layers.trail.TrackingState
 import com.daengs.geo.map.layers.trail.TrailLayerState
@@ -70,7 +63,7 @@ import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 
-private enum class AppSection { PLACES, HOSPITAL, MAP_TOOLS }
+private enum class AppSection { PLACES, MAP_TOOLS }
 
 /** Consecutive dropped fixes before we admit on screen that recording is going nowhere. */
 /** export 파일은 산책 종료 뒤 서비스 코루틴이 쓴다 — 생겼는지는 세어봐야 안다. */
@@ -84,17 +77,13 @@ fun MapScreen(
     mapConfigured: Boolean,
     onCameraIdle: (GeoPoint) -> Unit,
     onCameraGesture: () -> Unit,
-    onSearchHospitalArea: () -> Unit,
-    onHospitalMyLocation: () -> Unit,
+    onOpenHospital: () -> Unit,
     onSearchPlaces: (PlaceKind, Boolean) -> Unit,
     onSearchPlacesAtCamera: (PlaceKind, Boolean) -> Unit,
     onPlaceMyLocation: (PlaceKind, Boolean) -> Unit,
     onRetryPlaces: () -> Unit,
+    onRetryLocation: () -> Unit,
     onSelectPlace: (PlaceKey) -> Unit,
-    onAction: (SuggestedAction) -> Unit,
-    onRetry: () -> Unit,
-    onHundredMeters: () -> Unit,
-    onSelectHospital: (Long) -> Unit,
     onCall: (String) -> Unit,
     onStartTracking: () -> Unit,
     onPauseTracking: () -> Unit,
@@ -114,37 +103,19 @@ fun MapScreen(
     val canonicalKeys = remember(state.placeDiscovery.response) {
         canonicalPlaceKeysByMarker(state.placeDiscovery)
     }
-    val hospitalMarkers = remember(state.response, state.selectedHospitalId) {
-        state.response?.results.orEmpty().map { hospital ->
-            PlaceMarkerState(
-                id = hospital.id.toString(),
-                point = hospital.point,
-                label = hospital.name,
-                selected = hospital.id == state.selectedHospitalId,
-                iconGroup = hospital.iconGroup,
-            )
-        }
-    }
     val places = when (section) {
         AppSection.PLACES -> canonicalMarkers
-        AppSection.HOSPITAL -> hospitalMarkers
         AppSection.MAP_TOOLS -> emptyList()
     }
     val activeSearchOrigin = when (section) {
         AppSection.PLACES -> state.placeDiscovery.origin
-        AppSection.HOSPITAL -> state.searchOrigin
         AppSection.MAP_TOOLS -> null
     }
-    // 위치 실패는 어느 탭에서 났든 모든 탭에 보여야 한다 — 그 탭에 있지 않다고 실패가
-    // 사라지지는 않으니까. 반대로 병원 검색 실패는 병원 탭의 것이다. 장소 화면에 띄우면
-    // 거기 붙은 재시도 버튼이 화면에 보이지도 않는 기능을 다시 실행한다.
-    val sectionError = state.error?.takeUnless {
-        state.failedRequest == RequestKind.HOSPITAL_SEARCH && section != AppSection.HOSPITAL
-    }
-    // 진행 중인 요청도 마찬가지다. 병원 검색 하나가 장소 칩 18개를 잠그면 안 된다.
+    // 병원 바로가기도 같은 Place request lifecycle을 쓴다. 별도 hospital loading/error를
+    // 다시 만들면 진입점 하나 때문에 검색 계약이 둘로 갈라진다.
     val sectionBusy = when (section) {
         AppSection.PLACES -> state.placeDiscovery.loading || state.request == RequestKind.LOCATION
-        AppSection.HOSPITAL, AppSection.MAP_TOOLS -> state.request != null
+        AppSection.MAP_TOOLS -> state.request != null
     }
     // A hidden layer hands the renderer nothing, so it cannot draw what is switched off.
     val trailLayer = remember(state.trail.segments, state.layers.showTrail) {
@@ -180,7 +151,21 @@ fun MapScreen(
     }
 
     Column(Modifier.fillMaxSize().statusBarsPadding()) {
-        SectionTabs(section = section, onSection = { section = it })
+        SectionTabs(
+            section = section,
+            selectedKind = selectedKind,
+            onPlaces = {
+                section = AppSection.PLACES
+                if (selectedKind == PlaceKind.HOSPITAL) {
+                    onSearchPlaces(DEFAULT_PLACE_KIND, false)
+                }
+            },
+            onHospital = {
+                section = AppSection.PLACES
+                if (selectedKind != PlaceKind.HOSPITAL) onOpenHospital()
+            },
+            onMapTools = { section = AppSection.MAP_TOOLS },
+        )
         Box(Modifier.fillMaxSize()) {
             if (mapConfigured) {
                 MapHost(
@@ -192,7 +177,6 @@ fun MapScreen(
                     onSelectPlace = { id ->
                         when (section) {
                             AppSection.PLACES -> canonicalKeys[id]?.let(onSelectPlace)
-                            AppSection.HOSPITAL -> id.toLongOrNull()?.let(onSelectHospital)
                             AppSection.MAP_TOOLS -> Unit
                         }
                     },
@@ -220,7 +204,6 @@ fun MapScreen(
                                         selectedKind,
                                         state.placeDiscovery.preferParking,
                                     )
-                                    AppSection.HOSPITAL -> onSearchHospitalArea()
                                     AppSection.MAP_TOOLS -> Unit
                                 }
                             },
@@ -239,7 +222,6 @@ fun MapScreen(
                                     selectedKind,
                                     state.placeDiscovery.preferParking,
                                 )
-                                AppSection.HOSPITAL -> onHospitalMyLocation()
                                 AppSection.MAP_TOOLS -> onUseDeviceLocation()
                             }
                         },
@@ -255,7 +237,7 @@ fun MapScreen(
                         Text(if (locating) "찾는 중" else "내 위치")
                     }
                 }
-                sectionError?.let { error -> ErrorNotice(error = error, onRetry = onRetry) }
+                state.error?.let { error -> ErrorNotice(error = error, onRetry = onRetryLocation) }
             }
 
             when (section) {
@@ -264,14 +246,6 @@ fun MapScreen(
                     onSearch = onSearchPlaces,
                     onRetry = onRetryPlaces,
                     onSelect = onSelectPlace,
-                    onCall = onCall,
-                    modifier = Modifier.align(Alignment.BottomCenter),
-                )
-                AppSection.HOSPITAL -> SearchPanel(
-                    state = state,
-                    onAction = onAction,
-                    onHundredMeters = onHundredMeters,
-                    onSelectHospital = onSelectHospital,
                     onCall = onCall,
                     modifier = Modifier.align(Alignment.BottomCenter),
                 )
@@ -329,19 +303,33 @@ private fun ErrorNotice(error: String, onRetry: () -> Unit) {
 }
 
 @Composable
-private fun SectionTabs(section: AppSection, onSection: (AppSection) -> Unit) {
+private fun SectionTabs(
+    section: AppSection,
+    selectedKind: PlaceKind,
+    onPlaces: () -> Unit,
+    onHospital: () -> Unit,
+    onMapTools: () -> Unit,
+) {
     Surface(shadowElevation = 3.dp) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)) {
             listOf(
-                AppSection.PLACES to "장소",
-                AppSection.HOSPITAL to "병원 상담",
-                AppSection.MAP_TOOLS to "지도 기능",
-            ).forEach { (item, label) ->
-                TextButton(onClick = { onSection(item) }, modifier = Modifier.weight(1f)) {
+                Triple(
+                    section == AppSection.PLACES && selectedKind != PlaceKind.HOSPITAL,
+                    "장소",
+                    onPlaces,
+                ),
+                Triple(
+                    section == AppSection.PLACES && selectedKind == PlaceKind.HOSPITAL,
+                    "동물병원",
+                    onHospital,
+                ),
+                Triple(section == AppSection.MAP_TOOLS, "지도 기능", onMapTools),
+            ).forEach { (selected, label, onClick) ->
+                TextButton(onClick = onClick, modifier = Modifier.weight(1f)) {
                     Text(
                         label,
-                        fontWeight = if (section == item) FontWeight.Bold else FontWeight.Normal,
-                        color = if (section == item) MaterialTheme.colorScheme.primary else Color.Gray,
+                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                        color = if (selected) MaterialTheme.colorScheme.primary else Color.Gray,
                     )
                 }
             }
@@ -465,166 +453,6 @@ private fun MapToolsPanel(
 }
 
 @Composable
-private fun SearchPanel(
-    state: MapUiState,
-    onAction: (SuggestedAction) -> Unit,
-    onHundredMeters: () -> Unit,
-    onSelectHospital: (Long) -> Unit,
-    onCall: (String) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Surface(
-        modifier = modifier.fillMaxWidth().heightIn(min = 150.dp, max = 360.dp),
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-        shadowElevation = 12.dp,
-    ) {
-        LazyColumn(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            item {
-                Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 14.dp)) {
-                    Box(
-                        Modifier.width(42.dp).height(4.dp).clip(RoundedCornerShape(4.dp))
-                            .background(Color(0xFFCBD3CD)).align(Alignment.CenterHorizontally),
-                    )
-                    Spacer(Modifier.height(10.dp))
-                    Text(
-                        state.response?.reply ?: "위치를 확인하면 주변 병원을 보여드릴게요.",
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                    Text(
-                        if (state.locationMode == LocationMode.PINNED) "지도를 움직인 위치 기준" else "내 위치 기준",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.secondary,
-                    )
-                }
-            }
-
-            val response = state.response
-            if (response?.showCallCta == true || response?.resolution?.any { it.overrode.isNotBlank() } == true) {
-                item { SafetyNotice(state = state) }
-            }
-
-            if (!response?.actions.isNullOrEmpty()) {
-                item {
-                    LazyRow(
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        items(response.actions, key = { it.id }) { action ->
-                            FilledTonalButton(onClick = { onAction(action) }) { Text(action.label) }
-                        }
-                    }
-                }
-            }
-
-            if (response != null && response.results.isEmpty()) {
-                item {
-                    Text(
-                        "조건에 맞는 병원이 없습니다. 위 제안으로 조건을 바꿔볼 수 있어요.",
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                    )
-                }
-            } else if (response != null) {
-                item {
-                    LazyRow(
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
-                        items(response.results, key = { it.id }) { hospital ->
-                            HospitalCard(
-                                hospital = hospital,
-                                selected = hospital.id == state.selectedHospitalId,
-                                onSelect = { onSelectHospital(hospital.id) },
-                                onCall = onCall,
-                            )
-                        }
-                    }
-                }
-            }
-
-            if (BuildConfig.DEBUG && response != null) {
-                item {
-                    TextButton(
-                        onClick = onHundredMeters,
-                        modifier = Modifier.padding(horizontal = 12.dp),
-                    ) {
-                        Text("CTA 확인용 · 반경 100m")
-                    }
-                }
-            }
-            item { Spacer(Modifier.height(8.dp)) }
-        }
-    }
-}
-
-@Composable
-private fun SafetyNotice(state: MapUiState) {
-    val response = state.response ?: return
-    val overrides = response.resolution.filter { it.overrode.isNotBlank() }
-    Surface(
-        modifier = Modifier.padding(horizontal = 16.dp),
-        color = Color(0xFFFFE9C6),
-        shape = RoundedCornerShape(12.dp),
-    ) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            if (response.showCallCta) {
-                Text("방문 전 병원에 전화해 확인하세요", fontWeight = FontWeight.Bold)
-                response.callReasons.forEach { Text(it, style = MaterialTheme.typography.bodySmall) }
-            }
-            overrides.forEach { notice ->
-                Text("${notice.overrode}: ${notice.because.ifBlank { notice.what }}")
-            }
-        }
-    }
-}
-
-@Composable
-private fun HospitalCard(
-    hospital: HospitalResult,
-    selected: Boolean,
-    onSelect: () -> Unit,
-    onCall: (String) -> Unit,
-) {
-    val border = if (selected) MaterialTheme.colorScheme.primary else Color(0xFFDDE3DF)
-    Surface(
-        modifier = Modifier.width(292.dp).border(1.dp, border, RoundedCornerShape(16.dp))
-            .clickable(onClick = onSelect),
-        shape = RoundedCornerShape(16.dp),
-        color = Color.White,
-    ) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-            Text(hospital.name, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(
-                "${formatMeters(hospital.distanceMeters)} · ${openLabel(hospital.openNow)}",
-                color = if (hospital.openNow == null) Color(0xFF8A5A00) else MaterialTheme.colorScheme.secondary,
-            )
-            hospital.walk?.let { walk ->
-                val route = when (walk.status) {
-                    "measured" -> "도보 실측 ${walk.minutes ?: "?"}분"
-                    "estimate" -> "도보 추정 ${walk.minutes ?: "?"}분"
-                    else -> "도보 경로 확인 불가"
-                }
-                Text(route, style = MaterialTheme.typography.bodySmall)
-            }
-            hospital.address?.let { Text(it, maxLines = 1, overflow = TextOverflow.Ellipsis) }
-            if (hospital.preferHits.isNotEmpty()) {
-                Text(
-                    "병원명에서 ${hospital.preferHits.joinToString(" · ")} 관련 표현 감지",
-                    style = MaterialTheme.typography.bodySmall,
-                )
-            }
-            hospital.phone?.let { phone ->
-                OutlinedButton(onClick = { onCall(phone) }, modifier = Modifier.fillMaxWidth()) {
-                    Text("전화 $phone")
-                }
-            }
-        }
-    }
-}
-
-@Composable
 private fun MissingMapConfiguration() {
     Box(
         Modifier.fillMaxSize().background(Color(0xFFE4EAE5)).padding(28.dp),
@@ -647,16 +475,10 @@ private fun canSearchMovedArea(candidate: GeoPoint?, origin: GeoPoint?): Boolean
         abs(candidate.longitude - origin.longitude) > 0.0005
 }
 
-private fun openLabel(openNow: Boolean?): String = when (openNow) {
-    true -> "영업 확인"
-    false -> "영업 종료"
-    null -> "영업시간 미상 · 전화 확인"
+private fun formatMeters(meters: Double): String {
+    val rounded = meters.roundToInt()
+    return if (rounded >= 1_000) "%.1fkm".format(rounded / 1_000.0) else "${rounded}m"
 }
-
-private fun formatMeters(meters: Int): String =
-    if (meters >= 1_000) "%.1fkm".format(meters / 1_000.0) else "${meters}m"
-
-private fun formatMeters(meters: Double): String = formatMeters(meters.roundToInt())
 
 private fun feedLabel(feed: LocationFeed): String = when (feed) {
     LocationFeed.DEVICE -> "실제 위치"

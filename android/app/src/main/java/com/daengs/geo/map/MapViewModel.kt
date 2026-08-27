@@ -62,7 +62,7 @@ data class MapUiState(
     val locationFeed: LocationFeed = LocationFeed.DEVICE,
     val response: HospitalSearchResponse? = null,
     val selectedHospitalId: Long? = null,
-    /** Canonical place discovery stays separate until the legacy hospital screen migrates. */
+    /** Product UI uses this state; legacy hospital state remains only until client cleanup. */
     val placeDiscovery: PlaceDiscoveryState = PlaceDiscoveryState(),
     val trail: TrailSnapshot = TrailSnapshot(),
     val layers: MapLayerPreferences = MapLayerPreferences(),
@@ -206,6 +206,11 @@ class MapViewModel(
     }
 
     fun retryPlaceSearch() = placeDiscovery.retry()
+
+    /** A first-class entry point that still uses the one canonical Place discovery session. */
+    fun openHospitalPlaces() {
+        searchPlacesAtCurrentOrigin(listOf(PlaceKind.HOSPITAL))
+    }
 
     fun selectHospital(id: Long) {
         _uiState.update { it.copy(selectedHospitalId = id) }

@@ -37,8 +37,10 @@ import androidx.compose.ui.unit.dp
 import com.daengs.geo.map.layers.places.PlaceMarkerState
 import com.daengs.geo.place.BooleanFactCoverage
 import com.daengs.geo.place.DogAccessState
+import com.daengs.geo.place.MedicalFacts
 import com.daengs.geo.place.PlaceKey
 import com.daengs.geo.place.PlaceKind
+import com.daengs.geo.place.PlaceResult
 import com.daengs.geo.place.PlaceSearchGroup
 import com.daengs.geo.place.PlaceSearchHit
 import com.daengs.geo.place.PlaceSortType
@@ -63,7 +65,7 @@ val PLACE_CATEGORIES = listOf(
     PlaceCategory(PlaceKind.SHOPPING, "일반 쇼핑"),
     PlaceCategory(PlaceKind.GROOMING, "미용"),
     PlaceCategory(PlaceKind.BOARDING, "위탁"),
-    PlaceCategory(PlaceKind.HOSPITAL, "병원"),
+    PlaceCategory(PlaceKind.HOSPITAL, "동물병원"),
     PlaceCategory(PlaceKind.PHARMACY, "약국"),
     PlaceCategory(PlaceKind.TRAVEL, "여행지"),
     PlaceCategory(PlaceKind.LEISURE, "레저"),
@@ -139,7 +141,7 @@ fun PlaceDiscoveryPanel(
                             .align(Alignment.CenterHorizontally),
                     )
                     Spacer(Modifier.height(10.dp))
-                    Text("내 주변 장소", style = MaterialTheme.typography.titleMedium)
+                    Text(placePanelTitle(selectedKind), style = MaterialTheme.typography.titleMedium)
                     Text(
                         "${originLabel(state.originMode)} · 카테고리 하나씩 사실 그대로 검색합니다.",
                         style = MaterialTheme.typography.bodySmall,
@@ -320,10 +322,16 @@ private fun PlaceCard(
                 "${categoryLabel(place.match.kind)} · ${formatPlaceMeters(place.distanceMeters)}",
                 color = MaterialTheme.colorScheme.secondary,
             )
-            Text(
-                parkingLabel(place.facts.parking),
-                color = if (place.facts.parking == null) Color(0xFF8A5A00) else MaterialTheme.colorScheme.secondary,
-            )
+            if (place.match.kind.supportsParkingPreference()) {
+                Text(
+                    parkingLabel(place.facts.parking),
+                    color = if (place.facts.parking == null) {
+                        Color(0xFF8A5A00)
+                    } else {
+                        MaterialTheme.colorScheme.secondary
+                    },
+                )
+            }
             hit.evaluations.dogAccess?.let { evaluation ->
                 Text(
                     "${dogAccessLabel(evaluation.state)} · ${dogAccessReasonLabel(evaluation.reason)}",
@@ -331,8 +339,34 @@ private fun PlaceCard(
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
-            place.facts.medical?.let { medical ->
-                Text(openNowLabel(medical.openNow), style = MaterialTheme.typography.bodySmall)
+            if (place.match.kind == PlaceKind.HOSPITAL) {
+                val medical = place.facts.medical
+                Text(
+                    hospitalOperationLabel(
+                        medical = medical,
+                        hasPhone = !place.facts.phone.isNullOrBlank(),
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (medical?.openNow == null || place.facts.phone.isNullOrBlank()) {
+                        Color(0xFF8A5A00)
+                    } else {
+                        MaterialTheme.colorScheme.secondary
+                    },
+                )
+                todayHoursLabel(medical)?.let { today ->
+                    Text(today, style = MaterialTheme.typography.bodySmall)
+                }
+                hospitalSourceDateLabel(place)?.let { sourceDate ->
+                    Text(
+                        sourceDate,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.secondary,
+                    )
+                }
+            } else {
+                place.facts.medical?.let { medical ->
+                    Text(openNowLabel(medical.openNow), style = MaterialTheme.typography.bodySmall)
+                }
             }
             place.facts.hoursText?.let { hours ->
                 Text("영업시간 $hours", style = MaterialTheme.typography.bodySmall, maxLines = 2)
@@ -342,7 +376,11 @@ private fun PlaceCard(
             }
             place.facts.phone?.let { phone ->
                 OutlinedButton(onClick = { onCall(phone) }, modifier = Modifier.fillMaxWidth()) {
-                    Text("전화 $phone", maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(
+                        callActionLabel(place.match.kind, phone),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
             }
         }
@@ -351,6 +389,11 @@ private fun PlaceCard(
 
 fun categoryLabel(kind: PlaceKind): String =
     PLACE_CATEGORIES.firstOrNull { it.kind == kind }?.label ?: kind.wire
+
+fun placePanelTitle(kind: PlaceKind): String = when (kind) {
+    PlaceKind.HOSPITAL -> "내 주변 동물병원"
+    else -> "내 주변 장소"
+}
 
 fun originLabel(mode: PlaceOriginMode): String = when (mode) {
     PlaceOriginMode.DEVICE -> "내 위치 기준"
@@ -398,10 +441,38 @@ private fun dogAccessColor(state: DogAccessState): Color = when (state) {
     DogAccessState.UNKNOWN -> Color(0xFF8A5A00)
 }
 
+fun hospitalOperationLabel(medical: MedicalFacts?, hasPhone: Boolean): String {
+    val status = when (medical?.openNow) {
+        true -> "현재 영업으로 계산됨"
+        false -> "현재 영업 종료로 계산됨"
+        null -> "현재 영업 여부 미상"
+    }
+    val action = if (hasPhone) "방문 전 전화 확인" else "전화번호 정보 없음"
+    return "$status · $action"
+}
+
+fun todayHoursLabel(medical: MedicalFacts?): String? = medical?.hoursToday
+    ?.takeIf(List<*>::isNotEmpty)
+    ?.joinToString(prefix = "오늘 ", separator = " · ") { range ->
+        "${range.opensAt}~${range.closesAt}"
+    }
+
+fun hospitalSourceDateLabel(place: PlaceResult): String? = place.classifications
+    .firstOrNull { classification ->
+        classification.source == place.match.source && classification.kind == PlaceKind.HOSPITAL
+    }
+    ?.asOf
+    ?.let { "인허가 정보 기준 $it" }
+
+fun callActionLabel(kind: PlaceKind, phone: String): String = when (kind) {
+    PlaceKind.HOSPITAL -> "병원에 전화해 확인 · $phone"
+    else -> "전화 $phone"
+}
+
 private fun openNowLabel(value: Boolean?): String = when (value) {
-    true -> "현재 영업 확인"
-    false -> "현재 영업 종료"
-    null -> "영업 여부 미상"
+    true -> "현재 영업으로 계산됨"
+    false -> "현재 영업 종료로 계산됨"
+    null -> "현재 영업 여부 미상"
 }
 
 fun sortLabel(group: PlaceSearchGroup): String = when (group.sort.type) {
