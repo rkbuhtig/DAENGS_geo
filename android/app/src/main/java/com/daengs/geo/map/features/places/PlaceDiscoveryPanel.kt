@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
@@ -25,6 +27,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -39,6 +42,7 @@ import com.daengs.geo.place.PlaceKind
 import com.daengs.geo.place.PlaceSearchGroup
 import com.daengs.geo.place.PlaceSearchHit
 import com.daengs.geo.place.PlaceSortType
+import com.daengs.geo.place.supportsParkingPreference
 
 data class PlaceCategory(
     val kind: PlaceKind,
@@ -108,8 +112,15 @@ fun PlaceDiscoveryPanel(
     modifier: Modifier = Modifier,
 ) {
     val selectedKind = selectedPlaceKind(state)
-    val group = state.response?.groups?.singleOrNull()
-        ?: state.response?.groups?.firstOrNull()
+    // 화면은 한 번에 kind 하나만 요청하므로 그룹도 하나다.
+    val group = state.response?.groups?.firstOrNull()
+    val categoryState = rememberLazyListState()
+
+    // 선택된 종류가 18개 칩 중 화면 밖에 있으면, 무엇으로 찾은 결과인지 보이지 않는다.
+    LaunchedEffect(selectedKind) {
+        val index = PLACE_CATEGORIES.indexOfFirst { it.kind == selectedKind }
+        if (index >= 0) categoryState.animateScrollToItem(index)
+    }
 
     Surface(
         modifier = modifier.fillMaxWidth().heightIn(min = 210.dp, max = 430.dp),
@@ -130,7 +141,7 @@ fun PlaceDiscoveryPanel(
                     Spacer(Modifier.height(10.dp))
                     Text("내 주변 장소", style = MaterialTheme.typography.titleMedium)
                     Text(
-                        "카테고리 하나씩 사실 그대로 검색합니다.",
+                        "${originLabel(state.originMode)} · 카테고리 하나씩 사실 그대로 검색합니다.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.secondary,
                     )
@@ -139,7 +150,8 @@ fun PlaceDiscoveryPanel(
 
             item {
                 LazyRow(
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp),
+                    state = categoryState,
+                    contentPadding = PaddingValues(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     items(PLACE_CATEGORIES, key = { it.kind.wire }) { category ->
@@ -256,7 +268,7 @@ fun PlaceDiscoveryPanel(
                 }
                 item {
                     LazyRow(
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp),
+                        contentPadding = PaddingValues(horizontal = 16.dp),
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
                         items(group.results, key = { placeMarkerId(it.place.key) }) { hit ->
@@ -338,7 +350,12 @@ private fun PlaceCard(
 }
 
 fun categoryLabel(kind: PlaceKind): String =
-    PLACE_CATEGORIES.first { it.kind == kind }.label
+    PLACE_CATEGORIES.firstOrNull { it.kind == kind }?.label ?: kind.wire
+
+fun originLabel(mode: PlaceOriginMode): String = when (mode) {
+    PlaceOriginMode.DEVICE -> "내 위치 기준"
+    PlaceOriginMode.PINNED -> "지도를 움직인 위치 기준"
+}
 
 fun parkingLabel(value: Boolean?): String = when (value) {
     true -> "주차 가능"
@@ -394,9 +411,6 @@ fun sortLabel(group: PlaceSearchGroup): String = when (group.sort.type) {
         if (band == null) "서버 지정 선호순" else "${band}m 구간 안에서 주차 가능 우선"
     }
 }
-
-private fun PlaceKind.supportsParkingPreference(): Boolean =
-    this != PlaceKind.HOSPITAL && this != PlaceKind.PHARMACY
 
 private fun formatPlaceMeters(meters: Int): String =
     if (meters >= 1_000) "%.1fkm".format(meters / 1_000.0) else "${meters}m"

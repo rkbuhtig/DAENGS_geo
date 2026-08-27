@@ -96,7 +96,7 @@ class MainActivity : ComponentActivity() {
                         onSearchHospitalArea = viewModel::searchPinnedArea,
                         onHospitalMyLocation = viewModel::followMyLocation,
                         onSearchPlaces = { kind, preferParking ->
-                            viewModel.searchPlaces(listOf(kind), preferParking)
+                            viewModel.searchPlacesAtCurrentOrigin(listOf(kind), preferParking)
                         },
                         onSearchPlacesAtCamera = { kind, preferParking ->
                             viewModel.searchPlacesAtCamera(listOf(kind), preferParking)

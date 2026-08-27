@@ -135,6 +135,17 @@ fun MapScreen(
         AppSection.HOSPITAL -> state.searchOrigin
         AppSection.MAP_TOOLS -> null
     }
+    // 위치 실패는 어느 탭에서 났든 모든 탭에 보여야 한다 — 그 탭에 있지 않다고 실패가
+    // 사라지지는 않으니까. 반대로 병원 검색 실패는 병원 탭의 것이다. 장소 화면에 띄우면
+    // 거기 붙은 재시도 버튼이 화면에 보이지도 않는 기능을 다시 실행한다.
+    val sectionError = state.error?.takeUnless {
+        state.failedRequest == RequestKind.HOSPITAL_SEARCH && section != AppSection.HOSPITAL
+    }
+    // 진행 중인 요청도 마찬가지다. 병원 검색 하나가 장소 칩 18개를 잠그면 안 된다.
+    val sectionBusy = when (section) {
+        AppSection.PLACES -> state.placeDiscovery.loading || state.request == RequestKind.LOCATION
+        AppSection.HOSPITAL, AppSection.MAP_TOOLS -> state.request != null
+    }
     // A hidden layer hands the renderer nothing, so it cannot draw what is switched off.
     val trailLayer = remember(state.trail.segments, state.layers.showTrail) {
         TrailLayerState(
@@ -213,7 +224,7 @@ fun MapScreen(
                                     AppSection.MAP_TOOLS -> Unit
                                 }
                             },
-                            enabled = !state.loading,
+                            enabled = !sectionBusy,
                         ) {
                             Text("이 지역 검색")
                         }
@@ -232,7 +243,7 @@ fun MapScreen(
                                 AppSection.MAP_TOOLS -> onUseDeviceLocation()
                             }
                         },
-                        enabled = !state.loading,
+                        enabled = !sectionBusy,
                     ) {
                         if (locating) {
                             CircularProgressIndicator(
@@ -244,9 +255,7 @@ fun MapScreen(
                         Text(if (locating) "찾는 중" else "내 위치")
                     }
                 }
-                // Errors belong to the app, not to one tab: a location failure raised from the
-                // map tools used to be invisible until the user wandered back to the hospital tab.
-                state.error?.let { error -> ErrorNotice(error = error, onRetry = onRetry) }
+                sectionError?.let { error -> ErrorNotice(error = error, onRetry = onRetry) }
             }
 
             when (section) {

@@ -8,6 +8,7 @@ import com.daengs.geo.location.GeoPoint
 import com.daengs.geo.location.LocationSample
 import com.daengs.geo.location.LocationSource
 import com.daengs.geo.location.LocationUpdateConfig
+import com.daengs.geo.map.features.places.PlaceOriginMode
 import com.daengs.geo.map.layers.trail.TrackingState
 import com.daengs.geo.map.layers.trail.TrailSnapshot
 import com.daengs.geo.place.PlaceKey
@@ -437,6 +438,59 @@ class MapViewModelTest {
         assertEquals(PlaceKind.CAFE, places.requests.single().kinds.single())
         assertNull(viewModel.uiState.value.failedRequest)
     }
+
+
+    @Test
+    fun `changing the kind keeps the pinned area the user chose`() = runTest {
+        val source = FakeLocationSource(fix = fix(37.5665, 126.9780))
+        val places = FakePlaceSearchRepository(response = PlaceSearchResponse(null, emptyList()))
+        val viewModel = viewModel(source, places = places)
+        viewModel.searchPlaces(listOf(PlaceKind.CAFE))
+        advanceUntilIdle()
+
+        viewModel.onCameraIdle(GeoPoint(35.1796, 129.0756))
+        viewModel.searchPlacesAtCamera(listOf(PlaceKind.CAFE))
+        advanceUntilIdle()
+
+        viewModel.searchPlacesAtCurrentOrigin(listOf(PlaceKind.RESTAURANT))
+        advanceUntilIdle()
+
+        assertEquals(GeoPoint(35.1796, 129.0756), places.requests.last().origin)
+        assertEquals(listOf(PlaceKind.RESTAURANT), places.requests.last().kinds)
+        assertEquals(PlaceOriginMode.PINNED, viewModel.uiState.value.placeDiscovery.originMode)
+    }
+
+    @Test
+    fun `changing the kind before any pin still searches the device location`() = runTest {
+        val source = FakeLocationSource(fix = fix(37.5665, 126.9780))
+        val places = FakePlaceSearchRepository(response = PlaceSearchResponse(null, emptyList()))
+        val viewModel = viewModel(source, places = places)
+        viewModel.searchPlaces(listOf(PlaceKind.CAFE))
+        advanceUntilIdle()
+
+        viewModel.searchPlacesAtCurrentOrigin(listOf(PlaceKind.RESTAURANT))
+        advanceUntilIdle()
+
+        assertEquals(GeoPoint(37.5665, 126.9780), places.requests.last().origin)
+        assertEquals(PlaceOriginMode.DEVICE, viewModel.uiState.value.placeDiscovery.originMode)
+    }
+
+    @Test
+    fun `a parking preference never follows the user into a kind that has no parking contract`() =
+        runTest {
+            val source = FakeLocationSource(fix = fix(37.5665, 126.9780))
+            val places = FakePlaceSearchRepository(response = PlaceSearchResponse(null, emptyList()))
+            val viewModel = viewModel(source, places = places)
+            viewModel.searchPlaces(listOf(PlaceKind.CAFE), preferParking = true)
+            advanceUntilIdle()
+            assertTrue(places.requests.last().preferParking)
+
+            viewModel.searchPlacesAtCurrentOrigin(listOf(PlaceKind.HOSPITAL), preferParking = true)
+            advanceUntilIdle()
+
+            assertEquals(false, places.requests.last().preferParking)
+            assertEquals(false, viewModel.uiState.value.placeDiscovery.preferParking)
+        }
 
     private fun viewModel(
         source: LocationSource,

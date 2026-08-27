@@ -17,6 +17,7 @@ import com.daengs.geo.location.LocationTracker
 import com.daengs.geo.location.ReplayLocationSource
 import com.daengs.geo.map.features.places.PlaceDiscoveryController
 import com.daengs.geo.map.features.places.PlaceDiscoveryState
+import com.daengs.geo.map.features.places.PlaceOriginMode
 import com.daengs.geo.place.PlaceKey
 import com.daengs.geo.place.PlaceKind
 import com.daengs.geo.place.PlaceSearchRepository
@@ -264,6 +265,23 @@ class MapViewModel(
         }
     }
 
+    /**
+     * Change only the kind or the parking toggle. The area the user is looking at is a choice
+     * they already made; re-deriving the origin from the device would silently undo it.
+     */
+    fun searchPlacesAtCurrentOrigin(
+        kinds: List<PlaceKind>,
+        preferParking: Boolean = false,
+    ) {
+        val discovery = _uiState.value.placeDiscovery
+        val pinned = discovery.origin?.takeIf { discovery.originMode == PlaceOriginMode.PINNED }
+        if (pinned == null) {
+            searchPlaces(kinds, preferParking)
+            return
+        }
+        beginPlaceDiscovery(pinned, PlaceSearchIntent(kinds, preferParking), PlaceOriginMode.PINNED)
+    }
+
     /** Search the camera center explicitly; panning alone never changes the search origin. */
     fun searchPlacesAtCamera(
         kinds: List<PlaceKind>,
@@ -277,7 +295,7 @@ class MapViewModel(
         _uiState.update {
             it.copy(locationMode = LocationMode.PINNED, followDevice = false)
         }
-        beginPlaceDiscovery(origin, PlaceSearchIntent(kinds, preferParking))
+        beginPlaceDiscovery(origin, PlaceSearchIntent(kinds, preferParking), PlaceOriginMode.PINNED)
     }
 
     fun selectPlace(key: PlaceKey) {
@@ -534,12 +552,16 @@ class MapViewModel(
         }
     }
 
-    private fun beginPlaceDiscovery(origin: GeoPoint, intent: PlaceSearchIntent) {
+    private fun beginPlaceDiscovery(
+        origin: GeoPoint,
+        intent: PlaceSearchIntent,
+        originMode: PlaceOriginMode = PlaceOriginMode.DEVICE,
+    ) {
         pendingPlaceIntent = null
         _uiState.update {
             it.copy(request = null, failedRequest = null, error = null)
         }
-        placeDiscovery.search(origin, intent.kinds, intent.preferParking)
+        placeDiscovery.search(origin, intent.kinds, intent.preferParking, originMode)
     }
 
     private fun showError(error: Throwable, failedRequest: RequestKind? = null) {
