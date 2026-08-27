@@ -48,7 +48,6 @@ class MainActivity : ComponentActivity() {
     private val viewModel: MapViewModel by viewModels {
         val graph = (application as DaengsApplication).graph
         MapViewModel.Factory(
-            graph.hospitalRepository,
             graph.placeRepository,
             graph.journeyRepository,
             graph.dogId,

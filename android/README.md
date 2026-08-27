@@ -13,7 +13,6 @@
 
 ```text
 location/  단발·연속 위치 계약, Fused 제공자, 가상 경로 재생, 연속 구독 primitive
-hospital/  HTTP 계약. state와 actions[].edits는 JsonObject/JsonArray로 불투명 왕복
 place/     웹과 공유하는 canonical Place 요청·응답·(source, ref) identity 계약
 journey/   선택한 Place 좌표 → 공용 이동 스냅샷 → 검증된 NAVER handoff
 walk/      foreground service + 기록 상태/controller/store + TrailRecorder. 산책 중 GPS 소유자
@@ -30,11 +29,13 @@ app        DaengsApplication 조립점. DI 프레임워크 없음
 앱이 소유하는 위치는 두 개다.
 
 - `deviceLocation`: 실제 기기 fix만 쓴다. `follow_device` 검색 origin의 진실이다.
-- `searchOrigin`: 서버 state에 들어 있는 현재 검색 기준점이다.
+- `PlaceDiscoveryState.origin`: 현재 결과가 어느 지점 기준인지 나타낸다. `originMode`가 실제 기기
+  위치인지 사용자가 고른 지도 위치인지 함께 말한다.
 
-`follow_device` 검색은 요청 시점의 최신 위치를 top-level `origin`에 붙인다. 지도 이동 후
-`pinned` 검색은 `set_origin` edit만 보내고 top-level `origin`을 생략한다. 이 규칙은
-`SearchRequestBuilderTest`가 고정한다.
+내 위치 검색은 요청 시점의 최신 실제 fix를 canonical Place 요청의 `lat`/`lng`로 보낸다. 지도
+이동 후 `pinned` 검색은 카메라 중심을 명시적으로 보내며, 종류·주차 선호만 바꿀 때는 이미 고른
+검색 기준점을 유지한다. 길찾기 출발지는 이 검색 기준점과 별개로 최신 `deviceLocation`을 쓴다.
+이 규칙은 `MapViewModelTest`와 `PlaceDiscoveryControllerTest`가 고정한다.
 
 ### 화면 위치와 산책 기록의 소유권
 

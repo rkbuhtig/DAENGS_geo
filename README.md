@@ -27,7 +27,8 @@ fix·`WalkFacts`·정지/시설 occurrence 파생과 원좌표 purge를 구현�
 진입도 canonical `hospital` kind를 열며, 전화·운영정보 안내는 선택한 Place 위에 표시한다.
 모든 canonical Place 카드는 선택한 좌표를 공용 `POST /journey`에 넘겨 이동수단·실측/추정 상태를
 받고 서버가 생성한 네이버 지도 handoff로 실제 안내를 넘긴다. 기존 `HospitalRepository`와
-`/hospital/search`는 다음 cleanup에서 제거한다.
+병원 전용 Android state는 이번 단계에서 제거했다. 서버의 `/hospital/search`와 `/dev` 검증 표면은 다음
+cleanup에서 함께 제거한다.
 
 ```
 app/

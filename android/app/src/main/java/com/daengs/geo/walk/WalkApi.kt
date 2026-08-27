@@ -16,8 +16,8 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 
 /**
- * The walk collection endpoints. Same shape as [com.daengs.geo.hospital.HospitalApi] — a plain
- * HttpURLConnection, no new dependency.
+ * The walk collection endpoints use a plain HttpURLConnection so the Android module needs no
+ * additional HTTP dependency.
  *
  * Every call here is idempotent on the server: re-opening a session id keeps the original start,
  * a replayed `client_seq` collapses into a duplicate count, and finishing twice returns the facts

@@ -44,7 +44,7 @@ class ServerAddressTest {
 
     @Test
     fun `surrounding space and a trailing slash are cleaned off`() {
-        // 붙여넣기는 대개 지저분하게 들어온다. 그대로 두면 `//hospital/search` 가 된다.
+        // 붙여넣기는 대개 지저분하게 들어온다. 그대로 두면 `//v2/places/search` 가 된다.
         ServerAddress.set(context, "  https://tunnel.example/  ")
 
         assertEquals("https://tunnel.example", ServerAddress.current(context))

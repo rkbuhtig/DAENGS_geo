@@ -118,8 +118,8 @@ fun MapScreen(
     // 병원 바로가기도 같은 Place request lifecycle을 쓴다. 별도 hospital loading/error를
     // 다시 만들면 진입점 하나 때문에 검색 계약이 둘로 갈라진다.
     val sectionBusy = when (section) {
-        AppSection.PLACES -> state.placeDiscovery.loading || state.request == RequestKind.LOCATION
-        AppSection.MAP_TOOLS -> state.request != null
+        AppSection.PLACES -> state.placeDiscovery.loading || state.locating
+        AppSection.MAP_TOOLS -> state.locating
     }
     // A hidden layer hands the renderer nothing, so it cannot draw what is switched off.
     val trailLayer = remember(state.trail.segments, state.layers.showTrail) {
@@ -218,7 +218,7 @@ fun MapScreen(
                     }
                     // 눌린 것이 **버튼 자리에서** 보여야 한다. 진행 표시가 지도 한가운데
                     // 있으면 시트에 가리거나 눈이 안 가서, 안 먹은 것과 구분이 안 된다.
-                    val locating = state.request == RequestKind.LOCATION
+                    val locating = state.locating
                     OutlinedButton(
                         onClick = {
                             when (section) {
@@ -272,7 +272,7 @@ fun MapScreen(
                 )
             }
 
-            state.request?.let { request ->
+            if (state.locating) {
                 Surface(
                     modifier = Modifier.align(Alignment.Center),
                     shape = RoundedCornerShape(18.dp),
@@ -281,13 +281,7 @@ fun MapScreen(
                     Row(Modifier.padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
                         CircularProgressIndicator(modifier = Modifier.width(24.dp))
                         Spacer(Modifier.width(12.dp))
-                        Text(
-                            when (request) {
-                                RequestKind.LOCATION -> "현재 위치를 확인하는 중"
-                                RequestKind.HOSPITAL_SEARCH -> "주변 병원을 찾는 중"
-                            },
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
+                        Text("현재 위치를 확인하는 중", style = MaterialTheme.typography.bodyMedium)
                     }
                 }
             }

@@ -12,7 +12,7 @@ decision: README.md #71
 그 아래 분류를 탐색하게 하면 의도에 비해 단계가 많다. 그렇다고 병원 전용 검색 계약을 유지하면
 웹과 Android가 공유해야 할 장소 identity·미상 처리·거리순 의미가 다시 갈라진다.
 
-현재 Android의 `병원 상담` 화면은 `POST /hospital/search`의 별도 결과·선택·검색 위치 상태를
+전환 전 Android의 `병원 상담` 화면은 `POST /hospital/search`의 별도 결과·선택·검색 위치 상태를
 관리한다. 응답의 `reply`, suggested action, 전화 CTA를 표시하지만 제품 앱에는 자연어
 `utterance` 입력이 없다. 자연어 refine는 `/dev` 검증 표면에만 있고 결정 #51 이후 parked다.
 그러므로 현재 표면은 선택한 병원에 대한 상담이라기보다 **대화형 병원 후보 검색기**다.
@@ -101,9 +101,13 @@ Place 계약을 소비할 수 있다.
 목적지로 `POST /journey`를 호출하고 서버의 이동수단 우선순위와 실측/추정 라벨을 표시한 뒤 검증한
 NAVER handoff만 외부 앱에 넘긴다. 지도를 옮겨 검색한 경우에도 검색 핀을 출발지로 오독하지 않는다.
 
-구현 순서 3~5는 아직이다. `HospitalRepository`, 별도 hospital state와 `POST /hospital/search`는
-코드에 남아 있지만 제품 Android 화면에서는 더 이상 호출하지 않는다. 다음 PR은 Android legacy
-client/state를 제거해 서버 경로의 마지막 제품 소비자를 닫는다.
+구현 순서 3도 완료했다. Android의 `HospitalApi`·`HospitalRepository`·응답 모델·요청 빌더와
+`MapViewModel`의 병원 결과·선택·검색 위치·재시도 상태를 제거했다. 위치 진행 상태는 더 이상
+병원 요청 enum과 공유하지 않고 `locating` 한 사실만 표현하며, 실패한 Place 위치 획득은 저장된
+`PlaceSearchIntent`로 재시도한다.
+
+구현 순서 4~5는 아직이다. 제품 Android 소비자가 없어진 `POST /hospital/search`와 `/dev` 전용
+병원 검색 표면을 다음 PR에서 함께 제거한다.
 
 ## 하지 않는 것
 
