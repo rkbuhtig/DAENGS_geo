@@ -50,13 +50,13 @@ docstring 이 적어놨다.
 
 | 대상 | 무엇이 안 지켜지나 | 배정 |
 |---|---|---|
-| `GET /places` (legacy) | 응답 계약 | Pass 4 |
+| ~~`GET /places` (legacy)~~ | — | **#114 가 라우트째 삭제, 공백 소멸** |
 | `/anchor/search` | `truncated` 경계 | **Pass 3 완료** |
-| `providers.naver` · `kakao` | 파싱·인증 헤더. fake 경유만 있다 (tmap 은 truthfulness 가 커버) | Pass 4 |
-| `providers.registry.build` | 키 유무별 제공사 선택 | Pass 4 |
-| `journey.handoff` | 딥링크 생성 | Pass 4 |
-| `usage.http` | `UsageDenied` → HTTP 매핑. **gate 는 촘촘한데 오류 매핑층이 0 이다** | Pass 4 |
-| `core.clock` | `FixedClock` 결정론 계약 | Pass 4 |
+| `providers.naver` · `kakao` | 좌표 순서·인증 헤더 | **Pass 4 완료** |
+| `providers.registry.build_raw_provider` | 키 유무별 선택 | **Pass 4 완료** |
+| `journey.handoff` | 딥링크 좌표 순서 | **Pass 4 완료** |
+| `usage.http` | 503 분기와 `Retry-After` | **Pass 4 완료** |
+| `core.clock` | 결정론·tz 인식 | **Pass 4 완료** |
 
 ## Pass 진행
 
@@ -64,7 +64,40 @@ docstring 이 적어놨다.
 - [x] **Pass 1** — `search/` → `discovery/`. 아래 참고
 - [x] **Pass 2** — `walk/` 를 가른다. 아래 참고
 - [x] **Pass 3** — `facility/` 해체. 아래 참고
-- [ ] **Pass 4** — providers·usage·api 정합 + 남은 공백 전부
+- [x] **Pass 4** — 공백 전부. 아래 참고
+
+### Pass 4 결과 — 공백을 메운다
+
+배정했던 6건 중 `GET /places` 는 **#114 가 라우트째 지워서 공백 자체가 소멸**했다. 나머지
+다섯을 메웠다.
+
+    tests/usage/test_usage_http.py        7   403·429·503 분기 · Retry-After · detail 모양
+    tests/journey/test_handoff.py         5   제공사별 좌표 순서 · 수단 이름 · 인코딩
+    tests/providers/test_map_providers.py 7   naver 경도먼저 · kakao y=위도 · 인증 헤더
+    tests/providers/test_registry_build.py 9  키 유무별 선택 · 반쪽 키 · 오타 이름
+    tests/core/test_clock.py              2   FixedClock 고정 · SystemClock tz 인식
+
+**`usage.http` 는 완전 공백이 아니었다.** `test_usage_gate` 가 403·429 를 HTTP 로 관통해
+확인하고 있었다. 진짜로 아무도 안 밟던 것은 **`request_scope_missing` → 503** 과
+**`Retry-After` 헤더** 둘이다. 전자는 "서버가 스코프를 안 열었다"는 우리 잘못이라 4xx 로
+내보내면 클라이언트가 자기 요청을 의심한다. 공백을 모듈 단위로 세면 이런 게 안 보인다 —
+**가지 단위로 세야 한다.**
+
+반복해서 나온 함정이 하나 있다. **좌표 순서가 원천마다 뒤집힌다.**
+
+    journey.handoff   tmap 만 goalx=경도, goaly=위도   나머지는 위도 먼저
+    providers.naver   center = "경도,위도"             우리 LatLng 와 반대
+    providers.kakao   응답 y = 위도, x = 경도           이름이 좌표를 안 말해준다
+
+뒤집혀도 URL 도 JSON 도 멀쩡해 보이고 지도에 엉뚱한 데가 그려질 뿐이라 어느 단언도 안
+깨진다. 서울에서 실행하면 동해로 간다. 셋 다 이번에 고정했다.
+
+**다섯 파일 전부 음성 대조를 돌렸다** — 좌표 뒤집기, 503→500, Retry-After 항상 달기,
+detail 을 문자열로, 반쪽 키 통과 등 12가지 변형을 심어 각각 잡히는 것을 확인했다.
+Pass 3 의 `kind` 테스트에서 배운 것을 이번엔 쓰기 전에 적용했다.
+
+`registry` 의 함수 이름이 `build` 가 아니라 `build_raw_provider` 였다 — #82 가 "raw
+provider factory 를 이름으로 드러낸다"며 바꾼 것이다. 테스트를 쓰다가 알았다.
 
 ### Pass 3 결과
 
