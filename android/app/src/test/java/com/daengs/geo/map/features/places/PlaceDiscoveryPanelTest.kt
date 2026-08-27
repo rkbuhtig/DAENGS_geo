@@ -81,6 +81,28 @@ class PlaceDiscoveryPanelTest {
         PlaceKind.entries.forEach { kind ->
             assertTrue(categoryLabel(kind).isNotBlank())
         }
+        assertEquals("동물병원", categoryLabel(PlaceKind.HOSPITAL))
+        assertEquals("내 주변 동물병원", placePanelTitle(PlaceKind.HOSPITAL))
+        assertEquals("내 주변 장소", placePanelTitle(PlaceKind.CAFE))
+    }
+
+    @Test
+    fun `hospital actions expose uncertainty and source date without changing Place facts`() {
+        val hospital = response().groups
+            .single { it.kind == PlaceKind.HOSPITAL }
+            .results.single().place
+
+        assertEquals(
+            "현재 영업 여부 미상 · 전화번호 정보 없음",
+            hospitalOperationLabel(hospital.facts.medical, hasPhone = false),
+        )
+        assertEquals("오늘 09:00~18:00", todayHoursLabel(hospital.facts.medical))
+        assertEquals("인허가 정보 기준 2026-08-26", hospitalSourceDateLabel(hospital))
+        assertEquals(
+            "병원에 전화해 확인 · 02-1234-5678",
+            callActionLabel(PlaceKind.HOSPITAL, "02-1234-5678"),
+        )
+        assertEquals("전화 02-1234-5678", callActionLabel(PlaceKind.CAFE, "02-1234-5678"))
     }
 
     private fun response(): PlaceSearchResponse {

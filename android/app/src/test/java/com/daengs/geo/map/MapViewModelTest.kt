@@ -552,6 +552,29 @@ class MapViewModelTest {
             assertEquals(false, viewModel.uiState.value.placeDiscovery.preferParking)
         }
 
+    @Test
+    fun `hospital shortcut opens the canonical hospital group at the chosen Place origin`() = runTest {
+        val source = FakeLocationSource(fix = fix(37.5665, 126.9780))
+        val places = FakePlaceSearchRepository(response = PlaceSearchResponse(null, emptyList()))
+        val viewModel = viewModel(source, places = places)
+        viewModel.searchPlaces(listOf(PlaceKind.CAFE), preferParking = true)
+        advanceUntilIdle()
+
+        val pinned = GeoPoint(35.1796, 129.0756)
+        viewModel.onCameraIdle(pinned)
+        viewModel.searchPlacesAtCamera(listOf(PlaceKind.CAFE), preferParking = true)
+        advanceUntilIdle()
+
+        viewModel.openHospitalPlaces()
+        advanceUntilIdle()
+
+        val request = places.requests.last()
+        assertEquals(listOf(PlaceKind.HOSPITAL), request.kinds)
+        assertEquals(pinned, request.origin)
+        assertEquals(false, request.preferParking)
+        assertEquals(PlaceOriginMode.PINNED, viewModel.uiState.value.placeDiscovery.originMode)
+    }
+
     private fun viewModel(
         source: LocationSource,
         walk: WalkTrackingController = FakeWalkTrackingController(),

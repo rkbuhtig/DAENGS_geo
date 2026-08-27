@@ -83,10 +83,10 @@
 
 웹 검증 지도와 Android 장소 화면은 한 번에 kind 하나를 선택해 그룹 사이 순위를 만들지 않는다.
 기본 선택은 `cafe`이며 `shopping`은 사용자가 명시적으로 선택할 때만 요청한다. Android의
-기존 병원 대화 화면은 전환 동안 임시 유지한다. 전환 뒤 Android의 `동물병원` 직통 진입은 별도
-검색이 아니라 이 계약에 `kinds=["hospital"]`을 보내고 기본 장소 지도와 같은 `PlaceResult`
-identity를 사용한다. 병원 선택 뒤 전화·길찾기·운영정보 미상 안내를 우선하는 것은 결과 표현
-정책이다.
+Android의 `동물병원` 직통 진입은 별도 검색이 아니라 이 계약에 `kinds=["hospital"]`을 보내고
+기본 장소 지도와 같은 `PlaceResult` identity를 사용한다. 병원 선택 뒤 전화와 운영정보 미상
+안내를 우선하는 것은 결과 표현 정책이다. 공용 journey 길찾기 연결과 남은 legacy Android
+client/server 제거는 후속이다.
 
 주차 선호가 켜진 시설 그룹은 순수 거리순 대신 응답에 적힌 밴드 정렬을 사용한다. `coverage`는
 전체 데이터 통계가 아니라 **그룹에 실제 반환된 결과**의 주차 사실 3상태 개수다. 따라서
@@ -127,4 +127,4 @@ identity로 노출하지 않는다.
 - 태그/이름 추론 및 AI 제안
 - 서로 다른 kind 결과의 통합 순위
 - 검증되지 않은 `facility_link`를 Place alias로 승격
-- Android 병원 직통 진입의 canonical Place 전환과 `/hospital/search` 제거
+- Android legacy 병원 client/state와 `/hospital/search` 제거
