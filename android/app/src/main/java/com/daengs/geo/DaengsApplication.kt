@@ -5,6 +5,8 @@ import com.daengs.geo.hospital.HospitalApi
 import com.daengs.geo.hospital.HospitalRepository
 import com.daengs.geo.location.FusedLocationSource
 import com.daengs.geo.location.LocationSource
+import com.daengs.geo.place.PlaceApi
+import com.daengs.geo.place.PlaceRepository
 import com.daengs.geo.territory.InMemoryTerritoryRepository
 import com.daengs.geo.territory.LocalHexCellIndexer
 import com.daengs.geo.territory.TerritoryRepository
@@ -42,6 +44,7 @@ class DaengsApplication : Application() {
         )
         graph = AppGraph(
             hospitalRepository = HospitalRepository(HospitalApi(baseUrl = { ServerAddress.current(this) })),
+            placeRepository = PlaceRepository(PlaceApi(baseUrl = { ServerAddress.current(this) })),
             locationSource = FusedLocationSource(this),
             territoryRepository = territoryRepository,
             walkTrackingStore = walkTrackingStore,
@@ -60,6 +63,8 @@ class DaengsApplication : Application() {
 
 data class AppGraph(
     val hospitalRepository: HospitalRepository,
+    /** Canonical Place v2 entry point. Legacy hospital screens migrate in later PRs. */
+    val placeRepository: PlaceRepository,
     val locationSource: LocationSource,
     val territoryRepository: TerritoryRepository,
     val walkTrackingStore: WalkTrackingStore,
