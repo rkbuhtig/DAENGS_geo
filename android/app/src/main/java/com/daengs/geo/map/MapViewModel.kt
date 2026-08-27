@@ -15,6 +15,11 @@ import com.daengs.geo.location.LocationSample
 import com.daengs.geo.location.LocationSource
 import com.daengs.geo.location.LocationTracker
 import com.daengs.geo.location.ReplayLocationSource
+import com.daengs.geo.map.features.places.PlaceDiscoveryController
+import com.daengs.geo.map.features.places.PlaceDiscoveryState
+import com.daengs.geo.place.PlaceKey
+import com.daengs.geo.place.PlaceKind
+import com.daengs.geo.place.PlaceSearchRepository
 import com.daengs.geo.territory.ClaimRejectReason
 import com.daengs.geo.territory.ClaimResult
 import com.daengs.geo.territory.TerritoryCell
@@ -40,6 +45,11 @@ data class MapLayerPreferences(
     val showTerritory: Boolean = false,
 )
 
+private data class PlaceSearchIntent(
+    val kinds: List<PlaceKind>,
+    val preferParking: Boolean,
+)
+
 data class MapUiState(
     /**
      * Where the user actually is. Only a real device fix ever writes this, because it is what a
@@ -58,6 +68,8 @@ data class MapUiState(
     val locationFeed: LocationFeed = LocationFeed.DEVICE,
     val response: HospitalSearchResponse? = null,
     val selectedHospitalId: Long? = null,
+    /** Canonical place discovery stays separate until the legacy hospital screen migrates. */
+    val placeDiscovery: PlaceDiscoveryState = PlaceDiscoveryState(),
     val trail: TrailSnapshot = TrailSnapshot(),
     val layers: MapLayerPreferences = MapLayerPreferences(),
     val territoryCells: List<TerritoryCell> = emptyList(),
@@ -67,11 +79,13 @@ data class MapUiState(
     val failedRequest: RequestKind? = null,
     val error: String? = null,
 ) {
-    val loading: Boolean get() = request != null
+    val loading: Boolean get() = request != null || placeDiscovery.loading
 }
 
 class MapViewModel(
     private val hospitalRepository: HospitalRepository,
+    placeRepository: PlaceSearchRepository,
+    dogId: String,
     private val deviceLocationSource: LocationSource,
     private val territoryRepository: TerritoryRepository,
     private val walkTrackingController: WalkTrackingController,
@@ -86,6 +100,12 @@ class MapViewModel(
     private var activeSource: LocationSource? = null
     private var observedWalkState = TrackingState.OFF
     private var lastWalkError: String? = null
+    private var pendingPlaceIntent: PlaceSearchIntent? = null
+    private val placeDiscovery = PlaceDiscoveryController(
+        repository = placeRepository,
+        dogId = dogId,
+        scope = viewModelScope,
+    )
 
     init {
         viewModelScope.launch {
@@ -102,9 +122,15 @@ class MapViewModel(
                 _uiState.update { it.copy(territoryCells = cells) }
             }
         }
+        viewModelScope.launch {
+            placeDiscovery.state.collect { discovery ->
+                _uiState.update { it.copy(placeDiscovery = discovery) }
+            }
+        }
     }
 
     fun locateAndSearch() {
+        pendingPlaceIntent = null
         viewModelScope.launch {
             _uiState.update {
                 it.copy(request = RequestKind.LOCATION, failedRequest = null, error = null)
@@ -190,13 +216,60 @@ class MapViewModel(
 
     fun retry() {
         when (retryRequestFor(_uiState.value)) {
-            RequestKind.LOCATION -> locateAndSearch()
+            RequestKind.LOCATION -> pendingPlaceIntent?.let { intent ->
+                searchPlaces(intent.kinds, intent.preferParking)
+            } ?: locateAndSearch()
             RequestKind.HOSPITAL_SEARCH -> search()
         }
     }
 
+    fun retryPlaceSearch() = placeDiscovery.retry()
+
     fun selectHospital(id: Long) {
         _uiState.update { it.copy(selectedHospitalId = id) }
+    }
+
+    /** Search canonical Place kinds around the last real device fix. */
+    fun searchPlaces(
+        kinds: List<PlaceKind>,
+        preferParking: Boolean = false,
+    ) {
+        val intent = PlaceSearchIntent(kinds, preferParking)
+        val origin = _uiState.value.deviceLocation
+        if (origin != null) {
+            beginPlaceDiscovery(origin, intent)
+            return
+        }
+
+        pendingPlaceIntent = intent
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(request = RequestKind.LOCATION, failedRequest = null, error = null)
+            }
+            val realOrigin = fetchRealDevicePoint()
+            if (realOrigin == null || pendingPlaceIntent != intent) return@launch
+            beginPlaceDiscovery(realOrigin, intent)
+        }
+    }
+
+    /** Search the camera center explicitly; panning alone never changes the search origin. */
+    fun searchPlacesAtCamera(
+        kinds: List<PlaceKind>,
+        preferParking: Boolean = false,
+    ) {
+        val origin = _uiState.value.cameraCandidate
+        if (origin == null) {
+            _uiState.update { it.copy(statusMessage = "지도를 이동한 뒤 이 지역을 검색해주세요.") }
+            return
+        }
+        _uiState.update {
+            it.copy(locationMode = LocationMode.PINNED, followDevice = false)
+        }
+        beginPlaceDiscovery(origin, PlaceSearchIntent(kinds, preferParking))
+    }
+
+    fun selectPlace(key: PlaceKey) {
+        placeDiscovery.select(key)
     }
 
     fun startTracking() {
@@ -285,6 +358,18 @@ class MapViewModel(
             }
             .onFailure { error -> showError(error, RequestKind.LOCATION) }
             .getOrNull()
+
+    /** Canonical searches may use only the state slot that already rejects replay/mock fixes. */
+    private suspend fun fetchRealDevicePoint(): GeoPoint? {
+        if (fetchDeviceFix() == null) return null
+        return _uiState.value.deviceLocation ?: run {
+            showError(
+                IllegalStateException("가상 위치로는 주변 장소를 검색할 수 없어요."),
+                RequestKind.LOCATION,
+            )
+            null
+        }
+    }
 
     /** The only place the screen-owned feed starts. Walk recording has a different owner. */
     private fun switchFeed(
@@ -437,6 +522,14 @@ class MapViewModel(
         }
     }
 
+    private fun beginPlaceDiscovery(origin: GeoPoint, intent: PlaceSearchIntent) {
+        pendingPlaceIntent = null
+        _uiState.update {
+            it.copy(request = null, failedRequest = null, error = null)
+        }
+        placeDiscovery.search(origin, intent.kinds, intent.preferParking)
+    }
+
     private fun showError(error: Throwable, failedRequest: RequestKind? = null) {
         _uiState.update {
             it.copy(
@@ -449,6 +542,8 @@ class MapViewModel(
 
     class Factory(
         private val hospitalRepository: HospitalRepository,
+        private val placeRepository: PlaceSearchRepository,
+        private val dogId: String,
         private val locationSource: LocationSource,
         private val territoryRepository: TerritoryRepository,
         private val walkTrackingController: WalkTrackingController,
@@ -457,6 +552,8 @@ class MapViewModel(
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
             MapViewModel(
                 hospitalRepository,
+                placeRepository,
+                dogId,
                 locationSource,
                 territoryRepository,
                 walkTrackingController,
