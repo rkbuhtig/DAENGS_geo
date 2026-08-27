@@ -23,6 +23,7 @@ from app.features.territory.evidence import (
     brief,
     choose,
     gather,
+    particles_for,
     rank,
     sentence,
 )
@@ -338,3 +339,50 @@ def test_a_dropped_evidence_gets_no_sentence():
     for row in dropped:
         with pytest.raises(ValueError, match="말하지 않기로"):
             sentence(row)
+
+
+# ---- 문장은 관찰 통보가 아니라 제안이다 -------------------------------------------------
+
+
+def test_particles_follow_the_final_consonant():
+    """`은(는)` 같은 기계 티를 안 낸다. 받침 유무는 유니코드로 정확히 갈린다."""
+    assert particles_for("도곡공원")["i_ga"] == "이"        # 원 — 받침 있음
+    assert particles_for("양재천 산책로")["i_ga"] == "가"    # 로 — 받침 없음
+    assert particles_for("남동쪽 블록")["eun_neun"] == "은"
+    assert particles_for("동네 공원")["eul_reul"] == "을"
+    # 한글이 아니면 받침 없는 쪽으로 — 터지지만 않으면 된다
+    assert particles_for("Park")["i_ga"] == "가"
+    assert particles_for("")["i_ga"] == "가"
+
+
+def test_no_sentence_carries_the_machine_paren_form():
+    """`은(는)` · `이(가)` 가 남아 있으면 조사 처리가 안 붙은 것이다."""
+    for row in rank(gather(_stats(), "evening"), "evening"):
+        if row.sayable:
+            line = sentence(row)
+            assert "(는)" not in line and "(가)" not in line and "(를)" not in line, line
+
+
+def test_sentences_do_not_read_as_surveillance():
+    """**첫 판이 시비조로 읽혔다** — 관찰한 결과를 사용자에게 통보하는 어법이었다.
+
+        "도곡공원은(는) 저녁 산책에서 유난히 자주 가시네요."
+
+    말투가 반감을 사면 D(도착 가치) 판정에서 "짜증" 이 나왔을 때 **정보가 쓸모없어서인지
+    말투가 재수없어서인지 못 가른다.** 실험을 오염시키는 교란 변수라 고쳤다.
+
+    문장이 뭐가 좋은지는 테스트로 못 재니까 **안 쓰기로 한 말**만 고정한다.
+    """
+    banned = ["유난히", "꽤 뜸했", "거의 안 가보신"]
+    for row in rank(gather(_stats(), "evening"), "evening"):
+        if row.sayable:
+            line = sentence(row)
+            for word in banned:
+                assert word not in line, f"{word!r} 가 남아 있다: {line}"
+
+
+def test_sentences_carry_no_numbers():
+    """숫자는 영수증 ② 가 편다. 문장에 섞으면 짧게 못 쓰고 근거도 잘린 채로 나간다."""
+    for row in rank(gather(_stats(), "evening"), "evening"):
+        if row.sayable:
+            assert not any(ch.isdigit() for ch in sentence(row)), sentence(row)
