@@ -152,10 +152,10 @@ Evidence 는 무엇을 묶었는지 · 어떤 조건인지 · 분자/분모 · �
 |---|---|
 |Observation|**있다** — `WalkFacts`·fix·시각|
 |Measurement|**있다** — `Cellophane` (#69 로 형태 확정)|
-|Instruments|**일부** — `region_visit_rate` · `rate_diff` · `normalized_distance` · `mass_in` · 추세|
-|Evidence|**아직** — `Card.why` 가 원시적인 형태다. E3 에서 객체로 재배열|
-|Judgment|**아직** — `pick_cards` 가 원시적 selection. 선택 이유를 안 싣는다|
-|Surface|**한쪽만** — 실험용 뷰어는 있고 문장 쪽이 없다|
+|Instruments|**있다** — `region_visit_rate` · `rate_diff` · `normalized_distance` · `mass_in` · 추세|
+|Evidence|**있다** — `evidence.gather()`. cohort·baseline 을 `VisitRate` 통째로 들고 다닌다|
+|Judgment|**있다** — `evidence.rank()`·`choose()`. 후보 전부 + 점수·이유·탈락 사유|
+|Surface|**한쪽만** — 템플릿 문장은 있고(`sentence()`) 영수증 화면이 없다 (E3b)|
 
 없는 장치도 알고 있다. **지금 안 만든다** — 장면이 요구하지 않는다.
 
