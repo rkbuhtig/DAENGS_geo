@@ -92,14 +92,18 @@ Place 계약을 소비할 수 있다.
 
 ## 현재 구현 상태
 
-구현 순서 1과 2의 전화·운영정보 부분을 완료했다. Android 상단 `동물병원` 직통 진입과 일반
+구현 순서 1과 2를 완료했다. Android 상단 `동물병원` 직통 진입과 일반
 카테고리의 병원 칩은 모두 같은 `PlaceDiscoveryController`에서 `hospital` kind를 연다. 병원
 카드는 canonical 사실만으로 전화 확인, 영업 여부의 계산값/미상, 오늘 운영시간과 인허가 정보
 기준일을 표시하며 의료에 없는 주차 사실을 미상이라고 보여주지 않는다.
 
-공용 journey를 여는 길찾기 action과 구현 순서 3~5는 아직이다. `HospitalRepository`, 별도 hospital
-state와 `POST /hospital/search`는 코드에 남아 있지만 제품 Android 화면에서는 더 이상 호출하지
-않는다. 다음 PR은 Android legacy client/state를 제거해 서버 경로의 마지막 제품 소비자를 닫는다.
+길찾기는 모든 Place 카드가 공유한다. 최신 실제 기기 위치를 출발지로, 선택한 `PlaceResult.point`를
+목적지로 `POST /journey`를 호출하고 서버의 이동수단 우선순위와 실측/추정 라벨을 표시한 뒤 검증한
+NAVER handoff만 외부 앱에 넘긴다. 지도를 옮겨 검색한 경우에도 검색 핀을 출발지로 오독하지 않는다.
+
+구현 순서 3~5는 아직이다. `HospitalRepository`, 별도 hospital state와 `POST /hospital/search`는
+코드에 남아 있지만 제품 Android 화면에서는 더 이상 호출하지 않는다. 다음 PR은 Android legacy
+client/state를 제거해 서버 경로의 마지막 제품 소비자를 닫는다.
 
 ## 하지 않는 것
 

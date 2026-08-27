@@ -9,14 +9,18 @@ import com.daengs.geo.hospital.LocationMode
 import com.daengs.geo.hospital.SearchRequestBuilder
 import com.daengs.geo.hospital.SearchSession
 import com.daengs.geo.hospital.SuggestedAction
+import com.daengs.geo.journey.JourneyRepository
 import com.daengs.geo.location.GeoPoint
 import com.daengs.geo.location.LocationSample
 import com.daengs.geo.location.LocationSource
 import com.daengs.geo.map.features.places.PlaceDiscoveryController
 import com.daengs.geo.map.features.places.PlaceDiscoveryState
 import com.daengs.geo.map.features.places.PlaceOriginMode
+import com.daengs.geo.map.features.journey.PlaceJourneyController
+import com.daengs.geo.map.features.journey.PlaceJourneyState
 import com.daengs.geo.place.PlaceKey
 import com.daengs.geo.place.PlaceKind
+import com.daengs.geo.place.PlaceResult
 import com.daengs.geo.place.PlaceSearchRepository
 import com.daengs.geo.territory.ClaimRejectReason
 import com.daengs.geo.territory.ClaimResult
@@ -64,6 +68,7 @@ data class MapUiState(
     val selectedHospitalId: Long? = null,
     /** Product UI uses this state; legacy hospital state remains only until client cleanup. */
     val placeDiscovery: PlaceDiscoveryState = PlaceDiscoveryState(),
+    val journey: PlaceJourneyState = PlaceJourneyState(),
     val trail: TrailSnapshot = TrailSnapshot(),
     val layers: MapLayerPreferences = MapLayerPreferences(),
     val territoryCells: List<TerritoryCell> = emptyList(),
@@ -79,6 +84,7 @@ data class MapUiState(
 class MapViewModel(
     private val hospitalRepository: HospitalRepository,
     placeRepository: PlaceSearchRepository,
+    journeyRepository: JourneyRepository,
     dogId: String,
     deviceLocationSource: LocationSource,
     private val territoryRepository: TerritoryRepository,
@@ -96,6 +102,11 @@ class MapViewModel(
     )
     private val placeDiscovery = PlaceDiscoveryController(
         repository = placeRepository,
+        dogId = dogId,
+        scope = viewModelScope,
+    )
+    private val placeJourney = PlaceJourneyController(
+        repository = journeyRepository,
         dogId = dogId,
         scope = viewModelScope,
     )
@@ -118,6 +129,11 @@ class MapViewModel(
         viewModelScope.launch {
             placeDiscovery.state.collect { discovery ->
                 _uiState.update { it.copy(placeDiscovery = discovery) }
+            }
+        }
+        viewModelScope.launch {
+            placeJourney.state.collect { journey ->
+                _uiState.update { it.copy(journey = journey) }
             }
         }
     }
@@ -287,6 +303,18 @@ class MapViewModel(
     fun selectPlace(key: PlaceKey) {
         placeDiscovery.select(key)
     }
+
+    /** Journey always starts at the latest real device fix, never at a panned search origin. */
+    fun openJourney(place: PlaceResult) {
+        val origin = _uiState.value.deviceLocation
+        if (origin == null) {
+            placeJourney.reject(place.key, "현재 위치를 확인한 뒤 길찾기를 다시 눌러주세요.")
+            return
+        }
+        placeJourney.load(origin, place)
+    }
+
+    fun retryJourney() = placeJourney.retry()
 
     fun startTracking() {
         when (val result = locationFeed.prepareWalkStart()) {
@@ -480,6 +508,7 @@ class MapViewModel(
         originMode: PlaceOriginMode = PlaceOriginMode.DEVICE,
     ) {
         pendingPlaceIntent = null
+        placeJourney.clear()
         _uiState.update {
             it.copy(request = null, failedRequest = null, error = null)
         }
@@ -499,6 +528,7 @@ class MapViewModel(
     class Factory(
         private val hospitalRepository: HospitalRepository,
         private val placeRepository: PlaceSearchRepository,
+        private val journeyRepository: JourneyRepository,
         private val dogId: String,
         private val locationSource: LocationSource,
         private val territoryRepository: TerritoryRepository,
@@ -509,6 +539,7 @@ class MapViewModel(
             MapViewModel(
                 hospitalRepository,
                 placeRepository,
+                journeyRepository,
                 dogId,
                 locationSource,
                 territoryRepository,

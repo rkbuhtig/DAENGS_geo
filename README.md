@@ -5,7 +5,7 @@
 
 | 기능 | 성격 | 진입 |
 |---|---|---|
-| **장소 찾기** | canonical Place kind별 검색 | Android 장소 지도 / `/facility-map` |
+| **장소 찾기** | canonical Place kind별 검색 + 선택 장소 공용 길찾기 | Android 장소 지도 / `/facility-map` |
 | **동물병원 바로 찾기** | canonical `hospital` 검색 + 병원 전용 전화·운영정보 표현 | Android `동물병원` |
 | **산책 기록** | Android foreground service → Room → 종료 시 서버 업로드 → 세션·사실·시설 occurrence | Android 지도 기능 / `/walk` |
 
@@ -25,7 +25,9 @@ fix·`WalkFacts`·정지/시설 occurrence 파생과 원좌표 purge를 구현�
 주차 사실 3상태 커버리지를 목록으로 표시한다. Android 기본 장소 화면도 같은 계약을 사용한다.
 [결정 #71](docs/decisions/2026-08-27-hospital-place-entry.md)에 따라 Android의 `동물병원` 직통
 진입도 canonical `hospital` kind를 열며, 전화·운영정보 안내는 선택한 Place 위에 표시한다.
-기존 `HospitalRepository`와 `/hospital/search`는 다음 cleanup에서 제거한다.
+모든 canonical Place 카드는 선택한 좌표를 공용 `POST /journey`에 넘겨 이동수단·실측/추정 상태를
+받고 서버가 생성한 네이버 지도 handoff로 실제 안내를 넘긴다. 기존 `HospitalRepository`와
+`/hospital/search`는 다음 cleanup에서 제거한다.
 
 ```
 app/
@@ -43,7 +45,7 @@ app/
 ├── api/         canonical POST /v2/places/search · GET /map/static
 ├── usage/       실제 외부 호출 Gate — 기본 거부, 제한형 dev 정책, 요청/시간당 사용량
 └── core/        config · db · clock
-android/         Kotlin/Compose — 위치→검색→NAVER 지도 + walk foreground service
+android/         Kotlin/Compose — 위치→Place→journey→NAVER 지도 + walk foreground service
 ```
 
 ## 현재 코어와 parked 구현

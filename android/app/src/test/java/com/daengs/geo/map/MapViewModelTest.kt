@@ -4,6 +4,10 @@ import com.daengs.geo.hospital.HospitalApi
 import com.daengs.geo.hospital.HospitalRepository
 import com.daengs.geo.hospital.HospitalSearchResponse
 import com.daengs.geo.hospital.LocationMode
+import com.daengs.geo.journey.JourneyItem
+import com.daengs.geo.journey.JourneyRepository
+import com.daengs.geo.journey.JourneyResponse
+import com.daengs.geo.journey.PlaceJourneyRequest
 import com.daengs.geo.location.GeoPoint
 import com.daengs.geo.location.LocationSample
 import com.daengs.geo.location.LocationSource
@@ -575,16 +579,56 @@ class MapViewModelTest {
         assertEquals(PlaceOriginMode.PINNED, viewModel.uiState.value.placeDiscovery.originMode)
     }
 
+    @Test
+    fun `journey uses the real device origin and canonical Place destination after a pinned search`() =
+        runTest {
+            val device = GeoPoint(37.5665, 126.9780)
+            val source = FakeLocationSource(fix = fix(device.latitude, device.longitude))
+            val places = FakePlaceSearchRepository(response = placeResponse())
+            val item = JourneyItem(
+                destination = GeoPoint(37.557, 126.924),
+                name = "댕스동물병원",
+                straightMeters = 1_000,
+                modePriority = emptyList(),
+                legs = emptyMap(),
+            )
+            val journeys = FakeJourneyRepository(JourneyResponse("dog", listOf(item)))
+            val viewModel = viewModel(source, places = places, journeys = journeys, dogId = " janggun ")
+            viewModel.searchPlaces(listOf(PlaceKind.HOSPITAL))
+            advanceUntilIdle()
+
+            val pinned = GeoPoint(35.1796, 129.0756)
+            viewModel.onCameraIdle(pinned)
+            viewModel.searchPlacesAtCamera(listOf(PlaceKind.HOSPITAL))
+            advanceUntilIdle()
+            val hospital = placeResponse().groups.single { it.kind == PlaceKind.HOSPITAL }
+                .results.single().place
+
+            viewModel.openJourney(hospital)
+            advanceUntilIdle()
+
+            val request = journeys.requests.single()
+            assertEquals(device, request.origin)
+            assertEquals(hospital.key, request.destinationKey)
+            assertEquals(hospital.point, request.destination)
+            assertEquals("janggun", request.dogId)
+            assertEquals(item, viewModel.uiState.value.journey.item)
+        }
+
     private fun viewModel(
         source: LocationSource,
         walk: WalkTrackingController = FakeWalkTrackingController(),
         places: PlaceSearchRepository = FakePlaceSearchRepository(
             response = PlaceSearchResponse(null, emptyList()),
         ),
+        journeys: JourneyRepository = FakeJourneyRepository(
+            JourneyResponse(companion = "dog", items = emptyList()),
+        ),
         dogId: String = "",
     ) = MapViewModel(
         hospitalRepository = HospitalRepository(HospitalApi(baseUrl = { "http://127.0.0.1:1" })),
         placeRepository = places,
+        journeyRepository = journeys,
         dogId = dogId,
         deviceLocationSource = source,
         territoryRepository = InMemoryTerritoryRepository(LocalHexCellIndexer()),
@@ -605,6 +649,15 @@ class MapViewModelTest {
     private fun placeResponse(): PlaceSearchResponse {
         val text = javaClass.getResource("/place_search_response.json")!!.readText()
         return Json.parseToJsonElement(text).jsonObject.toPlaceSearchResponse()
+    }
+}
+
+private class FakeJourneyRepository(private val response: JourneyResponse) : JourneyRepository {
+    val requests = mutableListOf<PlaceJourneyRequest>()
+
+    override suspend fun load(request: PlaceJourneyRequest): JourneyResponse {
+        requests += request
+        return response
     }
 }
 
