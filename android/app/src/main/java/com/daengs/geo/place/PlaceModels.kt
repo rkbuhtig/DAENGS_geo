@@ -41,7 +41,9 @@ enum class PlaceKind(val wire: String) {
     companion object {
         private val byWire = entries.associateBy(PlaceKind::wire)
 
-        fun fromWire(value: String): PlaceKind = byWire[value] ?: ETC
+        fun fromWire(value: String): PlaceKind = requireNotNull(byWire[value]) {
+            "Unknown canonical PlaceKind: $value"
+        }
     }
 }
 
@@ -54,14 +56,13 @@ enum class DogSize(val wire: String) {
 enum class PlaceSortType {
     DISTANCE,
     DISTANCE_PREFERRED,
-    UNKNOWN,
     ;
 
     companion object {
         fun fromWire(value: String): PlaceSortType = when (value) {
             "distance" -> DISTANCE
             "distance_preferred" -> DISTANCE_PREFERRED
-            else -> UNKNOWN
+            else -> throw IllegalArgumentException("Unknown PlaceSortType: $value")
         }
     }
 }
@@ -76,7 +77,8 @@ enum class DogAccessState {
         fun fromWire(value: String): DogAccessState = when (value) {
             "compatible" -> COMPATIBLE
             "incompatible" -> INCOMPATIBLE
-            else -> UNKNOWN
+            "unknown" -> UNKNOWN
+            else -> throw IllegalArgumentException("Unknown DogAccessState: $value")
         }
     }
 }

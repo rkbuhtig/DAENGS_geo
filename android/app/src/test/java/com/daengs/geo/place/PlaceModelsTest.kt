@@ -5,13 +5,16 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertThrows
 import org.junit.Test
 
 class PlaceModelsTest {
-    private fun response(): PlaceSearchResponse {
-        val text = javaClass.getResource("/place_search_response.json")!!.readText()
-        return Json.parseToJsonElement(text).jsonObject.toPlaceSearchResponse()
-    }
+    private fun fixture(): String = javaClass.getResource("/place_search_response.json")!!.readText()
+
+    private fun response(): PlaceSearchResponse = parse(fixture())
+
+    private fun parse(text: String): PlaceSearchResponse =
+        Json.parseToJsonElement(text).jsonObject.toPlaceSearchResponse()
 
     @Test
     fun `preserves requested group order and server result order`() {
@@ -56,5 +59,27 @@ class PlaceModelsTest {
             .getValue("facts.parking").source.source)
         assertEquals(TimeRange("09:00", "18:00"), hospital.facts.medical?.hoursToday?.single())
         assertNull(hospital.facts.medical?.openNow)
+    }
+
+    @Test
+    fun `unknown canonical kind fails instead of becoming the real etc kind`() {
+        val future = fixture().replaceFirst("\"kind\": \"cafe\"", "\"kind\": \"future_kind\"")
+
+        assertThrows(IllegalArgumentException::class.java) { parse(future) }
+    }
+
+    @Test
+    fun `unknown server discriminants fail instead of borrowing an existing meaning`() {
+        val futureSort = fixture().replaceFirst(
+            "\"type\": \"distance_preferred\"",
+            "\"type\": \"future_sort\"",
+        )
+        val futureDogState = fixture().replaceFirst(
+            "\"state\": \"incompatible\"",
+            "\"state\": \"conditional\"",
+        )
+
+        assertThrows(IllegalArgumentException::class.java) { parse(futureSort) }
+        assertThrows(IllegalArgumentException::class.java) { parse(futureDogState) }
     }
 }
