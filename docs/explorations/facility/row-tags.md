@@ -50,8 +50,27 @@ implementation: none
 - [x] 배치 진입점 — `python -m app.ingest restrictions` (`pet_axes` 선례 그대로).
       리비전 `0018` 이 두 축(`restriction_state` × `parse_state`)과 술어 JSONB 를 만든다.
       33,611행 파생 확인 — 실측은 [측정 §5-1](../../research/2026-08-27-tag-material.md)
+- [x] `applies_to` 투영 — `app/place/restriction_projection.py`. 소형견에게 대형견
+      조건이 안 보이고, 증명 가능한 술어만 `incompatible` 로 올린다
 - [ ] LLM 잔여 레인(언어유희 137곳)을 누가 도는가 — [#53](../../decisions/2026-08-24-agent-parallel-response.md)
       팀 경계와 묶인다
+
+### 판정 경계 (PR 4 에서 확정)
+
+술어는 넓게 적고 판정은 좁게 한다. `incompatible` 로 올리는 것은 **원문이 "못 들어온다"
+고 말했고 프로필로 대조되는 것**뿐이다.
+
+| 술어 | 판정 | 이유 |
+|---|---|---|
+| `deny:size@size:large` | ✅ | 원문이 크기로 배제했다 |
+| `deny:age@age:senior` | ✅ | `DogProfile.age_years` 로 대조된다 |
+| `require:muzzle` | ❌ 표시만 | 입마개를 채우면 간다 — 요구는 배제가 아니다 |
+| `require:carrier`·`require:hold` | ❌ 표시만 | 시설이 말하는 케이지 규격을 모른다 |
+| `deny:behavior`·`deny:health` | ❌ 표시만 | 이 개가 공격적인지·아픈지 모른다 |
+| `deny:breed` | ❌ 표시만 | 열거된 견종 이름을 술어가 안 담는다 |
+
+`owner.can_carry_kg` 가 살아나면 `require:hold` 는 그때 판정 대상이 된다 — 재료가
+생기기 전에 추론으로 메우지 않는다.
 
 ## 이 갈래가 다루지 않는 것
 
