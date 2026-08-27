@@ -27,8 +27,7 @@ fix·`WalkFacts`·정지/시설 occurrence 파생과 원좌표 purge를 구현�
 진입도 canonical `hospital` kind를 열며, 전화·운영정보 안내는 선택한 Place 위에 표시한다.
 모든 canonical Place 카드는 선택한 좌표를 공용 `POST /journey`에 넘겨 이동수단·실측/추정 상태를
 받고 서버가 생성한 네이버 지도 handoff로 실제 안내를 넘긴다. 기존 `HospitalRepository`와
-병원 전용 Android state는 이번 단계에서 제거했다. 서버의 `/hospital/search`와 `/dev` 검증 표면은 다음
-cleanup에서 함께 제거한다.
+병원 전용 Android state, 서버의 병원 전용 검색기와 콘솔도 제거했다.
 
 ```
 app/
@@ -40,7 +39,6 @@ app/
 │   └── refine/  그 상태를 편집하는 방법 — tools · nl · diff · actions
 ├── place/       공통 PlaceResult · 의료/시설 resolver 조율 · POST /v2/places/search
 ├── features/
-│   ├── hospital/  cleanup 대기 중인 legacy POST /hospital/search (제품 Android 소비자 없음)
 │   ├── walk/      수집만 — WalkFacts (contracts/walk-record.md). 판정·서술 없음, 테스트로 고정
 │   └── scene/     walk 사실의 소비자 — encounter 기하값 → 판정. 규칙표에 버전이 붙는다
 ├── api/         canonical POST /v2/places/search · GET /map/static
@@ -64,7 +62,8 @@ parked된 LLM 경계는 `utterance`가 있을 때만 “말 → 툴 호출” �
 
 실제 구현 경계: PostGIS 검색·공공데이터 적재·영업시간 판정·태깅·상태 편집·provider 진실성
 계약·Usage Gate는 실제 코드다. LLM·경로·프로필은 기본 가짜 또는 미설정이다.
-지도 표면은 키를 넣으면 NAVER Dynamic Map + Static Map, 없으면 `/dev`에서만 OSM으로 내려간다.
+지도 검증 표면은 키를 넣으면 NAVER Dynamic Map + Static Map, 없으면 `/facility-map`에서
+OSM으로 내려간다.
 
 ## 실행
 
@@ -175,29 +174,19 @@ uv run python -m app.ingest full --kind pharmacy
 - 좌표가 없거나 변환 후 대한민국 범위를 벗어난 신규 레코드는 저장하지 않는다. 기존 레코드는 좌표가
   사라져도 폐업 등 상태 변경을 반영한다.
 
-**검증 콘솔**: `http://127.0.0.1:8000/dev` (`DAENGS_DEV_CONSOLE=true` 일 때만 — `.env.example` 에 켜져 있다. 코드 기본값은 닫힘) — 페르소나·출발지(지도 클릭)·필터 칩·자연어 입력, 카드 클릭하면 도보 폴리라인 + 반려견 관심 지점(spots) + 따라가기 딥링크. NAVER Web 서비스 URL은 포트 없이 `http://127.0.0.1`을 등록한다.
+**장소 검증 지도**: `http://127.0.0.1:8000/facility-map`
+(`DAENGS_DEV_CONSOLE=true`일 때만 — `.env.example`에는 켜져 있고 코드 기본값은 닫힘).
+canonical kind별 검색, 주차 선호와 반려견 입장 3상태를 웹에서 확인한다. NAVER Web 서비스
+URL은 포트 없이 `http://127.0.0.1`을 등록한다. `/anchors`는 앵커 분포 전용 검증 지도다.
 
 현재 공급자 선택·폴백·교체 실험 방법은 [`docs/provider-assembly.md`](docs/provider-assembly.md)에
 한 표로 관리한다. 현재 실제 조립 범위는 NAVER Dynamic Map + Static Map이고, 검색은 PostGIS,
 지오코딩과 실제 경로 공급자는 보류다.
 
-```
-POST /hospital/search
-{ "dog_id":"halmae", "origin":[37.4979,127.0276] }                                   ← 메뉴 진입(초안)
-{ "dog_id":"halmae", "state":{...}, "utterance":"눈이 뿌옇고 걸어서 갈 데", "shown_ids":[..] }  ← 자연어/음성
-{ "dog_id":"halmae", "state":{...}, "edits":[{"tool":"set_walk_max_min","args":{"minutes":15}}] }  ← 필터 UI
-{ "dog_id":"dubu",   "state":{"state_version":4,"lat":..,"lng":..,
-  "target":{"open_now":true,"night_service":true},"journey":{},"sort":"distance","history":[]} }
-→ { state, results[{..., tags, transport{walk{min,m,facilities,advice,why}, car{taxi_fare}, transit}}],
-    map{preview_url,deeplink,web_url}, changes[], applied[], question?, reply,
-    resolution[], show_call_cta, call_reasons[], actions[] }
-```
-시나리오 드라이버 예시는 커밋 메시지·`docs/research/2026-08-19-skeleton-run.md` 참고.
-
 ## 현재 확정 사항 (2026-08-24)
 
 - 백엔드: **FastAPI / Python**, DB: **PostgreSQL + PostGIS** (팀 pgvector와 동거)
-- 기준 클라이언트: **Android(Kotlin) 전용** 앱. iOS 없음. `/dev`는 제품 웹이 아니라 검증 콘솔
+- 기준 클라이언트: **Android(Kotlin) 전용** 앱. iOS 없음. 웹 지도는 제품 UI가 아니라 검증 표면
 - 산책 기록의 런타임 소유자는 Android location foreground service. 시작은 보이는 Activity에서만 하며 `ACCESS_BACKGROUND_LOCATION`은 아직 요청하지 않는다
 - 산책 세션의 Room/SQLite 영속 저장과 종료 후 서버 업로드는 구현됨. process-death 복구는 아직 미구현
 - 반려견 프로필은 이 레포가 소유하지 않는다 → 외부 계약으로 소비 (`docs/contracts/dog-profile.md`)

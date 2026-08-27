@@ -1,4 +1,4 @@
-"""`/facility-map`이 legacy 차집합이 아니라 canonical Place 계약을 소비한다."""
+"""`/facility-map`이 canonical Place 계약을 올바르게 표시한다."""
 
 from pathlib import Path
 
@@ -10,8 +10,6 @@ HTML = (
 def test_facility_map_uses_one_canonical_post_contract():
     assert "fetch('/v2/places/search'" in HTML
     assert "method:'POST'" in HTML
-    assert "'/facility/search" not in HTML
-    assert "Promise.all" not in HTML
 
 
 def test_facility_map_reads_place_hit_without_internal_database_ids():

@@ -2,7 +2,7 @@
 
 입력: 출발지, 목적지(우리 place id 또는 좌표), companion(dog|none), 프로필, journey 선호.
 출력: 목적지별 Transport(실측 경로·spots·advice·핸드오프·폴리라인).
-검색 응답(/hospital/search)은 휴리스틱만 실어 가볍게, 실측은 여기서 — 관심 있는 것만 호출.
+Place 검색 응답은 장소 사실만 실어 가볍게 두고, 실측은 여기서 — 선택한 목적지만 호출한다.
 """
 
 from typing import Annotated

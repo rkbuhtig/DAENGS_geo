@@ -139,19 +139,18 @@ AI와 태그 기반 검색은 현재 제품 검색 권한을 갖지 않는다.
 5. 사실 기반 선호 정렬과 정렬 metadata 추가; hard filter는 명시할 때만
 6. Android를 Place 계약으로 옮긴 뒤 `MapViewModel`을 Place 기준으로 분리
 
-현재 1~6을 구현했다. `/facility-map`과 Android 기본 장소 화면은 한 번에 canonical kind
+현재 1~6과 소비자 전환 뒤 cleanup을 구현했다. `/facility-map`과 Android 기본 장소 화면은 한 번에 canonical kind
 하나를 선택해 서로 다른 후보군의 순위를 섞지 않는다. 두 화면 모두 모든 후보를 유지하면서
 `compatible / incompatible / unknown` 분포와 명시적 주차 선호의 정렬 순서·사실 커버리지를
-표시한다. Android의 기존 병원 대화 화면은 상담 기능으로 임시 유지하며, canonical hospital
-카테고리로 장소 발견을 시작했다. `PlaceDiscoveryController`와 `LocationFeedCoordinator`가 검색
+표시한다. Android의 병원 바로가기는 canonical hospital 카테고리로 장소 발견을 시작한다.
+`PlaceDiscoveryController`와 `LocationFeedCoordinator`가 검색
 수명주기와 화면 위치 구독을 각각 소유하므로 `MapViewModel`은 두 부수효과를 직접 관리하지 않는다.
 결정 #71에서 병원 직통 진입은 유지하되 canonical `hospital` kind를 열고, 전화 등 병원 전용
 action은 선택 뒤 표현 정책으로 두기로 했다. legacy 병원 검색 제거는 그 Android 전환 뒤 진행한다.
 
 소비자 전환을 확인한 뒤 `GET /pharmacy/search`, `GET /facility/search`, `GET /places/search`를
-제거해 장소 발견 입구를 canonical API 하나로 닫았다. 기존 `/hospital/search`는 Android 병원
-대화 화면이 소비하므로 임시 유지한다. 이 경로를 새 상담 capability로 재정의하지 않고 결정
-#71의 전환 뒤 퇴역시킨다.
+제거해 장소 발견 입구를 canonical API 하나로 닫았다. Android 병원 전환 뒤 병원 전용 검색
+endpoint와 검증 콘솔도 제거했으며, 경로만 바꾼 상담 capability로 남기지 않았다.
 
 ## 기존 결정과의 관계
 

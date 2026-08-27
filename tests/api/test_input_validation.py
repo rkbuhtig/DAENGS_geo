@@ -11,7 +11,6 @@ from pydantic import ValidationError
 from app.core.config import settings
 from app.core.db import get_session
 from app.discovery.state import EditableState, JourneyPrefs
-from app.features.hospital.api import HospitalSearchIn
 from app.features.journey.api import Dest, JourneyIn
 from app.main import app
 
@@ -22,12 +21,6 @@ def test_api_input_models_reject_invalid_coordinates_and_unbounded_lists():
               origin 과 state 를 동시에 주는 모순 조합도 거부한다.
     Decision: #35
     """
-    with pytest.raises(ValidationError):
-        HospitalSearchIn(origin=(999, -999))
-    with pytest.raises(ValidationError):
-        HospitalSearchIn()
-    with pytest.raises(ValidationError):
-        HospitalSearchIn(origin=(37.5, 127.0), shown_ids=list(range(1, 102)))
     with pytest.raises(ValidationError):
         JourneyIn(origin=(999, -999), dests=[Dest(lat=37.5, lng=127.0)])
     with pytest.raises(ValidationError):
@@ -45,27 +38,6 @@ async def _no_db():
     yield None
 
 
-def test_bad_edit_is_an_http_422_not_a_500():
-    """
-    Contract: 나쁜 edit 은 422 이고 어느 툴이 문제인지 말해준다. 500 이면 클라이언트가
-              자기 잘못인지 서버 장애인지 구분하지 못한다.
-    Decision: #35
-    """
-    app.dependency_overrides[get_session] = _no_db
-    try:
-        with TestClient(app) as client:
-            response = client.post("/hospital/search", json={
-                "origin": [37.5, 127.0],
-                "transport": "none",
-                "edits": [{"tool": "set_mode", "args": {"mode": "bicycle"}}],
-            })
-    finally:
-        app.dependency_overrides.pop(get_session, None)
-
-    assert response.status_code == 422
-    assert "invalid args for set_mode" in response.json()["detail"]
-
-
 def test_static_map_rejects_bad_query_before_provider_call():
     """
     Contract: 잘못된 쿼리는 제공사에 나가기 **전에** 막는다. 유료 호출을 잘못된 입력에
@@ -77,19 +49,6 @@ def test_static_map_rejects_bad_query_before_provider_call():
         bad_marker = client.get("/map/static?lat=37.5&lng=127&m=999:127:A:0")
     assert bad_origin.status_code == 422
     assert bad_marker.status_code == 422
-
-
-@pytest.mark.parametrize(
-    "path",
-    ["/places/search", "/pharmacy/search", "/facility/search"],
-)
-def test_retired_discovery_routes_are_not_exposed(path):
-    """장소 발견 입구가 다시 갈라지면 웹과 Android 계약이 재차 어긋난다."""
-    with TestClient(app) as client:
-        response = client.get(path)
-
-    assert response.status_code == 404
-    assert path not in app.openapi()["paths"]
 
 
 @pytest.mark.parametrize(

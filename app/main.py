@@ -11,7 +11,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api import anchor, places_v2, static_map
 from app.core.config import settings
 from app.core.db import get_session
-from app.features.hospital import api as hospital
 from app.features.journey import api as journey
 from app.features.walk import api as walk
 from app.usage.composition import route_capability_problems
@@ -24,7 +23,6 @@ if _problems:
 
 app = FastAPI(title="DAENGS_geo", version="0.1.0")
 app.include_router(places_v2.router)
-app.include_router(hospital.router)
 app.include_router(walk.router)
 app.include_router(journey.router)
 app.include_router(static_map.router)
@@ -39,7 +37,6 @@ async def bind_usage_request_scope(request, call_next):
 
 
 if settings.dev_console:
-    _DEV = Path(__file__).parent / "static" / "dev.html"
     _ANCHORS = Path(__file__).parent / "static" / "anchors.html"
     _FACILITY = Path(__file__).parent / "static" / "facility.html"
 
@@ -52,12 +49,6 @@ if settings.dev_console:
     async def anchor_map():
         """앵커 분포 눈으로 보기. 검증용 표면이라 dev_console 과 같은 게이트 뒤에 둔다."""
         return FileResponse(_ANCHORS, media_type="text/html")
-
-    @app.get("/dev", include_in_schema=False)
-    async def dev_console():
-        """검증용 콘솔. 앱 UI가 아니다 — 루프(말→조건→화면)와 spots가 말이 되는지 눈으로 보는 용도."""
-        return FileResponse(_DEV, media_type="text/html")
-
 
 @app.get("/health")
 async def health():

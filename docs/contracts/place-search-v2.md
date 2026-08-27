@@ -2,8 +2,7 @@
 
 `POST /v2/places/search`는 웹과 Android가 함께 사용하는 장소 발견의 유일한 HTTP 입구다.
 기존 `GET /places/search`, `GET /pharmacy/search`, `GET /facility/search`는 소비자 전환 뒤
-제거했다. `POST /hospital/search`는 장소 발견 계약이 아니라 기존 병원 대화 기능을 위해서만
-임시 유지한다.
+제거했고, 병원도 이 계약의 `hospital` kind로만 찾는다.
 
 ## 요청
 
@@ -88,7 +87,7 @@
 안내를 우선하는 것은 결과 표현 정책이다. 길찾기도 병원 전용 검색 응답을 사용하지 않는다.
 Android는 최신 실제 기기 위치와 선택한 canonical Place 좌표를 공용 `POST /journey`에 보내고,
 응답의 이동수단 우선순위·실측/추정 상태와 NAVER handoff를 사용한다. 남은 legacy Android
-코드는 없으며 서버의 `/hospital/search`와 `/dev` 병원 표면 제거만 후속이다.
+코드와 병원 전용 서버 검색 표면은 없다.
 
 주차 선호가 켜진 시설 그룹은 순수 거리순 대신 응답에 적힌 밴드 정렬을 사용한다. `coverage`는
 전체 데이터 통계가 아니라 **그룹에 실제 반환된 결과**의 주차 사실 3상태 개수다. 따라서
@@ -129,4 +128,3 @@ identity로 노출하지 않는다.
 - 태그/이름 추론 및 AI 제안
 - 서로 다른 kind 결과의 통합 순위
 - 검증되지 않은 `facility_link`를 Place alias로 승격
-- 소비자가 없어진 `/hospital/search`와 `/dev` 병원 검색 표면 제거
