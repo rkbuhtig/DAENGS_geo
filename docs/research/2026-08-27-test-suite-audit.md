@@ -58,6 +58,21 @@ docstring 이 적어놨다.
 | `usage.http` | 503 분기와 `Retry-After` | **Pass 4 완료** |
 | `core.clock` | 결정론·tz 인식 | **Pass 4 완료** |
 
+## 실행 시간 (Pass 4.1 이후)
+
+**1분 48초 → 34.9초.** 느린 원인은 두 종류였고 하나만 테스트 문제였다.
+
+    territory   80.2s → 5.6s    _planted() 픽스처가 산책 50 회를 테스트마다 다시 칠했다
+    integration 20.7s → 그대로   _LINK_CROSS 쿼리 자체가 11.6s (facility 33,611 행 자기조인)
+
+`_planted()` 는 `Cellophane`(frozen)만 만들고 소비자는 읽기만 하며 `NOW` 가 고정 상수라
+재사용이 안전하다 — `lru_cache` 하나로 끝났다. 같은 파일 안에서 19번, `experience` 에서
+11번 호출되고 있었다.
+
+남은 `test_cross_kind_rows_are_neither_linked_nor_collapsed` 12.3s 는 **테스트 구조가
+아니라 프로덕션 쿼리가 느린 것**이다(직접 재보니 11.6s). 여기서 픽스처를 줄이면 전역 파생
+링크를 실제로 재구축하는지를 못 보게 되므로 건드리지 않는다 — 쿼리 최적화는 별건이다.
+
 ## Pass 진행
 
 - [x] **Pass 0** — 지도 (이 문서)

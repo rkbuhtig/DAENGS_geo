@@ -12,6 +12,7 @@
 
 import math
 from datetime import UTC, datetime, timedelta
+from functools import cache
 
 from app.features.territory.experience import (
     CHIPS,
@@ -75,7 +76,8 @@ def _walk(walk_id: str, at: datetime, x0: float, x1: float):
     return paint_sheet(walk_id, at, segs, RADIUS_U, NARROW_STEP)
 
 
-def _planted():
+@cache
+def _planted() -> tuple:
     """정답을 심은 자료.
 
         저녁 산책 30 회  →  20 회는 북쪽(200~900), 10 회는 남쪽
@@ -95,7 +97,7 @@ def _planted():
     for i in range(10):
         day = NOW - timedelta(days=40 + i)
         sheets.append(_walk(f"south{i}", day.replace(hour=18), 2_650.0, 3_250.0))
-    return sheets
+    return tuple(sheets)
 
 
 # ---- 1. 심은 편향이 회수된다 -----------------------------------------------------------
