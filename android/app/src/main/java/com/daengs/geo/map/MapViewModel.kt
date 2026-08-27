@@ -241,6 +241,18 @@ class MapViewModel(
             return
         }
 
+        locateForPlaceDiscovery(intent)
+    }
+
+    /** Refresh the real fix even when an older device location is already available. */
+    fun locateAndSearchPlaces(
+        kinds: List<PlaceKind>,
+        preferParking: Boolean = false,
+    ) {
+        locateForPlaceDiscovery(PlaceSearchIntent(kinds, preferParking))
+    }
+
+    private fun locateForPlaceDiscovery(intent: PlaceSearchIntent) {
         pendingPlaceIntent = intent
         viewModelScope.launch {
             _uiState.update {

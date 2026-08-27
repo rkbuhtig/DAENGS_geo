@@ -52,19 +52,25 @@ import com.daengs.geo.hospital.HospitalResult
 import com.daengs.geo.hospital.LocationMode
 import com.daengs.geo.hospital.SuggestedAction
 import com.daengs.geo.location.GeoPoint
+import com.daengs.geo.map.features.places.PlaceDiscoveryPanel
+import com.daengs.geo.map.features.places.canonicalPlaceKeysByMarker
+import com.daengs.geo.map.features.places.canonicalPlaceMarkers
+import com.daengs.geo.map.features.places.selectedPlaceKind
 import com.daengs.geo.map.layers.places.PlaceMarkerState
 import com.daengs.geo.map.layers.territory.TerritoryLayerState
 import com.daengs.geo.map.layers.trail.TrackingState
 import com.daengs.geo.map.layers.trail.TrailLayerState
 import com.daengs.geo.map.shell.MapHost
 import com.daengs.geo.map.shell.MapScene
+import com.daengs.geo.place.PlaceKey
+import com.daengs.geo.place.PlaceKind
 import com.daengs.geo.walk.WalkExportShare
 import java.io.File
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 
-private enum class AppSection { HOSPITAL, MAP_TOOLS }
+private enum class AppSection { PLACES, HOSPITAL, MAP_TOOLS }
 
 /** Consecutive dropped fixes before we admit on screen that recording is going nowhere. */
 /** export 파일은 산책 종료 뒤 서비스 코루틴이 쓴다 — 생겼는지는 세어봐야 안다. */
@@ -78,8 +84,13 @@ fun MapScreen(
     mapConfigured: Boolean,
     onCameraIdle: (GeoPoint) -> Unit,
     onCameraGesture: () -> Unit,
-    onSearchArea: () -> Unit,
-    onMyLocation: () -> Unit,
+    onSearchHospitalArea: () -> Unit,
+    onHospitalMyLocation: () -> Unit,
+    onSearchPlaces: (PlaceKind, Boolean) -> Unit,
+    onSearchPlacesAtCamera: (PlaceKind, Boolean) -> Unit,
+    onPlaceMyLocation: (PlaceKind, Boolean) -> Unit,
+    onRetryPlaces: () -> Unit,
+    onSelectPlace: (PlaceKey) -> Unit,
     onAction: (SuggestedAction) -> Unit,
     onRetry: () -> Unit,
     onHundredMeters: () -> Unit,
@@ -95,8 +106,15 @@ fun MapScreen(
     onStartReplay: (Double) -> Unit,
     onUseDeviceLocation: () -> Unit,
 ) {
-    var section by remember { mutableStateOf(AppSection.HOSPITAL) }
-    val places = remember(state.response, state.selectedHospitalId) {
+    var section by remember { mutableStateOf(AppSection.PLACES) }
+    val selectedKind = selectedPlaceKind(state.placeDiscovery)
+    val canonicalMarkers = remember(state.placeDiscovery) {
+        canonicalPlaceMarkers(state.placeDiscovery)
+    }
+    val canonicalKeys = remember(state.placeDiscovery.response) {
+        canonicalPlaceKeysByMarker(state.placeDiscovery)
+    }
+    val hospitalMarkers = remember(state.response, state.selectedHospitalId) {
         state.response?.results.orEmpty().map { hospital ->
             PlaceMarkerState(
                 id = hospital.id.toString(),
@@ -106,6 +124,16 @@ fun MapScreen(
                 iconGroup = hospital.iconGroup,
             )
         }
+    }
+    val places = when (section) {
+        AppSection.PLACES -> canonicalMarkers
+        AppSection.HOSPITAL -> hospitalMarkers
+        AppSection.MAP_TOOLS -> emptyList()
+    }
+    val activeSearchOrigin = when (section) {
+        AppSection.PLACES -> state.placeDiscovery.origin
+        AppSection.HOSPITAL -> state.searchOrigin
+        AppSection.MAP_TOOLS -> null
     }
     // A hidden layer hands the renderer nothing, so it cannot draw what is switched off.
     val trailLayer = remember(state.trail.segments, state.layers.showTrail) {
@@ -146,11 +174,17 @@ fun MapScreen(
             if (mapConfigured) {
                 MapHost(
                     scene = scene,
-                    searchOrigin = state.searchOrigin,
+                    searchOrigin = activeSearchOrigin,
                     followDevice = state.followDevice,
                     onCameraIdle = onCameraIdle,
                     onCameraGesture = onCameraGesture,
-                    onSelectPlace = { id -> id.toLongOrNull()?.let(onSelectHospital) },
+                    onSelectPlace = { id ->
+                        when (section) {
+                            AppSection.PLACES -> canonicalKeys[id]?.let(onSelectPlace)
+                            AppSection.HOSPITAL -> id.toLongOrNull()?.let(onSelectHospital)
+                            AppSection.MAP_TOOLS -> Unit
+                        }
+                    },
                     modifier = Modifier.fillMaxSize(),
                 )
             } else {
@@ -163,15 +197,43 @@ fun MapScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (section == AppSection.HOSPITAL && canSearchMovedArea(state)) {
-                        Button(onClick = onSearchArea, enabled = !state.loading) {
+                    val movedFromOrigin = canSearchMovedArea(
+                        candidate = state.cameraCandidate,
+                        origin = activeSearchOrigin,
+                    )
+                    if (section != AppSection.MAP_TOOLS && movedFromOrigin) {
+                        Button(
+                            onClick = {
+                                when (section) {
+                                    AppSection.PLACES -> onSearchPlacesAtCamera(
+                                        selectedKind,
+                                        state.placeDiscovery.preferParking,
+                                    )
+                                    AppSection.HOSPITAL -> onSearchHospitalArea()
+                                    AppSection.MAP_TOOLS -> Unit
+                                }
+                            },
+                            enabled = !state.loading,
+                        ) {
                             Text("이 지역 검색")
                         }
                     }
                     // 눌린 것이 **버튼 자리에서** 보여야 한다. 진행 표시가 지도 한가운데
                     // 있으면 시트에 가리거나 눈이 안 가서, 안 먹은 것과 구분이 안 된다.
                     val locating = state.request == RequestKind.LOCATION
-                    OutlinedButton(onClick = onMyLocation, enabled = !state.loading) {
+                    OutlinedButton(
+                        onClick = {
+                            when (section) {
+                                AppSection.PLACES -> onPlaceMyLocation(
+                                    selectedKind,
+                                    state.placeDiscovery.preferParking,
+                                )
+                                AppSection.HOSPITAL -> onHospitalMyLocation()
+                                AppSection.MAP_TOOLS -> onUseDeviceLocation()
+                            }
+                        },
+                        enabled = !state.loading,
+                    ) {
                         if (locating) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(16.dp),
@@ -187,8 +249,16 @@ fun MapScreen(
                 state.error?.let { error -> ErrorNotice(error = error, onRetry = onRetry) }
             }
 
-            if (section == AppSection.HOSPITAL) {
-                SearchPanel(
+            when (section) {
+                AppSection.PLACES -> PlaceDiscoveryPanel(
+                    state = state.placeDiscovery,
+                    onSearch = onSearchPlaces,
+                    onRetry = onRetryPlaces,
+                    onSelect = onSelectPlace,
+                    onCall = onCall,
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                )
+                AppSection.HOSPITAL -> SearchPanel(
                     state = state,
                     onAction = onAction,
                     onHundredMeters = onHundredMeters,
@@ -196,8 +266,7 @@ fun MapScreen(
                     onCall = onCall,
                     modifier = Modifier.align(Alignment.BottomCenter),
                 )
-            } else {
-                MapToolsPanel(
+                AppSection.MAP_TOOLS -> MapToolsPanel(
                     state = state,
                     onStartTracking = onStartTracking,
                     onPauseTracking = onPauseTracking,
@@ -254,7 +323,11 @@ private fun ErrorNotice(error: String, onRetry: () -> Unit) {
 private fun SectionTabs(section: AppSection, onSection: (AppSection) -> Unit) {
     Surface(shadowElevation = 3.dp) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)) {
-            listOf(AppSection.HOSPITAL to "병원", AppSection.MAP_TOOLS to "지도 기능").forEach { (item, label) ->
+            listOf(
+                AppSection.PLACES to "장소",
+                AppSection.HOSPITAL to "병원 상담",
+                AppSection.MAP_TOOLS to "지도 기능",
+            ).forEach { (item, label) ->
                 TextButton(onClick = { onSection(item) }, modifier = Modifier.weight(1f)) {
                     Text(
                         label,
@@ -558,9 +631,9 @@ private fun MissingMapConfiguration() {
     }
 }
 
-private fun canSearchMovedArea(state: MapUiState): Boolean {
-    val candidate = state.cameraCandidate ?: return false
-    val origin = state.searchOrigin ?: return false
+private fun canSearchMovedArea(candidate: GeoPoint?, origin: GeoPoint?): Boolean {
+    candidate ?: return false
+    origin ?: return false
     return abs(candidate.latitude - origin.latitude) > 0.0005 ||
         abs(candidate.longitude - origin.longitude) > 0.0005
 }

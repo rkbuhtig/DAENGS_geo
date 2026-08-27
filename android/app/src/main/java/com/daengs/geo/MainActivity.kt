@@ -28,6 +28,9 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -38,6 +41,7 @@ import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.daengs.geo.map.MapScreen
 import com.daengs.geo.map.MapViewModel
+import com.daengs.geo.map.features.places.DEFAULT_PLACE_KIND
 
 class MainActivity : ComponentActivity() {
     private val viewModel: MapViewModel by viewModels {
@@ -58,18 +62,28 @@ class MainActivity : ComponentActivity() {
             DaengsTheme {
                 val state by viewModel.uiState.collectAsStateWithLifecycle()
                 val context = LocalContext.current
+                var initialPlaceSearchStarted by remember { mutableStateOf(false) }
                 val hasLocationPermission =
                     ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) ==
                         PackageManager.PERMISSION_GRANTED
                 val permissionLauncher = rememberLauncherForActivityResult(
                     ActivityResultContracts.RequestMultiplePermissions(),
                 ) { grants ->
-                    if (grants.values.any { it }) viewModel.locateAndSearch()
+                    if (grants.values.any { it } && !initialPlaceSearchStarted) {
+                        initialPlaceSearchStarted = true
+                        viewModel.searchPlaces(listOf(DEFAULT_PLACE_KIND))
+                    }
                 }
 
                 LaunchedEffect(hasLocationPermission) {
-                    if (hasLocationPermission && state.deviceLocation == null && !state.loading) {
-                        viewModel.locateAndSearch()
+                    if (
+                        hasLocationPermission &&
+                        state.placeDiscovery.requestedKinds.isEmpty() &&
+                        !state.loading &&
+                        !initialPlaceSearchStarted
+                    ) {
+                        initialPlaceSearchStarted = true
+                        viewModel.searchPlaces(listOf(DEFAULT_PLACE_KIND))
                     }
                 }
 
@@ -79,8 +93,19 @@ class MainActivity : ComponentActivity() {
                         mapConfigured = BuildConfig.NAVER_MAP_NCP_KEY_ID.isNotBlank(),
                         onCameraIdle = viewModel::onCameraIdle,
                         onCameraGesture = viewModel::onCameraGesture,
-                        onSearchArea = viewModel::searchPinnedArea,
-                        onMyLocation = viewModel::followMyLocation,
+                        onSearchHospitalArea = viewModel::searchPinnedArea,
+                        onHospitalMyLocation = viewModel::followMyLocation,
+                        onSearchPlaces = { kind, preferParking ->
+                            viewModel.searchPlaces(listOf(kind), preferParking)
+                        },
+                        onSearchPlacesAtCamera = { kind, preferParking ->
+                            viewModel.searchPlacesAtCamera(listOf(kind), preferParking)
+                        },
+                        onPlaceMyLocation = { kind, preferParking ->
+                            viewModel.locateAndSearchPlaces(listOf(kind), preferParking)
+                        },
+                        onRetryPlaces = viewModel::retryPlaceSearch,
+                        onSelectPlace = viewModel::selectPlace,
                         onAction = viewModel::execute,
                         onRetry = viewModel::retry,
                         onHundredMeters = viewModel::searchAtHundredMeters,
@@ -136,7 +161,7 @@ private fun LocationPermissionScreen(onRequest: () -> Unit) {
     ) {
         Surface(shape = RoundedCornerShape(24.dp), tonalElevation = 4.dp) {
             Column(modifier = Modifier.padding(24.dp)) {
-                Text("내 주변 병원을 지도에서 찾아볼게요", style = MaterialTheme.typography.headlineSmall)
+                Text("내 주변 장소를 지도에서 찾아볼게요", style = MaterialTheme.typography.headlineSmall)
                 Spacer(Modifier.height(12.dp))
                 Text("앱을 사용하는 동안의 위치만 요청합니다. 산책을 시작하기 전에는 백그라운드 위치를 사용하지 않아요.")
                 Spacer(Modifier.height(20.dp))
