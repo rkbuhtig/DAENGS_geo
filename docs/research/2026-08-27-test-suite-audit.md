@@ -25,7 +25,7 @@ pass 가 진행되고 다른 갈래가 머지되면 총계는 달라진다 — �
 |---|---|---|
 | `search/` → `discovery/` | import 1위가 `app.discovery`(38건). `search` 라는 패키지는 없다 | **Pass 1 완료** |
 | `walk/` | walk 7파일 + **territory 6** + scene 1 — 코드는 셋으로 갈랐는데 테스트는 한 방 | Pass 2 |
-| `facility/` | `geo`(hours·pet_axes·icons) + `ingest` + `place` 혼재. `facility` 는 #65 가 내부 용어로 격하한 어휘 | Pass 3 |
+| `facility/` | `geo`+`ingest`+`place` 혼재. #65 가 내부 용어로 격하한 어휘 | **Pass 3 완료 — 해체** |
 | `place/` `providers/` `usage/` `api/` | 대상과 대체로 일치 | Pass 4 |
 
 배치 원칙은 **primary owner** 다 — 그 테스트가 주로 무엇을 지키는지를 보고 그 패키지 밑에
@@ -51,7 +51,7 @@ docstring 이 적어놨다.
 | 대상 | 무엇이 안 지켜지나 | 배정 |
 |---|---|---|
 | `GET /places` (legacy) | 응답 계약 | Pass 4 |
-| `/anchor/search` | `truncated` 경계 | Pass 3 |
+| `/anchor/search` | `truncated` 경계 | **Pass 3 완료** |
 | `providers.naver` · `kakao` | 파싱·인증 헤더. fake 경유만 있다 (tmap 은 truthfulness 가 커버) | Pass 4 |
 | `providers.registry.build` | 키 유무별 제공사 선택 | Pass 4 |
 | `journey.handoff` | 딥링크 생성 | Pass 4 |
@@ -63,8 +63,36 @@ docstring 이 적어놨다.
 - [x] **Pass 0** — 지도 (이 문서)
 - [x] **Pass 1** — `search/` → `discovery/`. 아래 참고
 - [x] **Pass 2** — `walk/` 를 가른다. 아래 참고
-- [ ] **Pass 3** — `facility/` 해체 + `place/` 정합, `/anchor` 공백
+- [x] **Pass 3** — `facility/` 해체. 아래 참고
 - [ ] **Pass 4** — providers·usage·api 정합 + 남은 공백 전부
+
+### Pass 3 결과
+
+`tests/facility/` 를 해체했다. `facility` 는 결정 #65 가 내부 용어로 격하한 어휘라
+디렉토리 이름으로 남길 이유가 없다.
+
+    tests/geo/          hours · pet_axes · icon_groups          순수 규칙
+    tests/ingest/       anchor_select · mois_ingest             적재
+    tests/place/        place_kind_mapping                      분류 계약
+    tests/integration/  facility_layer · facility_ranking
+                        · pet_filter                            관통 계약 (신설)
+
+`tests/integration/` 을 새로 만든 이유: 남은 셋은 **적재 → 파생 → 검색을 한 진실로
+관통하는지**를 보는 테스트다. `test_pet_filter` 의 docstring 이 그대로 그렇게 적혀 있고
+(`pet` 축이 적재→파생→검색까지 한 진실로 흐르는지), `test_facility_layer` 는 재적재 후
+id 유지와 두 원천 병합을 본다. primary owner 가 없는 것이 **성격**이므로, 억지로 한
+패키지에 배정하지 않고 성격을 이름으로 드러낸다 — 배치 원칙의 "경계 자체가 계약" 예외군이다.
+
+`/anchor/search` 공백도 메웠다 (`tests/api/test_anchor_search.py`). 핸들러가 `limit + 1`
+개를 뽑아 초과를 판단하는 구조라 **경계에서만 틀린다** — 정확히 `limit` 개일 때 `truncated`
+가 새거나, `limit + 1` 인데 삼키거나. 3·5·6 개를 상한 5 로 조회해 그 전환점을 고정했다.
+격리는 좌표로 한다(동해 먼바다 한 칸) — 실적재 48만 행과 안 섞인다.
+
+같이 넣은 `kind` 테스트는 처음에 "필터가 상한보다 먼저 걸린다"고 주장했는데, **SQL 을
+filter-after-limit 로 뒤집어도 통과했다.** 4행/상한 10 fixture 로는 순서가 드러나지 않는다.
+주장을 "미지정은 전체, 지정하면 그 kind 만"으로 낮췄다 — 이 시리즈가 매 pass 마다 묻는
+"무엇을 못 보나"를 **새로 쓴 테스트 자신에게** 적용해서 나온 것이다. 테스트를 늘리는 것보다
+주장과 검출력을 맞추는 쪽이 먼저다.
 
 ### Pass 2 결과
 
