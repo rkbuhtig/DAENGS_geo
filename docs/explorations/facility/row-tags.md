@@ -45,7 +45,10 @@ implementation: none
       → `app/place/restriction_map.py`. 291/291 상태 배정, mapped 행 94%
 - [ ] `travel` 유형어 목록 확정 (~25어). 토큰 채굴 결과가 씨앗
 - [ ] 태그 커버리지 계수의 응답 형식 — `PlaceSort.coverage` 와 같은 자리인가 별도인가
-- [ ] 배치 진입점 — `python -m app.ingest tags` 형태인가. `pet_axes` 가 선례
+      (`restriction_state` 3상태를 그대로 세면 된다 — 저장은 PR 2 에서 끝났다)
+- [x] 배치 진입점 — `python -m app.ingest restrictions` (`pet_axes` 선례 그대로).
+      리비전 `0018` 이 두 축(`restriction_state` × `parse_state`)과 술어 JSONB 를 만든다.
+      33,611행 파생 확인 — 실측은 [측정 §5-1](../../research/2026-08-27-tag-material.md)
 - [ ] LLM 잔여 레인(언어유희 137곳)을 누가 도는가 — [#53](../../decisions/2026-08-24-agent-parallel-response.md)
       팀 경계와 묶인다
 

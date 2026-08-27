@@ -91,6 +91,7 @@ implementation: working
 uv run alembic upgrade head
 uv run python -m app.ingest pet-axes                     # 축이 빈 행만
 uv run python -m app.ingest pet-axes --all --source kcisa  # 문턱값 바꾼 뒤 한 원천만
+uv run python -m app.ingest restrictions                   # 같은 봉투의 restrictions 축 (결정 #70)
 ```
 
 리비전을 추가하면 `app/core/schema_revision.py` 의 `LEGACY_MARKERS` 에도 지표를 넣어야 한다.
@@ -99,7 +100,11 @@ uv run python -m app.ingest pet-axes --all --source kcisa  # 문턱값 바꾼 �
 
 ## 안 하는 것
 
-- **`restrictions` 파싱.** 자유 서술이고 값이 제각각이다. 표시용으로만 낸다
+- ~~**`restrictions` 파싱.** 자유 서술이고 값이 제각각이다. 표시용으로만 낸다~~
+  → **뒤집혔다** ([결정 #70](../../decisions/2026-08-27-place-row-tags.md), [row-tags](row-tags.md)).
+  "값이 제각각" 이 맞긴 한데 **종류가 291개뿐**이라 사람이 전수 판독할 수 있는 양이었다.
+  정규식으로 파싱하는 것은 여전히 안 한다 — 판독표(`place/restriction_map.py`)가 하고,
+  표에 없는 문장은 추측 없이 원문으로 남는다
 - **`extra_fee` 를 금액으로.** 채움률 1.8%(427행). 유무 판단조차 표본이 모자라 이번엔 축을 안 만든다
 - **KTO `acmpy*` 매핑.** 상세가 붙은 게 246행(2.5%)뿐이라 지금 매핑표를 만들면 근거 없이 굳는다.
   KTO 상세 수집률이 오르면 그때 같은 축으로 흡수한다
