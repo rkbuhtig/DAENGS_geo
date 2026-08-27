@@ -53,6 +53,14 @@ depends-on: decisions/2026-08-26-walk-permanent-spatial-form.md (#69), app/featu
 | **A. 기록 가치** | "내가 이렇게 다녔구나" 가 재밌나 |
 | **B. 해석 가치** | "저녁에는 이쪽으로 몰리는구나" 가 새 정보인가 |
 | **C. 행동 가치** | "오늘은 최근 덜 간 곳 가볼까" 가 실제 선택에 영향을 줄 것 같나 |
+| **D. 도착 가치** | 이 문장이 **앱을 안 열었는데 도착하면** 좋냐, 짜증이냐 |
+
+D 가 [evidence-layer] 프레임에서 추가됐다. 장면의 다섯 비트가 전부 pull 이고 "앱을 연다" 로
+시작하는데, **더 나은 모델은 안 열어도 AI 가 알아서 가져오는 쪽**이다. 그 표면은 기준이 더
+높다 — 안 여는 지도는 무시되지만 **틀린 푸시는 끄게 만든다.** 분모를 끝까지 들고 온 것이
+여기서 값을 한다: `5/7` 로 "요즘 뜸하시네요" 라고 단정하는 푸시는 [U2] 가 피해 온 "비율의
+거짓 확신" 의 최악 형태다. `trustworthy` 가 화면 장식이 아니라 **문장을 보낼지 말지의
+게이트**가 된다.
 
 셋의 조합이 다음 방향을 정한다.
 
@@ -87,9 +95,19 @@ depends-on: decisions/2026-08-26-walk-permanent-spatial-form.md (#69), app/featu
 ## 단위
 
     E1  장면 문서 + region_visit_rate          완료
-    E2  경험 질의 → deterministic JSON 하나    ← 여기
-    E3  그 JSON 을 먹는 화면
-    E4  판정 A/B/C — 결과를 이 문서에 기록
+    E2  경험 질의 → deterministic JSON 하나    완료
+    E3  Evidence + 고르기 + 영수증 화면        ← 다음
+    E4  판정 A/B/C/D — 결과를 이 문서에 기록
+
+E3 은 원래 "그 JSON 을 먹는 화면" 이었는데 [evidence-layer] 프레임을 잡으면서 바뀌었다.
+**사람이 지도를 열어 패턴을 찾는 게 아니라, 시스템이 근거를 만들고 AI 가 지금 말할 가치가
+있는 것을 가져오며, 지도는 "왜 그런 말을 했는지" 를 펼치는 영수증**이 된다. 그래서 E3 의
+질문도 "화면을 만들 수 있나" 가 아니라 이것이다.
+
+> 우리 시공간 자료를 **AI 가 스스로 읽고 말할 만한 근거**로 바꿀 수 있나.
+
+산출물 둘 — 근거 목록(후보 전부 + 무엇이 왜 뽑혔는지)과 그것을 펼치는 영수증 화면.
+LLM 은 아직 안 붙인다. 결정론적 순위 + 템플릿 문장까지다.
 
 E2 의 완료 조건은 "화면을 만들 수 있다" 가 아니라 **장면의 모든 숫자와 카드가 JSON 하나로
 나온다** 이다. 화면 없이 JSON 만 읽어도 장면이 재연돼야 한다.
@@ -130,8 +148,10 @@ E2 의 완료 조건은 "화면을 만들 수 있다" 가 아니라 **장면의 
 
 ## 어디에 사나
 
-    app/geo/          순수 공간 연산 — region_visit_rate 까지
-    app/features/territory/experience.py   화면이 쓸 질의 조합 (E2)
+    app/geo/cells.py  산책을 모르는 격자 수학만
+    app/features/territory/  paint · region · layers · experience — 산책 사실의 소비자
+
+`app/features/territory/` 는 [evidence-layer] 의 Instruments~Judgment 구간을 산다.
 
 **geo 가 "익숙함이란 무엇인가" 를 소유하지 않게 한다.** 지금은 `익숙함 = 방문률 높음` 으로
 빠르게 실험해도 되지만, 나중에 recency · 체류 · 계절 안정성으로 바뀔 수 있다. 스켈레톤의
@@ -144,6 +164,8 @@ E2 의 완료 조건은 "화면을 만들 수 있다" 가 아니라 **장면의 
 - **장면이 바뀐다.** 비트를 고치면 금지 목록도 같이 봐야 한다 — 목록은 "지금 장면에 필요
   없는 것" 이지 "영원히 안 만드는 것" 이 아니다.
 
+[evidence-layer]: evidence-layer.md
+[U2]: ../../research/2026-08-26-storage-candidates.md
 [회수 실험]: ../../research/2026-08-26-cellophane-recovery.md
 [뷰어 실험]: ../../research/2026-08-26-layer-viewer.md
 [#69]: ../../decisions/2026-08-26-walk-permanent-spatial-form.md
