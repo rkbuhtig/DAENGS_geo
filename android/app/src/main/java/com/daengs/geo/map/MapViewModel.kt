@@ -124,16 +124,7 @@ class MapViewModel(
         }
         viewModelScope.launch {
             placeDiscovery.state.collect { discovery ->
-                _uiState.update {
-                    it.copy(
-                        placeDiscovery = discovery,
-                        searchOrigin = if (discovery.response != null) {
-                            discovery.origin
-                        } else {
-                            it.searchOrigin
-                        },
-                    )
-                }
+                _uiState.update { it.copy(placeDiscovery = discovery) }
             }
         }
     }
@@ -255,9 +246,9 @@ class MapViewModel(
             _uiState.update {
                 it.copy(request = RequestKind.LOCATION, failedRequest = null, error = null)
             }
-            val sample = fetchDeviceFix()
-            if (sample == null || pendingPlaceIntent != intent) return@launch
-            beginPlaceDiscovery(sample.point, intent)
+            val realOrigin = fetchRealDevicePoint()
+            if (realOrigin == null || pendingPlaceIntent != intent) return@launch
+            beginPlaceDiscovery(realOrigin, intent)
         }
     }
 
@@ -367,6 +358,18 @@ class MapViewModel(
             }
             .onFailure { error -> showError(error, RequestKind.LOCATION) }
             .getOrNull()
+
+    /** Canonical searches may use only the state slot that already rejects replay/mock fixes. */
+    private suspend fun fetchRealDevicePoint(): GeoPoint? {
+        if (fetchDeviceFix() == null) return null
+        return _uiState.value.deviceLocation ?: run {
+            showError(
+                IllegalStateException("가상 위치로는 주변 장소를 검색할 수 없어요."),
+                RequestKind.LOCATION,
+            )
+            null
+        }
+    }
 
     /** The only place the screen-owned feed starts. Walk recording has a different owner. */
     private fun switchFeed(

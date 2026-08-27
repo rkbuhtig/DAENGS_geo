@@ -332,8 +332,25 @@ class MapViewModelTest {
         assertEquals(listOf(PlaceKind.CAFE, PlaceKind.HOSPITAL), request.kinds)
         assertEquals(places.response, state.placeDiscovery.response)
         assertEquals(PlaceKey("kcisa", "cafe-parking"), state.placeDiscovery.selectedPlaceKey)
-        assertEquals(request.origin, state.searchOrigin)
+        assertEquals(request.origin, state.placeDiscovery.origin)
+        assertNull("canonical origin must not overwrite the legacy hospital origin", state.searchOrigin)
         assertNull(state.request)
+    }
+
+    @Test
+    fun `a mock current fix never becomes a canonical place search origin`() = runTest {
+        val source = FakeLocationSource(fix = fix(35.1796, 129.0756, isMock = true))
+        val places = FakePlaceSearchRepository(response = PlaceSearchResponse(null, emptyList()))
+        val viewModel = viewModel(source, places = places)
+
+        viewModel.searchPlaces(listOf(PlaceKind.CAFE))
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertTrue(places.requests.isEmpty())
+        assertNull(state.deviceLocation)
+        assertEquals(RequestKind.LOCATION, state.failedRequest)
+        assertEquals("가상 위치로는 주변 장소를 검색할 수 없어요.", state.error)
     }
 
     @Test
