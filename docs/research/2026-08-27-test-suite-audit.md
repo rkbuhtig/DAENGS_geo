@@ -71,7 +71,7 @@ docstring 이 적어놨다.
 
 남은 `test_cross_kind_rows_are_neither_linked_nor_collapsed` 12.3s 는 **테스트 구조가
 아니라 프로덕션 쿼리가 느린 것**이다(직접 재보니 11.6s). 여기서 픽스처를 줄이면 전역 파생
-링크를 실제로 재구축하는지를 못 보게 되므로 건드리지 않는다 — 쿼리 최적화는 별건이다.
+링크를 실제로 재구축하는지를 못 보게 되므로 건드리지 않는다 — 쿼리 최적화는 별건이다. 조사 결과는 [link-rebuild-cost](2026-08-27-link-rebuild-cost.md) 에 있다.
 
 ## Pass 진행
 
