@@ -1,7 +1,7 @@
 {
   "why": "cells.py 는 'Python·Android·적재가 같은 셀 id 를 만든다' 고 주장한다. 각 언어의 테스트가 이 파일을 함께 읽어 그 주장을 지킨다 — 한쪽만 통과하는 테스트로는 세 구현이 같은 격자라는 보장이 없다.",
   "grid": "web-mercator axial hex, radius in grid units (not metres)",
-  "generator": "python -m app.geo.cells (see tests/walk/test_cells_golden.py)",
+  "generator": "python -m app.geo.cells (see tests/geo/test_cells_golden.py)",
   "cases": [
     {
       "lat": 37.4979,

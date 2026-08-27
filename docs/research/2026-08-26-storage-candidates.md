@@ -66,7 +66,7 @@ truth_pairs = {frozenset(p) for p in pairwise(truth_chain)}   # A→B 와 B→A 
 산책 하나를 선 하나로 만들면 pause·gap·jump 로 끊긴 자리가 선으로 이어지고, 그것은
 세션 연속성 문서 §7(PR #83, 병합 전)이 금지한 바로 그 오류다 — 관측하지 않은 이동을
 지어낸다. **chain 마다 따로 단순화**하고 chain 경계를 보존한다. 같은 규칙을 붓 쪽에서
-잰 것이 `tests/walk/test_multichain_paint.py`(PR #85, 병합 전)다.
+잰 것이 `tests/territory/test_multichain_paint.py`(PR #85, 병합 전)다.
 
 ## 결과 1 — §A 의 추정은 14배 틀렸다
 
