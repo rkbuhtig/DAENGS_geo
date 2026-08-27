@@ -73,8 +73,13 @@ async def test_truncated_flips_exactly_at_the_limit(
 
 
 @pytest.mark.asyncio
-async def test_kind_filter_narrows_without_touching_the_limit() -> None:
-    """`kind` 미지정이 '전부'라는 기본값. 필터가 상한 판단보다 먼저 걸린다."""
+async def test_kind_filter_defaults_to_all() -> None:
+    """`kind` 미지정은 전체, 지정하면 그 kind 만.
+
+    **필터와 상한의 순서는 주장하지 않는다.** 이 fixture(4행, 상한 10)로는 SQL 을
+    filter-after-limit 로 뒤집어도 그대로 통과한다 — 실제로 뒤집어 보고 확인했다.
+    그 계약까지 잠그려면 상한보다 많은 혼합 kind 를 심는 별도 설계가 필요하다.
+    """
     async with db_session() as session:
         try:
             await _seed(session, 4)
