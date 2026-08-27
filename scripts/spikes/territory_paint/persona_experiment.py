@@ -10,7 +10,7 @@
 > 산책을 독립된 장으로 보존하고 태그로 다시 골라 겹치면, **전체 누적에서는 사라지는**
 > 행동 맥락을 복구할 수 있다.
 
-`persona_year` 가 정답을 아는 1년치를 만들었다. 여기서는 질의층(`app/geo/layers.py`)만
+`persona_year` 가 정답을 아는 1년치를 만들었다. 여기서는 질의층(`app/features/territory/layers.py`)만
 써서 지도를 만들고, **정답지와 대조해 숫자로** 회수 여부를 판정한다.
 
 `truth_only` 는 이 파일의 평가 함수만 본다. `LayerSpec` 은 절대 보지 않는다 — 보면 실험이
@@ -41,8 +41,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from itertools import pairwise
 
-from app.geo.cells import GRID_VERSION, Cell
-from app.geo.layers import (
+from app.features.territory.layers import (
     Aggregation,
     LayerSpec,
     Projection,
@@ -53,7 +52,8 @@ from app.geo.layers import (
     rate_diff,
     render,
 )
-from app.geo.paint import NARROW_STEP, Cellophane, paint_sheet
+from app.features.territory.paint import NARROW_STEP, Cellophane, paint_sheet
+from app.geo.cells import GRID_VERSION, Cell
 from scripts.spikes.territory_paint.paint import segments_for
 
 RADIUS_U = 15.0

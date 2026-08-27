@@ -30,11 +30,11 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
+from app.features.territory.paint import NARROW_STEP, BrushProfile, paint_sheet, stack
+from app.features.territory.region import Region, region_encounters
 from app.features.walk.facts import MAX_GAP_S, MAX_JUMP_M, Segment, compute_facts
 from app.features.walk.models import WalkFix
 from app.geo.cells import cell_size_m, hex_cell
-from app.geo.paint import NARROW_STEP, BrushProfile, paint_sheet, stack
-from app.geo.region import Region, region_encounters
 
 EARTH_R = 6_371_000.0
 LAT, LNG = 37.4979, 127.0276

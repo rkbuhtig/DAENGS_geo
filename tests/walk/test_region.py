@@ -8,16 +8,16 @@
 import math
 from datetime import UTC, datetime, timedelta
 
-from app.features.walk.facts import compute_facts
-from app.features.walk.models import WalkFix
-from app.geo.cells import cell_id, hex_cell
-from app.geo.region import (
+from app.features.territory.region import (
     Region,
     cell_visits,
     dwell_by_region,
     region_dwell_from_cells,
     region_encounters,
 )
+from app.features.walk.facts import compute_facts
+from app.features.walk.models import WalkFix
+from app.geo.cells import cell_id, hex_cell
 
 EARTH_R = 6_371_000.0
 LAT0, LNG0 = 37.4979, 127.0276

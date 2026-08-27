@@ -42,7 +42,7 @@ depends-on: contracts/walk-record.md (WalkFacts), app/geo/cells.py 격자
 
 ### 2. 사용자가 면을 그린다 — [parked](drawn-region.md)
 
-구현과 측정이 있다(`app/geo/region.py`). 접은 이유는 사용자가 **먼저** 그려야 한다는 것과,
+구현과 측정이 있다(`app/features/territory/region.py`). 접은 이유는 사용자가 **먼저** 그려야 한다는 것과,
 원좌표 purge 때문에 나중에 그린 면이 과거 산책을 못 본다는 것이다. 그 문서에 남긴
 손익분기 규칙(면 한 변 ÷ 셀 반지름이 실제 비로 4~5배)은 셀 격자를 쓰는 한 계속 유효하다.
 
@@ -69,7 +69,7 @@ depends-on: contracts/walk-record.md (WalkFacts), app/geo/cells.py 격자
 
 ## 지금 서 있는 것
 
-`app/geo/paint.py` — 순수함수. 셀마다 세 값을 쌓는다.
+`app/features/territory/paint.py` — 순수함수. 셀마다 세 값을 쌓는다.
 
 | | 뜻 | 왜 하나로 안 되나 |
 |---|---|---|
@@ -235,7 +235,7 @@ A − B   여름에만 가 본 곳
 
 ## 검증됨 (2026-08-26)
 
-`LayerSpec`(`app/geo/layers.py`)과 정답 심은 1년치로 파이프라인 전체를 쟀다 —
+`LayerSpec`(`app/features/territory/layers.py`)과 정답 심은 1년치로 파이프라인 전체를 쟀다 —
 [셀로판 회수 실험](../../research/2026-08-26-cellophane-recovery.md). 6 기준 전부 통과.
 
 가장 센 결과는 F1/F2 다. **같은 집·같은 경로·같은 연간 횟수, 계절 배정만 정반대**인 두

@@ -51,6 +51,8 @@ Companion = str  # journey.models.Companion 과 같은 값. 순환 import 를 �
 
 같은 층 안(`features/*` 형제끼리, `api` ↔ `features`)의 의존은 방향 규칙이 아니라 **DAG
 규칙**을 받는다 — `features.scene → features.walk`(소비자 → 생산자)는 허용이고 그 역은 아니다.
+`features` 를 한 점으로 보면 형제 순환이 자기 자신으로 접혀 사라지므로, 방향 테스트는 형제를
+갈라서 잰다.
 
 `ingest` 는 인프라가 아니라 **batch 응용**이다. HTTP 가 `api`·`features` 로 들어오듯
 `python -m app.ingest` 로 들어온다. `ingest/anchors.py:29` 가 `geo.cells` 를 쓰는 것은
@@ -136,7 +138,7 @@ app/
 │   └── refine/    engine · tools · diff · actions · labels · nl(parked)
 ├── place/
 ├── journey/       contract.py(Companion · WalkPlan · JourneyPlan) · engine · models …
-├── features/      hospital/ · pharmacy/ · walk/ · scene/
+├── features/      hospital/ · pharmacy/ · walk/ · scene/ · territory/ · journey/
 ├── ingest/        batch 응용 — __main__ 이 진입점
 ├── api/           공용 조회 어댑터
 └── main.py        HTTP 진입점 조립
@@ -148,6 +150,12 @@ app/
 `search` 가 아닌 이유는 `EditableState` 에 `journey`·`view` 가 함께 들어 있고
 `/journey` 도 같은 resolver 를 쓰기 때문이다. 결정 #65 의 place-first discovery 와도
 어휘가 맞는다.
+
+`territory`(`paint` · `region` · `layers`)도 같은 이유로 `features/` 로 내려간다. 셋 다
+`features.walk.facts.Segment` 를 소비하는데 `geo/` 에 앉아 있어서 `geo → features` 역방향이었고,
+그 두 줄이 `discovery → journey → geo → features → discovery` **4-패키지 순환을 닫는 마지막
+고리**였다. `paint`·`region` 만 옮기면 `geo.layers → features` 가 새로 생기므로 셋을 한 소비
+기능으로 본다. `geo/` 에는 산책을 모르는 공간 원시(`cells.py`)만 남는다.
 
 `scene` 은 `features/` 로 내려가되 `walk` 와 **형제로 남는다.** `features/walk/__init__.py`
 가 "수집한다. 판정·보상·서술·알림은 하지 않는다"고 못 박은 경계는 결정 #51 의 산물이다.

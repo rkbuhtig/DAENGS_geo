@@ -7,7 +7,7 @@ uv run python -m scripts.spikes.territory_paint.real_route --json walks.json    
 uv run python -m scripts.spikes.territory_paint.paint --walks walks.json          # 프로파일별로 칠하기
 ```
 
-코드는 `app/geo/paint.py`, 갈래는 [territory-paint](../explorations/walk/territory-paint.md).
+코드는 `app/features/territory/paint.py`, 갈래는 [territory-paint](../explorations/walk/territory-paint.md).
 
 > **2026-08-26 재측정.** 첫 판은 격자 좌표(Web Mercator)를 그대로 미터로 썼다 — 위도 37.5°
 > 에서 1 단위가 실제 0.79m 라, `3·8·20` 밴드가 실제 2.4·6.3·15.9m 로 동작하고 넓이는 1.6배로
@@ -49,7 +49,7 @@ uv run python -m scripts.spikes.territory_paint.paint --walks walks.json        
 
 ## 잰 것
 
-세 값을 셀마다 쌓는다 (`app/geo/paint.py`).
+세 값을 셀마다 쌓는다 (`app/features/territory/paint.py`).
 
 | | 뜻 |
 |---|---|

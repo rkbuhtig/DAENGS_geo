@@ -17,7 +17,7 @@ import pickle
 from dataclasses import asdict
 from datetime import UTC, datetime
 
-from app.geo.paint import NARROW_STEP, Cellophane
+from app.features.territory.paint import NARROW_STEP, Cellophane
 
 
 def _sheet(walk_id: str) -> Cellophane:

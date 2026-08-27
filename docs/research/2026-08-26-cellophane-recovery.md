@@ -7,7 +7,7 @@ uv run python -m scripts.spikes.territory_paint.persona_year --cache osm.json --
 uv run python -m scripts.spikes.territory_paint.persona_experiment --personas personas.json --cache-sheets sheets.pkl
 ```
 
-코드는 `app/geo/layers.py` · `scripts/spikes/territory_paint/persona_{year,experiment}.py`.
+코드는 `app/features/territory/layers.py` · `scripts/spikes/territory_paint/persona_{year,experiment}.py`.
 갈래는 [territory-paint](../explorations/walk/territory-paint.md).
 
 ## 무엇을 물었나

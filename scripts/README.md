@@ -28,7 +28,7 @@ uv run python -m scripts.spikes.territory_paint.storage_candidates --personas pe
 통째로 지운다. 갈래가 `exploring` 인 동안에는 아무것도 지우지 않는다.
 
 **지우기 전에 참조를 확인한다.** 스파이크는 재현 장치이면서 동시에 **프로덕션 코드의 근거**
-이기도 하다 — `app/geo/cells.py` 와 `app/geo/region.py` 의 도크스트링이 셀 반지름을 고른
+이기도 하다 — `app/geo/cells.py` 와 `app/features/territory/region.py` 의 도크스트링이 셀 반지름을 고른
 근거로 `region_fidelity.py` 를 가리킨다. 그냥 지우면 살아 있는 코드가 없는 파일을 가리킨다.
 
 ```bash

@@ -1,4 +1,4 @@
-"""붓과 셀로판 계약. `app/geo/paint.py`.
+"""붓과 셀로판 계약. `app/features/territory/paint.py`.
 
 이 파일이 지키는 것 둘이 리뷰에서 나온 실제 버그다.
 
@@ -11,10 +11,7 @@
 import math
 from datetime import UTC, datetime, timedelta
 
-from app.features.walk.facts import compute_facts
-from app.features.walk.models import WalkFix
-from app.geo.cells import cell_area_m2, cell_size_m, hex_cell, hex_center_latlng
-from app.geo.paint import (
+from app.features.territory.paint import (
     NARROW_SMOOTH,
     NARROW_STEP,
     brush_stamp,
@@ -23,6 +20,9 @@ from app.geo.paint import (
     paint_sheet,
     stack,
 )
+from app.features.walk.facts import compute_facts
+from app.features.walk.models import WalkFix
+from app.geo.cells import cell_area_m2, cell_size_m, hex_cell, hex_center_latlng
 
 EARTH_R = 6_371_000.0
 START = datetime(2026, 7, 1, tzinfo=UTC)

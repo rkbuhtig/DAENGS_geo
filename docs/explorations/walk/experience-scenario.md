@@ -2,7 +2,7 @@
 status: exploring
 implementation: draft
 last_verified: 2026-08-26
-depends-on: decisions/2026-08-26-walk-permanent-spatial-form.md (#69), app/geo/layers.py
+depends-on: decisions/2026-08-26-walk-permanent-spatial-form.md (#69), app/features/territory/layers.py
 ---
 # 저녁 산책 나가기 직전 — 셀로판이 사용자에게 무슨 가치를 만드나
 

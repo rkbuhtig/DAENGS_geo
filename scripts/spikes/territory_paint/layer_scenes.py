@@ -27,8 +27,8 @@ import argparse
 import json
 import sys
 
+from app.features.territory.layers import Aggregation, LayerSpec, Projection, Selector, render
 from app.geo.cells import GRID_VERSION, hex_center_latlng
-from app.geo.layers import Aggregation, LayerSpec, Projection, Selector, render
 from scripts.spikes.territory_paint.persona_experiment import PROFILE, RADIUS_U, load
 
 # 뷰어가 보여줄 전부. 실험이 실제로 답한 조합만 남긴다.

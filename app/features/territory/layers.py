@@ -37,9 +37,9 @@ from collections.abc import Callable, Iterable
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime
 
+from app.features.territory.paint import Cellophane, Paint, stack
+from app.features.territory.region import Region, _point_in_ring, _projector
 from app.geo.cells import GRID_VERSION, Cell, hex_center_latlng
-from app.geo.paint import Cellophane, Paint, stack
-from app.geo.region import Region, _point_in_ring, _projector
 
 LAYER_SPEC_VERSION = 1
 
