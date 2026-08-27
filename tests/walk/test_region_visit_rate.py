@@ -228,8 +228,8 @@ def test_min_peak_defaults_to_the_aggregation_the_layer_uses():
     assert region_visit_rate(sheets, _spec(min_peak=0.4), PARK, min_peak=0.0).min_peak == 0.0
 
 
-def test_no_selected_walks_is_zero_not_a_crash():
-    """조건에 걸린 산책이 없으면 0/0 이다. 화면이 이걸 그대로 받아야 한다."""
+def test_no_selected_walks_has_no_rate_instead_of_claiming_zero_percent():
+    """0/0 은 미방문 0/10 과 다르므로 화면에 0%라고 전달하지 않는다."""
     empty = LayerSpec(
         selector=Selector.of(since=datetime(2030, 1, 1, tzinfo=UTC).date()),
         aggregation=Aggregation(metric="walks"),
@@ -237,4 +237,4 @@ def test_no_selected_walks_is_zero_not_a_crash():
     )
     rate = region_visit_rate(_three_walks(), empty, PARK)
     assert (rate.visited, rate.selected, rate.total) == (0, 0, 3)
-    assert rate.rate == 0.0
+    assert rate.rate is None
