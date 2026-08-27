@@ -8,6 +8,7 @@
 - 산책: off / paused / recording
 
 코드 계약은 `LocationOwnershipPolicy`, 전 조합 고정은 `LocationOwnershipPolicyTest`가 맡는다.
+정책에 따라 화면 tracker를 실제로 시작·중단하는 단일 주체는 `LocationFeedCoordinator`다.
 
 | 화면 | feed | 산책 | 연속 위치 소유자 |
 |---|---|---|---|
@@ -33,6 +34,6 @@
 미러라서, `start()` 와 다음 emission 사이에는 아직 `OFF` 로 읽힌다 — 그 창에서 소유권을 판정하면
 두 번째 구독이 열린다.
 
-이 정책은 소유자만 판정한다. tracker 시작·중단, replay source 교체, UI 메시지는 현재
-`MapViewModel`에 남아 있다. 다음 단계에서 이 부수효과를 별도 coordinator로 옮기더라도 이 표와
-테스트는 바뀌지 않아야 한다.
+이 정책은 소유자만 판정한다. tracker 시작·중단, replay source 교체, 앱 visibility와 산책 상태에
+따른 전환은 `LocationFeedCoordinator`가 맡는다. `MapViewModel`에는 검색 명령과 화면 상태 투영만
+남으며, `WalkTrackingService`는 기록 중인 실제 GPS 구독을 계속 독립 소유한다.

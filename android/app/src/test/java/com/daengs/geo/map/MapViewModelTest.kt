@@ -174,6 +174,25 @@ class MapViewModelTest {
     }
 
     @Test
+    fun `a service-owned walk fix still reaches the map and real device slot`() = runTest {
+        val source = FakeLocationSource(fix = fix(37.5665, 126.9780))
+        val walk = FakeWalkTrackingController()
+        val viewModel = viewModel(source, walk)
+        viewModel.onAppForeground()
+        viewModel.useDeviceLocation()
+        advanceUntilIdle()
+        viewModel.startTracking()
+
+        val serviceFix = fix(37.5700, 126.9800)
+        walk.publish(serviceFix)
+        advanceUntilIdle()
+
+        assertEquals(serviceFix, viewModel.uiState.value.feedSample)
+        assertEquals(serviceFix.point, viewModel.uiState.value.deviceLocation)
+        assertEquals(TrackingState.RECORDING, viewModel.uiState.value.trail.state)
+    }
+
+    @Test
     fun `pausing a visible walk returns the device feed to the screen`() = runTest {
         val source = FakeLocationSource(fix = fix(37.5665, 126.9780))
         val walk = FakeWalkTrackingController()
@@ -571,6 +590,10 @@ private class FakeWalkTrackingController : WalkTrackingController {
         mutableState.value = mutableState.value.copy(
             trail = mutableState.value.trail.copy(state = TrackingState.OFF),
         )
+    }
+
+    fun publish(sample: LocationSample) {
+        mutableState.value = mutableState.value.copy(lastSample = sample)
     }
 }
 

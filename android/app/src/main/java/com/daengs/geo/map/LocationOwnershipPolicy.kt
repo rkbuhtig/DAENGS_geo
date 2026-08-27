@@ -23,8 +23,8 @@ internal data class LocationOwnershipState(
  * Pure ownership contract for device, replay and foreground-service location subscriptions.
  *
  * It decides who may collect; it does not start a tracker or mutate UI state. Keeping those side
- * effects outside makes every state combination testable before the coordinator is extracted from
- * [MapViewModel].
+ * effects outside makes every state combination testable while [LocationFeedCoordinator] applies
+ * the decision to the screen tracker.
  */
 internal object LocationOwnershipPolicy {
     fun owner(state: LocationOwnershipState): LocationOwner = when {

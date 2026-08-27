@@ -143,7 +143,9 @@ AI와 태그 기반 검색은 현재 제품 검색 권한을 갖지 않는다.
 하나를 선택해 서로 다른 후보군의 순위를 섞지 않는다. 두 화면 모두 모든 후보를 유지하면서
 `compatible / incompatible / unknown` 분포와 명시적 주차 선호의 정렬 순서·사실 커버리지를
 표시한다. Android의 기존 병원 대화 화면은 상담 기능으로 임시 유지하며, canonical hospital
-카테고리로 장소 발견을 시작한 뒤 legacy 검색 제거는 후속으로 진행한다.
+카테고리로 장소 발견을 시작했다. `PlaceDiscoveryController`와 `LocationFeedCoordinator`가 검색
+수명주기와 화면 위치 구독을 각각 소유하므로 `MapViewModel`은 두 부수효과를 직접 관리하지 않는다.
+legacy 병원 검색 제거는 후속으로 진행한다.
 
 기존 `/hospital/search`, `/pharmacy/search`, `/facility/search`, `GET /places/search`는 소비자가
 새 계약으로 이동할 때까지 유지한다. HTTP method만 달리해 같은 경로를 legacy와 canonical로
