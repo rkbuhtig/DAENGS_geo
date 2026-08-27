@@ -249,6 +249,47 @@ class MapViewModelTest {
     }
 
     @Test
+    fun `start handoff blocks replay while the real service state is still off`() = runTest {
+        val source = FakeLocationSource(fix = fix(37.5665, 126.9780))
+        val walk = FakeWalkTrackingController(acknowledgeStartImmediately = false)
+        val viewModel = viewModel(source, walk)
+        viewModel.onAppForeground()
+        viewModel.useDeviceLocation()
+        advanceUntilIdle()
+
+        viewModel.startTracking()
+        assertEquals(TrackingState.OFF, walk.state.value.trail.state)
+        viewModel.startReplay(10.0)
+
+        assertEquals(1, source.subscriptions)
+        assertEquals(LocationFeed.DEVICE, viewModel.uiState.value.locationFeed)
+        assertEquals("동선 기록 중에는 가상 이동을 시작할 수 없어요.", viewModel.uiState.value.statusMessage)
+
+        walk.acknowledgeRecording()
+        advanceUntilIdle()
+        assertEquals(TrackingState.RECORDING, viewModel.uiState.value.trail.state)
+    }
+
+    @Test
+    fun `a synchronous service start failure rolls ownership back to the screen`() = runTest {
+        val source = FakeLocationSource(fix = fix(37.5665, 126.9780))
+        val walk = FakeWalkTrackingController(
+            startFailure = IllegalStateException("service start rejected"),
+        )
+        val viewModel = viewModel(source, walk)
+        viewModel.onAppForeground()
+        viewModel.useDeviceLocation()
+        advanceUntilIdle()
+
+        viewModel.startTracking()
+        advanceUntilIdle()
+
+        assertEquals("service start rejected", viewModel.uiState.value.error)
+        assertEquals(2, source.subscriptions)
+        assertEquals(LocationFeed.DEVICE, viewModel.uiState.value.locationFeed)
+    }
+
+    @Test
     fun `a production walk cannot start while replay owns the screen feed`() = runTest {
         val source = FakeLocationSource(fix = fix(37.5665, 126.9780))
         val walk = FakeWalkTrackingController()
@@ -557,7 +598,10 @@ private class FakePlaceSearchRepository(
     }
 }
 
-private class FakeWalkTrackingController : WalkTrackingController {
+private class FakeWalkTrackingController(
+    private val acknowledgeStartImmediately: Boolean = true,
+    private val startFailure: Throwable? = null,
+) : WalkTrackingController {
     private val mutableState = MutableStateFlow(WalkTrackingState())
     override val state: StateFlow<WalkTrackingState> = mutableState.asStateFlow()
 
@@ -568,6 +612,12 @@ private class FakeWalkTrackingController : WalkTrackingController {
 
     override fun start() {
         startCalls++
+        startFailure?.let { throw it }
+        if (!acknowledgeStartImmediately) return
+        acknowledgeRecording()
+    }
+
+    fun acknowledgeRecording() {
         mutableState.value = WalkTrackingState(
             trail = TrailSnapshot(state = TrackingState.RECORDING),
         )

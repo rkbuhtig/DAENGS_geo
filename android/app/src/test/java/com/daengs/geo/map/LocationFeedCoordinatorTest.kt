@@ -65,6 +65,84 @@ class LocationFeedCoordinatorTest {
     }
 
     @Test
+    fun `start handoff blocks replay until the service acknowledges recording`() = runTest {
+        val source = FakeCoordinatorLocationSource(fix = fix(37.5665, 126.9780))
+        val walk = MutableStateFlow(WalkTrackingState())
+        val coordinator = LocationFeedCoordinator(source, walk, backgroundScope)
+        coordinator.onAppForeground()
+        coordinator.requestDeviceFix()
+        runCurrent()
+        assertEquals(1, source.activeSubscriptions)
+
+        assertTrue(coordinator.prepareWalkStart() is LocationCommandResult.Accepted)
+        runCurrent()
+        assertEquals(0, source.activeSubscriptions)
+        assertEquals(
+            LocationCommandResult.Rejected("동선 기록 중에는 가상 이동을 시작할 수 없어요."),
+            coordinator.startReplay(10.0),
+        )
+        assertEquals(1, source.subscriptions)
+
+        walk.value = WalkTrackingState(trail = TrailSnapshot(state = TrackingState.RECORDING))
+        runCurrent()
+        assertEquals(0, source.activeSubscriptions)
+    }
+
+    @Test
+    fun `initial paused state materializes the device screen owner on foreground`() = runTest {
+        val source = FakeCoordinatorLocationSource(fix = fix(37.5665, 126.9780))
+        val walk = MutableStateFlow(
+            WalkTrackingState(trail = TrailSnapshot(state = TrackingState.PAUSED)),
+        )
+        val coordinator = LocationFeedCoordinator(source, walk, backgroundScope)
+        runCurrent()
+
+        coordinator.onAppForeground()
+        runCurrent()
+
+        assertEquals(1, source.subscriptions)
+        assertEquals(1, source.activeSubscriptions)
+    }
+
+    @Test
+    fun `initial recording state never starts a screen subscription`() = runTest {
+        val source = FakeCoordinatorLocationSource(fix = fix(37.5665, 126.9780))
+        val walk = MutableStateFlow(
+            WalkTrackingState(trail = TrailSnapshot(state = TrackingState.RECORDING)),
+        )
+        val coordinator = LocationFeedCoordinator(source, walk, backgroundScope)
+        coordinator.onAppForeground()
+        runCurrent()
+
+        assertEquals(0, source.subscriptions)
+        assertEquals(0, source.activeSubscriptions)
+    }
+
+    @Test
+    fun `resume handoff cannot reopen the screen feed before recording acknowledgement`() = runTest {
+        val source = FakeCoordinatorLocationSource(fix = fix(37.5665, 126.9780))
+        val walk = MutableStateFlow(
+            WalkTrackingState(trail = TrailSnapshot(state = TrackingState.PAUSED)),
+        )
+        val coordinator = LocationFeedCoordinator(source, walk, backgroundScope)
+        coordinator.onAppForeground()
+        runCurrent()
+        assertEquals(1, source.activeSubscriptions)
+
+        assertTrue(coordinator.prepareWalkResume() is LocationCommandResult.Accepted)
+        coordinator.onAppBackground()
+        coordinator.onAppForeground()
+        coordinator.requestDeviceFix()
+        runCurrent()
+
+        assertEquals(1, source.subscriptions)
+        assertEquals(0, source.activeSubscriptions)
+        walk.value = WalkTrackingState(trail = TrailSnapshot(state = TrackingState.RECORDING))
+        runCurrent()
+        assertEquals(0, source.activeSubscriptions)
+    }
+
+    @Test
     fun `finite replay returns to device without replacing the real fix`() = runTest {
         val device = FakeCoordinatorLocationSource(fix = fix(37.5665, 126.9780))
         val replayPoint = GeoPoint(35.1796, 129.0756)

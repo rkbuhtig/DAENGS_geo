@@ -47,6 +47,11 @@ app        DaengsApplication 조립점. DI 프레임워크 없음
 foreground 상태를 내리고 화면용 구독이 다시 주인이 된다. UI는 `WalkTrackingStore`의 상태를
 관찰할 뿐 산책 세션이나 `TrailRecorder`를 소유하지 않는다.
 
+시작·재개 명령을 보낸 뒤 서비스가 `RECORDING`을 publish하기 전까지는
+`WALK_SERVICE_PENDING`으로 소유권을 예약한다. 이 짧은 구간에도 replay나 화면 GPS를 다시 열지
+않는다. Activity가 일시정지 상태에서 다시 만들어져도 coordinator는 과거 전이 없이 현재
+`PAUSED` 상태를 적용해 화면 device feed를 복구한다.
+
 서비스는 `foregroundServiceType="location"`과 `FOREGROUND_SERVICE_LOCATION`을 선언한다.
 산책 시작은 사용자가 보이는 Activity에서 직접 누르는 동작으로만 시작한다. 그래서 이 단계에서는
 `ACCESS_BACKGROUND_LOCATION`을 요청하지 않는다. 지속 알림에는 일시정지/계속 기록/종료 액션이

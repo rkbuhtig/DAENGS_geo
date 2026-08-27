@@ -10,13 +10,17 @@ internal enum class LocationOwner {
     NONE,
     SCREEN_DEVICE,
     SCREEN_REPLAY,
+    WALK_SERVICE_PENDING,
     WALK_SERVICE,
 }
+
+internal enum class WalkServiceHandoff { NONE, STARTING, RESUMING }
 
 internal data class LocationOwnershipState(
     val visibility: AppVisibility,
     val feed: LocationFeed,
     val walk: TrackingState,
+    val handoff: WalkServiceHandoff = WalkServiceHandoff.NONE,
 )
 
 /**
@@ -28,6 +32,7 @@ internal data class LocationOwnershipState(
  */
 internal object LocationOwnershipPolicy {
     fun owner(state: LocationOwnershipState): LocationOwner = when {
+        state.handoff != WalkServiceHandoff.NONE -> LocationOwner.WALK_SERVICE_PENDING
         state.walk == TrackingState.RECORDING -> LocationOwner.WALK_SERVICE
         state.visibility == AppVisibility.BACKGROUND -> LocationOwner.NONE
         state.walk == TrackingState.PAUSED && state.feed == LocationFeed.REPLAY -> LocationOwner.NONE

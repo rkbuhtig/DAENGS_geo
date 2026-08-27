@@ -70,8 +70,11 @@ internal class LocationFeedCoordinator(
     val events = eventChannel.receiveAsFlow()
 
     private var appVisibility = AppVisibility.BACKGROUND
-    private var activeSource: LocationSource? = null
-    private var observedWalkState = walkState.value.trail.state
+    private var activeSource: LocationSource? = deviceLocationSource.takeIf {
+        walkState.value.trail.state != TrackingState.OFF
+    }
+    private var serviceHandoff = WalkServiceHandoff.NONE
+    private var appliedOwner: LocationOwner? = null
 
     init {
         scope.launch {
@@ -98,7 +101,10 @@ internal class LocationFeedCoordinator(
     }
 
     fun startReplay(speedMultiplier: Double): LocationCommandResult {
-        if (!LocationOwnershipPolicy.canStartReplay(currentWalkState())) {
+        if (
+            serviceHandoff != WalkServiceHandoff.NONE ||
+            !LocationOwnershipPolicy.canStartReplay(currentWalkState())
+        ) {
             return LocationCommandResult.Rejected("동선 기록 중에는 가상 이동을 시작할 수 없어요.")
         }
         val snapshot = mutableState.value
@@ -110,41 +116,63 @@ internal class LocationFeedCoordinator(
     fun onAppForeground() {
         if (appVisibility == AppVisibility.FOREGROUND) return
         appVisibility = AppVisibility.FOREGROUND
-        val source = activeSource ?: return
-        if (currentOwner().isScreenOwner) tracker.start(source)
+        reconcileOwnership()
     }
 
     fun onAppBackground(): String? {
         appVisibility = AppVisibility.BACKGROUND
-        // This stops only the screen feed. WalkTrackingService owns recording independently.
-        tracker.stop()
-        return endReplay("화면을 벗어나 가상 이동을 종료했어요.")
+        val replayNotice = endReplay("화면을 벗어나 가상 이동을 종료했어요.")
+        if (replayNotice == null) reconcileOwnership()
+        return replayNotice
     }
 
     /** Stop the screen subscriber before the service is told to start. */
     fun prepareWalkStart(): LocationCommandResult {
+        if (serviceHandoff != WalkServiceHandoff.NONE) {
+            return LocationCommandResult.Rejected("동선 기록 서비스를 시작하는 중이에요.")
+        }
+        if (currentWalkState() != TrackingState.OFF) {
+            return LocationCommandResult.Rejected("이미 시작한 동선 기록 상태를 확인해주세요.")
+        }
         if (!LocationOwnershipPolicy.canStartWalk(mutableState.value.feed)) {
             return LocationCommandResult.Rejected("실제 위치로 돌아온 뒤 동선 기록을 시작해주세요.")
         }
-        tracker.stop()
+        serviceHandoff = WalkServiceHandoff.STARTING
+        reconcileOwnership()
         return LocationCommandResult.Accepted()
     }
 
     /** A resumed service takes the subscription before its next state emission reaches observers. */
-    fun prepareWalkResume() {
-        tracker.stop()
+    fun prepareWalkResume(): LocationCommandResult {
+        if (serviceHandoff != WalkServiceHandoff.NONE) {
+            return LocationCommandResult.Rejected("동선 기록 서비스를 시작하는 중이에요.")
+        }
+        if (currentWalkState() != TrackingState.PAUSED) {
+            return LocationCommandResult.Rejected("일시정지된 동선 기록이 없습니다.")
+        }
+        serviceHandoff = WalkServiceHandoff.RESUMING
+        reconcileOwnership()
+        return LocationCommandResult.Accepted()
+    }
+
+    /** Roll back only a command that failed before the service could acknowledge it. */
+    fun cancelWalkHandoff() {
+        if (serviceHandoff == WalkServiceHandoff.NONE) return
+        serviceHandoff = WalkServiceHandoff.NONE
+        reconcileOwnership()
     }
 
     private fun switchFeed(feed: LocationFeed, source: LocationSource) {
         tracker.stop()
         activeSource = source
+        appliedOwner = null
         mutableState.update {
             it.copy(
                 feed = feed,
                 feedSample = null,
             )
         }
-        if (currentOwner().isScreenOwner) tracker.start(source)
+        reconcileOwnership()
     }
 
     private fun endReplay(message: String): String? {
@@ -178,23 +206,25 @@ internal class LocationFeedCoordinator(
     }
 
     private fun acceptWalkState(walk: WalkTrackingState) {
-        val previous = observedWalkState
-        observedWalkState = walk.trail.state
-
+        if (
+            mutableState.value.feed == LocationFeed.DEVICE &&
+            walk.trail.state != TrackingState.OFF &&
+            activeSource == null
+        ) {
+            activeSource = deviceLocationSource
+        }
         val sample = walk.lastSample
         if (mutableState.value.feed == LocationFeed.DEVICE && sample != null) {
             acceptLocation(sample)
         }
 
-        if (previous == walk.trail.state) return
-        when (currentOwner(walk.trail.state)) {
-            LocationOwner.WALK_SERVICE, LocationOwner.NONE -> tracker.stop()
-            LocationOwner.SCREEN_DEVICE -> {
-                val source = activeSource ?: deviceLocationSource.also { activeSource = it }
-                tracker.start(source)
-            }
-            LocationOwner.SCREEN_REPLAY -> activeSource?.let(tracker::start)
+        if (
+            serviceHandoff != WalkServiceHandoff.NONE &&
+            (walk.trail.state == TrackingState.RECORDING || walk.errorMessage != null)
+        ) {
+            serviceHandoff = WalkServiceHandoff.NONE
         }
+        reconcileOwnership(walk.trail.state)
     }
 
     private fun currentWalkState(): TrackingState = walkState.value.trail.state
@@ -206,8 +236,25 @@ internal class LocationFeedCoordinator(
             visibility = appVisibility,
             feed = mutableState.value.feed,
             walk = walk,
+            handoff = serviceHandoff,
         ),
     )
+
+    /** Materialize the owner for the current state, including the first observed state. */
+    private fun reconcileOwnership(walk: TrackingState = currentWalkState()) {
+        val owner = currentOwner(walk)
+        if (owner == appliedOwner) return
+        when (owner) {
+            LocationOwner.NONE,
+            LocationOwner.WALK_SERVICE_PENDING,
+            LocationOwner.WALK_SERVICE,
+            -> tracker.stop()
+            LocationOwner.SCREEN_DEVICE,
+            LocationOwner.SCREEN_REPLAY,
+            -> activeSource?.let(tracker::start)
+        }
+        appliedOwner = owner
+    }
 
     private companion object {
         val DEFAULT_REPLAY_ORIGIN = GeoPoint(latitude = 37.5665, longitude = 126.9780)

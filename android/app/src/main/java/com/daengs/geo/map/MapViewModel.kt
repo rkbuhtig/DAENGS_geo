@@ -289,9 +289,13 @@ class MapViewModel(
                 _uiState.update { it.copy(statusMessage = result.message) }
                 return
             }
-            is LocationCommandResult.Accepted -> Unit
+            is LocationCommandResult.Accepted -> {
+                runCatching(walkTrackingController::start).onFailure { error ->
+                    locationFeed.cancelWalkHandoff()
+                    showError(error)
+                }
+            }
         }
-        walkTrackingController.start()
     }
 
     fun pauseTracking() {
@@ -299,8 +303,17 @@ class MapViewModel(
     }
 
     fun resumeTracking() {
-        locationFeed.prepareWalkResume()
-        walkTrackingController.resume()
+        when (val result = locationFeed.prepareWalkResume()) {
+            is LocationCommandResult.Rejected -> {
+                _uiState.update { it.copy(statusMessage = result.message) }
+            }
+            is LocationCommandResult.Accepted -> {
+                runCatching(walkTrackingController::resume).onFailure { error ->
+                    locationFeed.cancelWalkHandoff()
+                    showError(error)
+                }
+            }
+        }
     }
 
     fun stopTracking() {
