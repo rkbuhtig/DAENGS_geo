@@ -75,14 +75,34 @@ CHIPS: tuple[tuple[str, str], ...] = (
 _SEASONS = ("spring", "summer", "autumn", "winter")
 
 
+def recent_window(today: date) -> tuple[date, date]:
+    """"최근 30 일" 이 뜻하는 정확한 날짜 범위. **오늘 포함 30 개 날짜.**
+
+    두 가지를 여기 한 곳에 모아 둔다.
+
+    **`until` 을 빼먹으면 미래까지 삼킨다.** `now` 가 자료 끝보다 뒤일 때는 티가 안 나다가,
+    자료 한가운데를 "지금" 으로 잡는 순간 최근 30 일이 **261 회**가 됐다. 창은 창이어야 한다.
+
+    **그리고 `today - 30` 은 30 일이 아니라 31 일이다.** 양끝을 다 세니까 `7/27 … 8/26` 이
+    31 개다. 앞 창은 30 개였으므로 둘을 견주는 추세가 조용히 31 대 30 이었다. 화면이
+    "최근 30 일" 이라고 **말하는** 순간 그건 계약이라 맞아야 한다.
+    """
+    return today - timedelta(days=RECENT_DAYS - 1), today
+
+
+def previous_window(today: date) -> tuple[date, date]:
+    """그 앞 30 일. `recent_window` 바로 앞에 붙고 겹치지 않는다."""
+    recent_since, _ = recent_window(today)
+    return recent_since - timedelta(days=RECENT_DAYS), recent_since - timedelta(days=1)
+
+
 def chip_selector(chip: str, today: date) -> Selector:
     """칩 이름 하나 → `Selector`. 화면과 질의가 같은 사전을 쓰게 하려고 여기 둔다."""
     if chip == "all":
         return Selector.of()
     if chip == "recent":
-        # `until` 을 빼먹으면 **미래까지 삼킨다.** `now` 가 자료 끝보다 뒤일 때는 티가 안 나다가
-        # 자료 한가운데를 "지금" 으로 잡는 순간 최근 30 일이 261 회가 됐다. 창은 창이어야 한다.
-        return Selector.of(since=today - timedelta(days=RECENT_DAYS), until=today)
+        since, until = recent_window(today)
+        return Selector.of(since=since, until=until)
     if chip in ("morning", "evening"):
         return Selector.of(time_band=chip)
     if chip in _SEASONS:
@@ -165,9 +185,8 @@ def region_stats(sheets: list[Cellophane], named: NamedRegion, now: datetime,
             sheets, _spec(chip_selector(chip, today), projection, min_peak), named.region)
         for chip, _label in CHIPS
     }
-    recent_start = today - timedelta(days=RECENT_DAYS)
-    previous = Selector.of(since=recent_start - timedelta(days=RECENT_DAYS),
-                           until=recent_start - timedelta(days=1))
+    previous_since, previous_until = previous_window(today)
+    previous = Selector.of(since=previous_since, until=previous_until)
     return RegionStats(
         region_id=named.region.id,
         region_version=named.region.version,

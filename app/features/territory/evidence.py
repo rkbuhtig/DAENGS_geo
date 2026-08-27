@@ -51,10 +51,16 @@ EVIDENCE_VERSION = 1
 # 숨기지 않고 결과에 실어 보낸다.
 MIN_DELTA = 0.15
 
-# 미개척은 **변화가 아니라 상태**다. 그래서 크기를 못 잰다 — 대신 낮은 바닥값을 준다.
-# 진짜 변화가 하나라도 있으면 거기에 지고, 아무 일도 없는 날에만 올라온다. 이게 맞는 이유:
-# "요즘 여기 뜸하셨네요" 는 뉴스고 "여긴 안 가보셨죠" 는 언제나 참이라 뉴스가 아니다.
+# 미개척은 크기를 **잴 수가 없다** — 견줄 baseline 이 없다. 대신 낮은 바닥값을 준다.
 UNEXPLORED_FLOOR = 0.10
+
+# 변화가 아니라 **상태**인 근거는 깎는다. 이유는 취향이 아니라 구조다 —
+# **상태는 매일 다시 참이라 매일 다시 울린다.** "저녁엔 북쪽 가시죠" 는 1 년 내내 참이라
+# 저녁마다 같은 말을 하게 되고, 그건 설계로 만든 스팸이다. 변화는 한 번 울리고 끝난다.
+# 이 구별이 없으면 큰 상태 하나가 진짜 뉴스를 영구히 덮는다 (실제로 그렇게 나왔다 —
+# 북쪽의 저녁 편향 0.667 이 남쪽이 뚝 끊긴 사실 0.600 을 이겼다).
+NEWS_KINDS = frozenset({"visit_drop", "visit_rise"})
+STATE_WEIGHT = 0.5
 
 # 지금 조건과 안 맞는 근거는 깎는다. 0 이 아닌 이유는 **아주 큰 변화는 조건이 달라도 말할
 # 가치가 있기** 때문이다 — 아침 얘기라고 저녁에 무조건 버리면 그것도 규칙이 사실을 지우는 것.
@@ -109,6 +115,26 @@ class Ranked:
         return self.dropped is None
 
 
+def _complement(overall: VisitRate, cohort: VisitRate) -> VisitRate:
+    """조건에 **안 걸린** 나머지. `전체 − 조건` 이다.
+
+    "저녁 편향" 이 실제로 견주는 것은 `저녁` 대 `전체` 가 아니라 **`저녁` 대 `저녁 외`** 다.
+    전체 안에 저녁이 들어 있어서, 전체와 견주면 저녁이 스스로를 희석한 값과 견주게 된다.
+
+        저녁 5/5 · 그 외 0/1   →  전체와 견주면 +16.7%p 로 작아 보이고
+                                  나머지와 견주면 +100%p 인데 **반대쪽 표본이 1 회**다
+
+    빼기로 구할 수 있는 이유는 모든 칩이 전체의 부분집합이라서다 — `all` 은 조건이 없고
+    나머지 칩은 전부 그것을 좁힌다.
+    """
+    return VisitRate(
+        region_id=overall.region_id, region_version=overall.region_version,
+        visited=overall.visited - cohort.visited,
+        selected=overall.selected - cohort.selected,
+        total=overall.total, min_peak=overall.min_peak,
+    )
+
+
 def gather(stats: list[RegionStats], context_chip: str) -> list[Evidence]:
     """영역 통계 → 근거 후보 전부. **여기서 고르지 않는다.**
 
@@ -127,15 +153,21 @@ def gather(stats: list[RegionStats], context_chip: str) -> list[Evidence]:
         #    수학은 맞지만 **"오늘 어디 갈까" 에 답하는 표면에서 쓸 말이 아니다.**
         #    아래로 벌어진 사실이 필요해지면 그때 다른 kind 로 만든다.
         cohort = stat.by_chip.get(context_chip)
-        if (cohort is not None and cohort.rate is not None and overall.rate is not None
-                and cohort.rate > overall.rate):
+        rest = _complement(overall, cohort) if cohort is not None else None
+        if (cohort is not None and rest is not None
+                and cohort.rate is not None and rest.rate is not None
+                and cohort.rate > rest.rate):
             found.append(Evidence(
                 kind="condition_bias", region_id=stat.region_id,
                 region_version=stat.region_version, name=stat.name,
                 cohort=cohort, cohort_label=CHIP_LABEL.get(context_chip, context_chip),
-                baseline=overall, baseline_label=CHIP_LABEL["all"],
-                delta=cohort.rate - overall.rate,
-                trustworthy=cohort.selected >= TREND_MIN_WALKS))
+                baseline=rest, baseline_label=f"{CHIP_LABEL.get(context_chip, context_chip)} 외",
+                delta=cohort.rate - rest.rate,
+                # **양쪽을 다 본다.** 한쪽만 보면 `저녁 5/5` 대 `그 외 0/1` 이 통과한다 —
+                # "저녁이 유난하다" 를 떠받치는 반대쪽 표본이 1 회인데도. 추세는 처음부터
+                # 두 창을 다 봤는데 여기만 안 보고 있었다.
+                trustworthy=(cohort.selected >= TREND_MIN_WALKS
+                             and rest.selected >= TREND_MIN_WALKS)))
 
         # 2. 추세 — 최근이 그 앞과 다른가
         delta = stat.trend.delta
@@ -166,7 +198,8 @@ def rank(candidates: list[Evidence], context_chip: str) -> list[Ranked]:
     점수식은 두 줄이다.
 
         관련도 = 지금 조건의 근거면 1.0, 아니면 0.6
-        점수   = 크기 × 관련도
+        뉴스   = 변화면 1.0, 상태(조건 편향·미개척)면 0.5
+        점수   = 크기 × 관련도 × 뉴스
 
     관문 둘 — 표본이 얇으면 안 말하고, 차이가 작으면 안 말한다. **관문은 점수가 아니다.**
     표본이 얇은 것을 낮은 점수로 깎으면 큰 변화가 얇은 표본을 이겨 버린다. `1/2 → 2/2` 로
@@ -177,7 +210,8 @@ def rank(candidates: list[Evidence], context_chip: str) -> list[Ranked]:
         on_context = (item.kind == "condition_bias"
                       and item.cohort_label == CHIP_LABEL.get(context_chip, context_chip))
         relevance = 1.0 if on_context else OFF_CONTEXT_WEIGHT
-        score = item.magnitude * relevance
+        is_news = item.kind in NEWS_KINDS
+        score = item.magnitude * relevance * (1.0 if is_news else STATE_WEIGHT)
 
         dropped = None
         if not item.trustworthy:
@@ -190,6 +224,8 @@ def rank(candidates: list[Evidence], context_chip: str) -> list[Ranked]:
             reasons={"magnitude": round(item.magnitude, 4),
                      "relevance": relevance,
                      "on_context": on_context,
+                     "is_news": is_news,
+                     "state_weight": 1.0 if is_news else STATE_WEIGHT,
                      "min_delta": MIN_DELTA}))
 
     # 말할 수 있는 것 먼저, 그 안에서 점수 높은 순. 같으면 이름순 — 결정론을 위해서다.
@@ -247,11 +283,19 @@ TEMPLATES = {
 
 
 def sentence(row: Ranked) -> str:
-    """템플릿 한 줄. **LLM 을 아직 안 붙인다.**
+    """템플릿 한 줄. **말하면 안 되는 근거로는 문장을 만들지 않는다.**
 
-    문장이 매끈하면 정보가 별로여도 좋아 보이는 착시가 생긴다. 지금 재려는 것은 문장력이
-    아니라 **이런 근거가 도착하는 경험 자체의 값어치**라, 못생긴 템플릿이 오히려 실험
-    도구로 옳다. 값어치가 확인되면 그때 응답 에이전트가 맡는다 (#53).
+    탈락한 근거에도 완성된 문장을 붙여 두면, 소비자가 `sayable` 검사를 한 번 빠뜨리는
+    순간 그게 그대로 거짓 푸시가 된다. Judgment 가 "이건 말하면 안 돼" 라고 정해 놨는데
+    Surface 가 이미 말을 만들어 둔 셈이라, 경계를 우회할 수 있는 상태 자체를 없앤다.
+
+    **LLM 은 아직 안 붙인다.** 문장이 매끈하면 정보가 별로여도 좋아 보이는 착시가 생긴다.
+    지금 재려는 것은 문장력이 아니라 **이런 근거가 도착하는 경험 자체의 값어치**라, 못생긴
+    템플릿이 오히려 실험 도구로 옳다. 값어치가 확인되면 그때 응답 에이전트가 맡는다 (#53).
     """
+    if not row.sayable:
+        raise ValueError(
+            f"말하지 않기로 한 근거로 문장을 만들려 했다 ({row.dropped}): "
+            f"{row.evidence.kind} · {row.evidence.name}")
     item = row.evidence
     return TEMPLATES[item.kind].format(name=item.name, cohort_label=item.cohort_label)

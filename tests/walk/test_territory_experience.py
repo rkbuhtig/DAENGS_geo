@@ -15,10 +15,13 @@ from datetime import UTC, datetime, timedelta
 
 from app.features.territory.experience import (
     CHIPS,
+    RECENT_DAYS,
     UNEXPLORED_CUT,
     NamedRegion,
     build,
     chip_selector,
+    previous_window,
+    recent_window,
     region_stats,
 )
 from app.features.territory.layers import Projection
@@ -168,6 +171,41 @@ def test_moving_now_moves_the_recent_window():
     later = region_stats(sheets, NORTH, NOW + timedelta(days=90), PROJECTION)
     assert here.by_chip["recent"].selected > 0
     assert later.by_chip["recent"].selected == 0
+
+
+def test_the_recent_window_is_a_window_not_an_open_ended_since():
+    """**실제로 났던 버그의 회귀 테스트.** 리팩터링 중에 한 번 잃어버렸다 다시 넣는다.
+
+    "최근 30 일" 을 `since` 만으로 만들면 `now` 뒤의 산책까지 전부 들어온다. `now` 가 늘
+    자료 끝보다 뒤일 때는 티가 안 나다가, 자료 **한가운데**를 "지금" 으로 잡는 순간 최근
+    30 일이 261 회가 됐다.
+
+    위 `test_moving_now_moves_the_recent_window` 로는 이 회귀를 못 잡는다 — `until` 을
+    또 지워도 `NOW + 90일` 은 `since` 가 자료보다 미래라 0 개로 나와서 그냥 통과한다.
+    **자료 한가운데에 서야** 잡힌다.
+    """
+    middle = NOW - timedelta(days=10)
+    stats = region_stats(_planted(), NORTH, middle, PROJECTION)
+    assert stats.by_chip["recent"].selected < stats.by_chip["all"].selected
+
+    window = chip_selector("recent", middle.date())
+    future = [s for s in _planted() if s.at.date() > middle.date()]
+    assert future, "미래 쪽 산책이 없으면 이 테스트가 뜻이 없다"
+    assert all(not window.matches(s.at) for s in future), "`지금` 뒤의 산책이 들어왔다"
+
+
+def test_the_recent_window_is_exactly_thirty_days_and_abuts_the_previous_one():
+    """"최근 30 일" 이라고 **말하니까** 30 일이어야 한다.
+
+    `today - 30` 은 양끝을 다 세면 31 개 날짜다. 앞 창은 30 개였으므로 추세가 조용히
+    31 대 30 을 견주고 있었다. 화면 문구가 계약이라 맞춰 둔다.
+    """
+    today = NOW.date()
+    r_since, r_until = recent_window(today)
+    p_since, p_until = previous_window(today)
+    assert (r_until - r_since).days + 1 == RECENT_DAYS == 30
+    assert (p_until - p_since).days + 1 == RECENT_DAYS
+    assert p_until == r_since - timedelta(days=1), "두 창이 붙어 있지도 겹치지도 않아야 한다"
 
 
 def test_chip_selector_rejects_an_unknown_chip():

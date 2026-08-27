@@ -14,9 +14,11 @@
 import math
 from datetime import UTC, datetime, timedelta
 
+import pytest
+
 from app.features.territory.evidence import (
     MIN_DELTA,
-    Evidence,
+    STATE_WEIGHT,
     brief,
     choose,
     gather,
@@ -243,11 +245,94 @@ def test_saying_nothing_is_a_valid_outcome():
     assert out.chosen is None and out.candidates == []
 
 
-def test_every_kind_has_a_sentence():
+def test_every_sayable_kind_has_a_sentence():
     """템플릿이 빠진 kind 가 있으면 화면에서 KeyError 로 터진다."""
-    for item in gather(_stats(), "evening"):
-        assert sentence(_wrap(item)), item.kind
+    seen = set()
+    for row in rank(gather(_stats(), "evening"), "evening"):
+        if row.sayable:
+            assert sentence(row), row.evidence.kind
+            seen.add(row.evidence.kind)
+    assert len(seen) >= 2, f"kind 가 하나뿐이면 커버리지가 없다: {seen}"
 
 
-def _wrap(item: Evidence):
-    return rank([item], "evening")[0]
+# ---- 리뷰에서 나온 것 ------------------------------------------------------------------
+
+
+def test_condition_bias_gates_both_sides_not_just_the_cohort():
+    """**표본 관문은 양쪽을 다 본다.**
+
+    처음엔 조건 쪽만 봤다. 그러면 `저녁 5/5` 대 `그 외 0/1` 이 통과한다 — "저녁이 유난하다"
+    를 떠받치는 **반대쪽 표본이 1 회**인데도. 추세는 처음부터 두 창을 다 봤는데 여기만
+    안 보고 있었고, 이 PR 이 스스로 세운 "관문" 원칙과 정면으로 어긋났다.
+    """
+    # 저녁 5 회 전부 북쪽, 그 외 1 회는 북쪽 아님 → 저녁 5/5 대 그 외 0/1
+    sheets = [_walk(f"eve{i}", (NOW - timedelta(days=i + 1)).replace(hour=18),
+                    250.0, 850.0) for i in range(5)]
+    sheets.append(_walk("day0", (NOW - timedelta(days=6)).replace(hour=13),
+                        1_450.0, 2_050.0))
+
+    bias = [e for e in gather(_stats(sheets), "evening")
+            if e.kind == "condition_bias" and e.region_id == "north"]
+    assert bias, "조건 편향 근거 자체가 안 생기면 이 테스트가 뜻이 없다"
+    item = bias[0]
+    assert (item.cohort.visited, item.cohort.selected) == (5, 5)
+    assert (item.baseline.visited, item.baseline.selected) == (0, 1), "비교군이 '그 외' 여야 한다"
+    assert item.trustworthy is False, "반대쪽 표본이 1 회인데 믿을 만하다고 했다"
+    assert all(not r.sayable for r in rank([item], "evening"))
+
+
+def test_the_baseline_is_the_complement_not_the_whole():
+    """"저녁 편향" 이 견주는 것은 `저녁` 대 `전체` 가 아니라 `저녁` 대 `저녁 외` 다.
+
+    전체 안에 저녁이 들어 있어서, 전체와 견주면 저녁이 **스스로를 희석한 값**과 견주게 된다.
+    """
+    item = next(e for e in gather(_stats(), "evening")
+                if e.kind == "condition_bias" and e.region_id == "north")
+    overall = next(s for s in _stats() if s.region_id == "north").by_chip["all"]
+    assert item.baseline.selected == overall.selected - item.cohort.selected
+    assert item.baseline.visited == overall.visited - item.cohort.visited
+    assert "외" in item.baseline_label
+
+
+def test_a_standing_pattern_loses_to_actual_news():
+    """**상태는 매일 다시 참이라 매일 다시 울린다.**
+
+    북쪽이 저녁에만 가는 것은 1 년 내내 참이라 저녁마다 같은 말을 하게 된다. 남쪽이 뚝
+    끊긴 것은 오늘 새로 참이 된 사실이다.
+
+    실제로 이렇게 뒤집혔었다 — 북쪽 편향은 **지금 조건의 근거**라 관련도 1.0 을 받고
+    (0.667 × 1.0 = 0.667), 남쪽 하락은 조건 밖이라 0.6 으로 깎여서(1.0 × 0.6 = 0.600)
+    **상태가 뉴스를 이겼다.** 뉴스 가중치가 그걸 되돌린다.
+    """
+    ranked = rank(gather(_stats(), "evening"), "evening")
+    top = ranked[0]
+    assert top.evidence.kind == "visit_drop"
+    assert top.evidence.region_id == "south"
+
+    bias = next(r for r in ranked if r.evidence.kind == "condition_bias"
+                and r.evidence.region_id == "north")
+
+    def before_news(row):
+        return row.reasons["magnitude"] * row.reasons["relevance"]
+
+    assert before_news(bias) > before_news(top), "뉴스 가중치가 없으면 상태가 이겼어야 한다"
+    assert bias.score < top.score, "가중치를 넣으면 뉴스가 이겨야 한다"
+    assert bias.reasons["is_news"] is False
+    assert bias.reasons["state_weight"] == STATE_WEIGHT
+    assert top.reasons["is_news"] is True
+
+
+def test_a_dropped_evidence_gets_no_sentence():
+    """말하지 않기로 한 근거로는 문장을 만들지 않는다.
+
+    붙여 두면 소비자가 `sayable` 검사를 한 번 빠뜨리는 순간 그대로 거짓 푸시가 된다.
+    Judgment 가 "말하면 안 돼" 라고 정해 놓고 Surface 가 이미 말을 만들어 둔 상태를
+    아예 못 만들게 한다.
+    """
+    thin = [_walk("a", NOW - timedelta(days=3), 250.0, 850.0),
+            _walk("b", NOW - timedelta(days=40), 2_650.0, 3_250.0)]
+    dropped = [r for r in rank(gather(_stats(thin), "evening"), "evening") if not r.sayable]
+    assert dropped, "탈락한 근거가 없으면 이 테스트가 뜻이 없다"
+    for row in dropped:
+        with pytest.raises(ValueError, match="말하지 않기로"):
+            sentence(row)

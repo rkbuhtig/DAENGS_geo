@@ -137,7 +137,9 @@ def _evidence(row, *, chosen: bool = False) -> dict:
         "score": round(row.score, 4), "reasons": row.reasons,
         "dropped": row.dropped, "sayable": row.sayable,
         "chosen": chosen,
-        "sentence": sentence(row),
+        # 말하지 않기로 한 근거에는 문장을 **안 만든다.** 붙여 두면 소비자가 `sayable`
+        # 검사를 한 번 빠뜨리는 순간 그대로 거짓 푸시가 된다.
+        "sentence": sentence(row) if row.sayable else None,
     }
 
 
