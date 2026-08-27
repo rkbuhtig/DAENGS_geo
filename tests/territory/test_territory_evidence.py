@@ -13,6 +13,7 @@
 
 import math
 from datetime import UTC, datetime, timedelta
+from functools import cache
 
 import pytest
 
@@ -70,7 +71,8 @@ def _walk(walk_id: str, at: datetime, x0: float, x1: float):
     return paint_sheet(walk_id, at, segs, RADIUS_U, NARROW_STEP)
 
 
-def _planted():
+@cache
+def _planted() -> tuple:
     """정답을 심은 자료 — **무엇이 제일 말할 가치 있는지 우리가 안다.**
 
         저녁 20 회 북쪽 · 아침 20 회 공원   → 조건 편향은 있지만 안 변한다
@@ -85,7 +87,7 @@ def _planted():
     for i in range(10):
         day = NOW - timedelta(days=40 + i)
         sheets.append(_walk(f"south{i}", day.replace(hour=18), 2_650.0, 3_250.0))
-    return sheets
+    return tuple(sheets)
 
 
 def _stats(sheets=None, now=NOW):
