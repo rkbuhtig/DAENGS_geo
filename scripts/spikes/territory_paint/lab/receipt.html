@@ -1,0 +1,312 @@
+<meta charset="utf-8">
+<title>영수증 — 오늘 할 말과 그 근거</title>
+<!--
+  브리핑 하나를 사람이 읽는 형태로. evidence-layer 원칙 1 의 **사람 쪽 renderer** 다.
+  AI 는 같은 JSON 을 읽고 문장을 만들고, 여기는 같은 JSON 을 읽고 근거를 편다.
+
+  규칙 하나: **화면의 모든 숫자는 JSON 에서 온다.** 여기서 다시 계산하지 않는다.
+  그래야 "화면에서 재밌으면 제품에서도 같은 숫자다" 가 성립한다.
+
+  위에서 아래로 — 문장 · 근거 · 안 고른 것 · 지도. 지도가 맨 마지막인 게 이 프레임이다.
+-->
+<style>
+  :root{
+    --bg:#0e1013; --panel:#171a1f; --line:#252a31; --ink:#e8eaed; --dim:#9aa3ad;
+    --warm:#e0a35c; --cool:#5c9ce0; --drop:#e07a5c; --rise:#5ce0a3; --flat:#6b7480;
+    --map-filter: grayscale(1) brightness(.55) contrast(.9);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font:15px/1.6 -apple-system,"Segoe UI",system-ui,"Malgun Gothic",sans-serif}
+  .wrap{max-width:880px;margin:0 auto;padding:28px 20px 64px}
+  .who{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;
+       color:var(--dim);font-size:13px;margin-bottom:18px}
+  .who b{color:var(--ink);font-size:15px}
+  .who select{background:var(--panel);color:var(--ink);border:1px solid var(--line);
+              border-radius:7px;padding:4px 8px;font:inherit;font-size:13px}
+
+  /* ① 문장 — 도착하는 것 */
+  .say{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+       padding:20px 22px;margin-bottom:6px}
+  .say .tag{font-size:11px;letter-spacing:.08em;color:var(--dim);margin-bottom:10px}
+  .say .line{font-size:22px;line-height:1.45;font-weight:600}
+  .say .quiet{font-size:17px;color:var(--dim);font-weight:400}
+
+  /* ② 근거 */
+  .why{border:1px solid var(--line);border-top:none;border-radius:0 0 14px 14px;
+       padding:16px 22px 18px;margin:-6px 0 26px;background:#13161a}
+  .why h4{margin:0 0 12px;font-size:12px;color:var(--dim);font-weight:600;
+          letter-spacing:.06em}
+  .cmp{display:grid;grid-template-columns:auto 1fr auto;gap:6px 14px;align-items:center}
+  .cmp .lab{color:var(--dim);font-size:13px;white-space:nowrap}
+  .cmp .num{font-variant-numeric:tabular-nums;font-size:14px;white-space:nowrap}
+  .bar{height:8px;background:#20242a;border-radius:4px;overflow:hidden;min-width:60px}
+  .bar i{display:block;height:100%;background:var(--cool)}
+  .cmp .hi i{background:var(--warm)}
+  .foot{margin-top:12px;font-size:12px;color:var(--dim);display:flex;gap:14px;flex-wrap:wrap}
+  .pill{border:1px solid var(--line);border-radius:999px;padding:2px 9px}
+
+  /* ③ 안 고른 것 */
+  details.alts{margin:0 0 26px;border:1px solid var(--line);border-radius:12px;
+               background:var(--panel)}
+  details.alts summary{cursor:pointer;padding:13px 18px;font-size:13px;color:var(--dim)}
+  details.alts[open] summary{border-bottom:1px solid var(--line)}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  td,th{padding:9px 18px;text-align:left;border-bottom:1px solid #1d2127}
+  tr:last-child td{border-bottom:none}
+  th{color:var(--dim);font-weight:500;font-size:11px;letter-spacing:.05em}
+  td.n{text-align:right;font-variant-numeric:tabular-nums;color:var(--dim)}
+  .kind{font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--line);
+        color:var(--dim);white-space:nowrap}
+  .kind.visit_drop{color:var(--drop);border-color:#4a2f26}
+  .kind.visit_rise{color:var(--rise);border-color:#25412f}
+  .out{color:#6b7480}
+  .out td{opacity:.62}
+
+  /* ④ 지도 */
+  .chips{display:flex;gap:7px;flex-wrap:wrap;margin:0 0 12px}
+  .chips button{background:var(--panel);border:1px solid var(--line);color:var(--dim);
+                border-radius:999px;padding:6px 13px;font:inherit;font-size:13px;cursor:pointer}
+  .chips button[aria-pressed="true"]{background:var(--warm);border-color:var(--warm);
+                                     color:#1a1206;font-weight:600}
+  .mapbox{position:relative;border:1px solid var(--line);border-radius:14px;overflow:hidden;
+          background:var(--panel)}
+  canvas{display:block;width:100%;height:460px}
+  .legend{padding:10px 16px;font-size:12px;color:var(--dim);border-top:1px solid var(--line);
+          display:flex;gap:16px;flex-wrap:wrap;align-items:center}
+  .sw{display:inline-block;width:10px;height:10px;border-radius:3px;vertical-align:-1px;
+      margin-right:5px}
+  h3.sec{font-size:12px;color:var(--dim);letter-spacing:.06em;margin:0 0 10px;font-weight:600}
+</style>
+
+<div class="wrap">
+  <div class="who">
+    <b>오늘 할 말과 그 근거</b>
+    <select id="pick"></select>
+    <span id="meta"></span>
+  </div>
+
+  <div class="say" id="say"></div>
+  <div class="why" id="why"></div>
+
+  <details class="alts" id="alts">
+    <summary>안 고른 것 — 왜 저 말은 안 했나</summary>
+    <div id="altbody"></div>
+  </details>
+
+  <h3 class="sec">지도 — 조건을 바꿔 보면</h3>
+  <div class="chips" id="chips"></div>
+  <div class="mapbox">
+    <canvas id="map"></canvas>
+    <div class="legend" id="legend"></div>
+  </div>
+</div>
+
+<script id="briefdata" type="application/json">__BRIEF__</script>
+<script id="basedata" type="application/json">__BASE__</script>
+<script>
+const BRIEF = JSON.parse(document.getElementById("briefdata").textContent);
+const BASE  = JSON.parse(document.getElementById("basedata").textContent);
+const D2R = Math.PI/180, Z = BASE.zoom;
+const projX = lng => lng;
+const projY = lat => Math.log(Math.tan(Math.PI/4 + lat*D2R/2))/D2R;
+
+let sceneIx = 0, chip = null;
+const images = new Map();
+
+const pct = r => r === null || r === undefined ? "—" : (r*100).toFixed(0) + "%";
+const frac = v => `${v.visited}/${v.selected}`;
+const KIND_KO = {condition_bias:"조건 편향", visit_drop:"줄었음", visit_rise:"늘었음",
+                 unexplored:"안 가봄"};
+
+function scene(){ return BRIEF.scenes[sceneIx]; }
+
+/* ---- ① 문장 · ② 근거 -------------------------------------------------------------- */
+function drawSay(){
+  const S = scene(), c = S.briefing.chosen;
+  const say = document.getElementById("say"), why = document.getElementById("why");
+
+  if (!c){
+    say.innerHTML = `<div class="tag">오늘 도착할 말</div>
+      <div class="line quiet">— 오늘은 말할 만한 게 없습니다</div>`;
+    why.innerHTML = `<h4>왜 아무 말도 안 하나</h4>
+      <div style="color:var(--dim);font-size:13px">후보가 전부 관문에 걸렸습니다.
+      억지로 하나 고르면 그건 조용함이 아니라 <b>틀린 알림</b>이 됩니다.</div>`;
+    return;
+  }
+
+  say.innerHTML = `<div class="tag">오늘 도착할 말</div><div class="line">${c.sentence}</div>`;
+
+  const rows = [[c.cohort_label, c.cohort, true]];
+  if (c.baseline) rows.push([c.baseline_label, c.baseline, false]);
+  why.innerHTML = `<h4>그렇게 말한 근거</h4>
+    <div class="cmp">${rows.map(([lab, v, hi]) => `
+      <div class="lab">${lab}</div>
+      <div class="bar${hi ? " hi" : ""}"><i style="width:${(v.rate||0)*100}%"></i></div>
+      <div class="num">${frac(v)} · ${pct(v.rate)}</div>`).join("")}</div>
+    <div class="foot">
+      ${c.delta !== null ? `<span class="pill">차이 ${(c.delta*100).toFixed(0)}%p</span>` : ""}
+      <span class="pill">${c.trustworthy ? "표본 충분" : "표본 부족"}</span>
+      <span class="pill">${KIND_KO[c.kind] || c.kind}</span>
+      <span>점수 ${c.score}</span>
+    </div>`;
+}
+
+/* ---- ③ 안 고른 것 ------------------------------------------------------------------ */
+function drawAlts(){
+  const S = scene();
+  const others = S.briefing.candidates.filter(r => !r.chosen);
+  const box = document.getElementById("altbody");
+  document.getElementById("alts").style.display = others.length ? "" : "none";
+  if (!others.length) return;
+
+  box.innerHTML = `<table>
+    <tr><th>영역</th><th>무엇이</th><th>비교</th><th class="n">점수</th><th>왜 안 골랐나</th></tr>
+    ${others.map(r => `
+      <tr class="${r.sayable ? "" : "out"}">
+        <td>${r.name}</td>
+        <td><span class="kind ${r.kind}">${KIND_KO[r.kind] || r.kind}</span></td>
+        <td class="n">${frac(r.cohort)}${r.baseline ? ` 대 ${frac(r.baseline)}` : ""}</td>
+        <td class="n">${r.score}</td>
+        <td>${r.dropped ? r.dropped : "점수가 낮아서"}</td>
+      </tr>`).join("")}
+  </table>`;
+}
+
+/* ---- ④ 지도 ------------------------------------------------------------------------ */
+function drawChips(){
+  const S = scene(), box = document.getElementById("chips");
+  box.innerHTML = "";
+  for (const {key, label} of S.chips){
+    const f = S.fields[key];
+    const b = document.createElement("button");
+    b.textContent = `${label} ${f ? f.selected : 0}회`;
+    b.setAttribute("aria-pressed", String(key === chip));
+    b.onclick = () => { chip = key; drawChips(); drawMap(); };
+    box.appendChild(b);
+  }
+}
+
+function drawMap(){
+  const S = scene(), f = S.fields[chip];
+  const canvas = document.getElementById("map");
+  const box = canvas.getBoundingClientRect();
+  /* 폭이 0 이면 그리지 않는다. 창이 아직 안 잡힌 채로 그리면 `getImageData` 가
+     IndexSizeError 로 터지고 페이지 전체가 멈춘다 — 실제로 그렇게 죽었다. */
+  if (box.width < 2 || box.height < 2) return;
+  const dpr = Math.min(2, devicePixelRatio || 1);
+  canvas.width = box.width*dpr; canvas.height = box.height*dpr;
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+
+  const [s,w,n,e] = S.bbox;
+  const minX = projX(w), maxX = projX(e), minY = projY(n), maxY = projY(s);
+  const pad = 12;
+  const k = Math.min((box.width-pad*2)/(maxX-minX), (box.height-pad*2)/(maxY-minY));
+  const cx = (minX+maxX)/2, cy = (minY+maxY)/2;
+  const sx = x => box.width/2 + (x-cx)*k, sy = y => box.height/2 + (y-cy)*k;
+
+  ctx.clearRect(0,0,box.width,box.height);
+  ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--panel");
+  ctx.fillRect(0,0,box.width,box.height);
+
+  ctx.save(); ctx.filter = getComputedStyle(document.documentElement)
+                            .getPropertyValue("--map-filter");
+  for (const t of BASE.tiles){
+    const img = images.get(t); if (!img) continue;
+    const x = sx(projX(t.w)), y = sy(projY(t.n));
+    ctx.drawImage(img, x, y, sx(projX(t.e))-x+.6, sy(projY(t.s))-y+.6);
+  }
+  ctx.restore();
+
+  /* 물감 — 오프스크린에 밝기로 쌓고 색을 나중에 입힌다. 겹친 자리가 얼룩지지 않는다. */
+  const heat = document.createElement("canvas");
+  heat.width = canvas.width; heat.height = canvas.height;
+  const hx = heat.getContext("2d", {willReadFrequently:true});
+
+  /* 붓 반지름은 **JSON 이 준 실제 셀 지름**에서 계산한다.
+     `k` 는 화면 y 를 뒤집으려고 음수다(북쪽이 위로 가야 하니까). 그래서 절댓값을 쓴다 —
+     안 그러면 rPx 가 음수가 되고 바닥값 3px 로 잘려서 물감이 거의 안 보인다. 실제로
+     그렇게 나왔다: 아침 지도와 저녁 지도의 픽셀 차이가 0.18 밖에 안 됐다. */
+  const cellDeg = S.grid.cell_m / (111320 * Math.cos(S.home[0]*D2R));
+  const rPx = Math.max(2, cellDeg * Math.abs(k) * dpr * 1.6);
+
+  hx.globalCompositeOperation = "lighter";
+  for (const [slot, walks, , occ] of (f ? f.v : [])){
+    const [lat, lng] = S.cells[slot];
+    const x = sx(projX(lng))*dpr, y = sy(projY(lat))*dpr;
+    const g = hx.createRadialGradient(x,y,0,x,y,rPx);
+    g.addColorStop(0, `rgba(255,255,255,${Math.min(1, occ)})`);
+    g.addColorStop(1, "rgba(255,255,255,0)");
+    hx.fillStyle = g; hx.beginPath(); hx.arc(x,y,rPx,0,7); hx.fill();
+  }
+  const img = hx.getImageData(0,0,heat.width,heat.height);
+  const px = img.data;
+  for (let i = 0; i < px.length; i += 4){
+    const a = px[i+3]/255; if (!a) continue;
+    px[i] = 224; px[i+1] = 163; px[i+2] = 92;
+    px[i+3] = Math.min(255, a*255*0.92);
+  }
+  hx.putImageData(img,0,0);
+  ctx.drawImage(heat, 0, 0, box.width, box.height);
+
+  /* 영역 — 브리핑이 고른 곳만 강조 */
+  const said = S.briefing.chosen ? S.briefing.chosen.region_id : null;
+  for (const r of S.regions){
+    ctx.beginPath();
+    r.ring.forEach(([lat,lng], i) => {
+      const x = sx(projX(lng)), y = sy(projY(lat));
+      i ? ctx.lineTo(x,y) : ctx.moveTo(x,y);
+    });
+    ctx.closePath();
+    const hot = r.id === said;
+    ctx.strokeStyle = hot ? "#e0a35c" : "rgba(232,234,237,.34)";
+    ctx.lineWidth = hot ? 2.4 : 1.1;
+    ctx.setLineDash(hot ? [] : [5,4]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    const mid = r.ring.reduce((a,p) => [a[0]+p[0]/r.ring.length, a[1]+p[1]/r.ring.length],[0,0]);
+    const v = r.by_chip[chip];
+    ctx.font = hot ? "600 12px system-ui, sans-serif" : "11px system-ui, sans-serif";
+    ctx.fillStyle = hot ? "#f0c894" : "rgba(232,234,237,.62)";
+    ctx.textAlign = "center";
+    ctx.fillText(r.name, sx(projX(mid[1])), sy(projY(mid[0])) - 3);
+    ctx.fillText(v ? `${frac(v)} · ${pct(v.rate)}` : "—",
+                 sx(projX(mid[1])), sy(projY(mid[0])) + 12);
+  }
+
+  const label = (S.chips.find(c => c.key === chip) || {}).label || chip;
+  document.getElementById("legend").innerHTML =
+    `<span><span class="sw" style="background:#e0a35c"></span>${label} 산책이 칠한 자리
+       (${f ? f.selected : 0}/${f ? f.total : 0}회)</span>
+     <span><span class="sw" style="background:#f0c894"></span>오늘 말한 영역</span>
+     <span style="opacity:.7">숫자는 그 조건에서 이 영역을 밟은 산책 수</span>`;
+}
+
+/* ---- 조립 -------------------------------------------------------------------------- */
+function drawAll(){
+  const S = scene();
+  chip = S.context.chip in S.fields ? S.context.chip : "all";
+  document.getElementById("meta").textContent =
+    `${S.persona.id} (${S.persona.kind}) · 산책 ${S.walks_total}회 · `
+    + `${S.now.slice(0,16).replace("T"," ")} · ${S.context.season}·${S.context.time_band}`;
+  drawSay(); drawAlts(); drawChips(); drawMap();
+}
+
+const pick = document.getElementById("pick");
+BRIEF.scenes.forEach((s, i) => {
+  const o = document.createElement("option");
+  o.value = i; o.textContent = `${s.persona.id} — ${s.persona.kind}`;
+  pick.appendChild(o);
+});
+pick.onchange = () => { sceneIx = +pick.value; drawAll(); };
+addEventListener("resize", () => drawMap());
+
+Promise.all(BASE.tiles.map(t => new Promise(res => {
+  const im = new Image();
+  im.onload = () => { images.set(t, im); res(); };
+  im.onerror = () => res();
+  im.src = t.b;   /* basemap 이 base64 를 담는 키 이름 */
+}))).then(drawAll);
+</script>

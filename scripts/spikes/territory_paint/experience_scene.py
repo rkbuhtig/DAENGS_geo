@@ -68,9 +68,15 @@ import sys
 from datetime import date, datetime, timedelta
 
 from app.features.territory.evidence import brief, sentence
-from app.features.territory.experience import CHIPS, NamedRegion, build
-from app.features.territory.layers import Projection
+from app.features.territory.experience import (
+    CHIPS,
+    NamedRegion,
+    build,
+    chip_selector,
+)
+from app.features.territory.layers import Aggregation, LayerSpec, Projection, render
 from app.features.territory.region import Region
+from app.geo.cells import cell_size_m, hex_center_latlng
 from scripts.spikes.territory_paint.persona_experiment import PROFILE, RADIUS_U, load
 
 # 사람이 그린 후보 영역. 페르소나마다 자기 동네가 있다.
@@ -143,7 +149,37 @@ def _evidence(row, *, chosen: bool = False) -> dict:
     }
 
 
-def to_payload(scene, briefing, rings: dict) -> dict:
+def _field(sheets, scene, projection, min_peak: float) -> tuple[list, dict]:
+    """칩마다 지도에 그릴 것 — 칸 좌표 목록과 칩별 값.
+
+    **화면이 다시 계산하지 않게** 여기서 다 만든다. 그래야 "화면에서 재밌으면 제품에서도
+    같은 숫자다" 가 성립한다. 모양은 `layer_scenes` 뷰어와 같게 뒀다.
+    """
+    centres: list[list[float]] = []
+    index: dict = {}
+    fields: dict = {}
+    for chip, _label in CHIPS:
+        spec = LayerSpec(
+            selector=chip_selector(chip, scene.now.date()),
+            aggregation=Aggregation(metric="walks", min_peak=min_peak),
+            projection=projection)
+        layer = render(sheets, spec)
+        top = max((p.occupancy for p in layer.canvas.values()), default=1.0) or 1.0
+        values = []
+        for cell, paint in layer.canvas.items():
+            slot = index.get(cell)
+            if slot is None:
+                slot = index[cell] = len(centres)
+                lat, lng = hex_center_latlng(*cell, RADIUS_U)
+                centres.append([round(lat, 6), round(lng, 6)])
+            values.append([slot, paint.walks, round(paint.peak, 3),
+                           round(paint.occupancy / top, 4)])
+        fields[chip] = {"selected": layer.selected, "total": layer.total,
+                        "fingerprint": spec.fingerprint(), "v": values}
+    return centres, fields
+
+
+def to_payload(scene, briefing, rings: dict, cells: list, fields: dict) -> dict:
     """`Experience` → JSON. 여기서 값을 새로 만들지 않는다. 모양만 바꾼다."""
     return {
         "version": scene.version,
@@ -153,6 +189,12 @@ def to_payload(scene, briefing, rings: dict) -> dict:
         "walks_total": scene.walks_total,
         "thresholds": scene.thresholds,
         "chips": [{"key": key, "label": label} for key, label in CHIPS],
+        "cells": cells,
+        "fields": fields,
+        # 화면이 붓 크기를 **추측하지 않게** 실제 셀 지름을 미터로 실어 보낸다.
+        # 규칙 그대로 — 화면의 모든 숫자는 JSON 에서 온다.
+        "grid": {"radius_u": RADIUS_U, "brush": PROFILE.name,
+                 "cell_m": round(cell_size_m(RADIUS_U, cells[0][0]), 2)},
         "regions": [
             {
                 "id": stat.region_id,
@@ -193,6 +235,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out", required=True)
     args = parser.parse_args(argv)
 
+    with open(args.personas, encoding="utf-8") as handle:
+        homes = {row["id"]: row["home"] for row in json.load(handle)["personas"]}
+
     people = load(args.personas, args.cache_sheets)
     wanted = [name.strip() for name in args.persona.split(",") if name.strip()]
     chosen = [p for p in people if p.persona in wanted]
@@ -218,16 +263,32 @@ def main(argv: list[str] | None = None) -> int:
         regions = regions_for(person.persona)
         scene = build(person.sheets, regions, now, projection, context_chip=args.chip)
         briefing = brief(scene)
+        cells, fields = _field(person.sheets, scene, projection, 0.0)
         payload = to_payload(scene, briefing,
-                             {r.region.id: r.region.ring for r in regions})
+                             {r.region.id: r.region.ring for r in regions},
+                             cells, fields)
+        payload["home"] = homes.get(person.persona)
         payload["persona"] = {"id": person.persona, "kind": person.kind}
+        payload["bbox"] = _bbox(cells, payload["regions"])
         scenes.append(payload)
         _report(person, scene, payload)
 
+    # 최상위 bbox 는 **장면 전부를 덮는 창**이다. `basemap` 이 이걸 읽어 타일을 받고,
+    # 장면을 바꿔도 같은 타일을 쓴다 — 사람마다 동네가 달라도 한 장으로 덮인다.
+    span = [min(s["bbox"][0] for s in scenes), min(s["bbox"][1] for s in scenes),
+            max(s["bbox"][2] for s in scenes), max(s["bbox"][3] for s in scenes)]
     with open(args.out, "w", encoding="utf-8") as handle:
-        json.dump({"scenes": scenes}, handle, ensure_ascii=False, indent=2)
+        json.dump({"bbox": span, "scenes": scenes}, handle, ensure_ascii=False, indent=2)
     print(FMT_DONE.format(count=len(scenes), out=args.out))
     return 0
+
+
+def _bbox(cells: list, regions: list, margin: float = 0.0004) -> list[float]:
+    """지도가 볼 창. 칸과 영역이 **둘 다** 들어와야 한다 — 안 간 영역도 그려야 하니까."""
+    lats = [lat for lat, _ in cells] + [pt[0] for r in regions for pt in r["ring"]]
+    lngs = [lng for _, lng in cells] + [pt[1] for r in regions for pt in r["ring"]]
+    return [round(min(lats) - margin, 6), round(min(lngs) - margin, 6),
+            round(max(lats) + margin, 6), round(max(lngs) + margin, 6)]
 
 
 def _report(person, scene, payload) -> None:
