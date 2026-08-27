@@ -47,19 +47,25 @@ CONTRACT_MODULES = {
 
 # 정확히 일치해야 한다. 위 docstring 참고.
 #
-# geo/paint.py · geo/region.py 가 features.walk.facts.Segment 를 가져간다. Segment 를
-# geo 로 내리는 것은 답이 아니다 — WalkFix · moving · chain_index 를 품고 있어 walk 어휘가
-# 통째로 따라온다. region.py 가 자기 docstring 에서 "features/walk/encounter.py 의 면
-# 버전"이라고 선언하고 두 파일의 소비자가 전부 walk 쪽이라, paint/region 의 소유권을
-# 다시 보는 쪽이 맞다. 붓 실험이 끝난 뒤에 판단한다.
-KNOWN_VIOLATIONS = {
-    ("geo.paint", "features"),
-    ("geo.region", "features"),
-}
+# **비어 있다.** paint · region · layers 가 features/territory 로 가면서 마지막 역방향이
+# 사라졌다. 여기에 뭔가 추가하려면 그것이 왜 지금 못 고치는 부채인지 결정 문서에 남겨라 —
+# 목록이 조용히 자라면 이 테스트는 통과 도장으로 전락한다.
+KNOWN_VIOLATIONS: set[tuple[str, str]] = set()
 
 
 def _packages() -> set[str]:
     return {p.name for p in _APP.iterdir() if p.is_dir() and (p / "__init__.py").exists()}
+
+
+def _unit(parts: tuple[str, ...]) -> str:
+    """비교 단위. `features` 는 형제(`features.walk` 등)까지 갈라야 §1 의 형제 DAG 를 잰다.
+
+    `features` 전체를 한 점으로 보면 `features.scene → features.walk` 가 자기 자신으로
+    접혀서 형제 순환이 **보이지도 않는다.** 실제로 이 테스트가 처음엔 그랬다.
+    """
+    if parts and parts[0] == "features" and len(parts) > 1:
+        return f"features.{parts[1]}"
+    return parts[0] if parts else ""
 
 
 def _edges() -> list[tuple[str, str, str, str]]:
@@ -143,14 +149,79 @@ def test_layer_direction():
     )
 
 
+def _strongly_connected(graph: dict[str, set[str]]) -> list[list[str]]:
+    """Tarjan. 크기 2 이상인 덩어리가 곧 순환이다."""
+    index: dict[str, int] = {}
+    low: dict[str, int] = {}
+    stack: list[str] = []
+    on_stack: set[str] = set()
+    out: list[list[str]] = []
+    counter = [0]
+
+    def visit(v: str) -> None:
+        index[v] = low[v] = counter[0]
+        counter[0] += 1
+        stack.append(v)
+        on_stack.add(v)
+        for w in graph.get(v, ()):
+            if w not in index:
+                visit(w)
+                low[v] = min(low[v], low[w])
+            elif w in on_stack:
+                low[v] = min(low[v], index[w])
+        if low[v] == index[v]:
+            comp = []
+            while True:
+                w = stack.pop()
+                on_stack.discard(w)
+                comp.append(w)
+                if w == v:
+                    break
+            out.append(comp)
+
+    for v in sorted(graph):
+        if v not in index:
+            visit(v)
+    return out
+
+
+def _unit_graph(same_layer_only: bool) -> dict[str, set[str]]:
+    """형제 단위 그래프. `features.walk` 와 `features.scene` 이 서로 다른 점이 된다."""
+    graph: dict[str, set[str]] = collections.defaultdict(set)
+    for src, src_mod, tgt, tgt_mod in _edges():
+        if src == tgt and src != "features":
+            continue
+        u, v = _unit(tuple(src_mod.split("."))), _unit(tuple(tgt_mod.split(".")))
+        if u == v:
+            continue
+        if same_layer_only and LAYERS[src] != LAYERS[tgt]:
+            continue
+        graph[u].add(v)
+    return graph
+
+
 def test_no_cycles_within_a_layer():
-    """같은 층 안은 방향이 자유롭지만 순환은 안 된다 (features 형제끼리 포함)."""
-    intra = collections.defaultdict(set)
-    for src, _, tgt, _ in _edges():
-        if src != tgt and LAYERS[src] == LAYERS[tgt]:
-            intra[src].add(tgt)
-    pairs = sorted({tuple(sorted((a, b))) for a in intra for b in intra[a] if a in intra.get(b, ())})
-    assert not pairs, f"같은 층 안 양방향 참조: {pairs}"
+    """같은 층 안은 방향이 자유롭지만 순환은 안 된다 — `features` 형제끼리 포함.
+
+    **양방향 쌍만 세면 안 된다.** `a → b → c → a` 는 어느 쌍도 마주보지 않는데 순환이다.
+    이 프로젝트에서 실제로 그걸 놓쳤다 — 2-순환만 세는 동안 `discovery → journey → geo
+    → features → discovery` 4-패키지 덩어리가 안 보였다. Tarjan 으로 실제 SCC 를 본다.
+
+    비교 단위도 조심해야 한다. `features` 를 한 점으로 보면 형제 순환이 자기 자신으로
+    접혀 사라진다 (`_unit`).
+    """
+    cycles = [sorted(c) for c in _strongly_connected(_unit_graph(same_layer_only=True)) if len(c) > 1]
+    assert not cycles, f"같은 층 안 순환: {cycles}"
+
+
+def test_whole_graph_is_a_dag():
+    """층을 무시하고 봐도 패키지 그래프에 순환이 없다.
+
+    층 안 검사와 층 사이 검사를 다 통과해도 층을 **가로지르는** 순환은 남을 수 있다 —
+    계약 예외로 허용된 역방향이 고리를 닫으면 그렇다. 그래서 전체를 한 번 더 본다.
+    """
+    cycles = [sorted(c) for c in _strongly_connected(_unit_graph(same_layer_only=False)) if len(c) > 1]
+    assert not cycles, f"패키지 순환: {cycles}"
 
 
 @pytest.mark.parametrize("contract", sorted(CONTRACT_MODULES))

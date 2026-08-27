@@ -1,4 +1,4 @@
-"""면 방문률 계약. `app/geo/layers.region_visit_rate`.
+"""면 방문률 계약. `app/features/territory/layers.region_visit_rate`.
 
 화면이 쓸 문장은 이것이다.
 
@@ -17,9 +17,7 @@
 import math
 from datetime import UTC, datetime, timedelta
 
-from app.features.walk.facts import compute_facts
-from app.features.walk.models import WalkFix
-from app.geo.layers import (
+from app.features.territory.layers import (
     Aggregation,
     LayerSpec,
     Projection,
@@ -29,8 +27,10 @@ from app.geo.layers import (
     region_visit_rate,
     render,
 )
-from app.geo.paint import NARROW_STEP, paint_sheet
-from app.geo.region import Region
+from app.features.territory.paint import NARROW_STEP, paint_sheet
+from app.features.territory.region import Region
+from app.features.walk.facts import compute_facts
+from app.features.walk.models import WalkFix
 
 EARTH_R = 6_371_000.0
 RADIUS_U = 8.0
@@ -150,8 +150,8 @@ def test_mass_in_cannot_stand_in_for_visit_rate():
 
 
 def _in_park(cell) -> bool:
+    from app.features.territory.region import _point_in_ring, _projector
     from app.geo.cells import hex_center_latlng
-    from app.geo.region import _point_in_ring, _projector
     project = _projector(PARK.ring[0][0], PARK.ring[0][1])
     ring = [project(lat, lng) for lat, lng in PARK.ring]
     return _point_in_ring(*project(*hex_center_latlng(*cell, RADIUS_U)), ring)

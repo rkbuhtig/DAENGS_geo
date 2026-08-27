@@ -25,10 +25,7 @@ import random
 import sys
 from datetime import UTC, datetime, timedelta
 
-from app.features.walk.facts import compute_facts
-from app.features.walk.models import WalkFix
-from app.geo.cells import hex_center_latlng
-from app.geo.paint import (
+from app.features.territory.paint import (
     FACILITY_SMOOTH,
     FACILITY_STEP,
     NARROW_SMOOTH,
@@ -39,6 +36,9 @@ from app.geo.paint import (
     shift_times,
     stack,
 )
+from app.features.walk.facts import compute_facts
+from app.features.walk.models import WalkFix
+from app.geo.cells import hex_center_latlng
 
 EARTH_R = 6_371_000.0
 WALK_SPEED_MPS = 1.2

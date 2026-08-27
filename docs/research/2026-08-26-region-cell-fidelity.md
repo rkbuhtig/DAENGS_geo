@@ -1,7 +1,7 @@
 # 셀 방문 기록으로 면 체류를 근사할 수 있나 — 반지름은 몇이어야 하나
 
 2026-08-26 스파이크. 재현: `uv run python -m scripts.spikes.territory_paint.region_fidelity --trials 30`
-코드는 `app/geo/cells.py` · `app/geo/region.py` · `scripts/spikes/territory_paint/region_fidelity.py`.
+코드는 `app/geo/cells.py` · `app/features/territory/region.py` · `scripts/spikes/territory_paint/region_fidelity.py`.
 
 > **2026-08-26 라벨 정정.** 셀 반지름은 격자 **단위**이지 미터가 아니다 — 위도 37.5° 에서
 > 28 단위는 실제 22.2m, 115 단위는 91.2m 다. 셀 할당 자체는 안 바뀌므로 **오차 숫자는 그대로**고

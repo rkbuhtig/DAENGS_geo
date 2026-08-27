@@ -1,4 +1,4 @@
-"""셀로판 질의층 계약. `app/geo/layers.py`.
+"""셀로판 질의층 계약. `app/features/territory/layers.py`.
 
 지키는 것 셋:
 
@@ -10,10 +10,7 @@
 import math
 from datetime import UTC, date, datetime, timedelta
 
-from app.features.walk.facts import compute_facts
-from app.features.walk.models import WalkFix
-from app.geo.cells import hex_cell, hex_center_latlng
-from app.geo.layers import (
+from app.features.territory.layers import (
     Aggregation,
     LayerSpec,
     Projection,
@@ -25,7 +22,10 @@ from app.geo.layers import (
     render,
     select,
 )
-from app.geo.paint import NARROW_STEP, paint_sheet
+from app.features.territory.paint import NARROW_STEP, paint_sheet
+from app.features.walk.facts import compute_facts
+from app.features.walk.models import WalkFix
+from app.geo.cells import hex_cell, hex_center_latlng
 
 EARTH_R = 6_371_000.0
 RADIUS_U = 8.0
@@ -138,7 +138,7 @@ def test_grid_version_gates_mixing():
 
 
 def test_brush_fingerprint_tracks_the_curve_not_the_name():
-    from app.geo.paint import BrushProfile
+    from app.features.territory.paint import BrushProfile
 
     a = BrushProfile("같은이름", (3.0, 8.0, 20.0), (1.0, 0.45, 0.15))
     b = BrushProfile("같은이름", (3.0, 8.0, 20.0), (1.0, 0.5, 0.1))

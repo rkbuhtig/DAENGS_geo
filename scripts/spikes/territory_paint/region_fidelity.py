@@ -7,7 +7,7 @@
 
 결정 #57 이 원좌표를 finish 직후 purge 한다. 그래서 **나중에 그린 면**으로 과거 산책을
 판정하려면 좌표가 아닌 무언가가 남아 있어야 하고, 후보가 셀 방문 기록이다
-(`app/geo/region.py`). 셀은 손실 압축이라 답이 틀린다. 문제는 "틀리나"가 아니라
+(`app/features/territory/region.py`). 셀은 손실 압축이라 답이 틀린다. 문제는 "틀리나"가 아니라
 **"이미 있는 GPS 지터보다 더 틀리나"** 다. 덜 틀리면 양자화는 공짜다.
 
 그래서 셋을 같은 산책에 대해 잰다.
@@ -36,6 +36,15 @@ import statistics
 import sys
 from datetime import UTC, datetime, timedelta
 
+from app.features.territory.region import (
+    Region,
+    _point_in_ring,
+    _projector,
+    cell_visits,
+    dwell_by_region,
+    region_dwell_from_cells,
+    region_encounters,
+)
 from app.features.walk.facts import compute_facts
 from app.features.walk.models import WalkFix
 from app.geo.cells import (
@@ -45,15 +54,6 @@ from app.geo.cells import (
     hex_center_latlng,
     hex_sample_points,
     inverse_mercator,
-)
-from app.geo.region import (
-    Region,
-    _point_in_ring,
-    _projector,
-    cell_visits,
-    dwell_by_region,
-    region_dwell_from_cells,
-    region_encounters,
 )
 
 EARTH_R = 6_371_000.0

@@ -13,7 +13,7 @@
 결정 #57 이 `walk_fix`(연속 궤적)를 finish 직후 purge 한다. 그래서 **좌표가 사라진 뒤에도
 공간 질문에 답하려면** 좌표가 아닌 무언가가 남아야 한다. 셀 방문 기록이 그 손실 압축이다 —
 "어느 셀에 얼마나" 만 남기면 뒤에 생긴 면도 셀 집합으로 근사되고, 물감도 셀에 쌓인다
-(`app/geo/region.py` · `app/geo/paint.py`).
+(`app/features/territory/region.py` · `app/features/territory/paint.py`).
 
 반지름이 곧 다이얼이다. 작을수록 정밀하고 좌표에 가깝다(28단위 셀 id 는 사실상 좌표다).
 어느 반지름에서 근사가 GPS 지터보다 작아지는지는 재야 하는 값이지 고르는 값이 아니다 —

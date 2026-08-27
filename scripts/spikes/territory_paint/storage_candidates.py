@@ -51,8 +51,8 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from itertools import pairwise
 
+from app.features.territory.paint import paint_sheet
 from app.geo.cells import cell_size_m, hex_center_latlng
-from app.geo.paint import paint_sheet
 from scripts.spikes.territory_paint.paint import segments_for
 from scripts.spikes.territory_paint.persona_experiment import PROFILE, RADIUS_U, load
 

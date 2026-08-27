@@ -1,7 +1,7 @@
 """`scripts/` 의 모든 모듈이 실제로 import 되는가.
 
 **왜 필요한가**: `ruff` 는 import 대상을 해석하지 않고, pytest 가 실제로 import 하는
-스크립트는 `scripts.verify.walk_bundle` 하나뿐이다. `app/geo/paint.py` 의 함수 이름을
+스크립트는 `scripts.verify.walk_bundle` 하나뿐이다. `app/features/territory/paint.py` 의 함수 이름을
 바꾸면 `spikes/territory_paint/paint.py` 의 import 가 조용히 깨진 채로 두 게이트를 다
 통과하고, 몇 달 뒤 연구 문서의 `## 재현` 을 실제로 쳐 보는 순간에야 드러난다.
 그때는 "왜 안 도는지"부터 파야 한다 (`scripts/README.md`).

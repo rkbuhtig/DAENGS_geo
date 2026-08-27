@@ -405,7 +405,7 @@ def _report_slices(made) -> None:
 
 def _report_separation(made, meta) -> None:
     """정답 영역이 서로 얼마나 겹치나. 많이 겹치면 회수율이 뜻을 잃는다."""
-    from app.geo.paint import NARROW_STEP, paint_sheet
+    from app.features.territory.paint import NARROW_STEP, paint_sheet
     from scripts.spikes.territory_paint.paint import segments_for
 
     print("\n=== 정답 영역 분리도 (family 별 셀 집합의 Jaccard) ===")

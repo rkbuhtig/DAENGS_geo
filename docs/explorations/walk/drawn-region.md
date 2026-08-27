@@ -6,7 +6,7 @@ depends-on: contracts/walk-record.md (Segment), app/geo/cells.py
 ---
 # 사용자가 면을 그린다 — 폴리곤 안의 체류를 재는 안
 
-> **[territory-paint](territory-paint.md) 로 대체돼 parked.** 구현(`app/geo/region.py`)과
+> **[territory-paint](territory-paint.md) 로 대체돼 parked.** 구현(`app/features/territory/region.py`)과
 > 테스트(`tests/walk/test_region.py`)는 남긴다. 여기서 측정한 **5배 규칙**은 셀 격자를 쓰는
 > 한 계속 유효하고, 붓 모델도 같은 격자 위에 서 있다.
 
