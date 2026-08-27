@@ -75,6 +75,7 @@ LEGACY_MARKERS: tuple[LegacyMarker, ...] = (
         "0017", "0017_split_goods_kinds.py", "facility",
         constraint="facility_kind_not_legacy_goods",
     ),
+    LegacyMarker("0018", "0018_restriction_facts.py", "facility", "restriction_state"),
 )
 
 HEAD = LEGACY_MARKERS[-1].revision

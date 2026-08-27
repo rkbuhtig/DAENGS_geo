@@ -1107,3 +1107,64 @@ def label_of(predicate: P) -> str:
 def mapped_texts() -> frozenset[str]:
     """표가 아는 원문 전부. 커버리지 테스트가 쓴다."""
     return frozenset(_MAP)
+
+
+class RestrictionState(StrEnum):
+    """**원천이 무엇을 말했나.** `ParseState`(우리가 읽었나)와 다른 축이다.
+
+    둘을 한 값으로 합치면 사용자가 할 행동이 다른 두 경우가 섞인다:
+
+        unknown        원문 자체가 없다 (KTO 9,692행) → 전화로 확인해야 한다
+        none_confirmed 원천이 "제한 없음" 이라고 말했다 → 확인된 사실이다
+        restricted     제한이 있다 → 술어 또는 원문을 보면 된다
+
+    태그가 0개인 것은 셋 다 같지만 의미는 전혀 다르다. 칩이 없다고 제한이 없는 것이
+    아니다 — 그 오독이 "미상을 무제한으로 읽는" 사고다 (결정 #70 §6).
+    """
+
+    UNKNOWN = "unknown"
+    NONE_CONFIRMED = "none_confirmed"
+    RESTRICTED = "restricted"
+
+
+class Derivation(NamedTuple):
+    """행 하나의 파생 결과. 배치가 저장하고 adapter 가 읽는다."""
+
+    state: RestrictionState
+    parse_state: ParseState | None
+    predicates: tuple[P, ...]
+    reason: Reason | None = None
+
+    def to_columns(self) -> dict:
+        """`facility` 컬럼으로. `predicates` 는 JSONB 배열이다."""
+        return {
+            "restriction_state": self.state.value,
+            "restriction_parse_state": (
+                self.parse_state.value if self.parse_state is not None else None
+            ),
+            "restriction_predicates": [
+                {"code": p.code, "applies_to": p.applies_to.value} for p in self.predicates
+            ],
+            "restriction_semantics_version": RESTRICTION_SEMANTICS_VERSION,
+        }
+
+
+def derive(raw: str | None) -> Derivation:
+    """저장된 원문 한 줄 → 두 축 + 술어. **원천을 다시 호출하지 않는다.**
+
+    `pet_axes` 와 같은 성격이다 — 저장된 값의 함수이므로 표가 바뀌면 이 단계만 다시 돌린다.
+    """
+    text = (raw or "").strip()
+    if not text:
+        # 원문이 없다. KTO 9,692행이 여기다 — 제한이 없는 것이 아니라 **모르는 것**이다.
+        return Derivation(RestrictionState.UNKNOWN, None, ())
+    if text in NON_INFORMATIVE:
+        # `해당없음` 도 여기다. 동반 불가라 제한이 해당 없다는 뜻이며, 그 자체가 확인된 사실이다.
+        return Derivation(RestrictionState.NONE_CONFIRMED, ParseState.MAPPED, ())
+    reading = read(text)
+    if reading is None:
+        # 표에 없는 새 문자열. **추측하지 않는다** — 원문만 남기고 표 갱신을 기다린다.
+        return Derivation(RestrictionState.RESTRICTED, ParseState.RAW_ONLY, ())
+    return Derivation(
+        RestrictionState.RESTRICTED, reading.parse_state, reading.predicates, reading.reason
+    )

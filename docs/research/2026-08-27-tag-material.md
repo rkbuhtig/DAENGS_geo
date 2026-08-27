@@ -142,6 +142,56 @@ SELECT count(DISTINCT pet->>'restrictions'), count(*) FILTER (...) FROM facility
 정규식 `목줄` 은 949행을 세지만 그 안에 위 셋이 섞여 있다. **조건부를 무조건으로 읽는
 것은 사실 추출이 아니라 (틀린) 판단이다.**
 
+## 5-1. 파생 실측 — 표를 33,611행에 돌린 결과 (2026-08-27 추가)
+
+[PR 2](../decisions/2026-08-27-place-row-tags.md)의 배치를 실제로 돌렸다.
+`python -m app.ingest restrictions`, 원천 재호출 0.
+
+```
+scanned 33,611 · updated 33,611
+state       none_confirmed 22,174 · restricted 1,740 · unknown 9,697
+parse_state mapped 23,811 · partial 97 · raw_only 6
+술어 있는 행 1,734 · 조건부(applies_to≠all) 술어를 가진 행 144
+```
+
+`unknown` 9,697 = KTO 9,692 + dev 5. 원문 자체가 없는 층이 두 축 중 하나로 명시된다.
+
+### 조건부 술어의 실제 분포 (행 기준)
+
+| 술어 | 대상 | 행 |
+|---|---|---:|
+| `deny:breed` | 맹견류 | 67 |
+| `deny:size` | 대형견 | 18 |
+| `require:muzzle` | 대형견 | 16 |
+| `deny:age` | 노령견 | 14 |
+| `deny:breed` | 열거 견종 | 13 |
+| `require:leash` | 대형견 | 7 |
+| `require:manner_belt` | 수컷 | 6 |
+| `deny:age` | 어린 개 | 4 |
+| `require:manner_belt` | 중성화 전 | 3 |
+
+### 크기 축이 실제로 얼마나 늘었나 — **기대보다 훨씬 작다**
+
+전국 비의료 20,688곳 기준:
+
+| | 행 |
+|---|---:|
+| 기존 `pet_size_class` 가 대형견을 막는 행 | 761 |
+| 새 `deny:size@large` | **17** |
+| `require:carrier` 또는 `require:hold` | 212 |
+| `require:muzzle@large` | 12 |
+
+그리고 **홍대 3km 비의료 431곳에서는 새 재료가 0개다** — `deny:size` 0,
+`carrier_or_hold` 0. 기존 축으로 걸리던 2곳이 전부고, 이 작업으로 그 숫자는 안 바뀐다.
+
+재료가 있는 곳은 따로 있다: 제주시 11 · 여수시 9 · 남양주시 7 · 부산 사하구 7 ·
+해운대구 7 · 서귀포시 7 — **관광지·숙박이 많은 지역**이다. `pension`(restrictions
+41% 유정보)과 `travel`(97%)이 몰린 곳이라 §6 의 변별력 표와 같은 방향이다.
+
+즉 이 작업의 값어치는 "도심 카페 검색이 좋아진다" 가 아니라 **"여행·숙박에서 조건이
+보이기 시작한다"** 다. 도심 크기 필터의 공백은 `pet_size_class` 85% `any` 문제로
+남아 있고, 그건 원천에 값이 없어서지 파싱을 안 해서가 아니다.
+
 ## 6. kind 안 변별력 — 가르는 재료는 여가 kind 에 몰려 있다
 
 각 사실이 그 kind 를 몇 대 몇으로 가르나 (KCISA):
