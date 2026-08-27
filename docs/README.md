@@ -4,7 +4,7 @@
 
 현재 제품 범위의 기준은 [결정 #51](decisions/2026-08-22-walk-as-spine.md), 장소 발견의 다음
 제품 축은 [결정 #65](decisions/2026-08-26-place-first-discovery.md), 병원 진입 정책은
-[결정 #70](decisions/2026-08-27-hospital-place-entry.md), 현재 구현 조립의 기준은
+[결정 #71](decisions/2026-08-27-hospital-place-entry.md), 현재 구현 조립의 기준은
 [provider-assembly.md](provider-assembly.md)다. 날짜가 파일명에 들어간 `research/`는 당시
 관찰 기록이며 현재 상태 문서로 읽지 않는다.
 
@@ -36,7 +36,7 @@ backlog.md           갈래에 안 붙는 미결
 - [결정 #51 — 병원은 산책의 모드, 산책이 척추](decisions/2026-08-22-walk-as-spine.md) — 08-19 → 08-22의 사슬과 2026-08-24 채택 범위
 - [결정 #65 — Place 우선 장소 발견](decisions/2026-08-26-place-first-discovery.md) — 원천 kind 후보군 → 조건 → 사실 순서, 의미 제안은 선택층
 - [결정 #69 — 원좌표 purge 뒤 남기는 공간 형태](decisions/2026-08-26-walk-permanent-spatial-form.md) — 집계 셀 맵 하나. 궤적은 안 남긴다. #57 의 네 번째 층이고 민감도는 장 수가 만든다
-- [결정 #70 — 병원은 Place로 찾되 UI에서는 바로 진입](decisions/2026-08-27-hospital-place-entry.md) — 병원 바로가기와 전용 action은 유지하고 검색 identity·순위는 canonical Place로 통일
+- [결정 #71 — 병원은 Place로 찾되 UI에서는 바로 진입](decisions/2026-08-27-hospital-place-entry.md) — 병원 바로가기와 전용 action은 유지하고 검색 identity·순위는 canonical Place로 통일
 
 ## 계약
 - [반려견 프로필](contracts/dog-profile.md) — 외부에서 받는 형태 + 가상 페르소나 8마리 (축: 지도 위 난점)

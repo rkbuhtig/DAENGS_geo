@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-08-27
-decision: README.md #70
+decision: README.md #71
 ---
 
 # 병원은 Place로 찾되 UI에서는 바로 들어간다
