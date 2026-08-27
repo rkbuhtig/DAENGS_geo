@@ -79,6 +79,27 @@ class PetAxesOut(BaseModel):
     max_kg: float | None = None
 
 
+class RestrictionPredicateOut(BaseModel):
+    """술어 하나. `applies_to` 가 있어야 소형견에게 없는 제한을 안 보여준다."""
+
+    code: str
+    applies_to: str = "all"
+
+
+class RestrictionsOut(BaseModel):
+    """`pet.restrictions` 문장의 판독 결과 (결정 #70).
+
+    `state` 와 `parse_state` 는 다른 것을 말한다 — 원천이 무엇을 말했나 / 우리가 읽었나.
+    술어가 0개인 이유가 셋(모름·제한없음·못읽음)이라 둘을 함께 봐야 구분된다.
+    """
+
+    state: str = "unknown"
+    parse_state: str | None = None
+    predicates: list[RestrictionPredicateOut] = Field(default_factory=list)
+    # 술어가 원문을 다 담지 못한 행은 원문을 함께 보여야 한다. 칩만 보이면 완결로 읽힌다.
+    raw: str | None = None
+
+
 class FacilitySourceOut(BaseModel):
     name: str                          # kcisa | kto
     as_of: str                         # 스냅샷 날짜 또는 원천 수정일
@@ -102,8 +123,9 @@ class FacilityOut(BaseModel):
     hours_text: str | None
     closed_days: str | None
     parking: bool | None
-    pet: dict                          # 원문 봉투. 축이 못 뽑은 restrictions 등이 여기 남는다
+    pet: dict                          # 원문 봉투. 술어가 못 담은 문장은 여기 원문으로 남는다
     pet_axes: PetAxesOut               # 위 봉투에서 뽑은 축 — 필터·정렬이 쓰는 것은 이쪽
+    restrictions: RestrictionsOut      # 같은 봉투의 `restrictions` 문장에서 파생한 술어
     source: FacilitySourceOut
     field_sources: dict[str, FacilitySourceOut] = Field(default_factory=dict)
     prefer_hit: list[str] = Field(default_factory=list)  # 선호와 이 행의 교집합 — 부스트 근거
@@ -171,6 +193,19 @@ WITH merged AS (
                 THEN b.pet_max_kg ELSE f.pet_max_kg END AS pet_max_kg,
            ((f.pet IS NULL OR f.pet = '{}'::jsonb)
              AND b.pet IS NOT NULL AND b.pet <> '{}'::jsonb) AS pet_borrowed,
+           -- 제약 술어는 `pet` 봉투의 함수다. 봉투를 빌리면 술어도 같이 빌려야
+           -- "빌린 원문 + 자기 술어" 라는 어긋난 짝이 안 생긴다.
+           CASE WHEN (f.pet IS NULL OR f.pet = '{}'::jsonb)
+                     AND b.pet IS NOT NULL AND b.pet <> '{}'::jsonb
+                THEN b.restriction_state ELSE f.restriction_state END AS restriction_state,
+           CASE WHEN (f.pet IS NULL OR f.pet = '{}'::jsonb)
+                     AND b.pet IS NOT NULL AND b.pet <> '{}'::jsonb
+                THEN b.restriction_parse_state
+                ELSE f.restriction_parse_state END AS restriction_parse_state,
+           CASE WHEN (f.pet IS NULL OR f.pet = '{}'::jsonb)
+                     AND b.pet IS NOT NULL AND b.pet <> '{}'::jsonb
+                THEN b.restriction_predicates
+                ELSE f.restriction_predicates END AS restriction_predicates,
            f.source, COALESCE(f.last_written::text, f.snapshot) AS as_of,
            b.homepage AS b_homepage, b.hours_text AS b_hours_text,
            b.closed_days AS b_closed_days,
@@ -182,6 +217,7 @@ WITH merged AS (
         SELECT f2.homepage, f2.hours_text, f2.closed_days,
                f2.parking, f2.indoor, f2.outdoor, f2.pet,
                f2.pet_allowed, f2.pet_exclusive, f2.pet_dog_ok, f2.pet_size_class, f2.pet_max_kg,
+               f2.restriction_state, f2.restriction_parse_state, f2.restriction_predicates,
                f2.source, f2.source_ref, f2.last_written, f2.snapshot
         FROM facility_link l
         JOIN facility f2 ON f2.id = l.source_ref::bigint
@@ -242,6 +278,8 @@ _BORROWABLE = ("homepage", "hours_text", "closed_days")
 _SQL_MERGED = (
     "parking", "indoor", "outdoor",
     "pet", "pet_allowed", "pet_exclusive", "pet_dog_ok", "pet_size_class", "pet_max_kg",
+    # 제약 축은 `pet` 봉투와 한 묶음이다 — 봉투를 빌리면 같이 빌려온다 (SQL `merged`).
+    "restriction_state", "restriction_parse_state", "restriction_predicates",
 )
 
 
@@ -263,6 +301,29 @@ def _merge(row) -> tuple[dict, dict]:
         if getattr(row, f"{name}_borrowed"):
             borrowed[name] = source
     return values, borrowed
+
+
+def _restrictions_out(values: dict) -> RestrictionsOut:
+    """저장된 파생값 → 응답 모델. **원문은 술어가 다 담지 못했을 때만 싣는다.**
+
+    `mapped` 행까지 원문을 실으면 응답이 두 배가 되고, 클라이언트가 술어 대신 문자열을
+    파싱하는 우회로가 생긴다. `partial`·`raw_only` 는 반대로 원문이 없으면 사용자가
+    빠진 조건을 알 방법이 없다 — 칩만 보이면 그 목록이 완결로 읽힌다.
+    """
+    state = values.get("restriction_state")
+    if state is None:
+        # 아직 파생 배치가 안 돈 행. 없는 사실을 지어내지 않고 미상으로 둔다.
+        return RestrictionsOut()
+    parse_state = values.get("restriction_parse_state")
+    predicates = [
+        RestrictionPredicateOut(**item) for item in (values.get("restriction_predicates") or [])
+    ]
+    raw = None
+    if parse_state in ("partial", "raw_only"):
+        raw = (values.get("pet") or {}).get("restrictions")
+    return RestrictionsOut(
+        state=state, parse_state=parse_state, predicates=predicates, raw=raw,
+    )
 
 
 def _prefer_tags(values: dict) -> set[str]:
@@ -333,6 +394,7 @@ async def resolve_facilities(
                 dog_ok=values["pet_dog_ok"], size_class=values["pet_size_class"],
                 max_kg=values["pet_max_kg"],
             ),
+            restrictions=_restrictions_out(values),
             source=FacilitySourceOut(name=r.source, ref=r.source_ref, as_of=r.as_of),
             # resolver 결과에는 표시하는 필드의 출처만 유지한다. Place adapter는 숨은
             # 실내외 사실까지 포함한 내부 맵을 쓴다.
