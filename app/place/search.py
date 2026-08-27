@@ -21,6 +21,7 @@ from app.place.facility_resolver import (
     resolve_facilities,
 )
 from app.place.medical_resolver import resolve_medical_places
+from app.place.restriction_projection import DogRestrictionEvaluation, project
 from app.place.source_catalog import KCISA_KINDS, KTO_KINDS, MOIS_SOURCES
 from app.profile.contract import SizeClass
 from app.profile.source import profile_source
@@ -88,6 +89,9 @@ class AppliedPlaceSearchConditions(BaseModel):
     dog_id: str | None = None
     dog_size: SizeClass | None = None
     dog_weight_kg: float | None = Field(None, gt=0, le=200)
+    # `deny:age` 술어를 대조하는 유일한 재료. 프로필에서만 오고 요청으로 못 받는다 —
+    # 나이는 견주가 매번 적을 값이 아니라 프로필이 아는 사실이다.
+    dog_age_years: float | None = Field(None, ge=0, le=40)
 
 
 class PlaceSearchPreferences(BaseModel):
@@ -187,6 +191,11 @@ class PlaceEvaluations(BaseModel):
     dog_access: DogAccessEvaluation | None = Field(
         None, exclude_if=lambda value: value is None,
     )
+    # 조건 술어를 이 개에 대고 본 결과. `dog_access`(원천 크기 축)와 **다른 축**이라
+    # 합치지 않는다 — 원천이 두 곳에 다르게 적었다는 사실 자체가 정보다.
+    restrictions: DogRestrictionEvaluation | None = Field(
+        None, exclude_if=lambda value: value is None,
+    )
 
 
 class PlaceSearchHit(BaseModel):
@@ -260,15 +269,23 @@ def _hit(
     conditions: AppliedPlaceSearchConditions | None,
 ) -> PlaceSearchHit:
     dog_access = None
+    restrictions = None
     if conditions is not None and result.match.kind not in MEDICAL_KINDS:
         dog_access = evaluate_dog_access(
             result.facts.pet_access,
             conditions.dog_size,
             conditions.dog_weight_kg,
         )
+        restrictions = project(
+            result.facts.restrictions,
+            dog_size=conditions.dog_size,
+            dog_age_years=conditions.dog_age_years,
+        )
     return PlaceSearchHit(
         place=result,
-        evaluations=PlaceEvaluations(dog_access=dog_access),
+        evaluations=PlaceEvaluations(
+            dog_access=dog_access, restrictions=restrictions,
+        ),
     )
 
 
@@ -346,17 +363,21 @@ async def _resolve_conditions(
         return None
     dog_size = conditions.dog_size
     dog_weight_kg = conditions.dog_weight_kg
+    dog_age_years = None
     # dog_size 명시는 다른 개를 뜻할 수 있다. 그때 기존 프로필 무게를 조용히 섞지 않는다.
+    # **나이도 같은 규칙을 탄다** — 남의 개를 데려가는데 우리 개 나이로 판정하면 안 된다.
     if dog_size is None and conditions.dog_id is not None:
         profile = await profile_source().get(conditions.dog_id)
         if profile is not None:
             dog_size = profile.size_class
+            dog_age_years = profile.age_years
             if dog_weight_kg is None:
                 dog_weight_kg = profile.weight_kg
     return AppliedPlaceSearchConditions(
         dog_id=conditions.dog_id,
         dog_size=dog_size,
         dog_weight_kg=dog_weight_kg,
+        dog_age_years=dog_age_years,
     )
 
 

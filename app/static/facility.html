@@ -192,11 +192,15 @@ function provenanceLine(label, provenance) {
 
 // 동반 조건 칩 (결정 #70). **칩이 0개인 이유가 셋이라 state 를 먼저 읽는다** —
 // "제한 없음 확인" 과 "정보 없음" 이 같은 화면이 되면 미상을 무제한으로 읽게 된다.
-function restrictionBlock(restrictions) {
+function restrictionBlock(restrictions, verdict) {
   if (!restrictions) return '조건: 정보를 받지 못했습니다<br>';
   if (restrictions.state === 'unknown') return '조건: <b>미상</b> (원천에 표기 없음)<br>';
   if (restrictions.state === 'none_confirmed') return '조건: 제한 없음(확인됨)<br>';
-  const chips = (restrictions.chips || []).map(function (chip) {
+  // 개를 지정하면 `evaluations.restrictions` 가 이 개 기준의 칩을 준다 —
+  // 장소 사실(`facts`)은 전부 들고 있고, 해당 없는 조건은 여기서 빠진다.
+  const source = verdict ? verdict.chips : restrictions.chips;
+  const denied = verdict && verdict.state === 'incompatible';
+  const chips = (source || []).map(function (chip) {
     const conditional = chip.applies_to !== 'all';
     return '<span style="display:inline-block;margin:1px 3px 1px 0;padding:1px 6px;' +
       'border-radius:9px;font-size:11px;background:' +
@@ -207,7 +211,10 @@ function restrictionBlock(restrictions) {
   const raw = restrictions.raw
     ? '<br><span style="color:#a15c00;font-size:11px">원문: ' + restrictions.raw + '</span>'
     : '';
-  return '조건: ' + (chips || '<span class="muted">칩 없음</span>') + raw + '<br>';
+  const head = denied
+    ? '<b style="color:#b3261e">조건 불가</b> (' + (verdict.blocking || []).join(', ') + '): '
+    : '조건: ';
+  return head + (chips || '<span class="muted">칩 없음</span>') + raw + '<br>';
 }
 
 function marker(hit) {
@@ -244,7 +251,7 @@ function marker(hit) {
     evaluationText +
     '크기: ' + size + '<br>' +
     '주차: ' + parkingLabel(f.facts.parking) + '<br>' +
-    restrictionBlock(f.facts.restrictions) +
+    restrictionBlock(f.facts.restrictions, hit.evaluations && hit.evaluations.restrictions) +
     (ax.exclusive ? '반려동물 전용<br>' : '') +
     (f.facts.hours_text ? '시간: ' + f.facts.hours_text + '<br>' : '') +
     '<span style="color:#6b6b6b">대표 출처 ' + f.key.source +

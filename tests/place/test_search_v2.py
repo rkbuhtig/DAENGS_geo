@@ -309,7 +309,12 @@ async def test_v2_groups_kinds_and_sorts_only_inside_each_candidate_set():
             ))
 
             assert for_dog.conditions is not None
-            assert for_dog.conditions.model_dump() == {
+            applied = for_dog.conditions.model_dump()
+            # 나이는 `birth_date` 에서 매일 다시 계산되므로 값이 아니라 존재를 고정한다.
+            # `deny:age` 술어를 대조하는 유일한 재료이고 요청으로는 못 받는다.
+            age = applied.pop("dog_age_years")
+            assert isinstance(age, float) and age > 0
+            assert applied == {
                 "dog_id": "janggun", "dog_size": "large", "dog_weight_kg": 34.0,
             }
             assert [hit.place.name for hit in for_dog.groups[0].results] == [
@@ -362,7 +367,8 @@ async def test_v2_groups_kinds_and_sorts_only_inside_each_candidate_set():
             ))
             assert unknown_profile.conditions is not None
             assert unknown_profile.conditions.model_dump() == {
-                "dog_id": "missing-profile", "dog_size": None, "dog_weight_kg": None,
+                "dog_id": "missing-profile", "dog_size": None,
+                "dog_weight_kg": None, "dog_age_years": None,
             }
             assert unknown_profile.groups[0].results[0].evaluations.dog_access.model_dump() == {
                 "state": "incompatible", "reason": "dog_disallowed",
