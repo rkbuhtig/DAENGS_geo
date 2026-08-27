@@ -1,8 +1,6 @@
 package com.daengs.geo
 
 import android.app.Application
-import com.daengs.geo.hospital.HospitalApi
-import com.daengs.geo.hospital.HospitalRepository
 import com.daengs.geo.journey.HttpJourneyRepository
 import com.daengs.geo.journey.JourneyApi
 import com.daengs.geo.location.FusedLocationSource
@@ -45,7 +43,6 @@ class DaengsApplication : Application() {
             scope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
         )
         graph = AppGraph(
-            hospitalRepository = HospitalRepository(HospitalApi(baseUrl = { ServerAddress.current(this) })),
             placeRepository = PlaceRepository(PlaceApi(baseUrl = { ServerAddress.current(this) })),
             journeyRepository = HttpJourneyRepository(
                 JourneyApi(baseUrl = { ServerAddress.current(this) }),
@@ -67,8 +64,7 @@ class DaengsApplication : Application() {
 }
 
 data class AppGraph(
-    val hospitalRepository: HospitalRepository,
-    /** Product place entry point. Legacy hospital wiring remains only for the cleanup PR. */
+    /** Product place entry point shared by every category, including hospital. */
     val placeRepository: PlaceRepository,
     /** Shared selected-Place movement boundary; route following stays in the provider app. */
     val journeyRepository: HttpJourneyRepository,

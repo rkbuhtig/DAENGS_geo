@@ -88,7 +88,7 @@
 안내를 우선하는 것은 결과 표현 정책이다. 길찾기도 병원 전용 검색 응답을 사용하지 않는다.
 Android는 최신 실제 기기 위치와 선택한 canonical Place 좌표를 공용 `POST /journey`에 보내고,
 응답의 이동수단 우선순위·실측/추정 상태와 NAVER handoff를 사용한다. 남은 legacy Android
-client/server 제거는 후속이다.
+코드는 없으며 서버의 `/hospital/search`와 `/dev` 병원 표면 제거만 후속이다.
 
 주차 선호가 켜진 시설 그룹은 순수 거리순 대신 응답에 적힌 밴드 정렬을 사용한다. `coverage`는
 전체 데이터 통계가 아니라 **그룹에 실제 반환된 결과**의 주차 사실 3상태 개수다. 따라서
@@ -129,4 +129,4 @@ identity로 노출하지 않는다.
 - 태그/이름 추론 및 AI 제안
 - 서로 다른 kind 결과의 통합 순위
 - 검증되지 않은 `facility_link`를 Place alias로 승격
-- Android legacy 병원 client/state와 `/hospital/search` 제거
+- 소비자가 없어진 `/hospital/search`와 `/dev` 병원 검색 표면 제거

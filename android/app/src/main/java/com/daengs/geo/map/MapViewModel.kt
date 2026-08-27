@@ -3,12 +3,6 @@ package com.daengs.geo.map
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.daengs.geo.hospital.HospitalRepository
-import com.daengs.geo.hospital.HospitalSearchResponse
-import com.daengs.geo.hospital.LocationMode
-import com.daengs.geo.hospital.SearchRequestBuilder
-import com.daengs.geo.hospital.SearchSession
-import com.daengs.geo.hospital.SuggestedAction
 import com.daengs.geo.journey.JourneyRepository
 import com.daengs.geo.location.GeoPoint
 import com.daengs.geo.location.LocationSample
@@ -34,9 +28,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.serialization.json.JsonArray
-
-enum class RequestKind { LOCATION, HOSPITAL_SEARCH }
 
 data class MapLayerPreferences(
     val showTrail: Boolean = true,
@@ -51,7 +42,7 @@ private data class PlaceSearchIntent(
 data class MapUiState(
     /**
      * Where the user actually is. Only a real device fix ever writes this, because it is what a
-     * FOLLOW_DEVICE search sends as its origin and what the "내 위치 기준" label promises.
+     * A device-origin Place search sends this point and the "내 위치 기준" label promises it.
      */
     val deviceLocation: GeoPoint? = null,
     /**
@@ -59,14 +50,9 @@ data class MapUiState(
      * production walk recording is owned separately by WalkTrackingService.
      */
     val feedSample: LocationSample? = null,
-    val searchOrigin: GeoPoint? = null,
     val cameraCandidate: GeoPoint? = null,
     val followDevice: Boolean = true,
-    val locationMode: LocationMode = LocationMode.FOLLOW_DEVICE,
     val locationFeed: LocationFeed = LocationFeed.DEVICE,
-    val response: HospitalSearchResponse? = null,
-    val selectedHospitalId: Long? = null,
-    /** Product UI uses this state; legacy hospital state remains only until client cleanup. */
     val placeDiscovery: PlaceDiscoveryState = PlaceDiscoveryState(),
     val journey: PlaceJourneyState = PlaceJourneyState(),
     val trail: TrailSnapshot = TrailSnapshot(),
@@ -74,15 +60,13 @@ data class MapUiState(
     val territoryCells: List<TerritoryCell> = emptyList(),
     val currentTerritoryCell: TerritoryCell? = null,
     val statusMessage: String? = null,
-    val request: RequestKind? = null,
-    val failedRequest: RequestKind? = null,
+    val locating: Boolean = false,
     val error: String? = null,
 ) {
-    val loading: Boolean get() = request != null || placeDiscovery.loading
+    val loading: Boolean get() = locating || placeDiscovery.loading
 }
 
 class MapViewModel(
-    private val hospitalRepository: HospitalRepository,
     placeRepository: PlaceSearchRepository,
     journeyRepository: JourneyRepository,
     dogId: String,
@@ -138,31 +122,15 @@ class MapViewModel(
         }
     }
 
-    fun locateAndSearch() {
+    fun useDeviceLocation() {
         pendingPlaceIntent = null
         viewModelScope.launch {
             _uiState.update {
-                it.copy(request = RequestKind.LOCATION, failedRequest = null, error = null)
-            }
-            val sample = fetchDeviceFix() ?: return@launch
-            _uiState.update {
-                it.copy(
-                    locationMode = LocationMode.FOLLOW_DEVICE,
-                    cameraCandidate = sample.point,
-                )
-            }
-            search()
-        }
-    }
-
-    fun useDeviceLocation() {
-        viewModelScope.launch {
-            _uiState.update {
-                it.copy(request = RequestKind.LOCATION, failedRequest = null, error = null)
+                it.copy(locating = true, error = null)
             }
             if (fetchDeviceFix() == null) return@launch
             _uiState.update {
-                it.copy(request = null, statusMessage = "실제 기기 위치를 사용합니다.")
+                it.copy(locating = false, statusMessage = "실제 기기 위치를 사용합니다.")
             }
         }
     }
@@ -198,27 +166,10 @@ class MapViewModel(
         }
     }
 
-    fun searchPinnedArea() {
-        val state = _uiState.value
-        val point = state.cameraCandidate ?: return
-        if (state.response == null) return
-        _uiState.update { it.copy(locationMode = LocationMode.PINNED, followDevice = false) }
-        search(SearchRequestBuilder.setOriginEdit(point))
-    }
-
-    fun followMyLocation() = locateAndSearch()
-
-    fun execute(action: SuggestedAction) = search(action.edits)
-
-    fun searchAtHundredMeters() = search(SearchRequestBuilder.setRadiusEdit(100))
-
     fun retry() {
-        when (retryRequestFor(_uiState.value)) {
-            RequestKind.LOCATION -> pendingPlaceIntent?.let { intent ->
-                searchPlaces(intent.kinds, intent.preferParking)
-            } ?: locateAndSearch()
-            RequestKind.HOSPITAL_SEARCH -> search()
-        }
+        pendingPlaceIntent?.let { intent ->
+            locateForPlaceDiscovery(intent)
+        } ?: useDeviceLocation()
     }
 
     fun retryPlaceSearch() = placeDiscovery.retry()
@@ -226,10 +177,6 @@ class MapViewModel(
     /** A first-class entry point that still uses the one canonical Place discovery session. */
     fun openHospitalPlaces() {
         searchPlacesAtCurrentOrigin(listOf(PlaceKind.HOSPITAL))
-    }
-
-    fun selectHospital(id: Long) {
-        _uiState.update { it.copy(selectedHospitalId = id) }
     }
 
     /** Search canonical Place kinds around the last real device fix. */
@@ -259,7 +206,7 @@ class MapViewModel(
         pendingPlaceIntent = intent
         viewModelScope.launch {
             _uiState.update {
-                it.copy(request = RequestKind.LOCATION, failedRequest = null, error = null)
+                it.copy(locating = true, error = null)
             }
             val realOrigin = fetchRealDevicePoint()
             if (realOrigin == null || pendingPlaceIntent != intent) return@launch
@@ -294,9 +241,7 @@ class MapViewModel(
             _uiState.update { it.copy(statusMessage = "지도를 이동한 뒤 이 지역을 검색해주세요.") }
             return
         }
-        _uiState.update {
-            it.copy(locationMode = LocationMode.PINNED, followDevice = false)
-        }
+        _uiState.update { it.copy(followDevice = false) }
         beginPlaceDiscovery(origin, PlaceSearchIntent(kinds, preferParking), PlaceOriginMode.PINNED)
     }
 
@@ -406,7 +351,7 @@ class MapViewModel(
             acceptLocationFeedState(locationFeed.state.value)
             _uiState.update { state -> state.copy(followDevice = true, statusMessage = null) }
         }
-        .onFailure { error -> showError(error, RequestKind.LOCATION) }
+        .onFailure(::showError)
         .getOrNull()
 
     /** Canonical searches may use only the state slot that already rejects replay/mock fixes. */
@@ -415,7 +360,6 @@ class MapViewModel(
         return _uiState.value.deviceLocation ?: run {
             showError(
                 IllegalStateException("가상 위치로는 주변 장소를 검색할 수 없어요."),
-                RequestKind.LOCATION,
             )
             null
         }
@@ -474,34 +418,6 @@ class MapViewModel(
         }
     }
 
-    private fun search(edits: JsonArray = JsonArray(emptyList())) {
-        val before = _uiState.value
-        val session = SearchSession(
-            state = before.response?.state,
-            deviceLocation = before.deviceLocation,
-            mode = before.locationMode,
-        )
-        viewModelScope.launch {
-            _uiState.update {
-                it.copy(request = RequestKind.HOSPITAL_SEARCH, failedRequest = null, error = null)
-            }
-            runCatching {
-                hospitalRepository.search(SearchRequestBuilder.build(session, edits))
-            }.onSuccess { response ->
-                _uiState.update {
-                    it.copy(
-                        response = response,
-                        searchOrigin = response.origin,
-                        selectedHospitalId = response.results.firstOrNull()?.id,
-                        request = null,
-                        failedRequest = null,
-                        error = null,
-                    )
-                }
-            }.onFailure { error -> showError(error, RequestKind.HOSPITAL_SEARCH) }
-        }
-    }
-
     private fun beginPlaceDiscovery(
         origin: GeoPoint,
         intent: PlaceSearchIntent,
@@ -510,23 +426,21 @@ class MapViewModel(
         pendingPlaceIntent = null
         placeJourney.clear()
         _uiState.update {
-            it.copy(request = null, failedRequest = null, error = null)
+            it.copy(locating = false, error = null)
         }
         placeDiscovery.search(origin, intent.kinds, intent.preferParking, originMode)
     }
 
-    private fun showError(error: Throwable, failedRequest: RequestKind? = null) {
+    private fun showError(error: Throwable) {
         _uiState.update {
             it.copy(
-                request = null,
-                failedRequest = failedRequest,
+                locating = false,
                 error = error.message ?: "요청을 처리하지 못했습니다.",
             )
         }
     }
 
     class Factory(
-        private val hospitalRepository: HospitalRepository,
         private val placeRepository: PlaceSearchRepository,
         private val journeyRepository: JourneyRepository,
         private val dogId: String,
@@ -537,7 +451,6 @@ class MapViewModel(
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
             MapViewModel(
-                hospitalRepository,
                 placeRepository,
                 journeyRepository,
                 dogId,
@@ -548,7 +461,3 @@ class MapViewModel(
     }
 
 }
-
-internal fun retryRequestFor(state: MapUiState): RequestKind =
-    state.failedRequest
-        ?: if (state.response == null) RequestKind.LOCATION else RequestKind.HOSPITAL_SEARCH

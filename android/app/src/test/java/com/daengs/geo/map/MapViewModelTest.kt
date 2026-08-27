@@ -1,9 +1,5 @@
 package com.daengs.geo.map
 
-import com.daengs.geo.hospital.HospitalApi
-import com.daengs.geo.hospital.HospitalRepository
-import com.daengs.geo.hospital.HospitalSearchResponse
-import com.daengs.geo.hospital.LocationMode
 import com.daengs.geo.journey.JourneyItem
 import com.daengs.geo.journey.JourneyRepository
 import com.daengs.geo.journey.JourneyResponse
@@ -42,11 +38,10 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.put
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -333,48 +328,26 @@ class MapViewModelTest {
     }
 
     @Test
-    fun `a pending device fix times out and keeps location as the retry target`() = runTest {
+    fun `a pending device fix times out and remains retryable`() = runTest {
         val source = FakeLocationSource(fix = fix(37.5665, 126.9780)).apply {
             gate = CompletableDeferred()
         }
         val viewModel = viewModel(source)
 
-        viewModel.locateAndSearch()
+        viewModel.useDeviceLocation()
 
-        assertEquals(RequestKind.LOCATION, viewModel.uiState.value.request)
+        assertTrue(viewModel.uiState.value.locating)
         advanceUntilIdle()
 
         val failed = viewModel.uiState.value
-        assertNull(failed.request)
-        assertEquals(RequestKind.LOCATION, failed.failedRequest)
+        assertFalse(failed.locating)
         assertTrue(failed.error.orEmpty().startsWith("위치를 찾지 못했어요."))
         assertEquals(1, source.currentLocationCalls)
 
         viewModel.retry()
 
         assertEquals(2, source.currentLocationCalls)
-        assertEquals(RequestKind.LOCATION, viewModel.uiState.value.request)
-    }
-
-    @Test
-    fun `a location failure remains the retry target when old results exist`() {
-        val state = MapUiState(
-            response = HospitalSearchResponse(
-                state = buildJsonObject {
-                    put("lat", 37.5665)
-                    put("lng", 126.9780)
-                },
-                results = emptyList(),
-                actions = emptyList(),
-                reply = "",
-                showCallCta = false,
-                callReasons = emptyList(),
-                resolution = emptyList(),
-            ),
-            failedRequest = RequestKind.LOCATION,
-        )
-
-        assertEquals(RequestKind.LOCATION, retryRequestFor(state))
+        assertTrue(viewModel.uiState.value.locating)
     }
 
     @Test
@@ -398,8 +371,7 @@ class MapViewModelTest {
         assertEquals(places.response, state.placeDiscovery.response)
         assertEquals(PlaceKey("kcisa", "cafe-parking"), state.placeDiscovery.selectedPlaceKey)
         assertEquals(request.origin, state.placeDiscovery.origin)
-        assertNull("canonical origin must not overwrite the legacy hospital origin", state.searchOrigin)
-        assertNull(state.request)
+        assertFalse(state.locating)
     }
 
     @Test
@@ -414,7 +386,7 @@ class MapViewModelTest {
         val state = viewModel.uiState.value
         assertTrue(places.requests.isEmpty())
         assertNull(state.deviceLocation)
-        assertEquals(RequestKind.LOCATION, state.failedRequest)
+        assertFalse(state.locating)
         assertEquals("가상 위치로는 주변 장소를 검색할 수 없어요.", state.error)
     }
 
@@ -432,7 +404,7 @@ class MapViewModelTest {
         advanceUntilIdle()
 
         assertEquals(camera, places.requests.single().origin)
-        assertEquals(LocationMode.PINNED, viewModel.uiState.value.locationMode)
+        assertEquals(PlaceOriginMode.PINNED, viewModel.uiState.value.placeDiscovery.originMode)
         assertEquals(false, viewModel.uiState.value.followDevice)
     }
 
@@ -467,13 +439,13 @@ class MapViewModelTest {
         advanceUntilIdle()
 
         assertEquals("place api unavailable", viewModel.uiState.value.placeDiscovery.error)
-        val failedRequest = places.requests.single()
+        val requestBeforeRetry = places.requests.single()
 
         places.failure = null
         viewModel.retryPlaceSearch()
         advanceUntilIdle()
 
-        assertEquals(listOf(failedRequest, failedRequest), places.requests)
+        assertEquals(listOf(requestBeforeRetry, requestBeforeRetry), places.requests)
         assertNull(viewModel.uiState.value.placeDiscovery.error)
     }
 
@@ -492,7 +464,7 @@ class MapViewModelTest {
         advanceUntilIdle()
 
         assertTrue(places.requests.isEmpty())
-        assertEquals(RequestKind.LOCATION, viewModel.uiState.value.failedRequest)
+        assertFalse(viewModel.uiState.value.locating)
         assertTrue(viewModel.uiState.value.error.orEmpty().startsWith("위치를 찾지 못했어요."))
 
         source.gate.complete(Unit)
@@ -500,7 +472,7 @@ class MapViewModelTest {
         advanceUntilIdle()
 
         assertEquals(PlaceKind.CAFE, places.requests.single().kinds.single())
-        assertNull(viewModel.uiState.value.failedRequest)
+        assertFalse(viewModel.uiState.value.locating)
     }
 
 
@@ -626,7 +598,6 @@ class MapViewModelTest {
         ),
         dogId: String = "",
     ) = MapViewModel(
-        hospitalRepository = HospitalRepository(HospitalApi(baseUrl = { "http://127.0.0.1:1" })),
         placeRepository = places,
         journeyRepository = journeys,
         dogId = dogId,

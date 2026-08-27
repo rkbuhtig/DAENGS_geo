@@ -11,7 +11,7 @@
 
 `POST /hospital/search`는 병원 후보와 상태 편집, 추정 이동정보와 안전·복구 표면을 묶은
 `HospitalSearchOut`을 반환한다. Android의 병원 직통 화면은 결정 #71에 따라 canonical Place로
-이동했고 이 계약을 더 이상 호출하지 않는다. 현재 남은 Android client wiring과 `/dev` 검증
+이동했고 Android client·전용 state도 제거되어 이 계약을 더 이상 호출하지 않는다. `/dev` 검증
 표면을 제거한 뒤 이 계약도 퇴역한다. 공용 장소 발견 입구로 새 소비자를 붙이거나 경로만 바꿔
 상담 API로 재정의하지 않는다.
 
