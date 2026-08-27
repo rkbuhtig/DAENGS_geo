@@ -3,6 +3,8 @@ package com.daengs.geo
 import android.app.Application
 import com.daengs.geo.hospital.HospitalApi
 import com.daengs.geo.hospital.HospitalRepository
+import com.daengs.geo.journey.HttpJourneyRepository
+import com.daengs.geo.journey.JourneyApi
 import com.daengs.geo.location.FusedLocationSource
 import com.daengs.geo.location.LocationSource
 import com.daengs.geo.place.PlaceApi
@@ -45,6 +47,9 @@ class DaengsApplication : Application() {
         graph = AppGraph(
             hospitalRepository = HospitalRepository(HospitalApi(baseUrl = { ServerAddress.current(this) })),
             placeRepository = PlaceRepository(PlaceApi(baseUrl = { ServerAddress.current(this) })),
+            journeyRepository = HttpJourneyRepository(
+                JourneyApi(baseUrl = { ServerAddress.current(this) }),
+            ),
             locationSource = FusedLocationSource(this),
             territoryRepository = territoryRepository,
             walkTrackingStore = walkTrackingStore,
@@ -65,6 +70,8 @@ data class AppGraph(
     val hospitalRepository: HospitalRepository,
     /** Product place entry point. Legacy hospital wiring remains only for the cleanup PR. */
     val placeRepository: PlaceRepository,
+    /** Shared selected-Place movement boundary; route following stays in the provider app. */
+    val journeyRepository: HttpJourneyRepository,
     val locationSource: LocationSource,
     val territoryRepository: TerritoryRepository,
     val walkTrackingStore: WalkTrackingStore,

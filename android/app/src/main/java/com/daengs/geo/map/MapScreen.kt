@@ -57,6 +57,7 @@ import com.daengs.geo.map.shell.MapHost
 import com.daengs.geo.map.shell.MapScene
 import com.daengs.geo.place.PlaceKey
 import com.daengs.geo.place.PlaceKind
+import com.daengs.geo.place.PlaceResult
 import com.daengs.geo.walk.WalkExportShare
 import java.io.File
 import kotlin.math.abs
@@ -84,6 +85,9 @@ fun MapScreen(
     onRetryPlaces: () -> Unit,
     onRetryLocation: () -> Unit,
     onSelectPlace: (PlaceKey) -> Unit,
+    onJourney: (PlaceResult) -> Unit,
+    onRetryJourney: () -> Unit,
+    onOpenHandoff: (String) -> Unit,
     onCall: (String) -> Unit,
     onStartTracking: () -> Unit,
     onPauseTracking: () -> Unit,
@@ -243,9 +247,13 @@ fun MapScreen(
             when (section) {
                 AppSection.PLACES -> PlaceDiscoveryPanel(
                     state = state.placeDiscovery,
+                    journey = state.journey,
                     onSearch = onSearchPlaces,
                     onRetry = onRetryPlaces,
                     onSelect = onSelectPlace,
+                    onJourney = onJourney,
+                    onRetryJourney = onRetryJourney,
+                    onOpenHandoff = onOpenHandoff,
                     onCall = onCall,
                     modifier = Modifier.align(Alignment.BottomCenter),
                 )

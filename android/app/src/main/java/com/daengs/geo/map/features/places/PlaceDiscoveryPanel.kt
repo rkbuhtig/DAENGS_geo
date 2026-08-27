@@ -35,6 +35,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.daengs.geo.map.layers.places.PlaceMarkerState
+import com.daengs.geo.journey.JourneyItem
+import com.daengs.geo.journey.JourneyLeg
+import com.daengs.geo.journey.JourneyMode
+import com.daengs.geo.journey.JourneyRouteStatus
+import com.daengs.geo.map.features.journey.PlaceJourneyState
 import com.daengs.geo.place.BooleanFactCoverage
 import com.daengs.geo.place.DogAccessState
 import com.daengs.geo.place.MedicalFacts
@@ -107,9 +112,13 @@ fun placeMarkerId(key: PlaceKey): String = "place:${key.source.length}:${key.sou
 @Composable
 fun PlaceDiscoveryPanel(
     state: PlaceDiscoveryState,
+    journey: PlaceJourneyState,
     onSearch: (PlaceKind, Boolean) -> Unit,
     onRetry: () -> Unit,
     onSelect: (PlaceKey) -> Unit,
+    onJourney: (PlaceResult) -> Unit,
+    onRetryJourney: () -> Unit,
+    onOpenHandoff: (String) -> Unit,
     onCall: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -277,7 +286,16 @@ fun PlaceDiscoveryPanel(
                             PlaceCard(
                                 hit = hit,
                                 selected = hit.place.key == state.selectedPlaceKey,
+                                journey = journey.takeIf {
+                                    it.destinationKey == hit.place.key
+                                },
                                 onSelect = { onSelect(hit.place.key) },
+                                onJourney = {
+                                    onSelect(hit.place.key)
+                                    onJourney(hit.place)
+                                },
+                                onRetryJourney = onRetryJourney,
+                                onOpenHandoff = onOpenHandoff,
                                 onCall = onCall,
                             )
                         }
@@ -305,7 +323,11 @@ private fun ParkingCoverage(coverage: BooleanFactCoverage) {
 private fun PlaceCard(
     hit: PlaceSearchHit,
     selected: Boolean,
+    journey: PlaceJourneyState?,
     onSelect: () -> Unit,
+    onJourney: () -> Unit,
+    onRetryJourney: () -> Unit,
+    onOpenHandoff: (String) -> Unit,
     onCall: (String) -> Unit,
 ) {
     val place = hit.place
@@ -374,6 +396,12 @@ private fun PlaceCard(
             place.facts.address?.let { address ->
                 Text(address, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
+            JourneyAction(
+                journey = journey,
+                onJourney = onJourney,
+                onRetry = onRetryJourney,
+                onOpenHandoff = onOpenHandoff,
+            )
             place.facts.phone?.let { phone ->
                 OutlinedButton(onClick = { onCall(phone) }, modifier = Modifier.fillMaxWidth()) {
                     Text(
@@ -385,6 +413,98 @@ private fun PlaceCard(
             }
         }
     }
+}
+
+data class PrimaryJourney(
+    val mode: JourneyMode,
+    val leg: JourneyLeg,
+)
+
+@Composable
+private fun JourneyAction(
+    journey: PlaceJourneyState?,
+    onJourney: () -> Unit,
+    onRetry: () -> Unit,
+    onOpenHandoff: (String) -> Unit,
+) {
+    when {
+        journey == null -> {
+            OutlinedButton(onClick = onJourney, modifier = Modifier.fillMaxWidth()) {
+                Text("길찾기")
+            }
+        }
+        journey.loading -> {
+            OutlinedButton(onClick = {}, enabled = false, modifier = Modifier.fillMaxWidth()) {
+                CircularProgressIndicator(modifier = Modifier.width(16.dp), strokeWidth = 2.dp)
+                Spacer(Modifier.width(8.dp))
+                Text("가는 길 확인 중")
+            }
+        }
+        journey.error != null -> {
+            Text(
+                journey.error,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+                maxLines = 2,
+            )
+            TextButton(onClick = onRetry, modifier = Modifier.fillMaxWidth()) {
+                Text("길찾기 다시 시도")
+            }
+        }
+        else -> {
+            val primary = journey.item?.let(::primaryJourney)
+            if (primary == null) {
+                Text("사용할 수 있는 이동 경로가 없습니다.", style = MaterialTheme.typography.bodySmall)
+                TextButton(onClick = onJourney, modifier = Modifier.fillMaxWidth()) {
+                    Text("다시 계산")
+                }
+            } else {
+                Text(
+                    journeySummary(primary),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.secondary,
+                )
+                OutlinedButton(
+                    onClick = { onOpenHandoff(primary.leg.handoff!!.naver) },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("네이버 지도에서 ${journeyModeLabel(primary.mode)} 길찾기")
+                }
+            }
+        }
+    }
+}
+
+fun primaryJourney(item: JourneyItem): PrimaryJourney? {
+    val ordered = (item.modePriority + JourneyMode.entries).distinct()
+    return ordered.asSequence()
+        .mapNotNull { mode -> item.legs[mode]?.let { leg -> PrimaryJourney(mode, leg) } }
+        .firstOrNull { it.leg.status != JourneyRouteStatus.UNAVAILABLE && it.leg.handoff != null }
+        ?: ordered.asSequence()
+            .mapNotNull { mode -> item.legs[mode]?.let { leg -> PrimaryJourney(mode, leg) } }
+            .firstOrNull { it.leg.handoff != null }
+}
+
+fun journeySummary(journey: PrimaryJourney): String {
+    val mode = journeyModeLabel(journey.mode)
+    val leg = journey.leg
+    if (leg.status == JourneyRouteStatus.UNAVAILABLE) {
+        return "$mode 경로 정보 없음 · 지도앱에서 확인"
+    }
+    val duration = leg.minutes?.let { "약 ${it}분" } ?: "시간 정보 없음"
+    val distance = leg.meters?.let(::formatPlaceMeters) ?: "거리 정보 없음"
+    val status = when (leg.status) {
+        JourneyRouteStatus.MEASURED -> "제공사 실측"
+        JourneyRouteStatus.ESTIMATE -> "추정"
+        JourneyRouteStatus.UNAVAILABLE -> error("handled above")
+    }
+    return "$mode $duration · $distance · $status"
+}
+
+fun journeyModeLabel(mode: JourneyMode): String = when (mode) {
+    JourneyMode.WALK -> "도보"
+    JourneyMode.CAR -> "자동차"
+    JourneyMode.TRANSIT -> "대중교통"
 }
 
 fun categoryLabel(kind: PlaceKind): String =

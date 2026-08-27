@@ -37,6 +37,8 @@
 
 - `transport=estimate`가 기본이며 목록에서는 실제 provider를 호출하지 않는다. 실측은 목적지를
   선택한 뒤 `POST /journey`에서 요청한다.
+- Android canonical Place 카드는 이 legacy transport 미리보기를 소비하지 않는다. 선택한
+  `PlaceResult.point`를 `POST /journey`의 좌표 목적지로 직접 보내고 그 응답의 handoff를 연다.
 - `resolution[]`은 서버 사실이 사용자 설정을 덮은 경우의 추적 정보다.
 - `actions[]`는 자동 실행 명령이 아니라 사용자가 선택할 수 있는 `edits[]` 묶음이다.
 - 자연어 refine 과 suggested actions 는 구현과 계약을 유지하지만 결정 #51 이후 제품 코어에서는

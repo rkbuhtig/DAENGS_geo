@@ -83,9 +83,11 @@
 
 웹 검증 지도와 Android 장소 화면은 한 번에 kind 하나를 선택해 그룹 사이 순위를 만들지 않는다.
 기본 선택은 `cafe`이며 `shopping`은 사용자가 명시적으로 선택할 때만 요청한다. Android의
-Android의 `동물병원` 직통 진입은 별도 검색이 아니라 이 계약에 `kinds=["hospital"]`을 보내고
+`동물병원` 직통 진입은 별도 검색이 아니라 이 계약에 `kinds=["hospital"]`을 보내고
 기본 장소 지도와 같은 `PlaceResult` identity를 사용한다. 병원 선택 뒤 전화와 운영정보 미상
-안내를 우선하는 것은 결과 표현 정책이다. 공용 journey 길찾기 연결과 남은 legacy Android
+안내를 우선하는 것은 결과 표현 정책이다. 길찾기도 병원 전용 검색 응답을 사용하지 않는다.
+Android는 최신 실제 기기 위치와 선택한 canonical Place 좌표를 공용 `POST /journey`에 보내고,
+응답의 이동수단 우선순위·실측/추정 상태와 NAVER handoff를 사용한다. 남은 legacy Android
 client/server 제거는 후속이다.
 
 주차 선호가 켜진 시설 그룹은 순수 거리순 대신 응답에 적힌 밴드 정렬을 사용한다. `coverage`는

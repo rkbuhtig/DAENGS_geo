@@ -4,8 +4,9 @@
 앱 전환 smoke는 별도 확인이 필요하다.
 
 `android/app` 단일 모듈이 실제 위치에서 canonical `POST /v2/places/search`를 호출하고 NAVER
-지도, 장소 마커, 사실·평가 카드를 렌더링한다. 기존 `POST /hospital/search` 대화는 별도 병원
-상담 탭으로 임시 유지한다. 같은 지도에서 현재 위치, 서비스 소유 산책 트레일과 로컬 territory
+지도, 장소 마커, 사실·평가 카드를 렌더링한다. `동물병원` 바로가기도 같은 Place 검색을 사용한다.
+선택한 장소의 길찾기는 공용 `POST /journey`에서 이동수단·실측/추정 상태와 handoff를 받은 뒤
+네이버 지도 앱으로 넘긴다. 같은 지도에서 현재 위치, 서비스 소유 산책 트레일과 로컬 territory
 레이어도 실행한다.
 
 ## 경계
@@ -14,9 +15,11 @@
 location/  단발·연속 위치 계약, Fused 제공자, 가상 경로 재생, 연속 구독 primitive
 hospital/  HTTP 계약. state와 actions[].edits는 JsonObject/JsonArray로 불투명 왕복
 place/     웹과 공유하는 canonical Place 요청·응답·(source, ref) identity 계약
+journey/   선택한 Place 좌표 → 공용 이동 스냅샷 → 검증된 NAVER handoff
 walk/      foreground service + 기록 상태/controller/store + TrailRecorder. 산책 중 GPS 소유자
 map/LocationFeedCoordinator  화면 위치·replay·앱 visibility·산책 상태 사이 구독 전환
 map/features/places          Place 검색 수명주기와 Android 장소 표시
+map/features/journey         선택 목적지의 단발 journey 요청 수명주기
 map/shell  단일 MapHost와 제공사 독립 MapScene
 map/layers 장소·트레일·territory의 구체적인 렌더 상태
 map/provider/naver  MapScene을 NAVER SDK 오버레이로 변환
@@ -194,5 +197,5 @@ uv run python -m scripts.verify.walk_bundle clear                              #
 - 원본 fix 보관 기간·동의·세션 삭제 UI (cascade 삭제 저장 경계만 구현됨)
 - Room 마이그레이션 테스트 (`room-testing` + androidTest 소스셋). 지금은 v1 뿐이라 대상이 없다
 - territory 영속 저장·공개 소유권·사진, 로그인, 오프라인 큐, push
-- `/journey` 실측 상세와 지도앱 handoff
+- `/journey`의 폴리라인·spots·수단 직접 선택 UI (현재는 서버 우선 수단 요약 + NAVER handoff)
 - release 배포 설정 (CI 의 unit test + assembleDebug 는 `.github/workflows/ci.yml`)

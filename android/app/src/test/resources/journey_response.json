@@ -1,0 +1,62 @@
+{
+  "companion": "dog",
+  "items": [
+    {
+      "id": null,
+      "name": "댕스동물병원",
+      "lat": 37.5145,
+      "lng": 127.0316,
+      "transport": {
+        "as_of": "2026-08-27T12:00:00+09:00",
+        "companion": "dog",
+        "straight_m": 1840,
+        "mode_priority": ["walk", "car"],
+        "walk": {
+          "status": "estimate",
+          "status_reason": "provider_is_fake",
+          "min": 31,
+          "provider_min": 25,
+          "m": 2250,
+          "source": "fake",
+          "facilities": null,
+          "road_mix": null,
+          "taxi_fare": null,
+          "fare": null,
+          "advice": "caution",
+          "why": [],
+          "spots": [],
+          "polyline": null,
+          "polyline_points": 0,
+          "handoff": {
+            "naver": "nmap://route/walk?slat=37.4979&slng=127.0276&dlat=37.5145&dlng=127.0316&dname=%EB%8C%95%EC%8A%A4&appname=daengs",
+            "kakao": "kakaomap://route?sp=37.4979,127.0276&ep=37.5145,127.0316&by=FOOT",
+            "tmap": "tmap://route?goalx=127.0316&goaly=37.5145&goalname=%EB%8C%95%EC%8A%A4"
+          }
+        },
+        "car": {
+          "status": "unavailable",
+          "status_reason": "provider_disabled",
+          "min": null,
+          "provider_min": null,
+          "m": null,
+          "source": "none",
+          "facilities": null,
+          "road_mix": null,
+          "taxi_fare": null,
+          "fare": null,
+          "advice": null,
+          "why": [],
+          "spots": [],
+          "polyline": null,
+          "polyline_points": 0,
+          "handoff": {
+            "naver": "nmap://route/car?dlat=37.5145&dlng=127.0316&appname=daengs",
+            "kakao": "kakaomap://route?ep=37.5145,127.0316&by=CAR",
+            "tmap": "tmap://route?goalx=127.0316&goaly=37.5145"
+          }
+        },
+        "transit": null
+      }
+    }
+  ]
+}

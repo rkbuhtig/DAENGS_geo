@@ -41,6 +41,7 @@ import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.daengs.geo.map.MapScreen
 import com.daengs.geo.map.MapViewModel
+import com.daengs.geo.journey.openNaverHandoff
 import com.daengs.geo.map.features.places.DEFAULT_PLACE_KIND
 
 class MainActivity : ComponentActivity() {
@@ -49,6 +50,7 @@ class MainActivity : ComponentActivity() {
         MapViewModel.Factory(
             graph.hospitalRepository,
             graph.placeRepository,
+            graph.journeyRepository,
             graph.dogId,
             graph.locationSource,
             graph.territoryRepository,
@@ -106,6 +108,9 @@ class MainActivity : ComponentActivity() {
                         onRetryPlaces = viewModel::retryPlaceSearch,
                         onRetryLocation = viewModel::retry,
                         onSelectPlace = viewModel::selectPlace,
+                        onJourney = viewModel::openJourney,
+                        onRetryJourney = viewModel::retryJourney,
+                        onOpenHandoff = { url -> openNaverHandoff(context, url) },
                         onCall = { phone -> dial(context = context, phone = phone) },
                         onStartTracking = viewModel::startTracking,
                         onPauseTracking = viewModel::pauseTracking,

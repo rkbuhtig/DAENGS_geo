@@ -1,5 +1,7 @@
 package com.daengs.geo.map.features.places
 
+import com.daengs.geo.journey.JourneyMode
+import com.daengs.geo.journey.toJourneyResponse
 import com.daengs.geo.place.DogAccessState
 import com.daengs.geo.place.PlaceKey
 import com.daengs.geo.place.PlaceKind
@@ -103,6 +105,18 @@ class PlaceDiscoveryPanelTest {
             callActionLabel(PlaceKind.HOSPITAL, "02-1234-5678"),
         )
         assertEquals("전화 02-1234-5678", callActionLabel(PlaceKind.CAFE, "02-1234-5678"))
+    }
+
+    @Test
+    fun `journey presentation follows server mode priority and labels estimates honestly`() {
+        val text = javaClass.getResource("/journey_response.json")!!.readText()
+        val item = Json.parseToJsonElement(text).jsonObject.toJourneyResponse().items.single()
+
+        val primary = primaryJourney(item)!!
+
+        assertEquals(JourneyMode.WALK, primary.mode)
+        assertEquals("도보 약 31분 · 2.3km · 추정", journeySummary(primary))
+        assertTrue(primary.leg.handoff!!.naver.startsWith("nmap://route/walk"))
     }
 
     private fun response(): PlaceSearchResponse {
