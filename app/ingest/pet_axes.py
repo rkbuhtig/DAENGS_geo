@@ -6,6 +6,9 @@
 
 문턱값(`app/geo/pet.py` 의 kg 등급 경계)이 바뀌면 이 단계만 다시 돌린다 — 원천을 다시 받지 않는다.
 
+**재적재로 `pet` 이 바뀌면 축도 다시 판다** (`pet_axes_source_fp`, 리비전 0019).
+축이 빈 행만 보던 때는 덮어쓴 봉투 위에 옛 축이 남았다.
+
     python -m app.ingest pet-axes            # 축이 비어 있는 행만
     python -m app.ingest pet-axes --all      # 전부 다시 파생 (문턱값 변경 후)
 """
@@ -26,10 +29,14 @@ BATCH = 2000
 # 문턱값을 바꿨을 때 KCISA 만 돌리면 되고, 테스트가 실데이터 전체를 훑지 않아도 된다.
 _SOURCE_FILTER = "AND (CAST(:sources AS text[]) IS NULL OR source = ANY(:sources))"
 
+# 미처리 = 축이 비었거나 **입력(`pet` 봉투)이 바뀐** 행.
+# 축이 빈 행만 보던 때는 재적재가 `pet` 을 덮어써도 옛 축이 그대로 남았다 —
+# `restrictions` 와 같은 결함이라 같은 규약(`ingest.freshness`)으로 막는다.
 _SELECT_PENDING = text(f"""
 SELECT id, pet FROM facility
 WHERE pet IS NOT NULL AND pet <> '{{}}'::jsonb AND id > :after
-  AND pet_allowed IS NULL AND pet_size_class IS NULL AND pet_dog_ok IS NULL
+  AND ((pet_allowed IS NULL AND pet_size_class IS NULL AND pet_dog_ok IS NULL)
+       OR pet_axes_source_fp IS DISTINCT FROM md5(pet::text))
   {_SOURCE_FILTER}
 ORDER BY id LIMIT :limit
 """)
@@ -43,11 +50,12 @@ ORDER BY id LIMIT :limit
 
 _UPDATE = text("""
 UPDATE facility SET
-    pet_allowed    = :pet_allowed,
-    pet_exclusive  = :pet_exclusive,
-    pet_dog_ok     = :pet_dog_ok,
-    pet_size_class = :pet_size_class,
-    pet_max_kg     = :pet_max_kg
+    pet_allowed        = :pet_allowed,
+    pet_exclusive      = :pet_exclusive,
+    pet_dog_ok         = :pet_dog_ok,
+    pet_size_class     = :pet_size_class,
+    pet_max_kg         = :pet_max_kg,
+    pet_axes_source_fp = md5(pet::text)
 WHERE id = :id
 """)
 

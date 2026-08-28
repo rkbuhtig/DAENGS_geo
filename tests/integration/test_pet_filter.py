@@ -259,3 +259,51 @@ async def test_unspecified_limit_is_still_bounded_by_the_server():
             assert out.truncated is True, "잘랐으면 말해야 한다"
         finally:
             await _clean(session)
+
+
+async def test_changed_envelope_repicks_the_axes():
+    """**리뷰 지적 ①의 `pet_axes` 판.** 재적재가 봉투를 덮어쓰면 축도 따라와야 한다.
+
+    축이 빈 행만 미처리로 보던 때는 덮어쓴 봉투 위에 옛 축이 남았다 —
+    `restrictions` 와 같은 결함이라 같은 규약(`ingest.freshness`)으로 막는다.
+    """
+    async with db_session() as session:
+        await _clean(session)
+        try:
+            await _seed(session, [facility_row(
+                "크기바뀌는곳",
+                pet='{"allowed": "Y", "exclusive": "해당없음", "size": "5kg 미만 소형"}',
+            )])
+            assert (await _search(session))["크기바뀌는곳"].pet_axes.size_class == "small"
+
+            # 봉투만 덮어쓴다. 축 컬럼은 그대로 — 재적재가 하는 일과 같다.
+            await session.execute(
+                text("""
+                UPDATE facility
+                SET pet = '{"allowed": "Y", "exclusive": "해당없음", "size": "모두 가능"}'::jsonb
+                WHERE source = :s
+                """),
+                {"s": SOURCES[0]},
+            )
+            await session.commit()
+
+            stats = await derive_all(session, sources=SOURCES)
+            assert stats.updated >= 1, "바뀐 봉투를 미처리로 못 잡았다"
+            assert (await _search(session))["크기바뀌는곳"].pet_axes.size_class == "any"
+        finally:
+            await _clean(session)
+
+
+async def test_unchanged_envelope_is_not_repicked():
+    """지문은 바뀐 행만 고른다 — 안 그러면 배치가 매번 전 행을 다시 판다."""
+    async with db_session() as session:
+        await _clean(session)
+        try:
+            await _seed(session, [facility_row(
+                "그대로인곳",
+                pet='{"allowed": "Y", "exclusive": "해당없음", "size": "모두 가능"}',
+            )])
+            stats = await derive_all(session, sources=SOURCES)
+            assert stats.scanned == 0, "안 바뀐 행을 다시 팠다"
+        finally:
+            await _clean(session)

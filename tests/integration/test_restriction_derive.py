@@ -15,6 +15,7 @@ DB 없이는 잴 수 없다.
 
 from sqlalchemy import text
 
+from app.ingest.freshness import EMPTY_INPUT
 from app.ingest.restrictions import derive_all
 from app.place.restriction_map import RESTRICTION_SEMANTICS_VERSION
 from tests.conftest import TEST_ORIGIN, db_session
@@ -154,6 +155,84 @@ async def test_redo_repicks_everything():
         stats = await derive_all(session, redo=True, sources=(SOURCE,))
 
         assert stats.updated == 2
+
+        await session.execute(_DELETE, {"s": SOURCE})
+        await session.commit()
+
+
+async def test_changed_source_text_is_repicked():
+    """**리뷰 지적 ①.** 재적재가 원문을 덮어쓰면 파생값도 따라와야 한다.
+
+    버전만 보던 때는 이 배치가 0행을 훑고 지나갔고, 그 행은 바뀐 원문 위에
+    옛 술어를 계속 들고 있었다.
+    """
+    async with db_session() as session:
+        await _seed(session, [("가", "목줄")])
+        await derive_all(session, sources=(SOURCE,))
+        assert (await _fetch(session))["가"]["restriction_predicates"][0]["code"] == (
+            "require:leash"
+        )
+
+        # 재적재가 원문만 덮어쓴 상황 — 파생 컬럼은 그대로다.
+        await session.execute(
+            text("""
+            UPDATE facility SET pet = jsonb_set(pet, '{restrictions}', '"대형견 입장 불가"')
+            WHERE source = :s
+            """),
+            {"s": SOURCE},
+        )
+        await session.commit()
+
+        stats = await derive_all(session, sources=(SOURCE,))
+        rows = await _fetch(session)
+
+        assert stats.updated == 1, "바뀐 원문을 미처리로 못 잡았다"
+        assert rows["가"]["restriction_predicates"][0]["code"] == "deny:size"
+
+        await session.execute(_DELETE, {"s": SOURCE})
+        await session.commit()
+
+
+async def test_unchanged_rows_are_not_repicked_after_a_neighbour_changes():
+    """지문은 **바뀐 행만** 고른다 — 타임스탬프 비교와 갈리는 지점이다."""
+    async with db_session() as session:
+        await _seed(session, [("가", "목줄"), ("나", "케이지 이용")])
+        await derive_all(session, sources=(SOURCE,))
+
+        await session.execute(
+            text("""
+            UPDATE facility SET pet = jsonb_set(pet, '{restrictions}', '"안고 있어야 함"')
+            WHERE source = :s AND name = '가'
+            """),
+            {"s": SOURCE},
+        )
+        await session.commit()
+
+        stats = await derive_all(session, sources=(SOURCE,))
+        assert stats.updated == 1, "안 바뀐 행까지 다시 팠다"
+
+        await session.execute(_DELETE, {"s": SOURCE})
+        await session.commit()
+
+
+async def test_sql_and_python_agree_on_the_fingerprint():
+    """둘이 어긋나면 배치가 **같은 행을 영원히 다시 판다.**
+
+    미처리 조건은 SQL 이 계산하고 저장값은 파이썬이 만든다. 한쪽만 바꾸면
+    실행할 때마다 전 행이 미처리로 잡히고, 그 사실이 조용히 지나간다.
+    """
+    async with db_session() as session:
+        await _seed(session, [("가", "목줄"), ("나", None)])
+        await derive_all(session, sources=(SOURCE,))
+
+        result = await session.execute(
+            text("""
+            SELECT restriction_source_fp = md5(COALESCE(pet->>'restrictions', :empty)) AS agrees
+            FROM facility WHERE source = :s
+            """),
+            {"s": SOURCE, "empty": EMPTY_INPUT},
+        )
+        assert all(row.agrees for row in result), "SQL 해시와 파이썬 지문이 다르다"
 
         await session.execute(_DELETE, {"s": SOURCE})
         await session.commit()
