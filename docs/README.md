@@ -72,6 +72,7 @@ backlog.md           갈래에 안 붙는 미결
 - [원좌표를 지우면 무엇을 남기나 — 궤적 후보는 추정의 14배(대부분 GPS 지터), 집계만 남겨도 경로 topology 가 우연의 18배로 샌다](research/2026-08-26-storage-candidates.md)
 - [테스트 재점검 — 구조 재편이 남긴 격차의 지도와 pass 별 진행](research/2026-08-27-test-suite-audit.md)
 - [rebuild_links 가 2억 쌍을 훑어 107행을 만든다 — 공간 인덱스가 안 쓰이는 이유와 선택지](research/2026-08-27-link-rebuild-cost.md)
+- [M2 사건 자리에서 진짜 세계가 얼마나 읽히나 — DB 명사 0/3, crossing 6/6, 미시 원인 층(나무·벤치·풀)은 OSM 에 0](research/2026-08-28-world-context-readout.md)
 
 ## 새 갈래 만들 때
 `explorations/<주제>/<갈래>.md`, 상단에

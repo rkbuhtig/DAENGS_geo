@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>world-context readout — 검증 표면</title>
+<style>
+  html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+  #map { width: 100%; height: 100%; }
+  #panel { position: absolute; top: 10px; left: 10px; z-index: 20; background: rgba(255,255,255,.94);
+           border: 1px solid #ccc; border-radius: 8px; padding: 10px 12px; font-size: 12px;
+           max-width: 330px; box-shadow: 0 2px 8px rgba(0,0,0,.15); }
+  #panel h1 { font-size: 13px; margin: 0 0 6px; }
+  #panel .row { margin: 2px 0; }
+  .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px;
+         vertical-align: -1px; }
+  #banner { position: absolute; top: 10px; right: 10px; z-index: 20; background: #c0392b; color: #fff;
+            padding: 6px 10px; border-radius: 6px; font-size: 12px; display: none; }
+  label { user-select: none; cursor: pointer; display: block; }
+  .spot-label { background: rgba(255,255,255,.92); border: 1px solid #999; border-radius: 4px;
+                padding: 1px 4px; font-size: 11px; white-space: nowrap; }
+  #note { color: #666; margin-top: 6px; border-top: 1px solid #ddd; padding-top: 6px; }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div id="banner"></div>
+<div id="panel">
+  <h1>M2 합성 사건 × 진짜 세계 readout</h1>
+  <label><input type="checkbox" id="lyr-walks" checked> 산책 60회 (P, 10점 표집)</label>
+  <label><input type="checkbox" id="lyr-spots" checked>
+    자리 — <span class="dot" style="background:#1c7c3c"></span>A
+    <span class="dot" style="background:#d97a1a"></span>B
+    <span class="dot" style="background:#7a3fd1"></span>D
+    <span class="dot" style="background:#888"></span>C(사건)</label>
+  <label><input type="checkbox" id="lyr-probe" checked> readout — 50m 판정 원 · DB 명사</label>
+  <label><input type="checkbox" id="lyr-terrain" checked>
+    지형 — <span class="dot" style="background:#e74c3c"></span>crossing ·
+    <span class="dot" style="background:#2ecc71"></span>park ·
+    <span class="dot" style="background:#3498db"></span>water</label>
+  <div id="summary" class="row" style="margin-top:6px; font-weight:600"></div>
+  <div id="note">자리 라벨: 종류·멈춤/지남. DB 명사는 50m 안에서 잡힌 것만 핀이 선다.<br>
+    basemap은 앱과 같은 <code>/map/client-config</code> 로 뜬 제공사다.</div>
+</div>
+<script>
+'use strict';
+
+function loadNaverMaps(keyId) {
+  return new Promise((resolve, reject) => {
+    const callback = '__worldCtxNaverReady';
+    const timeout = setTimeout(() => reject(new Error('NAVER SDK timeout')), 8000);
+    window[callback] = () => { clearTimeout(timeout); resolve(); };
+    window.navermap_authFailure = () => { clearTimeout(timeout); reject(new Error('NAVER 인증 실패')); };
+    const script = document.createElement('script');
+    script.src = `https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${encodeURIComponent(keyId)}&callback=${callback}`;
+    script.onerror = () => { clearTimeout(timeout); reject(new Error('NAVER SDK 로드 실패')); };
+    document.head.appendChild(script);
+  });
+}
+
+const SPOT_COLOR = { A: '#1c7c3c', B: '#d97a1a', D: '#7a3fd1', C: '#888', ctrl: '#555' };
+const layers = { walks: [], spots: [], probe: [], terrain: [] };
+
+function bindToggle(id, key, map) {
+  document.getElementById(id).addEventListener('change', (e) => {
+    for (const item of layers[key]) item.setMap(e.target.checked ? map : null);
+  });
+}
+
+async function main() {
+  let config = null;
+  try {
+    const r = await fetch('/map/client-config');
+    if (r.ok) config = await r.json();
+  } catch (_) { /* 아래에서 배너 */ }
+
+  const banner = document.getElementById('banner');
+  if (!(config && config.provider === 'naver' && config.naver_key_id)) {
+    banner.textContent = 'map_provider 가 naver 가 아니다 — 앱 지도로 못 띄운다';
+    banner.style.display = 'block';
+    return;
+  }
+  try {
+    await loadNaverMaps(config.naver_key_id);
+  } catch (error) {
+    banner.textContent = String(error.message || error) + ' — 진짜 지도 없이는 이 표면의 목적이 없다';
+    banner.style.display = 'block';
+    return;
+  }
+
+  const [latent, readout, terrain] = await Promise.all([
+    fetch('/world-context/data/latent.json').then((r) => r.json()),
+    fetch('/world-context/data/world_context.json').then((r) => r.json()),
+    fetch('/world-context/data/osm_world.json').then((r) => r.json()),
+  ]);
+
+  const P = latent.personas.find((p) => p.id === 'P');
+  const home = P.home;
+  const map = new naver.maps.Map('map', {
+    center: new naver.maps.LatLng(home[0], home[1]), zoom: 16,
+  });
+  const LL = (a) => new naver.maps.LatLng(a[0], a[1]);
+
+  // 산책 — 칠의 감각. 10점마다 표집한 폴리라인.
+  for (const walk of P.walks) {
+    const path = [];
+    for (let i = 0; i < walk.fixes.length; i += 10) path.push(LL(walk.fixes[i]));
+    layers.walks.push(new naver.maps.Polyline({
+      map, path, strokeColor: '#2d6cdf', strokeOpacity: 0.10, strokeWeight: 3,
+    }));
+  }
+
+  // 심은 자리 (P 정답지) + 라벨. C 는 사건이라 점만.
+  for (const spot of P.truth_only.spots) {
+    const color = SPOT_COLOR[spot.kind];
+    layers.spots.push(new naver.maps.Circle({
+      map, center: LL(spot.at), radius: latent.trigger_m,
+      strokeColor: color, strokeWeight: 2, fillColor: color, fillOpacity: 0.35,
+    }));
+    layers.spots.push(new naver.maps.Marker({
+      map, position: LL(spot.at),
+      icon: { content: `<div class="spot-label" style="border-color:${color}">` +
+                       `${spot.spot_id} ${spot.stopped}/${spot.planned}</div>`,
+              anchor: new naver.maps.Point(-6, 24) },
+    }));
+  }
+  for (const event of P.truth_only.events) {
+    if (event.kind !== 'C') continue;
+    layers.spots.push(new naver.maps.Circle({
+      map, center: LL(event.actual_stop_at), radius: 4,
+      strokeWeight: 0, fillColor: SPOT_COLOR.C, fillOpacity: 0.9,
+    }));
+  }
+
+  // readout — 50m 판정 원, DB 에서 잡힌 명사 핀
+  for (const probe of readout.probes) {
+    if (probe.kind === 'C') continue;
+    layers.probe.push(new naver.maps.Circle({
+      map, center: LL(probe.at), radius: readout.noun_radius_m,
+      strokeColor: probe.kind === 'ctrl' ? '#555' : '#111',
+      strokeWeight: 1, strokeStyle: 'shortdash', fillOpacity: 0,
+    }));
+    const radiusKey = String(Math.round(readout.noun_radius_m));
+    const hits = [...probe.db.facility[radiusKey], ...probe.db.place[radiusKey]]
+      .filter((r) => r.name);
+    for (const hit of hits.slice(0, 1)) {
+      layers.probe.push(new naver.maps.Marker({
+        map, position: LL(probe.at),
+        icon: { content: `<div class="spot-label" style="border-color:#111">DB: ${hit.name} ${hit.m}m</div>`,
+                anchor: new naver.maps.Point(-6, -12) },
+      }));
+    }
+  }
+
+  // 지형 — 시스템이 가진 OSM 그대로. crossing 점 · park 면 · water 선.
+  for (const element of terrain.elements) {
+    const tags = element.tags || {};
+    if (element.type === 'node' && (tags.highway === 'crossing' || tags.highway === 'traffic_signals')) {
+      layers.terrain.push(new naver.maps.Circle({
+        map, center: new naver.maps.LatLng(element.lat, element.lon), radius: 3.5,
+        strokeWeight: 0, fillColor: '#e74c3c', fillOpacity: 0.95,
+      }));
+    } else if (element.geometry) {
+      const path = element.geometry.map((g) => new naver.maps.LatLng(g.lat, g.lon));
+      if (['park', 'garden', 'dog_park'].includes(tags.leisure) || tags.natural === 'water') {
+        layers.terrain.push(new naver.maps.Polygon({
+          map, paths: [path], strokeColor: '#2ecc71', strokeWeight: 1.5,
+          fillColor: tags.natural === 'water' ? '#3498db' : '#2ecc71', fillOpacity: 0.15,
+        }));
+      } else if (tags.waterway) {
+        layers.terrain.push(new naver.maps.Polyline({
+          map, path, strokeColor: '#3498db', strokeOpacity: 0.7, strokeWeight: 3,
+        }));
+      }
+    }
+  }
+
+  bindToggle('lyr-walks', 'walks', map);
+  bindToggle('lyr-spots', 'spots', map);
+  bindToggle('lyr-probe', 'probe', map);
+  bindToggle('lyr-terrain', 'terrain', map);
+
+  const spots = readout.probes.filter((p) => p.kind === 'A' || p.kind === 'D');
+  const radiusKey = String(Math.round(readout.noun_radius_m));
+  const noun = spots.filter((p) =>
+    [...p.db.facility[radiusKey], ...p.db.place[radiusKey]].some((r) => r.name));
+  const bees = readout.probes.filter((p) => p.kind === 'B');
+  const cross = bees.filter((p) => p.terrain.crossing && p.terrain.crossing.m <= readout.crossing_radius_m);
+  document.getElementById('summary').textContent =
+    `Q1 세계 명사 ${noun.length}/${spots.length} (A·D, ${radiusKey}m) · ` +
+    `Q2 crossing ${cross.length}/${bees.length} (B, ${Math.round(readout.crossing_radius_m)}m)`;
+}
+
+main();
+</script>
+</body>
+</html>
