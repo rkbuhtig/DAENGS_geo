@@ -16,6 +16,7 @@ DB 없이는 잴 수 없다.
 from sqlalchemy import text
 
 from app.ingest.restrictions import derive_all
+from app.place.facility_resolver import FacilityParams, resolve_facilities
 from app.place.restriction_map import RESTRICTION_SEMANTICS_VERSION
 from tests.conftest import TEST_ORIGIN, db_session
 
@@ -136,6 +137,16 @@ async def test_stale_version_is_repicked_without_the_all_flag():
             {"s": SOURCE},
         )
         await session.commit()
+
+        found = await resolve_facilities(
+            FacilityParams(
+                lat=TEST_ORIGIN[0], lng=TEST_ORIGIN[1], radius_m=1000,
+                kind="cafe", only_dog_ok=False,
+            ),
+            session,
+        )
+        stale = next(row for row in found.results if row.name == "가")
+        assert stale.restrictions.state == "unknown", "옛 버전 판정을 현재 사실처럼 노출했다"
 
         stats = await derive_all(session, sources=(SOURCE,))
         rows = await _fetch(session)

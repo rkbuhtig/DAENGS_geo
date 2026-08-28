@@ -11,9 +11,10 @@ from datetime import UTC, date, datetime
 
 from sqlalchemy import text
 
-from app.ingest.facility_store import upsert_rows
+from app.ingest.facility_store import update_pet_detail, upsert_rows
 from app.ingest.kcisa import source_ref
-from app.ingest.pet_axes import derive_all
+from app.ingest.pet_axes import derive_all as derive_pet_axes
+from app.ingest.restrictions import derive_all as derive_restrictions
 from app.place.facility_resolver import FacilityParams, resolve_facilities
 from tests.conftest import TEST_ORIGIN, db_session
 
@@ -45,7 +46,7 @@ async def _seed(session, rows: list[dict], *, source: str = SOURCES[0]) -> None:
     await upsert_rows(session, source, rows, SNAPSHOT, datetime.now(UTC))
     await session.commit()
     # 실데이터 전체를 훑지 않게 이 테스트가 심은 원천만 다시 파생한다.
-    await derive_all(session, redo=True, sources=SOURCES)
+    await derive_pet_axes(session, redo=True, sources=SOURCES)
 
 
 async def _search(session, **params):
@@ -68,15 +69,18 @@ async def _link(session) -> None:
     await session.commit()
 
 
-async def test_axes_are_derived_from_the_stored_envelope():
-    """적재 파서가 아니라 저장된 `pet` 이 축의 원천이다."""
+async def test_stored_pet_change_invalidates_and_rederives_both_projections():
+    """저장된 `pet` 이 바뀌면 축·제약 모두 옛 판정을 버리고 새 원문에서 다시 만든다."""
     async with db_session() as session:
         await _clean(session)
         try:
+            ref = source_ref("소형만카페", TEST_ORIGIN[0], TEST_ORIGIN[1])
             await _seed(session, [facility_row(
                 "소형만카페",
-                pet='{"allowed": "Y", "exclusive": "해당없음", "size": "5kg 미만 소형"}',
+                pet=('{"allowed": "Y", "exclusive": "해당없음", '
+                     '"size": "5kg 미만 소형", "restrictions": "목줄"}'),
             )])
+            await derive_restrictions(session, sources=(SOURCES[0],))
             found = await _search(session)
             axes = found["소형만카페"].pet_axes
 
@@ -84,6 +88,45 @@ async def test_axes_are_derived_from_the_stored_envelope():
             assert (axes.size_class, axes.max_kg) == ("small", 5.0)
             # 원문은 지우지 않는다 — 파싱이 틀렸을 때 되돌릴 근거다
             assert found["소형만카페"].pet["size"] == "5kg 미만 소형"
+            assert found["소형만카페"].restrictions.state == "restricted"
+
+            # 공통 UPSERT 경로: 실제 봉투 변경은 두 파생 묶음을 함께 무효화한다.
+            changed = facility_row(
+                "소형만카페",
+                pet=('{"allowed": "Y", "exclusive": "반려동물 전용", '
+                     '"size": "모두 가능", "restrictions": "제한사항 없음"}'),
+            )
+            await upsert_rows(session, SOURCES[0], [changed], SNAPSHOT, datetime.now(UTC))
+            stale = (await session.execute(text("""
+                SELECT pet_allowed, pet_exclusive, pet_dog_ok, pet_size_class, pet_max_kg,
+                       restriction_state, restriction_parse_state, restriction_predicates,
+                       restriction_semantics_version
+                FROM facility WHERE source = :source AND source_ref = :ref
+            """), {"source": SOURCES[0], "ref": ref})).one()
+            assert all(value is None for value in stale)
+
+            pet_stats = await derive_pet_axes(session, sources=(SOURCES[0],))
+            restriction_stats = await derive_restrictions(session, sources=(SOURCES[0],))
+            assert (pet_stats.updated, restriction_stats.updated) == (1, 1)
+            refreshed = (await _search(session))["소형만카페"]
+            assert (refreshed.pet_axes.exclusive, refreshed.pet_axes.size_class) == (True, "any")
+            assert refreshed.restrictions.state == "none_confirmed"
+
+            # KTO 상세 경로도 같은 무효화 함수를 쓴다.
+            changed_count = await update_pet_detail(
+                session,
+                SOURCES[0],
+                ref,
+                '{"allowed": "Y", "size": "10kg 이하", "restrictions": "목줄"}',
+            )
+            assert changed_count == 1
+            invalidated = (await session.execute(text("""
+                SELECT pet_allowed, pet_exclusive, pet_dog_ok, pet_size_class, pet_max_kg,
+                       restriction_state, restriction_parse_state, restriction_predicates,
+                       restriction_semantics_version
+                FROM facility WHERE source = :source AND source_ref = :ref
+            """), {"source": SOURCES[0], "ref": ref})).one()
+            assert all(value is None for value in invalidated)
         finally:
             await _clean(session)
 
