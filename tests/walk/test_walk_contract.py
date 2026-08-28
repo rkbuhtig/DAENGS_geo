@@ -93,7 +93,10 @@ def test_walk_package_has_no_judgment_modules():
     assert not bad, f"수집 패키지에 판정 모듈: {bad}"
     # 엔드포인트·사실 계산이 생기면 여기 허용 목록에 이름을 **명시적으로** 더한다.
     # curve: 진행 구간별 이동·정지 시간. 숫자만 내고 "지쳤다" 같은 해석은 소비자 몫이다.
-    assert names <= {"api", "facts", "store", "encounter", "curve"}, f"예상 밖 모듈: {names}"
+    # observation: 정지 **판정 이전**의 후보 구간. 문턱을 다시 고를 재료를 남길 뿐,
+    #   "체류였나" 는 안 묻는다 — 판정이 늘어난 것이 아니라 판정이 미뤄진 것이다.
+    assert names <= {"api", "facts", "store", "encounter", "curve",
+                     "observation"}, f"예상 밖 모듈: {names}"
 
 
 # ------------------------------------------------------------------ 계약 검증

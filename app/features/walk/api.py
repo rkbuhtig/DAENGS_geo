@@ -28,6 +28,7 @@ from app.features.walk.models import (
     WalkFix,
     WalkSession,
 )
+from app.features.walk.observation import extract_observations, moving_speed_profile
 
 router = APIRouter(prefix="/walk", tags=["walk"])
 
@@ -154,8 +155,12 @@ async def finish_session(
     encounters = compute_encounters(s.id, computed.segments, computed.events, candidates)
     # 곡선은 segments 가 살아 있는 지금만 만들 수 있다 — finalize 가 원좌표를 지운다.
     curve = compute_curve(computed.facts.started_at, computed.facts.ended_at, computed.segments)
+    # 미시 관측도 같은 이유로 지금이다. 정지 판정(events)보다 후하게 잡은 후보 구간이라,
+    # 문턱을 다시 고를 때 재계산할 재료가 여기 남는다 (observation.py).
+    observations = extract_observations(s.id, computed.segments, computed.gaps)
     await store.finalize(
         db, computed.facts, computed.quality, computed.events, encounters, curve,
+        observations, moving_speed_profile(computed.segments),
     )
     await db.commit()
     return FinishOut(facts=computed.facts, quality=computed.quality.to_dict(),

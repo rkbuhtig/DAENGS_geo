@@ -6,7 +6,7 @@ Android 미리보기와 서버 확정치를 맞추는 작업은 앱 수집기가
 분류 규칙 (연속한 수용 점 쌍마다):
   dt <= 0            → out_of_order 거부. 시각 역행을 이동으로 만들지 않는다
   chain 변경         → 명시적 단절. pause 중 이동을 가상의 segment로 만들지 않는다
-  dt > 60s           → gap. 수집 공백을 정지로 만들지 않는다
+  dt > 60s           → gap. 수집 공백을 정지로 만들지 않는다 — 끊긴 사실은 `GapSpan` 으로 남는다
   dist > 200m        → jump. 구간 단절 — 시간·거리 어디에도 안 쌓는다 (GPS 튐/차량)
   speed >= 0.5 m/s   → moving:  moving_s += dt, moving_distance += dist
   speed <  0.5 m/s   → 정지 후보: 원 distance 에만 쌓인다 (지터 포함 참고값)
@@ -69,15 +69,32 @@ class Segment:
     chain_index: int
 
 
+@dataclass(frozen=True)
+class GapSpan:
+    """수집이 끊긴 채 흘러간 시간. **관측이 아니라 관측의 부재다.**
+
+    `dt > MAX_GAP_S` 라 segment 를 안 만드는 자리인데, 끊겼다는 사실 자체는 버리면 안 된다 —
+    관측 공백은 자리 고정 · 반복 · 길다는 성질이 반복 체류와 같아서, 나중에 검출기가
+    "여기는 안 보였다" 를 모르면 최고의 가짜 체류가 된다 (`observation.py`).
+    """
+
+    a: WalkFix                # 끊기기 직전 마지막으로 본 점
+    b: WalkFix                # 다시 보인 첫 점
+    dt: float
+    offset_m: float
+    chain_index: int
+
+
 @dataclass
 class ComputedFacts:
     facts: WalkFacts
     quality: FixQuality = field(default_factory=FixQuality)
     events: list[MotionEventOccurrence] = field(default_factory=list)
     segments: list[Segment] = field(default_factory=list)
+    gaps: list[GapSpan] = field(default_factory=list)
 
 
-def _haversine_m(a: WalkFix, b: WalkFix) -> float:
+def haversine_m(a: WalkFix, b: WalkFix) -> float:
     lat1, lat2 = math.radians(a.lat), math.radians(b.lat)
     dlat = lat2 - lat1
     dlng = math.radians(b.lng - a.lng)
@@ -109,6 +126,7 @@ def compute_facts(
     still_offset_m = 0.0
     events: list[MotionEventOccurrence] = []
     segments: list[Segment] = []
+    gaps: list[GapSpan] = []
     chain_index = 0
 
     def break_chain() -> None:
@@ -183,11 +201,14 @@ def compute_facts(
             continue
         if dt > MAX_GAP_S:
             q.gap_breaks += 1
+            # 끊겼다는 사실을 남긴다. segment 는 안 만든다 — 그 사이는 관측이 없다
+            gaps.append(GapSpan(a=prev, b=cur, dt=dt, offset_m=moving_distance,
+                                chain_index=chain_index))
             close_still_run()
             break_chain()
             prev = cur
             continue
-        dist = _haversine_m(prev, cur)
+        dist = haversine_m(prev, cur)
         if dist > MAX_JUMP_M:
             q.jump_breaks += 1
             close_still_run()            # 단절 너머로 정지 구간을 잇지 않는다
@@ -233,4 +254,5 @@ def compute_facts(
         avg_speed_mps=round(moving_distance / moving_s, 3) if moving_s > 0 else None,
         fix_count=q.accepted,
     )
-    return ComputedFacts(facts=facts, quality=q, events=events, segments=segments)
+    return ComputedFacts(facts=facts, quality=q, events=events, segments=segments,
+                         gaps=gaps)
