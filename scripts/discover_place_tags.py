@@ -22,6 +22,8 @@
 
 ## 세 모드
 
+    coverage  현재 사전(`app/place/tag_catalog.py`)이 실데이터를 얼마나 덮나.
+              규칙을 고친 뒤 성적표를 다시 재는 자리다. 레포 의존성만으로 돈다
     mine      접미어 빈도. 유형어 이름은 임베딩보다 이게 낫다 — `travel` 의
               목장·휴게소·출렁다리는 세면 나온다. 레포 의존성만으로 돈다
     discover  venue 토큰을 떼고 중복 브랜드를 접은 뒤 고유명만 군집한다.
@@ -215,6 +217,37 @@ def discover(rows: list[tuple[str, str]], min_cluster_size: int) -> None:
             print(f"  [{rank:2d}] {rowcov:5d}행  " + " · ".join(uniq[j] for j in sample))
 
 
+def coverage(rows: list[tuple[str, str]]) -> None:
+    """사전이 무엇을 덮고 무엇을 놓치나. **미분류는 실패가 아니다** —
+    이름이 유형을 말하지 않은 것이고, 그 부재는 배제 근거가 아니다 (결정 #72 §2).
+    """
+    from app.place.tag_catalog import tags_for
+
+    per_kind: dict[str, list[int]] = {}
+    codes: collections.Counter = collections.Counter()
+    unmatched: dict[str, list[str]] = {}
+    for kind, name in rows:
+        stats = per_kind.setdefault(kind, [0, 0])
+        stats[1] += 1
+        tags = tags_for(name, kind)
+        if tags:
+            stats[0] += 1
+            for tag in tags:
+                codes[tag.code] += 1
+        else:
+            unmatched.setdefault(kind, []).append(name)
+
+    print("=== 커버리지 ===")
+    for kind, (hit, total) in sorted(per_kind.items()):
+        print(f"  {kind:10s} {hit:5d}/{total:5d} = {100 * hit // total:3d}%")
+    print("\n=== 태그별 ===")
+    for code, count in codes.most_common(40):
+        print(f"  {count:5d}  {code}")
+    for kind, names in sorted(unmatched.items()):
+        print(f"\n=== {kind} 미분류 {len(names)}곳 (표본) ===")
+        print("  " + " · ".join(names[:20]))
+
+
 def mine(rows: list[tuple[str, str]], kind: str, floor: int) -> None:
     """접미어 빈도. 유형어 이름은 임베딩보다 이게 낫다 (측정 §9-1)."""
     counter: collections.Counter = collections.Counter()
@@ -236,7 +269,9 @@ def mine(rows: list[tuple[str, str]], kind: str, floor: int) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--mode", choices=("compare", "discover", "mine"), default="compare")
+    parser.add_argument(
+        "--mode", choices=("compare", "discover", "mine", "coverage"), default="compare"
+    )
     parser.add_argument("--kinds", nargs="+", default=["shopping", "cafe", "travel"])
     parser.add_argument("--min-cluster-size", type=int, default=5)
     parser.add_argument("--mine-kind", default="travel")
@@ -249,7 +284,9 @@ def main() -> int:
         return 1
     print(f"{len(rows)}행 · {collections.Counter(k for k, _ in rows)}")
 
-    if args.mode == "mine":
+    if args.mode == "coverage":
+        coverage(rows)
+    elif args.mode == "mine":
         mine(rows, args.mine_kind, args.mine_floor)
     elif args.mode == "discover":
         discover(rows, args.min_cluster_size)

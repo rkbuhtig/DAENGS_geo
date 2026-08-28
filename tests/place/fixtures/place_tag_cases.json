@@ -1,0 +1,260 @@
+{
+  "snapshot": "2026-08-28",
+  "rules_version": "place-tags/1",
+  "note": "규칙별 대표 + kind 함정. 사람이 검토한 기대 태그다.",
+  "cases": [
+    {
+      "name": "삼막애견공원",
+      "kind": "travel",
+      "tags": [
+        "type:dog_park",
+        "role:dog_primary",
+        "activity:run",
+        "type:park",
+        "environment:urban"
+      ]
+    },
+    {
+      "name": "울산애견공원",
+      "kind": "travel",
+      "tags": [
+        "type:dog_park",
+        "role:dog_primary",
+        "activity:run",
+        "type:park",
+        "environment:urban"
+      ]
+    },
+    {
+      "name": "강문해변",
+      "kind": "travel",
+      "tags": [
+        "type:beach",
+        "environment:natural",
+        "activity:water"
+      ]
+    },
+    {
+      "name": "교암해변",
+      "kind": "travel",
+      "tags": [
+        "type:beach",
+        "environment:natural",
+        "activity:water"
+      ]
+    },
+    {
+      "name": "구곡폭포",
+      "kind": "travel",
+      "tags": [
+        "type:valley",
+        "environment:natural",
+        "activity:water"
+      ]
+    },
+    {
+      "name": "막동계곡",
+      "kind": "travel",
+      "tags": [
+        "type:valley",
+        "environment:natural",
+        "activity:water"
+      ]
+    },
+    {
+      "name": "순천자연휴양림",
+      "kind": "travel",
+      "tags": [
+        "type:forest",
+        "environment:natural"
+      ]
+    },
+    {
+      "name": "장태산자연휴양림",
+      "kind": "travel",
+      "tags": [
+        "type:forest",
+        "environment:natural"
+      ]
+    },
+    {
+      "name": "남경수목원",
+      "kind": "travel",
+      "tags": [
+        "type:arboretum",
+        "environment:natural"
+      ]
+    },
+    {
+      "name": "서울식물원",
+      "kind": "travel",
+      "tags": [
+        "type:arboretum",
+        "environment:natural"
+      ]
+    },
+    {
+      "name": "나리농원",
+      "kind": "travel",
+      "tags": [
+        "type:ranch",
+        "environment:natural"
+      ]
+    },
+    {
+      "name": "상하농원",
+      "kind": "travel",
+      "tags": [
+        "type:ranch",
+        "environment:natural"
+      ]
+    },
+    {
+      "name": "진주휴게소반려견놀이터",
+      "kind": "travel",
+      "tags": [
+        "type:dog_park",
+        "role:dog_primary",
+        "activity:run",
+        "type:rest_area"
+      ]
+    },
+    {
+      "name": "신탄진휴게소 반려견놀이터",
+      "kind": "travel",
+      "tags": [
+        "type:dog_park",
+        "role:dog_primary",
+        "activity:run",
+        "type:rest_area"
+      ]
+    },
+    {
+      "name": "통영케이블카",
+      "kind": "travel",
+      "tags": [
+        "type:cable_car"
+      ]
+    },
+    {
+      "name": "간월산",
+      "kind": "travel",
+      "tags": [
+        "type:mountain",
+        "environment:natural"
+      ]
+    },
+    {
+      "name": "구절산",
+      "kind": "travel",
+      "tags": [
+        "type:mountain",
+        "environment:natural"
+      ]
+    },
+    {
+      "name": "서울랜드",
+      "kind": "travel",
+      "tags": [
+        "type:amusement"
+      ]
+    },
+    {
+      "name": "용마랜드",
+      "kind": "travel",
+      "tags": [
+        "type:amusement"
+      ]
+    },
+    {
+      "name": "간현관광지",
+      "kind": "travel",
+      "tags": [
+        "type:tourist_zone"
+      ]
+    },
+    {
+      "name": "녹음광장",
+      "kind": "travel",
+      "tags": [
+        "type:square",
+        "environment:urban"
+      ]
+    },
+    {
+      "name": "고석정꽃밭",
+      "kind": "travel",
+      "tags": [
+        "type:flower_field",
+        "environment:natural"
+      ]
+    },
+    {
+      "name": "개심사",
+      "kind": "travel",
+      "tags": [
+        "type:temple",
+        "environment:urban"
+      ]
+    },
+    {
+      "name": "가경공원",
+      "kind": "travel",
+      "tags": [
+        "type:park",
+        "environment:urban"
+      ]
+    },
+    {
+      "name": "경산공원",
+      "kind": "travel",
+      "tags": [
+        "type:park",
+        "environment:urban"
+      ]
+    },
+    {
+      "name": "구룡공원",
+      "kind": "travel",
+      "tags": [
+        "type:park",
+        "environment:urban"
+      ]
+    },
+    {
+      "name": "멍숲",
+      "kind": "cafe",
+      "tags": []
+    },
+    {
+      "name": "비숲",
+      "kind": "cafe",
+      "tags": []
+    },
+    {
+      "name": "번동숲속카페",
+      "kind": "cafe",
+      "tags": []
+    },
+    {
+      "name": "애견회관",
+      "kind": "cafe",
+      "tags": []
+    },
+    {
+      "name": "카페애견",
+      "kind": "cafe",
+      "tags": []
+    },
+    {
+      "name": "공원약국",
+      "kind": "pharmacy",
+      "tags": []
+    },
+    {
+      "name": "숲속아지양이",
+      "kind": "grooming",
+      "tags": []
+    }
+  ]
+}

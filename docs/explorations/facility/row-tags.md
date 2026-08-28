@@ -44,8 +44,9 @@ implementation: none
       `name_rule` 하나. 어휘는 `app/place/tag_catalog.py` 에 버전과 함께 (PR B)
 - [x] `restrictions` 291 문자열 매핑표 — `applies_to` 를 가진 구조로. 사람 전수 검토
       → `app/place/restriction_map.py`. 291/291 상태 배정, mapped 행 94%
-- [ ] `travel` 유형어 목록 확정 (~19어). 토큰 채굴 결과가 씨앗 — #72 §3 에 후보,
-      규칙표는 PR B 에서 골든 테스트와 함께 고정한다
+- [x] `travel` 유형어 목록 확정 — `app/place/tag_catalog.py` 23규칙.
+      겹침은 **둘 다 붙이고**(태그는 배타 분류가 아니다), kind 제약이 함정을 막는다.
+      커버리지 travel 72% · cafe 0%(대조군). `--mode coverage` 로 재현
 - [x] 태그 커버리지 계수의 응답 형식 — `PlaceSearchGroup.restrictions`(그룹 옆, `sort` 밖).
       `sort.coverage` 는 정렬이 한 일을 말하는 자리라 정렬과 무관한 계수를 넣지 않았다.
       제한없음·해당없음·조건있음·미상 + 원문 확인 필요 수를 센다
