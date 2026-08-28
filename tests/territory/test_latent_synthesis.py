@@ -3,9 +3,11 @@
 **정답지가 자기 자신을 헷갈리게 만들지 않는지**를 본다. 합성 자료의 값어치는 "무엇이 참인지
 우리가 안다" 는 것뿐이라, 그 앎이 흐려지면 실험 전체가 못 쓰게 된다.
 
-    대조군에 A·D 가 없다        문턱의 출처가 오염되면 안 된다
-    자리끼리 안 겹친다          겹치면 검출기가 뭘 찾았는지 우리도 못 가린다
-    심은 것이 실제로 터진다     지나가기만 하고 안 멈추면 없는 것과 같다
+    N0 에는 아무것도 안 심는다   문턱의 출처가 오염되면 안 된다
+    S 에는 B 만, P 에는 다       B 는 정의상 참 양성이라 N0 과 갈라 둬야 한다
+    자리끼리 안 겹친다           겹치면 검출기가 뭘 찾았는지 우리도 못 가린다
+    심은 것이 실제로 터진다      지나가기만 하고 안 멈추면 없는 것과 같다
+    사건이 다 기록된다           C 는 `spots` 에 없으니 `events` 가 유일한 정답지다
 
 여기서 붓·격자·검출은 안 본다 — 그건 M3 다.
 """
@@ -15,7 +17,9 @@ import math
 import pytest
 
 from scripts.spikes.territory_paint.latent_dwell_year import (
+    COHORTS,
     SPOT_KINDS,
+    TRIGGER_M,
     Spot,
     lognormal_dwell,
     plant_spots,
@@ -70,29 +74,38 @@ GRAPH, COMPONENT = _graph_with_junctions(ROUTE)
 ROUTES = [ROUTE] * 20
 
 
-def _plant(with_repeated: bool, seed: int = 3) -> list[Spot]:
+def _plant(plant: frozenset, seed: int = 3) -> list[Spot]:
     import random
     return plant_spots(ROUTES, GRAPH, COMPONENT, HOME, random.Random(seed),
-                       with_repeated=with_repeated)
+                       plant=plant)
 
 
-# ---- 대조군 ------------------------------------------------------------------------------
+def _cohort(name: str) -> frozenset:
+    return next(p for i, _k, p in COHORTS if i == name)
 
 
-def test_the_control_group_has_no_repeated_dwell_planted():
-    """**문턱의 출처**다. 여기 A·D 가 섞이면 거짓 양성의 바닥이 오염된다."""
-    kinds = {s.kind for s in _plant(with_repeated=False)}
-    assert kinds == {"B"}, f"대조군에 A·D 가 섞였다: {kinds}"
+# ---- 코호트 셋 ----------------------------------------------------------------------------
 
 
-def test_the_control_group_still_has_structural_stops():
-    """B 는 두 쪽 다 심는다 — 대조군에도 있어야 "A 를 찾았다" 가 "B 를 찾았다" 와 갈린다."""
-    assert [s for s in _plant(with_repeated=False) if s.kind == "B"]
+def test_the_true_null_has_nothing_planted_at_all():
+    """**문턱의 출처**다. 여기 뭐라도 섞이면 거짓 양성의 바닥이 오염된다.
+
+    처음엔 대조군이 `B + C` 하나였고 그걸 "거짓 양성의 바닥" 이라 불렀다. **정의와 모순이다**
+    — [정의](../../docs/explorations/walk/repeated-dwell-area.md)상 구조적 정지도 반복
+    체류에 걸리는 **참 양성**이므로, B 가 든 자료에서 나온 것은 거짓 양성이 아니다.
+    """
+    assert _plant(_cohort("N0")) == []
 
 
-def test_the_planted_group_has_both():
-    kinds = {s.kind for s in _plant(with_repeated=True)}
-    assert {"A", "D"} <= kinds and "B" in kinds
+def test_the_structural_cohort_has_only_junction_stops():
+    """S 가 있어야 "A 를 찾았다" 와 "B 를 찾았다" 가 갈린다 — 그게 M4 가 필요한 이유다."""
+    kinds = {s.kind for s in _plant(_cohort("S"))}
+    assert kinds == {"B"}, f"S 에 A·D 가 섞였다: {kinds}"
+
+
+def test_the_planted_cohort_has_all_three_kinds():
+    kinds = {s.kind for s in _plant(_cohort("P"))}
+    assert {"A", "B", "D"} <= kinds
 
 
 # ---- 자리가 서로 안 겹친다 ---------------------------------------------------------------
@@ -105,7 +118,7 @@ def test_planted_spots_do_not_land_on_top_of_each_other():
     읽기 값이 소수점까지 같았다(둘 다 대비 22.29x · 갔을때체류 286.7). 그러면 검출기가
     무엇을 찾았는지 **우리도 못 가린다** — 정답지가 자기 자신을 헷갈리게 만든 셈이다.
     """
-    spots = _plant(with_repeated=True)
+    spots = _plant(_cohort("P"))
     for i, one in enumerate(spots):
         for other in spots[i + 1:]:
             assert _metres(one.at, other.at) > 50.0, (
@@ -115,7 +128,7 @@ def test_planted_spots_do_not_land_on_top_of_each_other():
 
 def test_repeated_spots_avoid_the_doorstep():
     """집 앞은 모든 산책이 지난다 — 거기 심으면 "반복 체류" 와 "늘 지나는 길" 이 안 갈린다."""
-    for spot in _plant(with_repeated=True):
+    for spot in _plant(_cohort("P")):
         if spot.kind in ("A", "D"):
             assert _metres(spot.at, HOME) > 150.0
 
@@ -133,22 +146,27 @@ def test_a_planted_spot_actually_fires_and_records_its_truth():
     import random
     rng = random.Random(11)
     spot = Spot("A0", "A", tuple(_node(300.0)), **SPOT_KINDS["A"])
-    for _ in range(20):
-        walk_fixes(ROUTE, [spot], rng, None)
+    events = []
+    for index in range(20):
+        events += walk_fixes(ROUTE, [spot], rng, f"P-{index:03d}")[1]
 
     assert spot.planned == 20, f"20 회 다 지나야 한다: {spot.planned}"
     assert 10 <= spot.stopped <= 20, f"확률 0.75 인데 {spot.stopped} 회 멈췄다"
     assert len(spot.dwells) == spot.stopped
     assert min(spot.dwells) > 0
 
+    fired = [e for e in events if e.spot_id == "A0"]
+    assert len(fired) == spot.stopped, "사건 정답지와 자리 집계가 어긋났다"
+    assert {e.walk_id for e in fired} <= {f"P-{i:03d}" for i in range(20)}
+
 
 def test_a_stop_makes_the_walk_longer_in_time_not_in_space():
     """멈춤은 fix 를 늘리지 좌표를 늘리지 않는다 — 그게 체류의 관측 형태다."""
     import random
-    plain = walk_fixes(ROUTE, [], random.Random(5), None)
+    plain, _ = walk_fixes(ROUTE, [], random.Random(5), "P-000")
     spot = Spot("A0", "A", tuple(_node(300.0)), chance=1.0, dwell_median=120.0,
                 spread=0.01)
-    held = walk_fixes(ROUTE, [spot], random.Random(5), None)
+    held, _ = walk_fixes(ROUTE, [spot], random.Random(5), "P-000")
     assert len(held) > len(plain) + 100, "멈춤이 fix 를 안 늘렸다"
 
     span = lambda fx: max(_metres((f[0], f[1]), HOME) for f in fx)
@@ -164,6 +182,42 @@ def test_dwell_is_lognormal_so_long_stops_are_rare_not_absent():
     assert 38.0 < median < 53.0
     assert draws[-1] > median * 2.5, "긴 꼬리가 없다"
     assert draws[0] >= 3.0, "0 초 멈춤이 나오면 안 된다"
+
+
+# ---- 사건 정답지 ---------------------------------------------------------------------------
+
+
+def test_every_stop_is_recorded_as_an_event_including_the_ones_with_no_spot():
+    """C(우발 정지)는 자리가 매번 달라 `spots` 에 못 적는다 — 그래서 `events` 가 유일한
+    정답지다. 이게 없으면 "검출기가 C 를 안 집었나" 를 나중에 확인할 방법이 아예 없다.
+    """
+    import random
+    rng = random.Random(2)
+    events = []
+    for index in range(40):
+        events += walk_fixes(ROUTE, [], rng, f"N0-{index:03d}")[1]
+
+    casual = [e for e in events if e.kind == "C"]
+    assert casual, "우발 정지가 40 회 중 한 번도 기록되지 않았다"
+    assert all(e.spot_id is None and e.latent_at is None for e in casual)
+    assert all(e.actual_stop_at and e.dwell_s > 0 for e in casual)
+
+
+def test_an_event_records_where_the_stop_actually_happened_not_where_it_was_planted():
+    """**리뷰가 잡은 것.** 멈춤은 경로가 `TRIGGER_M` 반경에 **처음 들어온** 지점에서 일어나므로
+    심은 좌표와 다르다. 둘 다 안 남기면 검출기가 얼룩 중심을 제대로 찾고도 `spot.at` 기준
+    으로 오차를 먹는다 — 검출기가 틀린 게 아니라 채점자가 틀린 것이다.
+    """
+    import random
+    spot = Spot("A0", "A", tuple(_node(300.0)), chance=1.0, dwell_median=30.0,
+                spread=0.01)
+    _, events = walk_fixes(ROUTE, [spot], random.Random(1), "P-000")
+
+    fired = next(e for e in events if e.spot_id == "A0")
+    assert fired.latent_at == spot.at
+    assert _metres(fired.actual_stop_at, spot.at) <= TRIGGER_M, "발화 반경 밖에서 멈췄다"
+    assert fired.actual_stop_at != spot.at, (
+        "실제 멈춘 자리가 심은 좌표와 똑같다 — 그러면 둘을 나눠 적을 이유가 없다")
 
 
 # ---- 통행 빈도 ------------------------------------------------------------------------------

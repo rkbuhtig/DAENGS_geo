@@ -55,15 +55,20 @@ WALKABLE = (
 EARTH_R = 6_371_000.0
 
 
+def overpass_query() -> str:
+    """도로망을 뽑은 질의. **결과 문서에 그대로 적기 위해** 밖으로 뺐다 — 어느 상자에서 무엇을
+    골랐는지 없이 "실제 도로망" 이라고만 쓰면 재현이 안 된다.
+    """
+    south, west, north, east = BBOX
+    return (f'[out:json][timeout:60];(way["highway"~"^({WALKABLE})$"]'
+            f"({south},{west},{north},{east}););out body geom;")
+
+
 def fetch(cache: str | None) -> dict:
     if cache and os.path.exists(cache):
         with open(cache, encoding="utf-8") as handle:
             return json.load(handle)
-    south, west, north, east = BBOX
-    query = (
-        f'[out:json][timeout:60];(way["highway"~"^({WALKABLE})$"]'
-        f"({south},{west},{north},{east}););out body geom;"
-    )
+    query = overpass_query()
     request = urllib.request.Request(
         OVERPASS,
         data=urllib.parse.urlencode({"data": query}).encode(),
