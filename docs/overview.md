@@ -16,8 +16,8 @@
 
 [결정 #65](decisions/2026-08-26-place-first-discovery.md)은 이 장소들의 제품 최상위를 `Place`로
 고정했다. 웹 검증 지도와 Android 기본 장소 화면은 canonical `POST /v2/places/search`와
-`PlaceResult`를 함께 사용한다. 기존 의료·시설 endpoint와 Android 병원 상담은 소비자 전환이
-끝날 때까지 legacy 경로로 유지한다.
+`PlaceResult`를 함께 사용한다. 기존 의료·시설 endpoint와 Android 병원 전용 검색 상태는
+소비자 전환 뒤 제거했다.
 
 소유하지 않는 것 — **포장**: 케어 밸런스 · 개의 목소리 · 출발 전 목표 · 응급 UX · 수의사 리포트.
 전부 위 데이터를 소비하는 옵션이고, 이 레포 안에 생길 수도 바깥 팀원이 만들 수도 있다. 데이터가 좋으면 누가 해도

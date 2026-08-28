@@ -148,8 +148,3 @@ def test_arrive_note_is_injected_not_hardcoded():
     assert "진료" not in DEFAULT_ARRIVE_NOTE, "공용 기본값에 병원 어휘가 있다"
     assert spot_note(sp, None)[0] == DEFAULT_ARRIVE_NOTE
     assert spot_note(sp, None, "도착 — 처방전 챙기기")[0] == "도착 — 처방전 챙기기"
-
-
-def test_hospital_feature_owns_its_arrive_note():
-    from app.features.hospital.api import ARRIVE_NOTE
-    assert "진료" in ARRIVE_NOTE

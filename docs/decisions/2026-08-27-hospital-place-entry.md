@@ -106,8 +106,9 @@ NAVER handoff만 외부 앱에 넘긴다. 지도를 옮겨 검색한 경우에�
 병원 요청 enum과 공유하지 않고 `locating` 한 사실만 표현하며, 실패한 Place 위치 획득은 저장된
 `PlaceSearchIntent`로 재시도한다.
 
-구현 순서 4~5는 아직이다. 제품 Android 소비자가 없어진 `POST /hospital/search`와 `/dev` 전용
-병원 검색 표면을 다음 PR에서 함께 제거한다.
+구현 순서 4까지 완료했다. 제품 Android 소비자가 없어진 `POST /hospital/search`, 병원 전용
+`/dev` 콘솔과 관련 테스트·활성 계약 문서를 제거했다. 삭제된 경로의 부재만 확인하는 tombstone
+테스트도 남기지 않는다. 구현 순서 5의 parked 코드 감사만 별도 작업으로 남는다.
 
 ## 하지 않는 것
 

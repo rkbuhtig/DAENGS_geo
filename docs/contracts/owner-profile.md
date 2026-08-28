@@ -71,4 +71,3 @@ vet_literacy   enum?    none / basic / experienced                  → reply �
 | `planning.resolver._available_modes` | **배선 완료**: 개 크기 + `owner.transit_ok` | 실제 외부 프로필 원천 연결 |
 | `journey.advice.walk_advice` | `can_carry()` 계약·테스트만 있고 advice 미배선 | True면 계단 장벽 완화 |
 | `refine.engine.draft` | 개 프로필로 도보 옵션 기본값만. `OwnerProfile.has_car` 미배선 | mode 기본값 정책을 채택할 때 연결 |
-| `features/hospital.api` | owner를 읽지만 `reply`는 한 가지 어휘 | `vet_literacy` 소비자를 채택할 때 연결 |

@@ -14,8 +14,6 @@ from app.discovery.refine.engine import refine
 from app.discovery.refine.nl import ToolCall
 from app.discovery.refine.tools import ToolInputError
 from app.discovery.state import CURRENT_STATE_VERSION, EditableState
-from app.features.hospital.api import Edit, HospitalSearchIn, hospital_search
-from tests.conftest import TEST_ORIGIN, seeded_places
 
 
 def test_legacy_state_is_migrated_without_silent_loss():
@@ -160,36 +158,6 @@ async def test_request_origin_overrides_round_tripped_state_without_history_entr
     assert (result.state.lat, result.state.lng) == (35.0, 129.0)
     assert result.state.history == []
     assert (old.lat, old.lng) == (37.0, 127.0)
-
-
-async def test_omitting_origin_keeps_the_pinned_search_location():
-    """지도를 끌어 그 지역을 검색한 뒤(pinned), 필터만 바꾸는 턴에서 좌표가 튀면 안 된다.
-
-    **위치는 두 경로로 들어온다.** 앱이 이 둘을 섞으면 사용자가 팬해서 보던 지역이
-    필터 하나 바꿀 때마다 내 위치로 되돌아간다.
-
-        요청 origin 있음  "지금 내 위치" — GPS 갱신. state 좌표를 덮는다
-        요청 origin 생략  "보던 데 그대로" — state 좌표를 유지한다 (pinned)
-
-    앱은 pinned 상태에서 origin 을 **보내지 않아야** 한다. 습관적으로 최신 GPS 를 실으면
-    위 첫 줄이 매 턴 발동한다.
-
-    Contract: origin 생략은 "state 좌표 유지"다. 앱의 deviceLocation/searchOrigin 분리가
-              서버에서 성립하는 지점.
-    Decision: #46
-    """
-    async with seeded_places([]) as db:
-        pinned = EditableState(lat=TEST_ORIGIN[0], lng=TEST_ORIGIN[1])
-        out = await hospital_search(
-            HospitalSearchIn(
-                state=pinned, transport="none",
-                edits=[Edit(tool="set_radius", args={"m": 1500})],
-            ),
-            db,
-        )
-
-    assert (out.state.lat, out.state.lng) == TEST_ORIGIN
-    assert out.state.target.radius_m == 1500
 
 
 async def test_map_pan_is_undoable_but_a_gps_refresh_is_not():

@@ -47,7 +47,7 @@ class Settings(BaseSettings):
     max_radius_m: int = 10000
     default_limit: int = 20
 
-    # /dev 검증 콘솔. 앱 UI 가 아니라 내부 검증용 표면이라 출고 기본값은 닫혀 있다.
+    # 지도 검증 표면. 앱 UI 가 아니라 내부 검증용이라 출고 기본값은 닫혀 있다.
     # 개발에서는 .env 의 DAENGS_DEV_CONSOLE=true 로 연다 (.env.example 에 들어 있다).
     dev_console: bool = False
 

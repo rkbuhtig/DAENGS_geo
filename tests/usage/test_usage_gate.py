@@ -4,7 +4,6 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.core.config import settings
-from app.core.db import get_session
 from app.discovery.refine.nl import MeteredLLM, ToolCall
 from app.discovery.state import EditableState
 from app.journey import engine
@@ -188,32 +187,6 @@ def test_static_map_dev_limit_returns_429_and_success_is_cacheable(monkeypatch):
     assert denied.status_code == 429
     assert denied.json()["detail"]["code"] == "usage_limit"
     assert spy.calls == 1
-
-
-async def _no_db():
-    yield None
-
-
-def test_llm_denial_is_explicit_http_403_not_silent_fake_fallback(monkeypatch):
-    from app.discovery.refine import engine as refine_engine
-
-    spy = SpyLLM()
-    metered = MeteredLLM(spy, deny_gate())
-    monkeypatch.setattr(refine_engine, "llm", lambda: metered)
-    app.dependency_overrides[get_session] = _no_db
-    try:
-        with TestClient(app) as client:
-            response = client.post("/hospital/search", json={
-                "origin": [37.5, 127.0],
-                "utterance": "가까운 곳",
-                "transport": "none",
-            })
-    finally:
-        app.dependency_overrides.pop(get_session, None)
-
-    assert response.status_code == 403
-    assert response.json()["detail"]["code"] == "policy_denied"
-    assert spy.calls == 0
 
 
 def test_shipped_usage_policy_is_deny_all_and_independent_of_dev_console():
