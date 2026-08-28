@@ -50,6 +50,28 @@ if settings.dev_console:
         """앵커 분포 눈으로 보기. 검증용 표면이라 dev_console 과 같은 게이트 뒤에 둔다."""
         return FileResponse(_ANCHORS, media_type="text/html")
 
+    _WORLD_CTX = Path(__file__).parent / "static" / "world_context.html"
+    _WORLD_CTX_DATA = frozenset({"latent.json", "world_context.json", "osm_world.json"})
+
+    @app.get("/world-context", include_in_schema=False)
+    async def world_context_view():
+        """M2 합성 사건 × 진짜 세계 readout 을 실제 지도 위에서 보는 검증 표면.
+
+        스파이크(`scripts/spikes/territory_paint/world_context_readout.py`) 산출물 전용이라
+        같은 dev_console 게이트 뒤에 둔다. basemap 은 앱과 같은 `/map/client-config` 로 뜬다.
+        """
+        return FileResponse(_WORLD_CTX, media_type="text/html")
+
+    @app.get("/world-context/data/{name}", include_in_schema=False)
+    async def world_context_data(name: str):
+        """스파이크 산출물만 — 목록 밖 이름과 없는 파일은 404. CWD 에서 읽는다."""
+        if name not in _WORLD_CTX_DATA:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+        path = Path.cwd() / name
+        if not path.exists():
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+        return FileResponse(path, media_type="application/json")
+
 @app.get("/health")
 async def health():
     """Liveness only. Dependencies belong to readiness, not process survival."""

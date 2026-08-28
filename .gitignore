@@ -25,3 +25,5 @@ docs/research/region-cell-fidelity-scenes.json
 # M2 스파이크 산출물 — Overpass 응답 캐시와 심은 자료. 스크립트로 다시 만든다
 /osm.json
 /latent.json
+/osm_world.json
+/world_context.json
