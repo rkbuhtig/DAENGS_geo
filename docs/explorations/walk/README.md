@@ -11,10 +11,11 @@
 
 | 갈래 | status | implementation | 한 줄 |
 |---|---|---|---|
+| [memory-engine](memory-engine.md) | exploring | none | **왜 반복 체류 검출에서 기억 엔진으로 옮겼나.** M2 부정 결과 → 미시/거시 분리 → 공간적 일기장 → Walk Capsule 까지의 사슬. 원칙 10개는 아직 결정 아님 |
 | [session-engine-draft](session-engine-draft.md) | exploring | draft | 초기 start/locations/finish 흐름과 소비자 아이디어. 구현 현황은 Android README/계약이 더 최신 |
 | [session-continuity-and-dwell](session-continuity-and-dwell.md) | exploring | partial | 이미 있는 pause/chain/unfinished-session 위에서 세션 연속성·복구·체류·territory 의미를 정리 |
 | [territory-paint](territory-paint.md) | exploring | working-skeleton | 산책 점을 붓으로 지도를 칠한다. 산책 한 번 = 셀로판 한 장, 조건으로 골라 겹친다. §A(영구 형태)는 [결정 #69](../../decisions/2026-08-26-walk-permanent-spatial-form.md) 로 닫혔고 §B·§C 는 열려 있다 |
-| [repeated-dwell-area](repeated-dwell-area.md) | exploring | draft | **반복 체류 영역의 조작적 정의.** 의미어 없이 — 국소 적분 · 산책당 · 경로 대비. 문턱은 대조군에서 얻는다 |
+| [repeated-dwell-area](repeated-dwell-area.md) | exploring | draft | **반복 체류 영역의 조작적 정의.** 의미어 없이 — 국소 적분 · 산책당 · 경로 대비. M2 이후 M3 의 첫 일은 문턱을 고르는 것이 아니라 **문턱을 걸 수 있는 지표를 찾는 것**이다 |
 | [evidence-layer](evidence-layer.md) | exploring | draft | **원시 행동 → 판단 가능한 상태.** 사람과 AI 가 같은 근거 계약을 다른 표현으로 읽는다. 지도는 그 인간용 투영이고 맨 마지막이다 |
 | [experience-scenario](experience-scenario.md) | exploring | draft | 저녁 산책 직전 화면 한 장. 셀로판이 기록·해석·행동 중 **어떤 가치를 만드는지** 가장 싼 형태로 검증한다. 금지 목록과 판정 기준이 여기 있다 |
 | [drawn-region](drawn-region.md) | parked | working | 사용자가 면을 그리고 그 안의 체류를 잰다. 붓 모델로 대체 — 5배 규칙은 남는다 |
@@ -22,8 +23,15 @@
 
 `territory-paint`는 서버가 확정한 `Segment[]`를 소비해 공간을 칠하는 갈래다. 셀 격자는
 `app/geo/cells.py`로 `anchors.py`·Android `LocalHexCellIndexer`와 공유한다. 무엇을 영구히
-남길지(단순화 궤적 vs 산책별 셀 맵)는 아직 열려 있고, 실사용 업로드는 #57·#58이 막고 있어
-지금 고를 필요가 없다.
+남길지는 [결정 #69](../../decisions/2026-08-26-walk-permanent-spatial-form.md)가 산책별 셀 맵으로
+닫았다(칸마다 `occupancy`와 `peak`, 겹치기는 질의지 저장이 아니다). 남은 §B·§C는 그 위에서
+무엇을 어떻게 읽을지다.
+
+`memory-engine`은 이 갈래들이 **왜 한 번 흔들렸는지**를 남긴다. M2 대조군이 정답지를 이기면서
+(`research/2026-08-27-latent-dwell-synthesis.md`) 문제가 검출기가 아니라 저장 경계였다는 쪽으로
+옮겨갔고, 거기서 미시/거시 분리·Walk Capsule·진실성 층이 나왔다. 셀로판은 그 구조에서 **거시
+기억판**으로 역할이 좁아지고, 미시는 셀로판이 아니라 사건 원장이 담당한다. 아직 결정이 아니므로
+다른 갈래 문서는 이 문서로 자동으로 갱신되지 않는다 — 채택할 때 손댄다.
 
 `session-continuity-and-dwell`은 이 수집/paint 사이의 **제품 의미**를 정리한다. 한 사용자 산책 안에
 여러 client/derived continuity chain이 있을 수 있고, chain 사이 관측 공백은 붓으로 연결하지 않는다.
