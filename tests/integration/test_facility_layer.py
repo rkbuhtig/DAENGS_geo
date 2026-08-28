@@ -107,8 +107,14 @@ async def test_empty_detail_does_not_erase_stored_detail():
             await session.commit()
 
             # 상세 없이 목록만 다시 적재 — pet 이 '{}' 로 들어온다
-            await upsert_rows(session, "test:base", [facility_row("상세보유")],
-                              "2026-01-01", datetime.now(UTC))
+            await upsert_rows(
+                session,
+                "test:base",
+                [facility_row("상세보유")],
+                "2026-01-01",
+                datetime.now(UTC),
+                preserve_empty_pet=True,
+            )
             await session.commit()
 
             pet = (await session.execute(text(

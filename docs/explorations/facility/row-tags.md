@@ -52,6 +52,8 @@ implementation: none
 - [x] 배치 진입점 — `python -m app.ingest restrictions` (`pet_axes` 선례 그대로).
       리비전 `0018` 이 두 축(`restriction_state` × `parse_state`)과 술어 JSONB 를 만든다.
       33,611행 파생 확인 — 실측은 [측정 §5-1](../../research/2026-08-27-tag-material.md)
+- [x] 파생 freshness — 저장된 `pet` 변경 시 축·술어를 함께 무효화하고 일반 배치가 다시
+      고른다. resolver는 현재 semantics version이 아닌 술어를 `unknown`으로 내린다.
 - [x] `applies_to` 투영 — `app/place/restriction_projection.py`. 소형견에게 대형견
       조건이 안 보이고, 증명 가능한 술어만 `incompatible` 로 올린다
 - [ ] LLM 잔여 레인(언어유희 137곳)을 누가 도는가 — [#53](../../decisions/2026-08-24-agent-parallel-response.md)

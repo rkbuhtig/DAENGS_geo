@@ -26,6 +26,7 @@ from app.geo.ranking import (
     facility_preference_tags,
     prefer_boost,
 )
+from app.place.restriction_map import RESTRICTION_SEMANTICS_VERSION
 from app.profile.source import profile_source
 
 MEDICAL = ("hospital", "pharmacy")
@@ -208,6 +209,10 @@ WITH merged AS (
                      AND b.pet IS NOT NULL AND b.pet <> '{}'::jsonb
                 THEN b.restriction_predicates
                 ELSE f.restriction_predicates END AS restriction_predicates,
+           CASE WHEN (f.pet IS NULL OR f.pet = '{}'::jsonb)
+                     AND b.pet IS NOT NULL AND b.pet <> '{}'::jsonb
+                THEN b.restriction_semantics_version
+                ELSE f.restriction_semantics_version END AS restriction_semantics_version,
            f.source, COALESCE(f.last_written::text, f.snapshot) AS as_of,
            b.homepage AS b_homepage, b.hours_text AS b_hours_text,
            b.closed_days AS b_closed_days,
@@ -220,6 +225,7 @@ WITH merged AS (
                f2.parking, f2.indoor, f2.outdoor, f2.pet,
                f2.pet_allowed, f2.pet_exclusive, f2.pet_dog_ok, f2.pet_size_class, f2.pet_max_kg,
                f2.restriction_state, f2.restriction_parse_state, f2.restriction_predicates,
+               f2.restriction_semantics_version,
                f2.source, f2.source_ref, f2.last_written, f2.snapshot
         FROM facility_link l
         JOIN facility f2 ON f2.id = l.source_ref::bigint
@@ -282,6 +288,7 @@ _SQL_MERGED = (
     "pet", "pet_allowed", "pet_exclusive", "pet_dog_ok", "pet_size_class", "pet_max_kg",
     # 제약 축은 `pet` 봉투와 한 묶음이다 — 봉투를 빌리면 같이 빌려온다 (SQL `merged`).
     "restriction_state", "restriction_parse_state", "restriction_predicates",
+    "restriction_semantics_version",
 )
 
 
@@ -312,6 +319,10 @@ def _restrictions_out(values: dict) -> RestrictionsOut:
     파싱하는 우회로가 생긴다. `partial`·`raw_only` 는 반대로 원문이 없으면 사용자가
     빠진 조건을 알 방법이 없다 — 칩만 보이면 그 목록이 완결로 읽힌다.
     """
+    if values.get("restriction_semantics_version") != RESTRICTION_SEMANTICS_VERSION:
+        # 이전 규칙으로 만든 값이나 아직 파생하지 않은 값은 현재 사실로 내보내지 않는다.
+        # 배치가 다시 계산할 때까지 fail closed: 제약을 모른다고만 말한다.
+        return RestrictionsOut()
     state = values.get("restriction_state")
     if state is None:
         # 아직 파생 배치가 안 돈 행. 없는 사실을 지어내지 않고 미상으로 둔다.

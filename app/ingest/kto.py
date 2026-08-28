@@ -29,7 +29,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.db import SessionLocal
-from app.ingest.facility_store import prune_unseen, upsert_rows
+from app.ingest.facility_store import prune_unseen, update_pet_detail, upsert_rows
 from app.ingest.linking import rebuild_links
 from app.place.source_catalog import (
     KTO_KINDS as KINDS,
@@ -192,8 +192,14 @@ async def _run(mode: str, details: int) -> None:
             for row in rows:
                 row.pop("modified", None)
 
-            stored = await upsert_rows(session, "kto", rows, synced_at.date().isoformat(),
-                                       synced_at)
+            stored = await upsert_rows(
+                session,
+                "kto",
+                rows,
+                synced_at.date().isoformat(),
+                synced_at,
+                preserve_empty_pet=True,
+            )
             # full 에서만 정리한다. 증분은 안 바뀐 행을 안 건드리므로 prune 하면 다 지워진다.
             pruned = await prune_unseen(session, "kto", synced_at) if mode == "full" else 0
 
@@ -206,12 +212,12 @@ async def _run(mode: str, details: int) -> None:
                     except (httpx.HTTPError, KtoApiError):
                         continue
                     if pet:
-                        await session.execute(
-                            text("""UPDATE facility SET pet = CAST(:pet AS jsonb)
-                                    WHERE source = 'kto' AND source_ref = :ref"""),
-                            {"pet": json.dumps(pet, ensure_ascii=False), "ref": ref},
+                        got_details += await update_pet_detail(
+                            session,
+                            "kto",
+                            ref,
+                            json.dumps(pet, ensure_ascii=False),
                         )
-                        got_details += 1
                     await asyncio.sleep(0.15)
 
         linked = await rebuild_links(session)
