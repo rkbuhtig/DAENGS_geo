@@ -63,14 +63,15 @@ async def _fetch(session) -> dict[str, dict]:
     return {row.name: dict(row._mapping) for row in result}
 
 
-async def test_three_zero_tag_states_are_distinguishable():
-    """칩이 0개인 세 행이 DB 에서 서로 다른 값을 갖는다."""
+async def test_zero_tag_states_are_distinguishable():
+    """칩이 0개여도 원문 없음·제한 없음·해당 없음·못 읽음은 서로 다른 값이다."""
     async with db_session() as session:
         await _seed(
             session,
             [
                 ("모름", None),
                 ("제한없음확인", "제한사항 없음"),
+                ("해당없음", "해당없음"),
                 ("못읽음", "표에 없는 새 문장"),
             ],
         )
@@ -82,6 +83,9 @@ async def test_three_zero_tag_states_are_distinguishable():
 
         assert rows["제한없음확인"]["restriction_state"] == "none_confirmed"
         assert rows["제한없음확인"]["restriction_parse_state"] == "mapped"
+
+        assert rows["해당없음"]["restriction_state"] == "not_applicable"
+        assert rows["해당없음"]["restriction_parse_state"] == "mapped"
 
         assert rows["못읽음"]["restriction_state"] == "restricted"
         assert rows["못읽음"]["restriction_parse_state"] == "raw_only"

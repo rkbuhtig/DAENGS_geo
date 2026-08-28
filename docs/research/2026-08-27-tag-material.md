@@ -38,7 +38,7 @@ KTO 248행에는 다른 스키마의 봉투가 있다: `acmpyTypeCd` 246행 = �
 
 ## 2. 값 분포 — 채워짐과 변별력은 다르다
 
-KCISA 23,914행의 3상태 분포:
+KCISA 23,914행의 사실 상태 분포:
 
 | 컬럼 | true | false | null |
 |---|---:|---:|---:|
@@ -151,7 +151,7 @@ SELECT count(DISTINCT pet->>'restrictions'), count(*) FILTER (...) FROM facility
 
 ```
 scanned 33,611 · updated 33,611
-state       none_confirmed 22,174 · restricted 1,740 · unknown 9,697
+state       none_confirmed 19,385 · not_applicable 2,789 · restricted 1,740 · unknown 9,697
 parse_state mapped 23,811 · partial 97 · raw_only 6
 술어 있는 행 1,734 · 조건부(applies_to≠all) 술어를 가진 행 144
 ```

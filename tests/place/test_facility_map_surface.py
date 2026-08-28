@@ -14,7 +14,7 @@ def test_facility_map_uses_one_canonical_post_contract():
 
 def test_facility_map_reads_place_hit_without_internal_database_ids():
     assert "const f = hit.place" in HTML
-    assert "hit.evaluations.dog_access" in HTML
+    assert "presentationEvaluation(hit)" in HTML
     assert "f.facts.pet_access" in HTML
     assert "f.key.source" in HTML
     assert "okIds" not in HTML
@@ -27,6 +27,8 @@ def test_facility_map_keeps_all_three_evaluation_states_visible():
     assert "정보 부족 · 확인 필요" in HTML
     assert "미만/이하 미확인" in HTML
     assert "≤" not in HTML
+    assert "parts.find(function (value) { return value.state === 'incompatible'; })" in HTML
+    assert "parts.find(function (value) { return value.state === 'unknown'; })" in HTML
 
 
 def test_facility_map_does_not_present_unevaluated_places_as_compatible():
@@ -48,6 +50,11 @@ def test_facility_map_shows_the_sources_of_borrowed_facts_it_displays():
     assert "주차정보 출처" in HTML
     assert "영업시간 출처" in HTML
     assert "대표 출처" in HTML
+    # 외부 원천 문자열을 popup HTML로 조립하지 않고 전부 DOM text 경계를 탄다.
+    assert "title.textContent = f.name" in HTML
+    assert "raw.textContent = '원문: ' + restrictions.raw" in HTML
+    assert "m.bindPopup(popup)" in HTML
+    assert "'<b>' + f.name" not in HTML
 
 
 def test_facility_map_clears_stale_results_before_a_new_request():
@@ -73,6 +80,8 @@ def test_facility_map_explains_server_sort_and_three_state_parking_coverage():
     assert "coverage.known_false" in HTML
     assert "coverage.unknown" in HTML
     assert "주차 정보가 모두 미상입니다" in HTML
+    assert "coverage.not_applicable" in HTML
+    assert "해당 없음 (반려견 입장 여부와 별개)" in HTML
 
 
 def test_facility_map_preserves_server_order_in_a_clickable_result_list():

@@ -147,6 +147,13 @@ def test_none_confirmed_is_compatible_with_no_chips():
     assert result.state == "compatible"
     assert result.chips == []
 
+    not_applicable = project(
+        _facts(state="not_applicable"), dog_size="large", dog_age_years=12,
+    )
+    assert (not_applicable.state, not_applicable.reason) == (
+        "unknown", "restrictions_not_applicable",
+    )
+
 
 def test_missing_facts_are_unknown_not_compatible():
     """아직 파생 안 된 행을 "조건 없음" 으로 읽으면 안 된다."""

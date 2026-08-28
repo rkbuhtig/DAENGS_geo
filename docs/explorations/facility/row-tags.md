@@ -48,10 +48,12 @@ implementation: none
       규칙표는 PR B 에서 골든 테스트와 함께 고정한다
 - [x] 태그 커버리지 계수의 응답 형식 — `PlaceSearchGroup.restrictions`(그룹 옆, `sort` 밖).
       `sort.coverage` 는 정렬이 한 일을 말하는 자리라 정렬과 무관한 계수를 넣지 않았다.
-      제한없음·조건있음·미상 + 원문 확인 필요 수를 센다
+      제한없음·해당없음·조건있음·미상 + 원문 확인 필요 수를 센다
 - [x] 배치 진입점 — `python -m app.ingest restrictions` (`pet_axes` 선례 그대로).
       리비전 `0018` 이 두 축(`restriction_state` × `parse_state`)과 술어 JSONB 를 만든다.
       33,611행 파생 확인 — 실측은 [측정 §5-1](../../research/2026-08-27-tag-material.md)
+- [x] 사실 상태 교정 — 리비전 `0019`와 semantics v3에서 `해당없음`을
+      `not_applicable`로 분리해 `제한 없음 확인` 또는 `compatible`로 읽지 않는다.
 - [x] 파생 freshness — 저장된 `pet` 변경 시 축·술어를 함께 무효화하고 일반 배치가 다시
       고른다. resolver는 현재 semantics version이 아닌 술어를 `unknown`으로 내린다.
 - [x] 링크 신뢰 경계 — 미검증 `facility_link`에서 빌린 제약은 원문·칩과 출처를 표시하되

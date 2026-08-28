@@ -97,6 +97,7 @@ class RestrictionFacts(BaseModel):
 
         unknown         원문 자체가 없다 → 전화로 확인해야 한다
         none_confirmed  원천이 "제한 없음" 이라고 말했다 → 확인된 사실이다
+        not_applicable  원천이 "해당없음" 이라고 말했다 → 입장 가능의 근거가 아니다
         restricted      제한이 있다 → 칩 또는 `raw` 를 보면 된다
 
     `parse_state` 가 `partial`·`raw_only` 면 `raw` 가 함께 온다. 칩 목록만 보이면

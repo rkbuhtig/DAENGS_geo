@@ -1,4 +1,4 @@
-"""제약 술어가 계약까지 흐르고, 세 상태가 구분되는가.
+"""제약 술어가 계약까지 흐르고, 사실 상태가 구분되는가.
 
 Decision: #70
 
@@ -97,11 +97,13 @@ def test_coverage_keeps_unknown_and_none_apart():
     coverage = _restriction_coverage([
         _place(RestrictionFacts(state="none_confirmed", parse_state="mapped")),
         _place(RestrictionFacts(state="none_confirmed", parse_state="mapped")),
+        _place(RestrictionFacts(state="not_applicable", parse_state="mapped")),
         _place(RestrictionFacts(state="unknown")),
         _place(RestrictionFacts(state="restricted", parse_state="partial")),
         _place(RestrictionFacts(state="restricted", parse_state="mapped")),
     ])
     assert coverage.none_confirmed == 2
+    assert coverage.not_applicable == 1
     assert coverage.unknown == 1
     assert coverage.restricted == 2
     assert coverage.needs_raw == 1
@@ -112,6 +114,7 @@ def test_missing_restrictions_counts_as_unknown_not_none():
     coverage = _restriction_coverage([_place(None)])
     assert coverage.unknown == 1
     assert coverage.none_confirmed == 0
+    assert coverage.not_applicable == 0
 
 
 def test_unverified_borrowed_restrictions_are_shown_but_never_decide_the_verdict():
