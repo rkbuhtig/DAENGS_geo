@@ -22,6 +22,11 @@ from app.features.walk.models import (
     WalkFix,
     WalkSession,
 )
+from app.features.walk.observation import (
+    MICRO_OBSERVATION_VERSION,
+    MicroObservation,
+    MovingSpeedProfile,
+)
 
 
 class WalkSessionNotFoundError(Exception):
@@ -222,6 +227,8 @@ async def finalize(
     events: list[MotionEventOccurrence],
     encounters: list[FacilityEncounter] = (),
     curve: list[CurveBucket] | None = None,
+    observations: list[MicroObservation] = (),
+    speed_profile: MovingSpeedProfile | None = None,
 ) -> None:
     """SEALED → DERIVED → PURGED. 파생 사실을 쓴 뒤에만 원좌표를 지운다."""
     await db.execute(text("""
@@ -233,12 +240,13 @@ async def finalize(
                                 evidence_origin, started_at, ended_at,
                                 duration_s, distance_m, moving_distance_m, moving_s,
                                 stop_count, stop_s, avg_speed_mps, fix_count, quality,
-                                curve, curve_version)
+                                curve, curve_version, speed_profile, speed_profile_version)
         VALUES (:session_id, :record_version, :calculation_version, :dog_id,
                 :evidence_origin, :started_at, :ended_at,
                 :duration_s, :distance_m, :moving_distance_m, :moving_s,
                 :stop_count, :stop_s, :avg_speed_mps, :fix_count, CAST(:quality AS jsonb),
-                CAST(:curve AS jsonb), :curve_version)
+                CAST(:curve AS jsonb), :curve_version,
+                CAST(:speed_profile AS jsonb), :speed_profile_version)
     """), {
         **facts.model_dump(),
         "quality": json.dumps(quality.to_dict()),
@@ -246,7 +254,24 @@ async def finalize(
         # 못 만든 것을 0 으로 채우면 "평탄하게 걸었다" 는 거짓이 된다.
         "curve": json.dumps([b.to_dict() for b in curve]) if curve else None,
         "curve_version": CURVE_VERSION if curve else None,
+        # 속도 분포도 같은 규율 — 표본이 모자라 못 만들면 둘 다 NULL 이다
+        "speed_profile": json.dumps(speed_profile.to_dict()) if speed_profile else None,
+        "speed_profile_version": MICRO_OBSERVATION_VERSION if speed_profile else None,
     })
+    if observations:
+        await db.execute(text("""
+            INSERT INTO walk_micro_observation
+                (session_id, observation_index, observation_version, kind,
+                 started_at, ended_at, duration_s, location,
+                 path_m, net_m, span_m, fix_count, accuracy_p50_m,
+                 route_offset_m, chain_index, abuts_break)
+            VALUES (:session_id, :observation_index, :observation_version, :kind,
+                    :started_at, :ended_at, :duration_s,
+                    ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography,
+                    :path_m, :net_m, :span_m, :fix_count, :accuracy_p50_m,
+                    :route_offset_m, :chain_index, :abuts_break)
+        """), [{**o.to_row(), "observation_version": MICRO_OBSERVATION_VERSION}
+               for o in observations])
     if events:
         await db.execute(text("""
             INSERT INTO walk_motion_event
@@ -309,6 +334,35 @@ async def get_events(db: AsyncSession, session_id: str) -> list[MotionEventOccur
         FROM walk_motion_event WHERE session_id = :id ORDER BY event_index
     """), {"id": session_id})
     return [MotionEventOccurrence(**dict(r._mapping)) for r in rows]
+
+
+async def get_observations(db: AsyncSession, session_id: str) -> list[MicroObservation]:
+    """미시 관측 층 읽기. 원좌표가 지워진 뒤에도 남는다 — 그게 이 층의 존재 이유다."""
+    rows = await db.execute(text("""
+        SELECT session_id, observation_index, kind, started_at, ended_at, duration_s,
+               ST_Y(location::geometry) AS lat, ST_X(location::geometry) AS lng,
+               path_m, net_m, span_m, fix_count, accuracy_p50_m,
+               route_offset_m, chain_index, abuts_break
+        FROM walk_micro_observation WHERE session_id = :id ORDER BY observation_index
+    """), {"id": session_id})
+    return [MicroObservation(
+        session_id=r.session_id, index=r.observation_index, kind=r.kind,
+        started_at=r.started_at, ended_at=r.ended_at, duration_s=float(r.duration_s),
+        lat=r.lat, lng=r.lng, path_m=float(r.path_m), net_m=float(r.net_m),
+        span_m=float(r.span_m), fix_count=r.fix_count,
+        accuracy_p50_m=float(r.accuracy_p50_m) if r.accuracy_p50_m is not None else None,
+        route_offset_m=float(r.route_offset_m), chain_index=r.chain_index,
+        abuts_break=r.abuts_break) for r in rows]
+
+
+async def get_speed_profile(db: AsyncSession, session_id: str) -> MovingSpeedProfile | None:
+    """이동 속도 분위수. 표본이 모자랐던 세션과 이 리비전 이전 세션은 None 이다."""
+    row = (await db.execute(text("""
+        SELECT speed_profile FROM walk_facts WHERE session_id = :id
+    """), {"id": session_id})).one_or_none()
+    if row is None or row.speed_profile is None:
+        return None
+    return MovingSpeedProfile(**row.speed_profile)
 
 
 async def get_encounters(db: AsyncSession, session_id: str) -> list[FacilityEncounter]:
