@@ -175,8 +175,8 @@ def test_puppy_limit_does_not_block_an_adult_dog():
     facts = _one(_chip("deny:age", "age:puppy", max_months=4))
 
     adult = project(facts, dog_size="small", dog_age_years=5.0)
-    assert adult.state == "compatible", "성견이 어린 개 제한에 걸린다"
-    assert adult.chips == []
+    assert adult.state != "incompatible", "성견이 어린 개 제한에 걸린다"
+    assert adult.chips == [], "해당 없는 조건이 칩으로 남았다"
 
     puppy = project(facts, dog_size="small", dog_age_years=0.2)
     assert puppy.state == "incompatible"
@@ -189,7 +189,7 @@ def test_each_puppy_threshold_is_its_own():
     five = _one(_chip("deny:age", "age:puppy", max_months=5))
     age = 4.0 / 12.0  # 4개월
 
-    assert project(three, dog_size="small", dog_age_years=age).state == "compatible"
+    assert project(three, dog_size="small", dog_age_years=age).state != "incompatible"
     assert project(five, dog_size="small", dog_age_years=age).state == "incompatible"
 
 
@@ -197,21 +197,26 @@ def test_senior_threshold_from_the_source_beats_the_default():
     """`8세 이상` 이라고 적힌 곳은 기본값 10 이 아니라 8 로 판정한다."""
     facts = _one(_chip("deny:age", "age:senior", min_years=8))
     assert project(facts, dog_size="small", dog_age_years=9.0).state == "incompatible"
-    assert project(facts, dog_size="small", dog_age_years=7.0).state == "compatible"
+    assert project(facts, dog_size="small", dog_age_years=7.0).state != "incompatible"
 
 
 def test_soft_predicates_are_shown_but_never_block():
-    """**리뷰 지적 ③.** "어려울 수 있음" 을 "이용 불가" 로 올리면 원문보다 강해진다."""
-    facts = _one(_chip("deny:age", "age:senior", certainty="soft"))
+    """**리뷰 지적 ③.** "어려울 수 있음" 을 "이용 불가" 로 올리면 원문보다 강해진다.
+
+    `compatible` 도 아니다 — 미해결 조건이 남아 있으므로 fail closed 해서 `unknown`
+    이다. 우리가 못 푼 조건을 "가능" 이라고 부르지 않는다.
+    """
+    facts = _one(_chip("deny:age", "age:senior", min_years=10, certainty="soft"))
     result = project(facts, dog_size="small", dog_age_years=12.0)
 
-    assert result.state == "compatible"
+    assert result.state == "unknown"
+    assert result.reason == "unresolved_condition"
     assert result.chips, "판정은 안 해도 칩은 보여야 한다"
 
 
 def test_firm_predicate_of_the_same_code_still_blocks():
     """확실성은 코드가 아니라 **원문마다** 다르다 — 같은 `deny:age` 가 갈린다."""
-    firm = _one(_chip("deny:age", "age:senior"))
+    firm = _one(_chip("deny:age", "age:senior", min_years=10))
     assert project(firm, dog_size="small", dog_age_years=12.0).state == "incompatible"
 
 

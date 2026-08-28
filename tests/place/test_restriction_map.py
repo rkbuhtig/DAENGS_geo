@@ -204,6 +204,8 @@ def test_coverage_report_is_reported_for_review():
 _NUMERIC_PATTERNS = (
     (re.compile(r"최대\s*\d+\s*마리|\d+\s*마리까지"), "limit:max_dogs", "max"),
     (re.compile(r"\d+\s*개월\s*(?:미만|이하|이상)"), "deny:age", "max_months"),
+    (re.compile(r"\d+\s*(?:살|세)\s*이상"), "deny:age", "min_years"),
+    (re.compile(r"\d+\s*kg\s*(?:초과|이상)", re.IGNORECASE), "deny:size", "min_kg"),
 )
 
 

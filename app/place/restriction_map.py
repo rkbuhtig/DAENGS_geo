@@ -350,7 +350,7 @@ _MAP: dict[str, tuple[str, ...]] = {
         "require:muzzle@size:large",
     ),
     "공격성, 입질 있는 경우 불가": ("deny:behavior",),
-    "10살 이상 불가": ("deny:age@age:senior",),
+    "10살 이상 불가": ("deny:age@age:senior(min_years=10)",),
     # **신규예약** 불가지 입장 불가가 아니다 — 기존 고객은 간다. soft 로 둔다.
     "10살 이상 노령견 신규예약 불가": ("deny:age@age:senior(min_years=10)~soft",),
     "야외테라스만 동반 가능": ("zone:terrace_only",),
