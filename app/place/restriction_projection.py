@@ -14,19 +14,22 @@
 
 ## 무엇을 판정하고 무엇을 안 하나
 
-판정한다 (원문이 "못 들어온다" 고 말했고 프로필로 대조 가능):
+판정한다 (원문이 "못 들어온다" 고 말했고 현재 재료로 대조 가능):
 
     deny:size@size:large   × 대형견        원문이 크기로 배제했다
-    deny:age@age:senior    × 10살 이상     `DogProfile.age_years` 로 대조된다
+    deny:species_dog                       원문이 개를 배제했다
 
-판정하지 않는다 — 술어로 **보여주기만** 한다:
+`unknown` 으로 둔다 — 술어로 **보여주되 가능하다고 부르지 않는다**:
 
+    partial · raw_only             판독표가 원문을 전부 담지 못했다
+    deny:age                       `age:senior` 가 숫자 문턱을 보존하지 않고,
+                                   `age:puppy` 도 4개월·5개월이 한 값에 섞인다
     require:carrier · require:hold   초대형 케이지가 있을 수도 있고 시설이 말하는
                                      "케이지" 의 규격을 우리는 모른다. 34kg 이면
                                      사실상 불가일 때가 많지만 그건 추론이다
     deny:behavior · deny:health      이 개가 공격적인지 아픈지 우리는 모른다
     deny:breed                       열거된 견종 이름을 술어가 안 담는다 (`breed:named`)
-    require:vaccination · admin:*    보호자가 챙길 것이지 못 가는 이유가 아니다
+    require:vaccination · admin:*    충족 여부를 요청에서 받지 않는다
 
 `evaluate_dog_access` 가 `weight_boundary_unknown` 으로 경계값을 지어내지 않는 것과
 같은 규율이다. 모르는 것을 불가로 바꾸면 갈 수 있는 곳이 조용히 사라진다.
@@ -50,19 +53,15 @@ _SIZE_SUBJECTS: dict[str, frozenset[SizeClass]] = {
     "size:small": frozenset({"small"}),
 }
 
-# 이 술어들만 `incompatible` 로 승격한다. 모듈 docstring 의 근거를 지킨다.
-_BLOCKING_CODES = frozenset({"deny:size", "deny:age"})
-
-SENIOR_YEARS = 10.0  # 원문 어휘가 "10살 이상 노령견" 으로 반복된다
-
 RestrictionState = Literal["compatible", "incompatible", "unknown"]
 RestrictionReason = Literal[
     "size_denied",
-    "age_denied",
+    "species_denied",
     "no_blocking_condition",
     "missing_dog_size",
-    "missing_dog_age",
     "restrictions_unknown",
+    "incomplete_restrictions",
+    "unresolved_condition",
 ]
 
 
@@ -87,7 +86,6 @@ def applies_to_dog(
     chip: RestrictionChip,
     *,
     dog_size: SizeClass | None,
-    dog_age_years: float | None,
 ) -> bool:
     """이 칩을 **이 개에게 보여야 하는가.**
 
@@ -101,9 +99,8 @@ def applies_to_dog(
         if dog_size is None:
             return True
         return dog_size in _SIZE_SUBJECTS[subject]
-    if subject == "age:senior":
-        return dog_age_years is None or dog_age_years >= SENIOR_YEARS
-    # sex · 중성화 · 생리 · 견종 · 어린 개: 프로필로 못 가른다. 남긴다.
+    # 나이 술어는 원문 숫자 문턱을 보존하지 않는다. sex · 중성화 · 생리 · 견종과
+    # 마찬가지로 숨기지 않고 남겨 사용자가 원문과 함께 확인하게 한다.
     return True
 
 
@@ -122,15 +119,16 @@ def project(
         return DogRestrictionEvaluation(
             state="unknown", reason="restrictions_unknown",
         )
+    if facts.state == "none_confirmed":
+        return DogRestrictionEvaluation(
+            state="compatible", reason="no_blocking_condition",
+        )
 
-    visible = [
-        chip for chip in facts.chips
-        if applies_to_dog(chip, dog_size=dog_size, dog_age_years=dog_age_years)
-    ]
+    # `dog_age_years` 는 원문 숫자 문턱을 보존하는 술어가 생기기 전까지 의도적으로
+    # 판정에 쓰지 않는다. 값이 있다는 이유만으로 모든 puppy/senior 문구에 한 기준을 씌우지 않는다.
+    visible = [chip for chip in facts.chips if applies_to_dog(chip, dog_size=dog_size)]
 
     for chip in visible:
-        if chip.code not in _BLOCKING_CODES:
-            continue
         if chip.code == "deny:size":
             if dog_size is None:
                 return DogRestrictionEvaluation(
@@ -141,14 +139,25 @@ def project(
                 state="incompatible", reason="size_denied",
                 chips=visible, blocking=[chip.code],
             )
-        if dog_age_years is None:
+        if chip.code == "deny:species_dog":
             return DogRestrictionEvaluation(
-                state="unknown", reason="missing_dog_age",
+                state="incompatible", reason="species_denied",
                 chips=visible, blocking=[chip.code],
             )
+
+    # 판독이 불완전하면 현재 칩에 blocker가 없다는 사실로 원문 전체가 안전하다고
+    # 결론내릴 수 없다. 위의 확정 blocker만 먼저 판정하고 나머지는 fail closed 한다.
+    if facts.parse_state in ("partial", "raw_only"):
         return DogRestrictionEvaluation(
-            state="incompatible", reason="age_denied",
-            chips=visible, blocking=[chip.code],
+            state="unknown", reason="incomplete_restrictions", chips=visible,
+        )
+
+    # 요구사항·연령·건강·견종 등은 표시할 수 있지만 현재 요청에는 충족 여부가 없다.
+    # `compatible` 은 "불가를 못 찾음" 이 아니라 "남은 미해결 조건이 없음" 일 때만 쓴다.
+    unresolved = [chip for chip in visible if chip.code != "deny:species_cat"]
+    if unresolved or not facts.chips:
+        return DogRestrictionEvaluation(
+            state="unknown", reason="unresolved_condition", chips=visible,
         )
 
     return DogRestrictionEvaluation(
