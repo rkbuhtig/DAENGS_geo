@@ -98,16 +98,16 @@ async def test_the_same_place_reads_differently_for_two_dogs():
         small = await _search(session, {"dog_size": "small", "dog_weight_kg": 2.0})
         large = await _search(session, {"dog_size": "large", "dog_weight_kg": 34.0})
 
-        # 크기 배제: 소형견에게는 칩조차 안 보인다
-        assert small["대형견불가카페"].evaluations.restrictions.state == "compatible"
+        # 크기 배제 칩은 빠지지만 원문을 일부만 읽었으므로 가능하다고 확정하지 않는다.
+        assert small["대형견불가카페"].evaluations.restrictions.state == "unknown"
         assert large["대형견불가카페"].evaluations.restrictions.state == "incompatible"
 
-        # 입마개 요구: 대형견에게 보이지만 **못 가는 이유는 아니다**
+        # 입마개 요구: 대형견에게 보이지만 준비 여부를 몰라 가능으로 확정하지 않는다.
         small_chips = {c.code for c in small["입마개카페"].evaluations.restrictions.chips}
         large_chips = {c.code for c in large["입마개카페"].evaluations.restrictions.chips}
         assert "require:muzzle" not in small_chips
         assert "require:muzzle" in large_chips
-        assert large["입마개카페"].evaluations.restrictions.state == "compatible"
+        assert large["입마개카페"].evaluations.restrictions.state == "unknown"
 
         await session.execute(_DELETE, {"refs": list(REFS)})
         await session.commit()

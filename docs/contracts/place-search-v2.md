@@ -122,6 +122,12 @@ identity로 노출하지 않는다.
 크기를 못 구해도 평가가 있으며, 의료 kind에만 `dog_access`가 없다. 평가는 결과를 빼거나
 순서를 바꾸지 않고, `unknown`은 `incompatible`과 합치지 않는다.
 
+자유문장 제약은 별도 `evaluations.restrictions`로 대조한다. 원문이 직접 말한 크기 배제와
+`deny:species_dog`만 현재 확정 불가로 올린다. `partial`·`raw_only`, 문턱값이 보존되지 않은
+나이 제한, 준비·접종·행동 등 요청만으로 충족 여부를 모르는 조건은 `unknown`이다.
+`compatible`은 원천이 제한 없음을 확인했거나, 완전히 읽힌 조건 중 이 개에게 남은 미해결
+조건이 없을 때만 쓴다. 이 평가도 후보를 제거하거나 순서를 바꾸지 않는다.
+
 ## 현재 하지 않는 것
 
 - 주차 hard filter와 영업 중 hard filter 또는 선호 정렬

@@ -7,18 +7,22 @@ Decision: #70
     투영   `applies_to` 로 걸러 이 개에게 보여줄 칩을 정한다
     판정   그중 "못 간다" 가 증명되는 것만 `incompatible` 로 올린다
 
-`require:muzzle@size:large` 는 대형견에게 **보이지만** 못 가는 이유가 아니다 —
-입마개를 채우면 간다. 이 구분이 무너지면 갈 수 있는 곳이 조용히 사라진다.
+`require:muzzle@size:large` 는 대형견에게 **보이지만** 곧바로 못 가는 이유는 아니다.
+반대로 실제로 준비했는지 모르므로 가능하다고 확정하지도 않는다.
 """
 
 from app.place.contracts import RestrictionChip, RestrictionFacts
-from app.place.restriction_projection import SENIOR_YEARS, project
+from app.place.restriction_projection import project
 
 
-def _facts(*chips: tuple[str, str, str], state: str = "restricted") -> RestrictionFacts:
+def _facts(
+    *chips: tuple[str, str, str],
+    state: str = "restricted",
+    parse_state: str = "mapped",
+) -> RestrictionFacts:
     return RestrictionFacts(
         state=state,
-        parse_state="mapped",
+        parse_state=parse_state,
         chips=[
             RestrictionChip(code=code, label=label, applies_to=applies_to)
             for code, label, applies_to in chips
@@ -30,8 +34,11 @@ MUZZLE_LARGE = ("require:muzzle", "입마개·대형견", "size:large")
 LEASH_ALL = ("require:leash", "목줄", "all")
 DENY_LARGE = ("deny:size", "크기 제한·대형견", "size:large")
 DENY_SENIOR = ("deny:age", "나이 제한·노령견", "age:senior")
+DENY_PUPPY = ("deny:age", "나이 제한·어린 개", "age:puppy")
+DENY_DOG = ("deny:species_dog", "개 불가", "all")
 CARRIER = ("require:carrier", "케이지", "all")
 BEHAVIOR = ("deny:behavior", "성격 제한", "all")
+VACCINATION = ("require:vaccination", "접종 필수", "all")
 
 
 # ---------------------------------------------------------------- 투영
@@ -82,42 +89,32 @@ def test_size_denial_blocks_only_the_denied_size():
     assert allowed.chips == []
 
 
-def test_age_denial_uses_the_profile_age():
-    senior = project(_facts(DENY_SENIOR), dog_size="small", dog_age_years=SENIOR_YEARS)
-    young = project(_facts(DENY_SENIOR), dog_size="small", dog_age_years=3)
-
-    assert senior.state == "incompatible"
-    assert senior.reason == "age_denied"
-    assert young.state == "compatible"
-
-
-def test_missing_age_is_unknown_not_incompatible():
-    """모르는 것을 불가로 바꾸면 갈 수 있는 곳이 조용히 사라진다."""
-    result = project(_facts(DENY_SENIOR), dog_size="small", dog_age_years=None)
-    assert result.state == "unknown"
-    assert result.reason == "missing_dog_age"
-    assert result.blocking == ["deny:age"]
+def test_age_rules_stay_unknown_until_the_source_threshold_is_preserved():
+    """어린 개·노령견을 한 고정 나이로 발명하지 않는다."""
+    for chip, age in ((DENY_PUPPY, 3), (DENY_SENIOR, 12)):
+        result = project(_facts(chip), dog_size="small", dog_age_years=age)
+        assert (result.state, result.reason) == ("unknown", "unresolved_condition")
+        assert result.blocking == []
 
 
-def test_carrier_and_hold_are_shown_but_never_judged():
-    """초대형 케이지가 있을 수도 있고 시설이 말하는 규격을 우리는 모른다."""
-    result = project(_facts(CARRIER), dog_size="large", dog_age_years=3)
-    assert result.state == "compatible"
-    assert [chip.code for chip in result.chips] == ["require:carrier"]
+def test_explicit_dog_denial_blocks_without_more_profile_data():
+    result = project(_facts(DENY_DOG), dog_size="small", dog_age_years=3)
+    assert (result.state, result.reason) == ("incompatible", "species_denied")
+    assert result.blocking == ["deny:species_dog"]
 
 
-def test_behavior_is_shown_but_never_judged():
-    """이 개가 공격적인지 우리는 모른다."""
-    result = project(_facts(BEHAVIOR), dog_size="large", dog_age_years=3)
-    assert result.state == "compatible"
-    assert result.chips
-
-
-def test_muzzle_requirement_is_not_a_denial():
-    """입마개를 채우면 간다. 요구를 배제로 읽으면 후보가 잘못 사라진다."""
-    result = project(_facts(MUZZLE_LARGE), dog_size="large", dog_age_years=3)
-    assert result.state == "compatible"
-    assert [chip.code for chip in result.chips] == ["require:muzzle"]
+def test_unresolved_conditions_are_shown_without_claiming_compatibility():
+    """장비·접종·행동 상태를 요청에서 모르므로 보이되 가능으로 확정하지 않는다."""
+    result = project(
+        _facts(MUZZLE_LARGE, CARRIER, VACCINATION, BEHAVIOR),
+        dog_size="large",
+        dog_age_years=3,
+    )
+    assert (result.state, result.reason) == ("unknown", "unresolved_condition")
+    assert {chip.code for chip in result.chips} == {
+        "require:muzzle", "require:carrier", "require:vaccination", "deny:behavior",
+    }
+    assert result.blocking == []
 
 
 # ---------------------------------------------------------------- 미상
@@ -128,6 +125,19 @@ def test_unknown_restrictions_stay_unknown():
     assert result.state == "unknown"
     assert result.reason == "restrictions_unknown"
     assert result.chips == []
+
+
+def test_incomplete_parse_without_a_known_blocker_stays_unknown():
+    partial = project(
+        _facts(DENY_LARGE, parse_state="partial"),
+        dog_size="medium",
+        dog_age_years=3,
+    )
+    raw_only = project(
+        _facts(parse_state="raw_only"), dog_size="medium", dog_age_years=3,
+    )
+    assert (partial.state, partial.reason) == ("unknown", "incomplete_restrictions")
+    assert (raw_only.state, raw_only.reason) == ("unknown", "incomplete_restrictions")
 
 
 def test_none_confirmed_is_compatible_with_no_chips():
