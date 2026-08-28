@@ -122,13 +122,25 @@ def test_facility_adapter_preserves_mapping_input_and_borrowed_provenance():
     borrowed = FacilitySourceOut(name="kcisa", ref="KCISA:456", as_of="2025-03-24")
     legacy = facility_result(
         hours_text="매일 10:00~20:00",
-        field_sources={"hours_text": borrowed},
+        pet={"restrictions": "제한사항 없음"},
+        restrictions=RestrictionsOut(state="none_confirmed", parse_state="mapped"),
+        field_sources={
+            "hours_text": borrowed,
+            "pet": borrowed,
+            "restrictions": borrowed,
+        },
     )
     result = facility_place_result(legacy)
 
     assert result.classifications[0].source_category == "38"
     assert result.classifications[0].mapping_version == "kto-contenttypeid/2"
     assert result.field_sources["facts.hours_text"].source == PlaceRef(
+        source="kcisa", ref="KCISA:456",
+    )
+    assert result.field_sources["facts.pet_access"].source == PlaceRef(
+        source="kcisa", ref="KCISA:456",
+    )
+    assert result.field_sources["facts.restrictions"].source == PlaceRef(
         source="kcisa", ref="KCISA:456",
     )
     # name+150m 링크는 검증된 물리 identity가 아니므로 alias로 승격하지 않는다.

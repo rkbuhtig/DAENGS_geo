@@ -181,6 +181,7 @@ const REASON_LABEL = {
   weight_boundary_unknown: '미만·이하 경계 확인 필요',
   dog_disallowed: '개 입장 불가', missing_dog_size: '개 크기 미상',
   missing_dog_weight: '개 무게 미상', missing_restriction: '시설 제한 정보 없음',
+  unverified_source_match: '다른 원천과 추정 연결 · 직접 확인 필요',
 };
 
 function provenanceLine(label, provenance) {
@@ -246,6 +247,7 @@ function marker(hit) {
     : '';
   const provenanceText =
     provenanceLine('입장정보 출처', fields['facts.pet_access']) +
+    provenanceLine('조건정보 출처(추정 연결)', fields['facts.restrictions']) +
     provenanceLine('주차정보 출처', fields['facts.parking']) +
     provenanceLine('영업시간 출처', fields['facts.hours_text']);
   m.bindPopup(

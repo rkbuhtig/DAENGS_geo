@@ -40,9 +40,11 @@ def test_facility_map_does_not_present_unevaluated_places_as_compatible():
 def test_facility_map_shows_the_sources_of_borrowed_facts_it_displays():
     assert "const fields = f.field_sources || {}" in HTML
     assert "fields['facts.pet_access']" in HTML
+    assert "fields['facts.restrictions']" in HTML
     assert "fields['facts.parking']" in HTML
     assert "fields['facts.hours_text']" in HTML
     assert "입장정보 출처" in HTML
+    assert "조건정보 출처(추정 연결)" in HTML
     assert "주차정보 출처" in HTML
     assert "영업시간 출처" in HTML
     assert "대표 출처" in HTML
