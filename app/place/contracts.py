@@ -83,6 +83,11 @@ class RestrictionChip(BaseModel):
     code: str = Field(min_length=1)
     label: str = Field(min_length=1)
     applies_to: str = "all"
+    # 원문이 밝힌 수치·조건. `최대 2마리` 와 `최대 5마리` 를 가르는 유일한 자리다.
+    params: dict[str, str] = Field(default_factory=dict)
+    # `soft` 는 원문이 단정하지 않았다는 뜻이다 — "어려울 수 있음"·"신규예약 불가".
+    # 칩으로 보여주되 판정에 쓰지 않는다.
+    certainty: str = "firm"
 
 
 class RestrictionFacts(BaseModel):

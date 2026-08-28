@@ -65,7 +65,9 @@ implementation: none
 | 술어 | 판정 | 이유 |
 |---|---|---|
 | `deny:size@size:large` | ✅ | 원문이 크기로 배제했다 |
-| `deny:age@age:senior` | ✅ | `DogProfile.age_years` 로 대조된다 |
+| `deny:age@age:*` | ✅ | `age_years` 로 대조. **문턱은 술어 `params` 가 갖는다** |
+| `deny:species_dog` | ✅ | `고양이 전용`. 검색 주체가 개라 재료가 항상 있다 |
+| `certainty=soft` 인 것 전부 | ❌ 표시만 | 원문이 단정하지 않았다 ("어려울 수 있음") |
 | `require:muzzle` | ❌ 표시만 | 입마개를 채우면 간다 — 요구는 배제가 아니다 |
 | `require:carrier`·`require:hold` | ❌ 표시만 | 시설이 말하는 케이지 규격을 모른다 |
 | `deny:behavior`·`deny:health` | ❌ 표시만 | 이 개가 공격적인지·아픈지 모른다 |

@@ -84,6 +84,8 @@ class RestrictionPredicateOut(BaseModel):
 
     code: str
     applies_to: str = "all"
+    params: dict[str, str] = Field(default_factory=dict)
+    certainty: str = "firm"
 
 
 class RestrictionsOut(BaseModel):

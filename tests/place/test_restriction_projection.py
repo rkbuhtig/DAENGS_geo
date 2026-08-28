@@ -152,3 +152,73 @@ def test_missing_facts_are_unknown_not_compatible():
     """아직 파생 안 된 행을 "조건 없음" 으로 읽으면 안 된다."""
     result = project(None, dog_size="small", dog_age_years=3)
     assert result.state == "unknown"
+
+
+# ---------------------------------------------------------------- 회귀 (리뷰 지적)
+def _chip(code: str, applies_to: str = "all", *, certainty: str = "firm", **params):
+    return RestrictionChip(
+        code=code, label=code, applies_to=applies_to,
+        params={k: str(v) for k, v in params.items()}, certainty=certainty,
+    )
+
+
+def _one(chip: RestrictionChip) -> RestrictionFacts:
+    return RestrictionFacts(state="restricted", parse_state="mapped", chips=[chip])
+
+
+def test_puppy_limit_does_not_block_an_adult_dog():
+    """**리뷰 지적 ②.** 5살 개가 "4개월 미만 입장 불가" 에 걸리던 오판정.
+
+    원인은 `age:puppy` 가 `applies_to_dog` 에서 걸러지지 않고 통과한 뒤,
+    판정 루프가 `code` 만 보고 나이가 있으면 바로 막은 것이다.
+    """
+    facts = _one(_chip("deny:age", "age:puppy", max_months=4))
+
+    adult = project(facts, dog_size="small", dog_age_years=5.0)
+    assert adult.state == "compatible", "성견이 어린 개 제한에 걸린다"
+    assert adult.chips == []
+
+    puppy = project(facts, dog_size="small", dog_age_years=0.2)
+    assert puppy.state == "incompatible"
+    assert puppy.reason == "age_denied"
+
+
+def test_each_puppy_threshold_is_its_own():
+    """원문 문턱이 3·4·5개월로 갈린다 — 하나로 뭉개면 세 문장이 구분 불가다."""
+    three = _one(_chip("deny:age", "age:puppy", max_months=3))
+    five = _one(_chip("deny:age", "age:puppy", max_months=5))
+    age = 4.0 / 12.0  # 4개월
+
+    assert project(three, dog_size="small", dog_age_years=age).state == "compatible"
+    assert project(five, dog_size="small", dog_age_years=age).state == "incompatible"
+
+
+def test_senior_threshold_from_the_source_beats_the_default():
+    """`8세 이상` 이라고 적힌 곳은 기본값 10 이 아니라 8 로 판정한다."""
+    facts = _one(_chip("deny:age", "age:senior", min_years=8))
+    assert project(facts, dog_size="small", dog_age_years=9.0).state == "incompatible"
+    assert project(facts, dog_size="small", dog_age_years=7.0).state == "compatible"
+
+
+def test_soft_predicates_are_shown_but_never_block():
+    """**리뷰 지적 ③.** "어려울 수 있음" 을 "이용 불가" 로 올리면 원문보다 강해진다."""
+    facts = _one(_chip("deny:age", "age:senior", certainty="soft"))
+    result = project(facts, dog_size="small", dog_age_years=12.0)
+
+    assert result.state == "compatible"
+    assert result.chips, "판정은 안 해도 칩은 보여야 한다"
+
+
+def test_firm_predicate_of_the_same_code_still_blocks():
+    """확실성은 코드가 아니라 **원문마다** 다르다 — 같은 `deny:age` 가 갈린다."""
+    firm = _one(_chip("deny:age", "age:senior"))
+    assert project(firm, dog_size="small", dog_age_years=12.0).state == "incompatible"
+
+
+def test_cat_only_facility_blocks_a_dog():
+    """`고양이 전용` 은 개를 데려가면 확실히 못 간다 — 판정 재료가 항상 있다."""
+    facts = _one(_chip("deny:species_dog"))
+    result = project(facts, dog_size="small", dog_age_years=3.0)
+
+    assert result.state == "incompatible"
+    assert result.reason == "species_denied"
