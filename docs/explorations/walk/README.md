@@ -12,6 +12,8 @@
 | 갈래 | status | implementation | 한 줄 |
 |---|---|---|---|
 | [memory-engine](memory-engine.md) | exploring | none | **왜 반복 체류 검출에서 기억 엔진으로 옮겼나.** M2 부정 결과 → 미시/거시 분리 → 공간적 일기장 → Walk Capsule 까지의 사슬. 원칙 10개는 아직 결정 아님 |
+| [micro-judgment](micro-judgment.md) | exploring | none | **미시 판정층 — 결정 #7 의 확장.** 관측→통계→룰→escalation 4층. 룰은 발언 가능성을 판정하고, LLM 은 의미적 애매함만 받으며 출력은 편집층 전용. 문턱값은 실패 지도를 그린 뒤 |
+| [behavior-anchor](behavior-anchor.md) | exploring | none | **행동 책갈피.** 일기를 쓰는 행위가 증언(attested)이 되고, 사건 단위 확정 문장은 증언에서만 나온다. 선택이지 전제가 아님 — 안 눌러도 전부 동작 |
 | [session-engine-draft](session-engine-draft.md) | exploring | draft | 초기 start/locations/finish 흐름과 소비자 아이디어. 구현 현황은 Android README/계약이 더 최신 |
 | [session-continuity-and-dwell](session-continuity-and-dwell.md) | exploring | partial | 이미 있는 pause/chain/unfinished-session 위에서 세션 연속성·복구·체류·territory 의미를 정리 |
 | [territory-paint](territory-paint.md) | exploring | working-skeleton | 산책 점을 붓으로 지도를 칠한다. 산책 한 번 = 셀로판 한 장, 조건으로 골라 겹친다. §A(영구 형태)는 [결정 #69](../../decisions/2026-08-26-walk-permanent-spatial-form.md) 로 닫혔고 §B·§C 는 열려 있다 |

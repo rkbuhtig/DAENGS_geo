@@ -1055,3 +1055,10 @@ World 가 없어도 "이 근처" 로 일기는 성립해야 한다. 있으면 "�
   **첫 산책 직후**로 바꾼다
 - [`evidence-layer.md`](evidence-layer.md) — 이 문서의 진실성 4층(§11)이 그 갈래의 근거 계약과
   같은 것을 다른 각도에서 말한다. 합칠지 나눌지는 채택 때 정한다
+
+이후 이 문서에서 갈라져 나간 갈래 (2026-08-28):
+
+- [`micro-judgment.md`](micro-judgment.md) — §14 원칙 위에서 미시 사건을 누가 어떻게
+  판정하는가. 결정 #7 의 확장으로 프레이밍된다
+- [`behavior-anchor.md`](behavior-anchor.md) — 진실성 층에 세 번째 급(attested)을 더한다.
+  §11 의 measured/captured 와 한 표가 된다. 사건 단위 확정 문장의 유일한 원천
