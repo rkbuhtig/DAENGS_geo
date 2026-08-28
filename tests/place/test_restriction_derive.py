@@ -2,10 +2,11 @@
 
 Decision: #70
 
-**왜 두 축인가**: 태그가 0개인 상태가 셋인데 사용자가 할 행동이 다르다.
+**왜 두 축인가**: 태그가 0개여도 사용자가 할 행동이 다른 네 상태가 있다.
 
     원문 없음        unknown / (parse 없음)     → 전화로 확인해야 한다
     "제한사항 없음"  none_confirmed / mapped    → 확인된 사실이다
+    "해당없음"       not_applicable / mapped    → 입장 가능의 근거가 아니다
     못 읽은 문장     restricted / raw_only      → 원문을 보여주면 된다
 
 한 값으로 합치면 "모름" 과 "제한 없음" 이 섞이고, 그게 미상을 무제한으로 읽는 사고다.
@@ -31,11 +32,17 @@ def test_missing_text_is_unknown_not_none(raw):
     assert result.predicates == ()
 
 
-@pytest.mark.parametrize("raw", ["제한사항 없음", "해당없음"])
-def test_non_informative_is_confirmed_not_unknown(raw):
-    """원천이 "없다" 고 말한 것은 확인된 사실이다 — 모름과 다르다."""
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("제한사항 없음", RestrictionState.NONE_CONFIRMED),
+        ("해당없음", RestrictionState.NOT_APPLICABLE),
+    ],
+)
+def test_explicit_zero_states_keep_their_distinct_meanings(raw, expected):
+    """제한 없음과 제한란 해당 없음은 둘 다 명시값이지만 입장 가능의 근거는 전자뿐이다."""
     result = derive(raw)
-    assert result.state is RestrictionState.NONE_CONFIRMED
+    assert result.state is expected
     assert result.parse_state is ParseState.MAPPED
     assert result.predicates == ()
 
@@ -75,6 +82,8 @@ def test_columns_carry_the_semantics_version():
 
 def test_unknown_rows_leave_parse_state_null_for_the_check_constraint():
     """리비전 0018 의 `parse_state_presence` 제약과 같은 규칙을 코드도 지킨다."""
-    for raw, expects_parse in ((None, False), ("제한사항 없음", True), ("목줄", True)):
+    for raw, expects_parse in (
+        (None, False), ("제한사항 없음", True), ("해당없음", True), ("목줄", True),
+    ):
         columns = derive(raw).to_columns()
         assert (columns["restriction_parse_state"] is not None) is expects_parse

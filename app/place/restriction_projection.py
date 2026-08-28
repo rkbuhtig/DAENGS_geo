@@ -68,6 +68,7 @@ RestrictionReason = Literal[
     "missing_dog_size",
     "missing_dog_age",
     "restrictions_unknown",
+    "restrictions_not_applicable",
     "unverified_source_match",
     "incomplete_restrictions",
     "unresolved_condition",
@@ -161,6 +162,12 @@ def project(
     if facts.state == "none_confirmed":
         return DogRestrictionEvaluation(
             state="compatible", reason="no_blocking_condition",
+        )
+    if facts.state == "not_applicable":
+        # 이 축에 적용할 조건이 없다는 뜻이지, 개가 들어갈 수 있다는 뜻이 아니다.
+        # 실제 동반 불가는 별도 dog_access 축이 말한다.
+        return DogRestrictionEvaluation(
+            state="unknown", reason="restrictions_not_applicable",
         )
 
     visible = [

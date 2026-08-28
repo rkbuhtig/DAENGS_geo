@@ -48,7 +48,7 @@ from typing import NamedTuple
 # 이 표의 의미 버전. 술어·`applies_to` 가 바뀌면 올리고 그 변경에서 전체를 재파생한다.
 # **표시 라벨(LABELS)은 이 버전에 영향을 주지 않는다** — `#입마개` 를 `#입마개 필요` 로
 # 고치는 것은 의미 변경이 아니므로 스냅샷을 다시 만들 이유가 없다.
-RESTRICTION_SEMANTICS_VERSION = "kcisa-restrictions/2"
+RESTRICTION_SEMANTICS_VERSION = "kcisa-restrictions/3"
 
 # 원문에 정보가 없다고 원천이 말한 값. 결측이 아니다 —
 # `해당없음` 2,789행 중 2,781행이 `pet_allowed=false` 다 (동반 불가라 제한이 해당 없음).
@@ -1169,6 +1169,7 @@ class RestrictionState(StrEnum):
 
         unknown        원문 자체가 없다 (KTO 9,692행) → 전화로 확인해야 한다
         none_confirmed 원천이 "제한 없음" 이라고 말했다 → 확인된 사실이다
+        not_applicable 원천이 "해당없음" 이라고 말했다 → 입장 가능의 근거가 아니다
         restricted     제한이 있다 → 술어 또는 원문을 보면 된다
 
     태그가 0개인 것은 셋 다 같지만 의미는 전혀 다르다. 칩이 없다고 제한이 없는 것이
@@ -1177,6 +1178,7 @@ class RestrictionState(StrEnum):
 
     UNKNOWN = "unknown"
     NONE_CONFIRMED = "none_confirmed"
+    NOT_APPLICABLE = "not_applicable"
     RESTRICTED = "restricted"
 
 
@@ -1217,9 +1219,12 @@ def derive(raw: str | None) -> Derivation:
     if not text:
         # 원문이 없다. KTO 9,692행이 여기다 — 제한이 없는 것이 아니라 **모르는 것**이다.
         return Derivation(RestrictionState.UNKNOWN, None, ())
-    if text in NON_INFORMATIVE:
-        # `해당없음` 도 여기다. 동반 불가라 제한이 해당 없다는 뜻이며, 그 자체가 확인된 사실이다.
+    if text == NO_RESTRICTION:
         return Derivation(RestrictionState.NONE_CONFIRMED, ParseState.MAPPED, ())
+    if text == NOT_APPLICABLE:
+        # 2,789행 중 2,781행은 pet_allowed=false다. 제한 없음이 아니라 동반 불가라
+        # 제한란이 적용되지 않는다는 뜻이므로 입장 가능의 근거로 승격하지 않는다.
+        return Derivation(RestrictionState.NOT_APPLICABLE, ParseState.MAPPED, ())
     reading = read(text)
     if reading is None:
         # 표에 없는 새 문자열. **추측하지 않는다** — 원문만 남기고 표 갱신을 기다린다.

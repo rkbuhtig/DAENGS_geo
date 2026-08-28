@@ -159,7 +159,7 @@ class BooleanFactCoverage(BaseModel):
 
 
 class RestrictionCoverage(BaseModel):
-    """이 그룹에서 동반 조건을 **얼마나 아는가.** 3상태 커버리지의 제약 버전.
+    """이 그룹에서 동반 조건을 **얼마나 아는가.** 사실 상태별 커버리지.
 
     칩이 0개인 이유가 셋이고 사용자가 할 행동이 다르므로, 개수도 셋으로 센다.
     이게 없으면 "이 동네는 조건 없는 곳뿐" 과 "정보가 없는 원천층" 이 같은 화면이 된다 —
@@ -167,6 +167,7 @@ class RestrictionCoverage(BaseModel):
     """
 
     none_confirmed: int = Field(0, ge=0)
+    not_applicable: int = Field(0, ge=0)
     restricted: int = Field(0, ge=0)
     unknown: int = Field(0, ge=0)
     # 술어가 원문을 다 담지 못한 행. UI 가 원문 보기를 강제해야 하는 수다.
@@ -255,6 +256,8 @@ def _restriction_coverage(results: list[PlaceResult]) -> RestrictionCoverage:
         state = facts.state if facts is not None else "unknown"
         if state == "none_confirmed":
             coverage.none_confirmed += 1
+        elif state == "not_applicable":
+            coverage.not_applicable += 1
         elif state == "restricted":
             coverage.restricted += 1
         else:
