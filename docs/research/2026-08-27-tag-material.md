@@ -1,6 +1,8 @@
 # 행 태그의 재료가 있는가 — 커버리지·변별력·발견 (2026-08-27)
 
-`scripts/spikes/facility/name_clusters.py` (임베딩 부분) · 나머지는 본문 SQL 그대로.
+`scripts/discover_place_tags.py` (임베딩 부분) · 나머지는 본문 SQL 그대로.
+이 스크립트는 [결정 #72](../decisions/2026-08-27-place-tag-catalog.md)에서 스파이크에서
+정식 발견 도구로 승격했다 — 측정 당시 경로는 `scripts/spikes/facility/name_clusters.py` 였다.
 적재 스냅샷 `facility` 33,611행(KCISA 23,914 · KTO 9,692 · dev 5) · `place` 28,275행 기준.
 
 질문은 셋이었다. **(1)** 행마다 태그를 붙일 재료가 실제로 있나. **(2)** 그 재료가 `kind`
@@ -339,7 +341,7 @@ docker compose exec -T db psql -U daengs -d daengs -c "..."
 
 # 8~9절: 임베딩 (레포 의존성 밖 — sentence-transformers·scikit-learn·torch 필요)
 uv run --with sentence-transformers --with scikit-learn \
-  python -m scripts.spikes.facility.name_clusters --kinds shopping cafe travel
+  python scripts/discover_place_tags.py --mode compare --kinds shopping cafe travel
 ```
 
 ## 이 문서가 판단하지 않는 것

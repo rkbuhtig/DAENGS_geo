@@ -66,6 +66,13 @@ git grep -n 'scripts/spikes/<갈래>'   # app · tests · docs · android 전부
 `facility_pet_coverage.py` 는 [pet-axes 갈래](../docs/explorations/facility/pet-axes.md)가
 부른다. 소속이 애매하면 최상위가 아니라 `spikes/<갈래>/` 다.
 
+`discover_place_tags.py` 는 [결정 #72](../docs/decisions/2026-08-27-place-tag-catalog.md)의
+**발견** 칸이다 — 사전을 고칠 때마다 다시 돈다. 갈래가 닫히면 사라질 측정 장치가 아니라
+`app/place/tag_catalog.py` 를 손보는 사람이 매번 여는 작업대라서 최상위에 있다.
+이 도구의 출력은 **후보일 뿐 어떤 행에도 저장되지 않는다** (#70 §8: 임베딩 자동 분류 기각).
+임베딩 모드는 레포 의존성 밖이라 `uv run --with sentence-transformers --with scikit-learn` 이
+필요하고, `--mode mine` 만 추가 의존성 없이 돈다.
+
 `export_copy.py` 는 [README 의 사본 절](../README.md)이 부른다. 이 저장소를 팀 모노레포의
 `geo/` 로 내보낸다 — `android/` · `.github/` · 이 저장소의 작업 방식 문서
 (`docs/{decisions,research,explorations}`)를 빼고, 그 문서를 가리키던 링크 47개를 원본
