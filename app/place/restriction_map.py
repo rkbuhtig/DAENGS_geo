@@ -48,7 +48,7 @@ from typing import NamedTuple
 # 이 표의 의미 버전. 술어·`applies_to` 가 바뀌면 올리고 그 변경에서 전체를 재파생한다.
 # **표시 라벨(LABELS)은 이 버전에 영향을 주지 않는다** — `#입마개` 를 `#입마개 필요` 로
 # 고치는 것은 의미 변경이 아니므로 스냅샷을 다시 만들 이유가 없다.
-RESTRICTION_SEMANTICS_VERSION = "kcisa-restrictions/1"
+RESTRICTION_SEMANTICS_VERSION = "kcisa-restrictions/2"
 
 # 원문에 정보가 없다고 원천이 말한 값. 결측이 아니다 —
 # `해당없음` 2,789행 중 2,781행이 `pet_allowed=false` 다 (동반 불가라 제한이 해당 없음).
@@ -91,17 +91,68 @@ class Reason(StrEnum):
     VAGUE = "vague"  # "얌전하면 가능"
 
 
+class Certainty(StrEnum):
+    """이 술어가 **원문에서 얼마나 확실한가.**
+
+    코드가 아니라 **(문자열 → 술어) 쌍의 속성**이다. 같은 `deny:age` 라도
+
+        "10살 이상 불가"                 확실 — 못 들어간다고 말했다
+        "노견일 경우 미용 어려울 수 있음"  약함 — 어려울 수 있다고만 말했다
+
+    코드 전역 속성으로 두면 둘 중 하나를 반드시 잘못 다룬다. 약한 술어는 칩으로
+    보여주되 `incompatible` 로 승격하지 않는다 — "어려울 수 있음" 을 "이용 불가" 로
+    올리는 것은 결정 #70 의 "넓게 적고 좁게 판정" 과 정반대다.
+    """
+
+    FIRM = "firm"
+    SOFT = "soft"
+
+
 class P(NamedTuple):
-    """술어 하나. `code` 는 의미, `applies_to` 는 적용 대상."""
+    """술어 하나.
+
+    `code` 는 의미, `applies_to` 는 적용 대상, `params` 는 원문의 **수치·조건**,
+    `certainty` 는 그 원문이 단정했는지 여부다.
+
+    `params` 가 없으면 판독표가 원문의 값을 버린 것이다 — `최대 2마리` 와 `최대 5마리`
+    가 같은 술어가 되면 `mapped`("술어가 원문을 다 담았다")가 거짓말이 되고, 이 표를
+    gold set 으로 쓸 때 정확히 읽은 파서와 대충 읽은 파서가 같은 점수를 받는다.
+    """
 
     code: str
     applies_to: Subject = Subject.ALL
+    params: tuple[tuple[str, str], ...] = ()
+    certainty: Certainty = Certainty.FIRM
+
+    def param(self, name: str) -> str | None:
+        return next((value for key, value in self.params if key == name), None)
+
+    def int_param(self, name: str) -> int | None:
+        value = self.param(name)
+        return int(value) if value is not None else None
 
 
 def _p(spec: str) -> P:
-    """`"require:muzzle@size:large"` → `P(...)`. 표를 한 줄로 유지하기 위한 것."""
-    code, _, subject = spec.partition("@")
-    return P(code, Subject(subject) if subject else Subject.ALL)
+    """`"deny:age@age:puppy(max_months=4)~soft"` → `P(...)`.
+
+    표를 한 줄로 유지하려고 수식자를 접미로 붙인다. 순서는 `code@subject(params)~certainty`
+    이고 뒤 셋은 전부 선택이다.
+    """
+    rest, _, certainty = spec.partition("~")
+    rest, _, params = rest.partition("(")
+    code, _, subject = rest.partition("@")
+    parsed: tuple[tuple[str, str], ...] = ()
+    if params:
+        parsed = tuple(
+            (key.strip(), value.strip())
+            for key, _, value in (item.partition("=") for item in params.rstrip(")").split(","))
+        )
+    return P(
+        code,
+        Subject(subject) if subject else Subject.ALL,
+        parsed,
+        Certainty(certainty) if certainty else Certainty.FIRM,
+    )
 
 
 # ---------------------------------------------------------------- 술어 어휘
@@ -214,19 +265,19 @@ _MAP: dict[str, tuple[str, ...]] = {
     "야외만 반려동물 동반 가능": ("zone:outdoor_only",),  # 183
     "케이지 이용": ("require:carrier",),  # 144
     "안고 있어야 함": ("require:hold",),  # 47
-    "객실당 최대 2마리": ("limit:max_dogs",),  # 33
+    "객실당 최대 2마리": ("limit:max_dogs(max=2)",),  # 33
     "입질, 공격성 있는 경우 입장 제한": ("deny:behavior",),  # 22
     "실외만 동반 가능": ("zone:outdoor_only",),  # 22
     "매너벨트 필수": ("require:manner_belt",),  # 14
     "목줄, 안기": ("require:leash", "require:hold"),  # 11
-    "객실당 최대 1마리": ("limit:max_dogs",),  # 10
-    "객실당 최대 3마리": ("limit:max_dogs",),  # 10
+    "객실당 최대 1마리": ("limit:max_dogs(max=1)",),  # 10
+    "객실당 최대 3마리": ("limit:max_dogs(max=3)",),  # 10
     # ---- 중간 빈도 (3~8행)
     "맹견류 입장 불가": ("deny:breed@breed:guard",),  # 8
     "고양이 전용": ("deny:species_dog",),  # 8
-    "최대 2마리": ("limit:max_dogs",),  # 8
+    "최대 2마리": ("limit:max_dogs(max=2)",),  # 8
     "애견용품 개별준비": ("require:supplies_byo",),  # 8
-    "객실당 최대 2마리, 애견용품 개별준비": ("limit:max_dogs", "require:supplies_byo"),  # 6
+    "객실당 최대 2마리, 애견용품 개별준비": ("limit:max_dogs(max=2)", "require:supplies_byo"),  # 6
     "접종 완료 필수": ("require:vaccination",),  # 6
     "야외만 반려동물 동반 가능, 대형견은 목줄, 입마개": (
         "zone:outdoor_only",
@@ -236,8 +287,8 @@ _MAP: dict[str, tuple[str, ...]] = {
     "대형견 입장 불가": ("deny:size@size:large",),  # 5
     "야외만 반려동물 동반 가능, 목줄": ("zone:outdoor_only", "require:leash"),  # 5
     "대형견 입마개, 목줄": ("require:muzzle@size:large", "require:leash"),  # 5
-    "객실당 최대 5마리": ("limit:max_dogs",),  # 4
-    "최대 3마리": ("limit:max_dogs",),  # 4
+    "객실당 최대 5마리": ("limit:max_dogs(max=5)",),  # 4
+    "최대 3마리": ("limit:max_dogs(max=3)",),  # 4
     "배변봉투": ("require:poop_bag",),  # 4
     "목줄, 케이지": ("require:leash", "require:carrier"),  # 4
     "공격성 있는 경우 불가": ("deny:behavior",),  # 4
@@ -260,10 +311,10 @@ _MAP: dict[str, tuple[str, ...]] = {
     "사전상담 필수": ("admin:prior_consult",),  # 3
     "수컷 매너벨트 필수": ("require:manner_belt@sex:male",),  # 3
     "실내에서 매너벨트 필수": ("require:manner_belt", "zone:indoor_partial"),  # 3
-    "객실당 최대 4마리": ("limit:max_dogs",),  # 3
+    "객실당 최대 4마리": ("limit:max_dogs(max=4)",),  # 3
     # ---- 2행
-    "입질, 공격성 있는 경우 입장 제한, 최대 3마리": ("deny:behavior", "limit:max_dogs"),
-    "객실당 최대 2마리, 목줄": ("limit:max_dogs", "require:leash"),
+    "입질, 공격성 있는 경우 입장 제한, 최대 3마리": ("deny:behavior", "limit:max_dogs(max=3)"),
+    "객실당 최대 2마리, 목줄": ("limit:max_dogs(max=2)", "require:leash"),
     "목줄, 케이지, 안기, 배변봉투": (
         "require:leash",
         "require:carrier",
@@ -278,7 +329,7 @@ _MAP: dict[str, tuple[str, ...]] = {
     "물지 않도록 주의": ("deny:behavior",),
     "목줄, 안기, 배변봉투": ("require:leash", "require:hold", "require:poop_bag"),
     "실내 목줄 필수": ("require:leash", "zone:indoor_partial"),
-    "최대 4마리": ("limit:max_dogs",),
+    "최대 4마리": ("limit:max_dogs(max=4)",),
     "입질, 공격성, 거부 심한 경우 미용 중단": ("deny:behavior",),
     "질병, 입질, 공격성 있는 경우 불가": ("deny:health", "deny:behavior"),
     "안기": ("require:hold",),
@@ -299,8 +350,9 @@ _MAP: dict[str, tuple[str, ...]] = {
         "require:muzzle@size:large",
     ),
     "공격성, 입질 있는 경우 불가": ("deny:behavior",),
-    "10살 이상 불가": ("deny:age@age:senior",),
-    "10살 이상 노령견 신규예약 불가": ("deny:age@age:senior",),
+    "10살 이상 불가": ("deny:age@age:senior(min_years=10)",),
+    # **신규예약** 불가지 입장 불가가 아니다 — 기존 고객은 간다. soft 로 둔다.
+    "10살 이상 노령견 신규예약 불가": ("deny:age@age:senior(min_years=10)~soft",),
     "야외테라스만 동반 가능": ("zone:terrace_only",),
     "1층은 안고 있어야 함": ("require:hold", "zone:floor1_only"),
     "털빠짐 심한 경우 입장 불가": ("deny:health",),
@@ -353,7 +405,7 @@ _MAP: dict[str, tuple[str, ...]] = {
         "deny:breed@breed:named",
     ),
     "입질, 공격성, 생리중인 경우 불가": ("deny:behavior", "deny:cycle"),
-    "강아지만 입실 가능, 객실당 최대 6마리": ("deny:species_cat", "limit:max_dogs"),
+    "강아지만 입실 가능, 객실당 최대 6마리": ("deny:species_cat", "limit:max_dogs(max=6)"),
     "목줄, 배변봉투, 경기장 내 출입불가": ("require:leash", "require:poop_bag", "zone:named_area"),
     "5차 접종, 중성화 전 수컷 매너벨트 필수": (
         "require:vaccination",
@@ -361,16 +413,17 @@ _MAP: dict[str, tuple[str, ...]] = {
     ),
     "목줄 착용 시 대형견도 입장 가능": ("require:leash@size:large",),
     "진영역사공원만 반려동물 동반 가능": ("zone:named_area",),
-    "노견일 경우 미용 어려울 수 있음": ("deny:age@age:senior",),
+    # "어려울 수 있음" 은 배제가 아니다. 칩으로 보여주되 판정에 쓰지 않는다.
+    "노견일 경우 미용 어려울 수 있음": ("deny:age@age:senior~soft",),
     "맹견 입장 불가, 노키즈존": ("deny:breed@breed:guard",),
     "케이지, 유모차, 배변봉투": ("require:carrier", "require:stroller", "require:poop_bag"),
-    "애견용품 개인지참 필수, 최대 2마리": ("require:supplies_byo", "limit:max_dogs"),
+    "애견용품 개인지참 필수, 최대 2마리": ("require:supplies_byo", "limit:max_dogs(max=2)"),
     "실외만 동반 가능, 목줄, 매너벨트": (
         "zone:outdoor_only",
         "require:leash",
         "require:manner_belt",
     ),
-    "객실당 최대 3마리, 애견용품 개별준비": ("limit:max_dogs", "require:supplies_byo"),
+    "객실당 최대 3마리, 애견용품 개별준비": ("limit:max_dogs(max=3)", "require:supplies_byo"),
     "맹견 입장 불가, 목줄, 배변봉투, 동물등록 필수": (
         "deny:breed@breed:guard",
         "require:leash",
@@ -378,7 +431,7 @@ _MAP: dict[str, tuple[str, ...]] = {
         "admin:registration",
     ),
     "객실당 최대 4마리, 입실 불가 견종 별도 문의": (
-        "limit:max_dogs",
+        "limit:max_dogs(max=4)",
         "deny:breed@breed:named",
         "admin:prior_consult",
     ),
@@ -400,7 +453,7 @@ _MAP: dict[str, tuple[str, ...]] = {
         "deny:age@age:senior",
     ),
     "객실당 최대 1마리, 대형견 불가, 애견용품 개별준비": (
-        "limit:max_dogs",
+        "limit:max_dogs(max=1)",
         "deny:size@size:large",
         "require:supplies_byo",
     ),
@@ -441,7 +494,7 @@ _MAP: dict[str, tuple[str, ...]] = {
     "입질, 공격성 심한 경우, 맹견, 3개월 이하 입실 불가": (
         "deny:behavior",
         "deny:breed@breed:guard",
-        "deny:age@age:puppy",
+        "deny:age@age:puppy(max_months=3)",
     ),
     "케이지, 안기, 배변봉투": ("require:carrier", "require:hold", "require:poop_bag"),
     "수컷 중성화 필수": ("require:neutered@sex:male",),
@@ -500,7 +553,7 @@ _MAP: dict[str, tuple[str, ...]] = {
     "3차 접종 필수": ("require:vaccination",),
     "케이지에 넣은 반려견만 셔틀버스 탑승 가능": ("require:carrier", "zone:named_area"),
     "10살 이상 노령견, 지병 있는 경우, 공격성 및 입질이 심한 경우 불가": (
-        "deny:age@age:senior",
+        "deny:age@age:senior(min_years=10)",
         "deny:health",
         "deny:behavior",
     ),
@@ -535,7 +588,7 @@ _MAP: dict[str, tuple[str, ...]] = {
         "deny:behavior",
         "deny:breed@breed:guard",
         "zone:named_area",
-        "limit:max_dogs",
+        "limit:max_dogs(max=2)",
     ),
     "목줄, 반려동물용품 지참": ("require:leash", "require:supplies_byo"),
     "소형견은 야외 테이블 이용 불가능": ("zone:named_area@size:small",),
@@ -580,11 +633,11 @@ _MAP: dict[str, tuple[str, ...]] = {
     "입질, 공격성 심한 경우, 맹견 입실 불가, 객실당 최대 3마리": (
         "deny:behavior",
         "deny:breed@breed:guard",
-        "limit:max_dogs",
+        "limit:max_dogs(max=3)",
     ),
     "중성화 필수": ("require:neutered",),
-    "객실당 최대 1마리, 애견용품 개인준비 필수": ("limit:max_dogs", "require:supplies_byo"),
-    "맹견, 13kg 초과 대형견 입장 불가": ("deny:breed@breed:guard", "deny:size@size:large"),
+    "객실당 최대 1마리, 애견용품 개인준비 필수": ("limit:max_dogs(max=1)", "require:supplies_byo"),
+    "맹견, 13kg 초과 대형견 입장 불가": ("deny:breed@breed:guard", "deny:size@size:large(min_kg=13)"),
     "목줄, 입마개, 고양이 입실 불가": ("require:leash", "require:muzzle", "deny:species_cat"),
     "3차 이상의 예방접종, 중성화 수술, 공격성/발정기인 반려견은 제한": (
         "require:vaccination",
@@ -616,7 +669,7 @@ _MAP: dict[str, tuple[str, ...]] = {
         "deny:cycle",
         "require:vaccination",
     ),
-    "5개월 이상, 5차 접종 필수": ("deny:age@age:puppy", "require:vaccination"),
+    "5개월 이상, 5차 접종 필수": ("deny:age@age:puppy(max_months=5)", "require:vaccination"),
     "생리, 발정기인 경우 불가, 입질 심한 경우 입마개 필수": ("deny:cycle", "deny:behavior"),
     "목줄, 배변봉투, 질병이나 공격성 있는 경우 입장 불가": (
         "require:leash",
@@ -625,7 +678,7 @@ _MAP: dict[str, tuple[str, ...]] = {
         "deny:behavior",
     ),
     "객실당 최대 4마리, 맹견 입실 불가, 입질, 공격성 심한 경우 입실 불가": (
-        "limit:max_dogs",
+        "limit:max_dogs(max=4)",
         "deny:breed@breed:guard",
         "deny:behavior",
     ),
@@ -636,7 +689,7 @@ _MAP: dict[str, tuple[str, ...]] = {
         "require:manner_belt@neuter:intact",
     ),
     "얌전하면 가능": (),
-    "목줄, 입마개, 환경예치금 50,000원": ("require:leash", "require:muzzle", "fee:deposit"),
+    "목줄, 입마개, 환경예치금 50,000원": ("require:leash", "require:muzzle", "fee:deposit(amount=50000)"),
     "목줄, 배변봉투, 야외만 가능": ("require:leash", "require:poop_bag", "zone:outdoor_only"),
     "입질, 공격성 심한 경우 입실 불가, 애견용품 개별준비": (
         "deny:behavior",
@@ -657,7 +710,7 @@ _MAP: dict[str, tuple[str, ...]] = {
     "푸들, 말티즈, 치와와, 요크셔테리어, 비숑, 시츄, 포메라니안만 가능, 이외 견종 입실 불가": (
         "deny:breed@breed:named",
     ),
-    "목줄, 최대 2마리까지 입실가능": ("require:leash", "limit:max_dogs"),
+    "목줄, 최대 2마리까지 입실가능": ("require:leash", "limit:max_dogs(max=2)"),
     "실내 목줄 필수, 맹견 입장 불가": (
         "require:leash",
         "zone:indoor_partial",
@@ -667,7 +720,7 @@ _MAP: dict[str, tuple[str, ...]] = {
         "deny:behavior",
         "deny:breed@breed:guard",
         "require:manner_belt",
-        "limit:max_dogs",
+        "limit:max_dogs(max=2)",
         "require:supplies_byo",
     ),
     "유모차, 중형견(20kg)까지 탑승 가능한 유모차 대여, 맹견 입장 불가, 야외 반려견 놀이터": (
@@ -699,7 +752,7 @@ _MAP: dict[str, tuple[str, ...]] = {
     ),
     "케이지, 3차 접종 필수": ("require:carrier", "require:vaccination"),
     "객실당 최대 3마리, 맹견 입실 불가, 애견용품 개별준비": (
-        "limit:max_dogs",
+        "limit:max_dogs(max=3)",
         "deny:breed@breed:guard",
         "require:supplies_byo",
     ),
@@ -712,10 +765,10 @@ _MAP: dict[str, tuple[str, ...]] = {
     ),
     "애견용품 개인지참 필수": ("require:supplies_byo",),
     "목줄 필수, 실외만 이용 가능": ("require:leash", "zone:outdoor_only"),
-    "진도견, 웰시코기 입장 불가, 객실당 최대 2마리": ("deny:breed@breed:named", "limit:max_dogs"),
+    "진도견, 웰시코기 입장 불가, 객실당 최대 2마리": ("deny:breed@breed:named", "limit:max_dogs(max=2)"),
     "중성화 수술 필수": ("require:neutered",),
     "최대 5마리까지 입실 가능, 대형견은 입마개 필수": (
-        "limit:max_dogs",
+        "limit:max_dogs(max=5)",
         "require:muzzle@size:large",
     ),
     "맹견류, 초소형견 입장 불가, 그 외 제한 견종 별도 문의 필수, 대형견은 목요일과 마지막 주말에만 입장 가능": (
@@ -742,7 +795,7 @@ _MAP: dict[str, tuple[str, ...]] = {
     ),
     "주의사항 사전고지 필수": ("admin:prior_consult",),
     "대형견 외부 공간만 가능": ("zone:outdoor_only@size:large",),
-    "대형견, 12kg이상 중형견, 고양이 불가": ("deny:size@size:large", "deny:species_cat"),
+    "대형견, 12kg이상 중형견, 고양이 불가": ("deny:size@size:large(min_kg=12)", "deny:species_cat"),
     "공격성, 입질, 미접종 반려견 제한": ("deny:behavior", "require:vaccination"),
     "맹견류, 전염성 있는 경우 입장 제한, 목줄, 배변봉투, 동물등록 필수": (
         "deny:breed@breed:guard",
@@ -766,7 +819,7 @@ _MAP: dict[str, tuple[str, ...]] = {
     "입질, 공격성 심한 경우, 맹견 입실 불가, 객실당 최대 2마리": (
         "deny:behavior",
         "deny:breed@breed:guard",
-        "limit:max_dogs",
+        "limit:max_dogs(max=2)",
     ),
     "루프탑 외 입장 불가": ("zone:terrace_only",),
     "공격성 심한 경우 미용비 추가": ("deny:behavior", "fee:extra"),
@@ -783,9 +836,9 @@ _MAP: dict[str, tuple[str, ...]] = {
         "deny:breed@breed:named",
     ),
     "4개월 미만 5차 접종 미만, 10살 이상 노령견 신규예약 불가": (
-        "deny:age@age:puppy",
+        "deny:age@age:puppy(max_months=4)",
         "require:vaccination",
-        "deny:age@age:senior",
+        "deny:age@age:senior(min_years=10)~soft",
     ),
     "입질 심한 경우, 맹견 제한, 접종 필수": (
         "deny:behavior",
@@ -794,7 +847,7 @@ _MAP: dict[str, tuple[str, ...]] = {
     ),
     "입질, 거부 심한 경우 입장 제한": ("deny:behavior",),
     "실내, 루프탑 불가": ("zone:named_area",),
-    "4개월 미만 입장 불가": ("deny:age@age:puppy",),
+    "4개월 미만 입장 불가": ("deny:age@age:puppy(max_months=4)",),
     "1층만 이용 가능, 목줄": ("zone:floor1_only", "require:leash"),
     "애견용품 (패드, 사료) 지참 필수": ("require:supplies_byo",),
     "1층, 실외만 동반 가능": ("zone:floor1_only", "zone:outdoor_only"),
@@ -816,7 +869,7 @@ _MAP: dict[str, tuple[str, ...]] = {
         "limit:max_dogs_by_size",
     ),
     "10살 이상 노령견 신규예약 불가, 입질, 공격성 심한 경우 불가": (
-        "deny:age@age:senior",
+        "deny:age@age:senior(min_years=10)~soft",
         "deny:behavior",
     ),
     "5차 접종 필수, 전염질환, 입질과 거부 심한 경우, 노령견 제한": (
@@ -837,7 +890,7 @@ _MAP: dict[str, tuple[str, ...]] = {
         "deny:breed@breed:guard",
         "zone:terrace_only@size:large",
     ),
-    "객실당 최대 6마리": ("limit:max_dogs",),
+    "객실당 최대 6마리": ("limit:max_dogs(max=6)",),
     "수컷 매너벨트 필수, 맹견 불가": ("require:manner_belt@sex:male", "deny:breed@breed:guard"),
     "매너벨트, 안거나 목줄 착용": ("require:manner_belt", "require:hold", "require:leash"),
     "맹견류, 사회화 되어있지 않은 테리어 계열, 공격성 있는 경우 입장 불가": (
@@ -861,13 +914,13 @@ _MAP: dict[str, tuple[str, ...]] = {
     "짖음, 공격성 심한 경우 입실 불가, 목줄, 객실당 최대 2마리": (
         "deny:behavior",
         "require:leash",
-        "limit:max_dogs",
+        "limit:max_dogs(max=2)",
     ),
-    "객실당 최대 3마리, 대형견 불가": ("limit:max_dogs", "deny:size@size:large"),
+    "객실당 최대 3마리, 대형견 불가": ("limit:max_dogs(max=3)", "deny:size@size:large"),
     "입질, 공격성 심한 경우, 맹견 입실 불가, 객실당 최대 4마리": (
         "deny:behavior",
         "deny:breed@breed:guard",
-        "limit:max_dogs",
+        "limit:max_dogs(max=4)",
     ),
     "안고 있어야 함, 1층만 이용 가능": ("require:hold", "zone:floor1_only"),
     "객실당 최대 소형 4마리 또는 중대형 2마리, 초대형견 입실 불가, 예약 시 견종 꼭 써야 함": (
@@ -892,11 +945,11 @@ _MAP: dict[str, tuple[str, ...]] = {
         "require:leash",
         "require:poop_bag",
     ),
-    "객실당 최대 3마리, 13kg 이상 대형견 입실 불가": ("limit:max_dogs", "deny:size@size:large"),
+    "객실당 최대 3마리, 13kg 이상 대형견 입실 불가": ("limit:max_dogs(max=3)", "deny:size@size:large(min_kg=13)"),
     "주말, 공휴일은 입장 불가": ("schedule:limited",),
     "목줄, 실외만 동반 가능": ("require:leash", "zone:outdoor_only"),
     "접종 완료 필수, 매너벨트": ("require:vaccination", "require:manner_belt"),
-    "입질견, 노령견(10세이상) 불가": ("deny:behavior", "deny:age@age:senior"),
+    "입질견, 노령견(10세이상) 불가": ("deny:behavior", "deny:age@age:senior(min_years=10)"),
     "숲사이트 실외만 출입 가능": ("zone:outdoor_only", "zone:named_area"),
     "입질 하는 경우 사전상담 필수": ("deny:behavior", "admin:prior_consult"),
     "중성화 안 한 경우 매너벨트 착용": ("require:manner_belt@neuter:intact",),
@@ -918,7 +971,7 @@ _MAP: dict[str, tuple[str, ...]] = {
         "require:poop_bag",
         "zone:outdoor_only",
     ),
-    "매너벨트, 객실당 최대 2마리": ("require:manner_belt", "limit:max_dogs"),
+    "매너벨트, 객실당 최대 2마리": ("require:manner_belt", "limit:max_dogs(max=2)"),
     "애견 수영장": (),
     "중성화 필수, 전염질환, 공격성, 생리 중인 경우 입장 제한": (
         "require:neutered",
@@ -935,10 +988,10 @@ _MAP: dict[str, tuple[str, ...]] = {
         "require:poop_bag",
     ),
     "입질, 질환, 엉킴, 거부 심한 경우 불가": ("deny:behavior", "deny:health"),
-    "애견용품 개별준비, 객실당 2마리까지만 가능": ("require:supplies_byo", "limit:max_dogs"),
+    "애견용품 개별준비, 객실당 2마리까지만 가능": ("require:supplies_byo", "limit:max_dogs(max=2)"),
     "고양이 불가, 객실당 최대 2마리, 애견용품 개별준비": (
         "deny:species_cat",
-        "limit:max_dogs",
+        "limit:max_dogs(max=2)",
         "require:supplies_byo",
     ),
     "맹견류 및 혼종견, 풍산개, 아메리칸불리, 차우차우, 핏불테리어, 도베르만 입장 불가": (
@@ -946,7 +999,7 @@ _MAP: dict[str, tuple[str, ...]] = {
         "deny:breed@breed:named",
     ),
     "객실당 최대 3마리, 목줄, 애견용품 개별준비": (
-        "limit:max_dogs",
+        "limit:max_dogs(max=3)",
         "require:leash",
         "require:supplies_byo",
     ),
@@ -1143,7 +1196,13 @@ class Derivation(NamedTuple):
                 self.parse_state.value if self.parse_state is not None else None
             ),
             "restriction_predicates": [
-                {"code": p.code, "applies_to": p.applies_to.value} for p in self.predicates
+                {
+                    "code": p.code,
+                    "applies_to": p.applies_to.value,
+                    "params": dict(p.params),
+                    "certainty": p.certainty.value,
+                }
+                for p in self.predicates
             ],
             "restriction_semantics_version": RESTRICTION_SEMANTICS_VERSION,
         }

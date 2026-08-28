@@ -16,6 +16,7 @@ DB 없이는 잴 수 없다.
 from sqlalchemy import text
 
 from app.ingest.restrictions import derive_all
+from app.place.restriction_map import RESTRICTION_SEMANTICS_VERSION
 from tests.conftest import TEST_ORIGIN, db_session
 
 # 동해 한복판 — 다른 통합 테스트와 같은 격리 전략(좌표 + 전용 source)을 쓴다.
@@ -95,8 +96,14 @@ async def test_conditional_subject_reaches_the_database():
         await derive_all(session, sources=(SOURCE,))
         predicates = (await _fetch(session))["조건부"]["restriction_predicates"]
 
-        assert {"code": "require:muzzle", "applies_to": "size:large"} in predicates
-        assert {"code": "require:leash", "applies_to": "all"} in predicates
+        assert {
+            "code": "require:muzzle", "applies_to": "size:large",
+            "params": {}, "certainty": "firm",
+        } in predicates
+        assert {
+            "code": "require:leash", "applies_to": "all",
+            "params": {}, "certainty": "firm",
+        } in predicates
 
         await session.execute(_DELETE, {"s": SOURCE})
         await session.commit()
@@ -134,7 +141,7 @@ async def test_stale_version_is_repicked_without_the_all_flag():
         rows = await _fetch(session)
 
         assert stats.updated == 1
-        assert rows["가"]["restriction_semantics_version"] == "kcisa-restrictions/1"
+        assert rows["가"]["restriction_semantics_version"] == RESTRICTION_SEMANTICS_VERSION
 
         await session.execute(_DELETE, {"s": SOURCE})
         await session.commit()

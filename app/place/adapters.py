@@ -75,8 +75,10 @@ def _restriction_facts(value: RestrictionsOut) -> RestrictionFacts:
         subject = Subject(predicate.applies_to)
         chips.append(RestrictionChip(
             code=predicate.code,
-            label=_chip_label(P(predicate.code, subject)),
+            label=_chip_label(P(predicate.code, subject), predicate.params),
             applies_to=subject.value,
+            params=dict(predicate.params),
+            certainty=predicate.certainty,
         ))
     return RestrictionFacts(
         state=value.state,
@@ -86,8 +88,23 @@ def _restriction_facts(value: RestrictionsOut) -> RestrictionFacts:
     )
 
 
-def _chip_label(predicate: P) -> str:
-    """`입마개·대형견`. 개 조건이 없는 요청에서 한정어가 사라지면 거짓이 된다."""
+# 수치가 있는 술어는 값이 라벨에 보여야 한다 — `마리 수 제한` 만으로는
+# 1마리와 5마리가 같은 칩이 된다.
+_PARAM_LABELS = {
+    ("limit:max_dogs", "max"): "최대 {}마리",
+    ("deny:age", "max_months"): "{}개월 미만",
+    ("deny:age", "min_years"): "{}살 이상",
+    ("deny:size", "min_kg"): "{}kg 이상",
+    ("fee:deposit", "amount"): "예치금 {}원",
+}
+
+
+def _chip_label(predicate: P, params: dict[str, str] | None = None) -> str:
+    """`입마개·대형견` · `최대 2마리`. 한정어나 수치가 사라지면 칩이 거짓이 된다."""
+    for key, value in (params or {}).items():
+        template = _PARAM_LABELS.get((predicate.code, key))
+        if template is not None:
+            return template.format(value)
     base = LABELS[predicate.code]
     qualifier = SUBJECT_LABELS[predicate.applies_to]
     return f"{base}·{qualifier}" if qualifier else base

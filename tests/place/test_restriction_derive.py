@@ -69,7 +69,7 @@ def test_columns_carry_the_semantics_version():
     assert columns["restriction_state"] == "restricted"
     assert columns["restriction_parse_state"] == "mapped"
     assert columns["restriction_predicates"] == [
-        {"code": "require:leash", "applies_to": "all"}
+        {"code": "require:leash", "applies_to": "all", "params": {}, "certainty": "firm"}
     ]
 
 

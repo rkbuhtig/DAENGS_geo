@@ -16,6 +16,7 @@ Rule/LLM 추출기를 재는 gold set 이 된다.
 """
 
 import json
+import re
 from collections import Counter
 from pathlib import Path
 
@@ -26,6 +27,7 @@ from app.place.restriction_map import (
     LABELS,
     NON_INFORMATIVE,
     SUBJECT_LABELS,
+    Certainty,
     ParseState,
     Subject,
     label_of,
@@ -193,3 +195,55 @@ def test_coverage_report_is_reported_for_review():
     assert fully_mapped >= 0.90, (
         f"mapped 행 비율 {fully_mapped:.1%} — 문자열 {dict(states)} · 행 {dict(rows)}"
     )
+
+
+# ------------------------------------------------------------------ 수치 보존
+# **리뷰 지적 ④.** `mapped` 는 "술어가 원문을 다 담았다" 는 뜻인데, 원문의 수치를
+# 버리고도 `mapped` 이면 그 선언이 거짓말이 된다. 그리고 이 표를 gold set 으로 쓸 때
+# 정확히 읽은 파서와 대충 읽은 파서가 같은 점수를 받는다.
+_NUMERIC_PATTERNS = (
+    (re.compile(r"최대\s*\d+\s*마리|\d+\s*마리까지"), "limit:max_dogs", "max"),
+    (re.compile(r"\d+\s*개월\s*(?:미만|이하|이상)"), "deny:age", "max_months"),
+    (re.compile(r"\d+\s*(?:살|세)\s*이상"), "deny:age", "min_years"),
+    (re.compile(r"\d+\s*kg\s*(?:초과|이상)", re.IGNORECASE), "deny:size", "min_kg"),
+)
+
+
+def test_numeric_sources_keep_their_value():
+    """원문에 수치가 있으면 술어가 그 값을 들고 있어야 한다."""
+    lossy: list[str] = []
+    for entry in _gold():
+        text = entry["text"]
+        reading = read(text)
+        assert reading is not None
+        for pattern, code, key in _NUMERIC_PATTERNS:
+            if not pattern.search(text):
+                continue
+            carriers = [p for p in reading.predicates if p.code == code]
+            if carriers and not any(p.param(key) for p in carriers):
+                lossy.append(f"{text}  ({code} 에 {key} 없음)")
+    assert not lossy, "수치를 버린 항목:\n" + "\n".join(f"  {item}" for item in lossy)
+
+
+def test_max_dogs_values_are_distinguishable():
+    """`최대 2마리` 와 `최대 5마리` 가 같은 술어가 되면 안 된다."""
+    two = next(p for p in read("객실당 최대 2마리").predicates if p.code == "limit:max_dogs")
+    five = next(p for p in read("객실당 최대 5마리").predicates if p.code == "limit:max_dogs")
+    assert two.int_param("max") == 2
+    assert five.int_param("max") == 5
+
+
+def test_hedged_sources_are_marked_soft():
+    """단정하지 않은 원문은 `soft` 여야 판정기가 배제로 승격하지 않는다."""
+    for text in ("노견일 경우 미용 어려울 수 있음", "10살 이상 노령견 신규예약 불가"):
+        reading = read(text)
+        assert reading is not None, text
+        age = [p for p in reading.predicates if p.code == "deny:age"]
+        assert age, text
+        assert all(p.certainty is Certainty.SOFT for p in age), text
+
+
+def test_plain_denials_stay_firm():
+    reading = read("10살 이상 불가")
+    age = next(p for p in reading.predicates if p.code == "deny:age")
+    assert age.certainty is Certainty.FIRM

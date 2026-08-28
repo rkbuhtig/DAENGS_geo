@@ -18,12 +18,16 @@
 
     deny:size@size:large   × 대형견        원문이 크기로 배제했다
     deny:species_dog                       원문이 개를 배제했다
+    deny:age (문턱 있고 firm)  × 문턱 안    술어의 `params` 가 `3개월 이하`·`4개월 미만`·
+                                          `10세 이상` 을 구분해 보존한다
 
 `unknown` 으로 둔다 — 술어로 **보여주되 가능하다고 부르지 않는다**:
 
     partial · raw_only             판독표가 원문을 전부 담지 못했다
-    deny:age                       `age:senior` 가 숫자 문턱을 보존하지 않고,
-                                   `age:puppy` 도 4개월·5개월이 한 값에 섞인다
+    certainty=soft 인 것 전부       원문이 단정하지 않았다 — "어려울 수 있음"·"신규예약 불가".
+                                   이것을 "이용 불가" 로 올리면 원문보다 강한 결론이 된다
+    deny:age (문턱 없음)            `노령견` 처럼 원문이 숫자를 안 밝힌 경우. 기본값을
+                                   지어내 판정하지 않는다
     require:carrier · require:hold   초대형 케이지가 있을 수도 있고 시설이 말하는
                                      "케이지" 의 규격을 우리는 모른다. 34kg 이면
                                      사실상 불가일 때가 많지만 그건 추론이다
@@ -53,12 +57,16 @@ _SIZE_SUBJECTS: dict[str, frozenset[SizeClass]] = {
     "size:small": frozenset({"small"}),
 }
 
+MONTHS_PER_YEAR = 12.0
+
 RestrictionState = Literal["compatible", "incompatible", "unknown"]
 RestrictionReason = Literal[
     "size_denied",
     "species_denied",
+    "age_denied",
     "no_blocking_condition",
     "missing_dog_size",
+    "missing_dog_age",
     "restrictions_unknown",
     "incomplete_restrictions",
     "unresolved_condition",
@@ -82,10 +90,36 @@ class DogRestrictionEvaluation(BaseModel):
     blocking: list[str] = Field(default_factory=list)
 
 
+def age_threshold_years(chip: RestrictionChip) -> float | None:
+    """이 나이 술어가 지키는 문턱(년). 원문이 숫자를 안 밝혔으면 `None`.
+
+    `3개월 이하`·`4개월 미만`·`5개월 이상`·`10세 이상` 이 전부 다른 문장이다.
+    하나로 뭉개면 5살 개가 "4개월 미만 입장 불가" 에 걸린다.
+    """
+    months = chip.params.get("max_months")
+    if months is not None:
+        return float(months) / MONTHS_PER_YEAR
+    years = chip.params.get("min_years")
+    return float(years) if years is not None else None
+
+
+def _age_applies(chip: RestrictionChip, dog_age_years: float | None) -> bool | None:
+    """이 개가 나이 문턱 안에 드는가. `None` 은 판단 불가(문턱 없음 또는 나이 모름)."""
+    threshold = age_threshold_years(chip)
+    if threshold is None or dog_age_years is None:
+        return None
+    if chip.applies_to == "age:puppy":
+        return dog_age_years < threshold
+    if chip.applies_to == "age:senior":
+        return dog_age_years >= threshold
+    return None
+
+
 def applies_to_dog(
     chip: RestrictionChip,
     *,
     dog_size: SizeClass | None,
+    dog_age_years: float | None = None,
 ) -> bool:
     """이 칩을 **이 개에게 보여야 하는가.**
 
@@ -99,8 +133,12 @@ def applies_to_dog(
         if dog_size is None:
             return True
         return dog_size in _SIZE_SUBJECTS[subject]
-    # 나이 술어는 원문 숫자 문턱을 보존하지 않는다. sex · 중성화 · 생리 · 견종과
-    # 마찬가지로 숨기지 않고 남겨 사용자가 원문과 함께 확인하게 한다.
+    if subject in ("age:puppy", "age:senior"):
+        # 문턱이 있고 나이를 알면 실제로 가른다. 둘 중 하나라도 없으면 남긴다 —
+        # 숨기는 실수가 보여주는 실수보다 나쁘다.
+        applies = _age_applies(chip, dog_age_years)
+        return True if applies is None else applies
+    # sex · 중성화 · 생리 · 견종: 프로필로 못 가른다. 남긴다.
     return True
 
 
@@ -124,11 +162,15 @@ def project(
             state="compatible", reason="no_blocking_condition",
         )
 
-    # `dog_age_years` 는 원문 숫자 문턱을 보존하는 술어가 생기기 전까지 의도적으로
-    # 판정에 쓰지 않는다. 값이 있다는 이유만으로 모든 puppy/senior 문구에 한 기준을 씌우지 않는다.
-    visible = [chip for chip in facts.chips if applies_to_dog(chip, dog_size=dog_size)]
+    visible = [
+        chip for chip in facts.chips
+        if applies_to_dog(chip, dog_size=dog_size, dog_age_years=dog_age_years)
+    ]
 
     for chip in visible:
+        # **약한 술어는 어느 코드든 판정하지 않는다.** 원문이 단정하지 않았다.
+        if chip.certainty == "soft":
+            continue
         if chip.code == "deny:size":
             if dog_size is None:
                 return DogRestrictionEvaluation(
@@ -142,6 +184,18 @@ def project(
         if chip.code == "deny:species_dog":
             return DogRestrictionEvaluation(
                 state="incompatible", reason="species_denied",
+                chips=visible, blocking=[chip.code],
+            )
+        if chip.code == "deny:age" and age_threshold_years(chip) is not None:
+            # 여기 온 칩은 `applies_to_dog` 를 통과했다 — 나이를 모르면 통과했을
+            # 뿐이므로 판정은 못 한다.
+            if dog_age_years is None:
+                return DogRestrictionEvaluation(
+                    state="unknown", reason="missing_dog_age",
+                    chips=visible, blocking=[chip.code],
+                )
+            return DogRestrictionEvaluation(
+                state="incompatible", reason="age_denied",
                 chips=visible, blocking=[chip.code],
             )
 
