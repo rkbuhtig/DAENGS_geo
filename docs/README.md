@@ -73,6 +73,7 @@ backlog.md           갈래에 안 붙는 미결
 - [테스트 재점검 — 구조 재편이 남긴 격차의 지도와 pass 별 진행](research/2026-08-27-test-suite-audit.md)
 - [rebuild_links 가 2억 쌍을 훑어 107행을 만든다 — 공간 인덱스가 안 쓰이는 이유와 선택지](research/2026-08-27-link-rebuild-cost.md)
 - [M2 사건 자리에서 진짜 세계가 얼마나 읽히나 — DB 명사 0/3, crossing 6/6, 미시 원인 층(나무·벤치·풀)은 OSM 에 0](research/2026-08-28-world-context-readout.md)
+- [3축 Context Signature — 피복·업종·하천으로 DB 명사 0/3 이 원천 명사 3/3, A·D 자리 쌍 3/3 구분](research/2026-08-28-context-signature-readout.md)
 
 ## 새 갈래 만들 때
 `explorations/<주제>/<갈래>.md`, 상단에

@@ -27,3 +27,4 @@ docs/research/region-cell-fidelity-scenes.json
 /latent.json
 /osm_world.json
 /world_context.json
+/world_signature.json
