@@ -281,6 +281,15 @@ def _hit(
             dog_size=conditions.dog_size,
             dog_age_years=conditions.dog_age_years,
         )
+        if "facts.restrictions" in result.field_sources:
+            # 현재 facility_link는 name+150m의 미검증 연결이다. 다른 레코드의 조건을
+            # 표시하는 것은 가능하지만, 그 조건으로 이 장소를 자동 불가/가능 판정하면
+            # identity 신뢰도보다 강한 결론이 된다. 칩은 남기고 판정만 fail closed 한다.
+            restrictions = DogRestrictionEvaluation(
+                state="unknown",
+                reason="unverified_source_match",
+                chips=restrictions.chips,
+            )
     return PlaceSearchHit(
         place=result,
         evaluations=PlaceEvaluations(

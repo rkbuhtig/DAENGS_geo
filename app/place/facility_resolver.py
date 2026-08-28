@@ -306,6 +306,9 @@ def _merge(row) -> tuple[dict, dict]:
             borrowed[name] = source
     if row.pet_borrowed:
         borrowed["pet"] = source
+        # 제약 술어도 같은 pet 봉투에서 함께 빌린 값이다. Place 계층이 이 provenance를
+        # 보고 미검증 facility_link를 자동 불가 판정의 근거로 쓰지 않는다.
+        borrowed["restrictions"] = source
     for name in ("parking", "indoor", "outdoor"):
         if getattr(row, f"{name}_borrowed"):
             borrowed[name] = source

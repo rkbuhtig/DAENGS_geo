@@ -166,15 +166,17 @@ async def test_species_without_dog_is_excluded_by_default():
             await _clean(session)
 
 
-async def test_borrowed_envelope_brings_its_axes_along_and_size_filter_uses_them():
-    """빌린 `pet` 과 축을 표시할 뿐 아니라 **그 축으로 필터**해야 한다."""
+async def test_borrowed_envelope_brings_its_projections_and_provenance_along():
+    """빌린 `pet`의 축·제약·출처는 한 묶음이고, legacy 크기 필터도 effective 축을 본다."""
     async with db_session() as session:
         await _clean(session)
         try:
             await _seed(session, [facility_row(
-                "빌려주는쪽", pet='{"allowed": "Y", "size": "5kg 이하"}',
+                "빌려주는쪽",
+                pet='{"allowed": "Y", "size": "5kg 이하", "restrictions": "대형견 입장 불가"}',
             )])
             await _seed(session, [facility_row("빌리는쪽")], source=SOURCES[1])
+            await derive_restrictions(session, sources=SOURCES)
             await _link(session)
 
             found = await _search(session)
@@ -183,7 +185,10 @@ async def test_borrowed_envelope_brings_its_axes_along_and_size_filter_uses_them
 
             assert found["빌리는쪽"].pet["size"] == "5kg 이하"
             assert (axes.size_class, axes.max_kg) == ("small", 5.0), "원문만 빌리고 축은 미상으로 남았다"
-            assert "pet" in found["빌리는쪽"].field_sources, "빌린 값에 출처가 안 붙었다"
+            assert found["빌리는쪽"].restrictions.state == "restricted"
+            assert {"pet", "restrictions"} <= found["빌리는쪽"].field_sources.keys(), (
+                "빌린 봉투와 제약에 각각 출처가 안 붙었다"
+            )
             assert "빌리는쪽" not in await _search(session, dog_size="large"), (
                 "필터는 자기 NULL 축을 보고 통과했는데 표시는 빌린 small 축을 내보냈다"
             )

@@ -68,6 +68,7 @@ RestrictionReason = Literal[
     "missing_dog_size",
     "missing_dog_age",
     "restrictions_unknown",
+    "unverified_source_match",
     "incomplete_restrictions",
     "unresolved_condition",
 ]

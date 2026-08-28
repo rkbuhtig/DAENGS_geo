@@ -15,6 +15,7 @@ import pytest
 
 from app.place.adapters import _restriction_facts
 from app.place.contracts import (
+    FieldProvenance,
     PlaceClassification,
     PlaceFacts,
     PlaceMatch,
@@ -23,7 +24,7 @@ from app.place.contracts import (
     RestrictionFacts,
 )
 from app.place.facility_resolver import RestrictionPredicateOut, RestrictionsOut
-from app.place.search import _restriction_coverage
+from app.place.search import AppliedPlaceSearchConditions, _hit, _restriction_coverage
 
 KEY = PlaceRef(source="kcisa", ref="X1")
 
@@ -111,3 +112,27 @@ def test_missing_restrictions_counts_as_unknown_not_none():
     coverage = _restriction_coverage([_place(None)])
     assert coverage.unknown == 1
     assert coverage.none_confirmed == 0
+
+
+def test_unverified_borrowed_restrictions_are_shown_but_never_decide_the_verdict():
+    """미검증 링크는 다른 장소의 제한을 보여줄 수는 있어도 이 장소의 불가를 증명하지 못한다."""
+    place = _place(RestrictionFacts(
+        state="restricted",
+        parse_state="mapped",
+        chips=[{
+            "code": "deny:size", "label": "대형견 불가", "applies_to": "size:large",
+        }],
+    ))
+    place.field_sources["facts.restrictions"] = FieldProvenance(
+        source=PlaceRef(source="kcisa", ref="borrowed:1"),
+        as_of="2025-03-24",
+    )
+
+    hit = _hit(place, AppliedPlaceSearchConditions(dog_size="large", dog_weight_kg=34.0))
+    evaluation = hit.evaluations.restrictions
+
+    assert evaluation is not None
+    assert (evaluation.state, evaluation.reason) == ("unknown", "unverified_source_match")
+    assert [chip.code for chip in evaluation.chips] == ["deny:size"]
+    assert evaluation.blocking == []
+    assert [chip.code for chip in hit.place.facts.restrictions.chips] == ["deny:size"]
