@@ -66,6 +66,7 @@ backlog.md           갈래에 안 붙는 미결
 - [붓 감쇠 — 이진 도장은 구별 0, 심 반경은 3·8·20 (실제 OSM 도로망 24회 산책)](research/2026-08-26-brush-falloff.md)
 - [셀로판 회수 실험 — 정답 심은 1년치 7명, 6 기준 통과. 연간 누적이 같은 두 사람이 계절 조건에서 정반대로 갈린다](research/2026-08-26-cellophane-recovery.md)
 - [복구한 맥락이 지도에서 읽히나 — 전체 장면에선 지문까지 같고 계절 버튼 하나로 갈린다](research/2026-08-26-layer-viewer.md)
+- [OSM 산책 후보 도로망에 잠재 미시 행동을 심는다 — 대조군 셋. 아무것도 안 심은 대조군의 통행 길목이 심은 자리 전부를 이긴다](research/2026-08-27-latent-dwell-synthesis.md)
 - [occupancy 는 시간이 아니었다 — 격자 밀도가 섞여 있었다. 정규화하면 1초가 1초로 쌓인다](research/2026-08-27-mass-conserving-kernel.md)
 - [멈춤이 물감이 되는가 — 된다, 그런데 성긴 격자에선 5회 통과가 2분 체류를 이긴다](research/2026-08-27-dwell-becomes-paint.md)
 - [원좌표를 지우면 무엇을 남기나 — 궤적 후보는 추정의 14배(대부분 GPS 지터), 집계만 남겨도 경로 topology 가 우연의 18배로 샌다](research/2026-08-26-storage-candidates.md)
