@@ -51,6 +51,7 @@ class MainActivity : ComponentActivity() {
             graph.placeRepository,
             graph.journeyRepository,
             graph.dogId,
+            graph.dogContext,
             graph.locationSource,
             graph.territoryRepository,
             graph.walkTrackingController,

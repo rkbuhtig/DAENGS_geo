@@ -1,6 +1,7 @@
 package com.daengs.geo.map.features.places
 
 import com.daengs.geo.location.GeoPoint
+import com.daengs.geo.place.DogSearchContext
 import com.daengs.geo.place.PlaceKey
 import com.daengs.geo.place.PlaceKind
 import com.daengs.geo.place.PlaceSearchRequest
@@ -34,7 +35,8 @@ data class PlaceDiscoveryState(
  */
 class PlaceDiscoveryController(
     private val repository: PlaceSearchRepository,
-    private val dogId: String,
+    // identity 가 아니라 값이다 — 서버는 dog_id 를 받지 않는다 (결정 #73).
+    private val dogContext: DogSearchContext?,
     private val scope: CoroutineScope,
 ) {
     private val mutableState = MutableStateFlow(PlaceDiscoveryState())
@@ -54,7 +56,9 @@ class PlaceDiscoveryController(
             PlaceSearchRequest(
                 origin = origin,
                 kinds = kinds,
-                dogId = dogId.takeIf(String::isNotBlank),
+                dogSize = dogContext?.size,
+                dogWeightKg = dogContext?.weightKg,
+                dogAgeYears = dogContext?.ageYears,
                 // 주차 사실 계약이 없는 kind만 요청했다면 선호를 들고 가지 않는다. 화면에서
                 // 칩이 사라진 뒤에도 이전 선택이 몰래 따라붙던 자리다.
                 preferParking = preferParking && kinds.any(PlaceKind::supportsParkingPreference),

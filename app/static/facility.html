@@ -52,16 +52,19 @@
   <div class="tabs" id="tabs"></div>
 
   <label class="muted" style="display:block;margin-top:10px">데려갈 개</label>
+  <!-- 서버는 identity(dog_id)를 받지 않는다 — 페르소나의 값(크기·무게·출생일)을 option 에
+       직접 싣고, 나이는 서버 프로필이 하던 대로 검색 시점에 출생일에서 계산한다.
+       값 출처: app/profile/source.py 페르소나 (프로필 계약 docs/contracts/dog-profile.md) -->
   <select id="dog">
     <option value="">개 없이 (전체)</option>
-    <option value="kong">콩이 · 보더콜리믹스 18kg · medium</option>
-    <option value="dubu">두부 · 퍼그 9kg · small</option>
-    <option value="halmae">할매 · 말티즈 3.2kg · small</option>
-    <option value="bau">바우 · 골든리트리버 32kg · large</option>
-    <option value="bbogeul">뽀글 · 포메 2.1kg · small</option>
-    <option value="choco">초코 · 카발리에 7.5kg · small</option>
-    <option value="samwol">삼월 · 믹스 1.8kg · small</option>
-    <option value="janggun" selected>장군 · 셰퍼드 34kg · large</option>
+    <option value="medium|18|2024-05-01">콩이 · 보더콜리믹스 18kg · medium</option>
+    <option value="small|9|2021-03-15">두부 · 퍼그 9kg · small</option>
+    <option value="small|3.2|2013-07-01">할매 · 말티즈 3.2kg · small</option>
+    <option value="large|32|2022-06-10">바우 · 골든리트리버 32kg · large</option>
+    <option value="small|2.1|2024-03-20">뽀글 · 포메 2.1kg · small</option>
+    <option value="small|7.5|2017-04-05">초코 · 카발리에 7.5kg · small</option>
+    <option value="small|1.8|2026-05-10">삼월 · 믹스 1.8kg · small</option>
+    <option value="large|34|2015-02-14" selected>장군 · 셰퍼드 34kg · large</option>
   </select>
 
   <label class="muted">위치</label>
@@ -447,7 +450,15 @@ async function search() {
   const lat = Number(parts[0]), lng = Number(parts[1]);
   const radius = Number($('radius').value), dog = $('dog').value;
   const body = {lat:lat, lng:lng, radius_m:radius, kinds:[cat]};
-  if (dog) body.conditions = {dog_id:dog};
+  if (dog) {
+    const [size, weightKg, birthDate] = dog.split('|');
+    const ageYears = (Date.now() - new Date(birthDate).getTime()) / (365.25 * 24 * 3600 * 1000);
+    body.conditions = {
+      dog_size: size,
+      dog_weight_kg: Number(weightKg),
+      dog_age_years: Math.round(ageYears * 10) / 10,
+    };
+  }
   if ($('prefer-parking').checked) body.preferences = {parking:true};
 
   setEvaluationLegend(Boolean(dog));

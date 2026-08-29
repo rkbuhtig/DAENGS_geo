@@ -215,8 +215,12 @@ async def test_borrowed_dog_exclusion_is_used_by_default_filter():
             await _clean(session)
 
 
-async def test_dog_id_fills_size_from_profile():
-    """프로필이 크기를 채운다 — 시설 검색이 개를 모르면 대형견에게 못 가는 곳을 내민다."""
+async def test_dog_size_value_drives_the_size_filter():
+    """크기는 **값**으로 받는다 — dog_id → 프로필 projection 은 resolver 의 일이 아니다.
+
+    대형견 값이면 소형 전용을 거르고, 소형견 값이면 그대로 통과한다. 무엇으로 걸렀는지는
+    응답 params 에 그대로 남는다 — 빈 목록이 데이터 부족으로 읽히면 안 된다.
+    """
     async with db_session() as session:
         await _clean(session)
         try:
@@ -224,37 +228,23 @@ async def test_dog_id_fills_size_from_profile():
                 facility_row("소형만", east_m=10, pet='{"allowed": "Y", "size": "5kg 이하"}'),
                 facility_row("모두가능", east_m=20, pet='{"allowed": "Y", "size": "모두 가능"}'),
             ])
-            # 장군이 = 셰퍼드 34kg large (app/profile/source.py 페르소나)
-            out = await resolve_facilities(
+            large = await resolve_facilities(
                 FacilityParams(lat=TEST_ORIGIN[0], lng=TEST_ORIGIN[1], radius_m=2000,
-                               dog_id="janggun"),
+                               dog_size="large"),
                 session,
             )
-            names = {r.name for r in out.results}
-
-            assert "소형만" not in names, "프로필 크기가 필터에 안 닿았다"
+            names = {r.name for r in large.results}
+            assert "소형만" not in names, "크기 값이 필터에 안 닿았다"
             assert "모두가능" in names
-            # 무엇으로 걸렀는지가 응답에 남아야 한다 — 빈 목록이 데이터 부족으로 읽히면 안 된다
-            assert out.params.dog_size == "large"
-        finally:
-            await _clean(session)
+            assert large.params.dog_size == "large"
 
-
-async def test_explicit_dog_size_wins_over_profile():
-    """남의 개를 데려가는 경우가 있다. 명시가 프로필을 이긴다."""
-    async with db_session() as session:
-        await _clean(session)
-        try:
-            await _seed(session, [
-                facility_row("소형만", east_m=10, pet='{"allowed": "Y", "size": "5kg 이하"}'),
-            ])
-            out = await resolve_facilities(
+            small = await resolve_facilities(
                 FacilityParams(lat=TEST_ORIGIN[0], lng=TEST_ORIGIN[1], radius_m=2000,
-                               dog_id="janggun", dog_size="small"),
+                               dog_size="small"),
                 session,
             )
-            assert out.params.dog_size == "small"
-            assert "소형만" in {r.name for r in out.results}
+            assert small.params.dog_size == "small"
+            assert "소형만" in {r.name for r in small.results}
         finally:
             await _clean(session)
 

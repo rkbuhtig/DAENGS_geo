@@ -46,12 +46,11 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from app.place.contracts import RestrictionChip, RestrictionFacts
-from app.profile.contract import SizeClass
+from app.place.contracts import DogSize, RestrictionChip, RestrictionFacts
 
-# `applies_to` 중 프로필로 대조할 수 있는 것. 여기 없는 대상은 **거르지 않는다** —
-# 판단 재료가 없으면 칩을 남기는 쪽이 안전하다(보호자가 읽고 판단한다).
-_SIZE_SUBJECTS: dict[str, frozenset[SizeClass]] = {
+# `applies_to` 중 개의 값(크기·나이)으로 대조할 수 있는 것. 여기 없는 대상은 **거르지
+# 않는다** — 판단 재료가 없으면 칩을 남기는 쪽이 안전하다(보호자가 읽고 판단한다).
+_SIZE_SUBJECTS: dict[str, frozenset[DogSize]] = {
     "size:large": frozenset({"large"}),
     "size:medium_up": frozenset({"medium", "large"}),
     "size:small": frozenset({"small"}),
@@ -120,7 +119,7 @@ def _age_applies(chip: RestrictionChip, dog_age_years: float | None) -> bool | N
 def applies_to_dog(
     chip: RestrictionChip,
     *,
-    dog_size: SizeClass | None,
+    dog_size: DogSize | None,
     dog_age_years: float | None = None,
 ) -> bool:
     """이 칩을 **이 개에게 보여야 하는가.**
@@ -147,7 +146,7 @@ def applies_to_dog(
 def project(
     facts: RestrictionFacts | None,
     *,
-    dog_size: SizeClass | None,
+    dog_size: DogSize | None,
     dog_age_years: float | None,
 ) -> DogRestrictionEvaluation:
     """이 개 기준의 칩과 판정. **원본 `facts` 는 건드리지 않는다.**

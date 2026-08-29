@@ -24,7 +24,7 @@ from app.place.contracts import (
     RestrictionFacts,
 )
 from app.place.facility_resolver import RestrictionPredicateOut, RestrictionsOut
-from app.place.search import AppliedPlaceSearchConditions, _hit, _restriction_coverage
+from app.place.search import PlaceSearchConditions, _hit, _restriction_coverage
 
 KEY = PlaceRef(source="kcisa", ref="X1")
 
@@ -131,7 +131,7 @@ def test_unverified_borrowed_restrictions_are_shown_but_never_decide_the_verdict
         as_of="2025-03-24",
     )
 
-    hit = _hit(place, AppliedPlaceSearchConditions(dog_size="large", dog_weight_kg=34.0))
+    hit = _hit(place, PlaceSearchConditions(dog_size="large", dog_weight_kg=34.0))
     evaluation = hit.evaluations.restrictions
 
     assert evaluation is not None

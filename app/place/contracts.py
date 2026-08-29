@@ -6,11 +6,17 @@
 대표 identity와 이번 검색에서 후보가 된 분류도 서로 다른 개념으로 다룬다.
 """
 
-from typing import Self
+from typing import Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field, model_validator
 
 from app.geo.icons import IconGroup, icon_group
+
+# **데려갈 개**의 크기 등급. 시설이 받아주는 축(`geo.pet.SizeClass` — `any` 포함)과 다른
+# 개념이라 이름을 가른다. 값 집합은 프로필 계약(docs/contracts/dog-profile.md)과 같지만
+# place 는 프로필을 소유하지 않으므로 타입도 여기서 소유한다 — 검색은 identity 가 아니라
+# 값을 받는다.
+DogSize = Literal["small", "medium", "large"]
 
 
 class PlaceRef(BaseModel):
