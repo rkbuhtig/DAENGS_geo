@@ -10,6 +10,17 @@
 UPSERT → prune → 링크 재구축까지 가고, 실패하면 이전 스냅샷이 그대로 남는다.
 
 원천 좌표는 WGS84. '정보없음'은 None으로 눕힌다 — 모름을 값으로 취급하지 않는다.
+
+## 컨셉 필터 — 개가 못 들어간다고 원천이 확정한 행은 적재하지 않는다
+
+이 서비스는 강아지 케어·생활이다. `동반 가능정보=N`(2,794행)과 `고양이 전용` 제한은
+검색·평가·파생 모든 층에서 매번 걸러야 하는 노이즈만 만든다. 확정 불허는 요청별 판정
+대상이 아니라 적재 대상이 아니다.
+
+**미상은 자르지 않는다.** 동반 여부가 비어 있는 행은 "모름"이지 "불허"가 아니다.
+이름이 고양이인 곳(캣카페 등)도 이름은 근거 최하등급이라 여기서 죽이지 않는다 —
+원천이 확정한 것만 자른다. 판단 자체는 `restriction_map` 판독표를 재사용한다
+(판단의 유일한 자리 규율).
 """
 
 import argparse
@@ -27,6 +38,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.db import SessionLocal
 from app.ingest.facility_store import prune_unseen, upsert_rows
 from app.ingest.linking import rebuild_links
+from app.place.restriction_map import Subject, read
 from app.place.source_catalog import (
     KCISA_KINDS as KINDS,
 )
@@ -105,18 +117,34 @@ def parse_row(row: dict) -> dict | None:
         "parking": _flag(row.get("주차 가능여부")),
         "indoor": _flag(row.get("장소(실내) 여부")),
         "outdoor": _flag(row.get("장소(실외)여부")),
-        "pet": json.dumps(pet, ensure_ascii=False),
+        "pet": pet,  # load_rows 가 컨셉 필터 후 json 으로 눕힌다
         "lat": lat,
         "lng": lng,
         "last_written": written,
     }
 
 
-def load_rows(path: Path) -> tuple[list[dict], int, int]:
-    """(적재 행, 거부 수, 중복 수). 중복 키 = (시설명, 위도, 경도) 원문."""
+def concept_excluded(pet: dict) -> bool:
+    """개가 들어갈 수 없다고 **원천이 확정**한 행인가.
+
+    `동반 가능정보=N` 이거나, 제한사항 판독이 무조건 `deny:species_dog`(고양이 전용)를
+    내는 경우만 True. 미상(None)·조건부는 자르지 않는다 — 모름 ≠ 불허.
+    """
+    allowed = (pet.get("allowed") or "").upper()
+    if allowed.startswith("N"):
+        return True
+    reading = read(pet["restrictions"]) if pet.get("restrictions") else None
+    return reading is not None and any(
+        p.code == "deny:species_dog" and p.applies_to is Subject.ALL for p in reading.predicates
+    )
+
+
+def load_rows(path: Path) -> tuple[list[dict], int, int, int]:
+    """(적재 행, 거부 수, 중복 수, 컨셉 제외 수). 중복 키 = (시설명, 위도, 경도) 원문."""
     parsed: list[dict] = []
     rejected = 0
     duplicates = 0
+    excluded = 0
     seen: set[str] = set()
     with path.open(encoding="utf-8-sig", newline="") as f:
         for row in csv.DictReader(f):
@@ -124,14 +152,18 @@ def load_rows(path: Path) -> tuple[list[dict], int, int]:
             if item is None:
                 rejected += 1
                 continue
+            if concept_excluded(item["pet"]):
+                excluded += 1
+                continue
             # 중복 판정은 source_ref 로 한다 — 좌표 문자열이 미세하게 달라도 같은 키가 되고,
             # 한 배치 안에 같은 키가 두 번 들어가면 UPSERT 가 거부한다.
             if item["source_ref"] in seen:
                 duplicates += 1
                 continue
             seen.add(item["source_ref"])
+            item["pet"] = json.dumps(item["pet"], ensure_ascii=False)
             parsed.append(item)
-    return parsed, rejected, duplicates
+    return parsed, rejected, duplicates, excluded
 
 
 async def replace_snapshot(session: AsyncSession, rows: list[dict], snapshot: str) -> dict:
@@ -151,7 +183,7 @@ async def replace_snapshot(session: AsyncSession, rows: list[dict], snapshot: st
 
 
 async def _run(csv_path: Path, snapshot: str) -> None:
-    rows, rejected, duplicates = load_rows(csv_path)
+    rows, rejected, duplicates, excluded = load_rows(csv_path)
     if not rows:
         raise SystemExit(f"refusing empty snapshot from {csv_path}")
     async with SessionLocal() as session:
@@ -159,7 +191,7 @@ async def _run(csv_path: Path, snapshot: str) -> None:
         await session.commit()
     print(json.dumps(
         {"source": SOURCE, "snapshot": snapshot, "rejected": rejected,
-         "duplicates": duplicates, **stats},
+         "duplicates": duplicates, "concept_excluded": excluded, **stats},
         ensure_ascii=False,
     ))
 
