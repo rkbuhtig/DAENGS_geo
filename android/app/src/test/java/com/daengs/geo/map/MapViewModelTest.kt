@@ -11,6 +11,8 @@ import com.daengs.geo.location.LocationUpdateConfig
 import com.daengs.geo.map.features.places.PlaceOriginMode
 import com.daengs.geo.map.layers.trail.TrackingState
 import com.daengs.geo.map.layers.trail.TrailSnapshot
+import com.daengs.geo.place.DogSearchContext
+import com.daengs.geo.place.DogSize
 import com.daengs.geo.place.PlaceKey
 import com.daengs.geo.place.PlaceKind
 import com.daengs.geo.place.PlaceSearchRequest
@@ -354,7 +356,12 @@ class MapViewModelTest {
     fun `canonical place search uses real device origin dog and explicit preference`() = runTest {
         val source = FakeLocationSource(fix = fix(37.5665, 126.9780))
         val places = FakePlaceSearchRepository(response = placeResponse())
-        val viewModel = viewModel(source, places = places, dogId = "janggun")
+        // 장군의 값 — 서버는 identity(dog_id)를 받지 않는다 (결정 #73).
+        val viewModel = viewModel(
+            source,
+            places = places,
+            dogContext = DogSearchContext(DogSize.LARGE, 34.0, 11.5),
+        )
 
         viewModel.searchPlaces(
             kinds = listOf(PlaceKind.CAFE, PlaceKind.HOSPITAL),
@@ -365,7 +372,9 @@ class MapViewModelTest {
         val request = places.requests.single()
         val state = viewModel.uiState.value
         assertEquals(GeoPoint(37.5665, 126.9780), request.origin)
-        assertEquals("janggun", request.dogId)
+        assertEquals(DogSize.LARGE, request.dogSize)
+        assertEquals(34.0, request.dogWeightKg)
+        assertEquals(11.5, request.dogAgeYears)
         assertTrue(request.preferParking)
         assertEquals(listOf(PlaceKind.CAFE, PlaceKind.HOSPITAL), request.kinds)
         assertEquals(places.response, state.placeDiscovery.response)
@@ -597,10 +606,12 @@ class MapViewModelTest {
             JourneyResponse(companion = "dog", items = emptyList()),
         ),
         dogId: String = "",
+        dogContext: DogSearchContext? = null,
     ) = MapViewModel(
         placeRepository = places,
         journeyRepository = journeys,
         dogId = dogId,
+        dogContext = dogContext,
         deviceLocationSource = source,
         territoryRepository = InMemoryTerritoryRepository(LocalHexCellIndexer()),
         walkTrackingController = walk,

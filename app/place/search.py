@@ -74,7 +74,13 @@ class PlaceSearchConditions(BaseModel):
     소유자(호출자 쪽 게이트웨이)의 일이다 — 이 레포는 프로필을 소유하지 않는다
     (docs/contracts/dog-profile.md). 준 값을 그대로 평가에 쓰고 응답에 그대로 되돌리므로
     "무엇을 기준으로 대조했나"가 항상 요청과 일치한다.
+
+    모르는 키는 422 다 — `preferences` 와 같은 이유(extra="forbid")다. 판정 의미가 있는
+    입력에서 오타(`dog_weigth_kg`)나 옛 계약(`dog_id`)을 조용히 무시하면 덜 개인화된
+    결과가 정상 응답처럼 나간다. 계약이 틀렸다고 즉시 말하는 쪽이 낫다.
     """
+
+    model_config = ConfigDict(extra="forbid")
 
     dog_size: DogSize | None = None
     dog_weight_kg: float | None = Field(None, gt=0, le=200)

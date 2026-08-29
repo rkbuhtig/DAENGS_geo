@@ -1,8 +1,8 @@
 {
   "conditions": {
-    "dog_id": "janggun",
     "dog_size": "large",
-    "dog_weight_kg": 34.0
+    "dog_weight_kg": 34.0,
+    "dog_age_years": 11.5
   },
   "groups": [
     {

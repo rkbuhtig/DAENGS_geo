@@ -12,6 +12,7 @@ import com.daengs.geo.map.features.places.PlaceDiscoveryState
 import com.daengs.geo.map.features.places.PlaceOriginMode
 import com.daengs.geo.map.features.journey.PlaceJourneyController
 import com.daengs.geo.map.features.journey.PlaceJourneyState
+import com.daengs.geo.place.DogSearchContext
 import com.daengs.geo.place.PlaceKey
 import com.daengs.geo.place.PlaceKind
 import com.daengs.geo.place.PlaceResult
@@ -69,7 +70,10 @@ data class MapUiState(
 class MapViewModel(
     placeRepository: PlaceSearchRepository,
     journeyRepository: JourneyRepository,
+    // journey 는 아직 dog_id 로 외부 프로필 계약을 조회한다(결정 #58). place 검색은
+    // identity 를 받지 않으므로(결정 #73) 값 묶음을 따로 받는다.
     dogId: String,
+    dogContext: DogSearchContext?,
     deviceLocationSource: LocationSource,
     private val territoryRepository: TerritoryRepository,
     private val walkTrackingController: WalkTrackingController,
@@ -86,7 +90,7 @@ class MapViewModel(
     )
     private val placeDiscovery = PlaceDiscoveryController(
         repository = placeRepository,
-        dogId = dogId,
+        dogContext = dogContext,
         scope = viewModelScope,
     )
     private val placeJourney = PlaceJourneyController(
@@ -444,6 +448,7 @@ class MapViewModel(
         private val placeRepository: PlaceSearchRepository,
         private val journeyRepository: JourneyRepository,
         private val dogId: String,
+        private val dogContext: DogSearchContext?,
         private val locationSource: LocationSource,
         private val territoryRepository: TerritoryRepository,
         private val walkTrackingController: WalkTrackingController,
@@ -454,6 +459,7 @@ class MapViewModel(
                 placeRepository,
                 journeyRepository,
                 dogId,
+                dogContext,
                 locationSource,
                 territoryRepository,
                 walkTrackingController,

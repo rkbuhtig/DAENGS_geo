@@ -30,6 +30,8 @@
   `dog_weight_kg` · `dog_age_years` 중 최소 하나는 있어야 하며(전부 빠지면 422),
   안 준 값은 꾸며내지 않고 미상으로 평가한다. 정확한 숫자 제한을 평가하려면
   `dog_weight_kg`을, `deny:age` 술어를 대조하려면 `dog_age_years`를 명시한다.
+  모르는 키는 422다 — 옛 계약의 `dog_id`도, 오타도 조용히 무시하지 않는다
+  (`preferences`가 미지원 키를 거부하는 것과 같은 이유).
 - `preferences.parking=true`는 결과를 제거하지 않고 시설 kind의 같은 500m 거리 밴드 안에서
   `parking=true`를 우선한다. `false`와 `null`은 같은 비적중 층에서 거리순을 유지하며,
   `null`을 주차 불가로 판정하지 않는다. 현재 지원하지 않는 선호 키는 422다.

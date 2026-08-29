@@ -164,6 +164,28 @@ def test_v2_place_search_rejects_empty_dog_conditions_before_reading_the_db():
     )
 
 
+@pytest.mark.parametrize("extra_key", ["dog_id", "dog_weigth_kg"])
+def test_v2_place_search_rejects_unknown_condition_keys(extra_key):
+    """옛 계약(dog_id)이나 오타를 조용히 무시하면 덜 개인화된 결과가 정상처럼 나간다.
+
+    `preferences` 가 미지원 키를 422 로 거부하는 것과 같은 이유다 (결정 #73).
+    """
+    app.dependency_overrides[get_session] = _no_db
+    try:
+        with TestClient(app) as client:
+            response = client.post("/v2/places/search", json={
+                "lat": 37.5,
+                "lng": 127.0,
+                "kinds": ["cafe"],
+                "conditions": {"dog_size": "large", extra_key: "janggun"},
+            })
+    finally:
+        app.dependency_overrides.pop(get_session, None)
+
+    assert response.status_code == 422
+    assert extra_key in response.text
+
+
 def test_map_client_config_exposes_only_browser_key_id(monkeypatch):
     """
     Contract: 브라우저가 받는 설정에는 key id 만 나가고 서버 secret 은 응답 어디에도

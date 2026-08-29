@@ -1,7 +1,7 @@
 package com.daengs.geo.map.features.places
 
 import com.daengs.geo.location.GeoPoint
-import com.daengs.geo.place.AppliedPlaceSearchConditions
+import com.daengs.geo.place.PlaceSearchConditions
 import com.daengs.geo.place.PlaceKind
 import com.daengs.geo.place.PlaceSearchRequest
 import com.daengs.geo.place.PlaceSearchResponse
@@ -26,7 +26,7 @@ class PlaceDiscoveryControllerTest {
             calls++
             if (calls == 1) first.await() else second.await()
         }
-        val controller = PlaceDiscoveryController(repository, dogId = "", scope = this)
+        val controller = PlaceDiscoveryController(repository, dogContext = null, scope = this)
         val oldResponse = response("old")
         val newResponse = response("new")
 
@@ -48,7 +48,7 @@ class PlaceDiscoveryControllerTest {
     @Test
     fun `retry repeats the same origin provenance, not a fresh device search`() = runTest {
         val repository = PlaceSearchRepository { _: PlaceSearchRequest -> response("ok") }
-        val controller = PlaceDiscoveryController(repository, dogId = "", scope = this)
+        val controller = PlaceDiscoveryController(repository, dogContext = null, scope = this)
 
         controller.search(
             origin = GeoPoint(35.1796, 129.0756),
@@ -64,10 +64,11 @@ class PlaceDiscoveryControllerTest {
     }
 
     private fun response(id: String) = PlaceSearchResponse(
-        conditions = AppliedPlaceSearchConditions(
-            dogId = id,
+        // 응답 identity 표시는 사라졌다(결정 #73) — 구분자는 테스트 안에서만 쓰는 무게 값이다.
+        conditions = PlaceSearchConditions(
             dogSize = null,
-            dogWeightKg = null,
+            dogWeightKg = id.length.toDouble(),
+            dogAgeYears = null,
         ),
         groups = emptyList(),
     )

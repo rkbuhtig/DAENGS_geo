@@ -203,28 +203,29 @@ data class PlaceSearchGroup(
     val results: List<PlaceSearchHit>,
 )
 
-data class AppliedPlaceSearchConditions(
-    val dogId: String?,
+/** 평가에 쓴 조건의 에코. 서버가 값을 보정하지 않으므로 요청의 conditions 와 같다 (결정 #73). */
+data class PlaceSearchConditions(
     val dogSize: String?,
     val dogWeightKg: Double?,
+    val dogAgeYears: Double?,
 )
 
 data class PlaceSearchResponse(
-    val conditions: AppliedPlaceSearchConditions?,
+    val conditions: PlaceSearchConditions?,
     /** The server preserves requested kind order; the client must preserve group order too. */
     val groups: List<PlaceSearchGroup>,
 )
 
 fun JsonObject.toPlaceSearchResponse(): PlaceSearchResponse = PlaceSearchResponse(
-    conditions = objectOrNull("conditions")?.toAppliedConditions(),
+    conditions = objectOrNull("conditions")?.toConditions(),
     groups = getValue("groups").jsonArray.map { it.jsonObject.toPlaceSearchGroup() },
 )
 
-private fun JsonObject.toAppliedConditions(): AppliedPlaceSearchConditions =
-    AppliedPlaceSearchConditions(
-        dogId = stringOrNull("dog_id"),
+private fun JsonObject.toConditions(): PlaceSearchConditions =
+    PlaceSearchConditions(
         dogSize = stringOrNull("dog_size"),
         dogWeightKg = doubleOrNull("dog_weight_kg"),
+        dogAgeYears = doubleOrNull("dog_age_years"),
     )
 
 private fun JsonObject.toPlaceSearchGroup(): PlaceSearchGroup = PlaceSearchGroup(
