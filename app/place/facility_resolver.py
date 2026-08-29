@@ -12,8 +12,6 @@ MedicalResolver가 담당한다. API는 이 resolver를 호출할 뿐 SQL이나 
 2025-03 스냅샷이 낡았음을 숨기지 않는다.
 """
 
-from typing import Literal
-
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -26,8 +24,8 @@ from app.geo.ranking import (
     facility_preference_tags,
     prefer_boost,
 )
+from app.place.contracts import DogSize
 from app.place.restriction_map import RESTRICTION_SEMANTICS_VERSION
-from app.profile.source import profile_source
 
 MEDICAL = ("hospital", "pharmacy")
 CANONICAL_SOURCES = ("kcisa", "kto")
@@ -38,7 +36,6 @@ CANONICAL_SOURCES = ("kcisa", "kto")
 # 최악이 거의 안 준다. 실제 지도 사용(반경 3km, kind 별)은 수백 곳이라 이 상한에 안 닿는다.
 MAX_RESULTS = 3000
 
-DogSize = Literal["small", "medium", "large"]
 
 class FacilityParams(BaseModel):
     lat: float = Field(ge=32, le=40)
@@ -49,11 +46,9 @@ class FacilityParams(BaseModel):
     # "이 동네엔 이만큼뿐"으로 읽으면 "우리 개가 갈 곳이 없다"가 된다. 리스트 화면이 몇 개만
     # 원하면 그때 명시한다. 어느 쪽이든 잘리면 `truncated` 로 말한다.
     limit: int | None = Field(None, ge=1, le=MAX_RESULTS)
-    # 이 개를 데려간다. 크기를 프로필에서 채우는 용도 — 병원 검색은 이미 이렇게 받는데
-    # 시설 검색만 안 받아서, 개를 아는 서비스인데 시설 목록이 개를 모르고 있었다.
-    dog_id: str | None = Field(None, max_length=128)
     # 개 크기. 시설의 상한이 아니라 **데려갈 개**의 크기다 — 서버가 받을 수 있는 등급으로 편다.
-    # 명시하면 프로필보다 우선한다 (남의 개를 데려가는 경우가 있다).
+    # identity(dog_id)가 아니라 값이다 — 프로필 → 크기 projection 은 프로필 소유자의 일이고,
+    # resolver 는 장소 후보만 안다.
     dog_size: DogSize | None = None
     # 종을 열거하면서 개를 뺀 시설을 제외한다. place 검색의 `only_dog_ok` 와 같은 뜻.
     only_dog_ok: bool = True
@@ -364,14 +359,6 @@ async def resolve_facilities(
     max_results: int = MAX_RESULTS,
     require_canonical_identity: bool = False,
 ) -> FacilitySearchOut:
-    # 프로필은 **미지정 칸만** 채운다. 응답의 params 에 채워진 값이 그대로 실려서
-    # "무엇을 기준으로 걸렀나"가 클라이언트에 보인다 — 조용히 거르면 빈 목록이
-    # 데이터 부족으로 읽힌다.
-    if params.dog_size is None and params.dog_id:
-        profile = await profile_source().get(params.dog_id)
-        if profile:
-            params = params.model_copy(update={"dog_size": profile.size_class})
-
     prefer = set(facility_preference_tags(
         parking=params.parking, dog_exclusive=params.dog_exclusive,
     ))

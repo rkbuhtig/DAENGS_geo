@@ -9,8 +9,7 @@ from typing import Literal
 from pydantic import BaseModel
 
 from app.geo.pet import size_class_accepts
-from app.place.contracts import PetAccessFacts
-from app.profile.contract import SizeClass
+from app.place.contracts import DogSize, PetAccessFacts
 
 DogAccessState = Literal["compatible", "incompatible", "unknown"]
 DogAccessReason = Literal[
@@ -33,7 +32,7 @@ class DogAccessEvaluation(BaseModel):
 
 def evaluate_dog_access(
     pet_access: PetAccessFacts | None,
-    dog_size: SizeClass | None,
+    dog_size: DogSize | None,
     dog_weight_kg: float | None = None,
 ) -> DogAccessEvaluation:
     """원천에서 파생한 입장 축만으로 이 크기의 개와 시설을 대조한다."""

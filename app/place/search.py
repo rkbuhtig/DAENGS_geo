@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.clock import SystemClock
 from app.geo.ranking import DISTANCE_BAND_M, prefer_boost, rank_key
 from app.place.adapters import facility_place_result, medical_place_result
-from app.place.contracts import PlaceResult
+from app.place.contracts import DogSize, PlaceResult
 from app.place.evaluations import DogAccessEvaluation, evaluate_dog_access
 from app.place.facility_resolver import (
     MAX_RESULTS,
@@ -23,8 +23,6 @@ from app.place.facility_resolver import (
 from app.place.medical_resolver import resolve_medical_places
 from app.place.restriction_projection import DogRestrictionEvaluation, project
 from app.place.source_catalog import KCISA_KINDS, KTO_KINDS, MOIS_SOURCES
-from app.profile.contract import SizeClass
-from app.profile.source import profile_source
 
 
 class PlaceKind(StrEnum):
@@ -70,28 +68,27 @@ if _DECLARED_KINDS != _RESOLVER_KINDS:
 
 
 class PlaceSearchConditions(BaseModel):
-    """사용자가 명시한 대조 조건. 장소를 제거하거나 순서를 바꾸지 않는다."""
+    """사용자가 명시한 대조 조건. 장소를 제거하거나 순서를 바꾸지 않는다.
 
-    dog_id: str | None = Field(None, min_length=1, max_length=128)
-    dog_size: SizeClass | None = None
+    **identity 가 아니라 값만 받는다.** dog_id → 크기·무게·나이 projection 은 프로필
+    소유자(호출자 쪽 게이트웨이)의 일이다 — 이 레포는 프로필을 소유하지 않는다
+    (docs/contracts/dog-profile.md). 준 값을 그대로 평가에 쓰고 응답에 그대로 되돌리므로
+    "무엇을 기준으로 대조했나"가 항상 요청과 일치한다.
+    """
+
+    dog_size: DogSize | None = None
     dog_weight_kg: float | None = Field(None, gt=0, le=200)
+    # `deny:age` 술어를 대조하는 유일한 재료. 나이도 프로필의 사실이므로 견주가 매번
+    # 적는 값이 아니라 호출자가 프로필에서 계산해 보내는 값이다.
+    dog_age_years: float | None = Field(None, ge=0, le=40)
 
     @model_validator(mode="after")
     def require_a_dog_subject(self) -> Self:
-        if self.dog_id is None and self.dog_size is None:
-            raise ValueError("conditions require dog_id or dog_size")
+        if self.dog_size is None and self.dog_weight_kg is None and self.dog_age_years is None:
+            raise ValueError(
+                "conditions require at least one of dog_size, dog_weight_kg, dog_age_years"
+            )
         return self
-
-
-class AppliedPlaceSearchConditions(BaseModel):
-    """실제 평가에 사용한 조건. 프로필을 못 읽으면 dog_size는 미상으로 남는다."""
-
-    dog_id: str | None = None
-    dog_size: SizeClass | None = None
-    dog_weight_kg: float | None = Field(None, gt=0, le=200)
-    # `deny:age` 술어를 대조하는 유일한 재료. 프로필에서만 오고 요청으로 못 받는다 —
-    # 나이는 견주가 매번 적을 값이 아니라 프로필이 아는 사실이다.
-    dog_age_years: float | None = Field(None, ge=0, le=40)
 
 
 class PlaceSearchPreferences(BaseModel):
@@ -217,7 +214,9 @@ class PlaceSearchGroup(BaseModel):
 
 
 class PlaceSearchResponse(BaseModel):
-    conditions: AppliedPlaceSearchConditions | None = Field(
+    # 평가에 쓴 조건의 에코. 서버가 값을 보정하지 않으므로 요청의 conditions 와 같다 —
+    # 그래도 되돌리는 이유는 "무엇을 기준으로 대조했나"를 응답만 보고 알 수 있어야 해서다.
+    conditions: PlaceSearchConditions | None = Field(
         None, exclude_if=lambda value: value is None,
     )
     groups: list[PlaceSearchGroup]
@@ -269,7 +268,7 @@ def _restriction_coverage(results: list[PlaceResult]) -> RestrictionCoverage:
 
 def _hit(
     result: PlaceResult,
-    conditions: AppliedPlaceSearchConditions | None,
+    conditions: PlaceSearchConditions | None,
 ) -> PlaceSearchHit:
     dog_access = None
     restrictions = None
@@ -306,7 +305,7 @@ async def _medical_group(
     request: PlaceSearchRequest,
     kind: PlaceKind,
     limit: int,
-    conditions: AppliedPlaceSearchConditions | None,
+    conditions: PlaceSearchConditions | None,
 ) -> PlaceSearchGroup:
     rows = await resolve_medical_places(
         db,
@@ -328,7 +327,7 @@ async def _facility_group(
     request: PlaceSearchRequest,
     kind: PlaceKind,
     limit: int,
-    conditions: AppliedPlaceSearchConditions | None,
+    conditions: PlaceSearchConditions | None,
 ) -> PlaceSearchGroup:
     prefer_parking = bool(request.preferences and request.preferences.parking)
     resolved = await resolve_facilities(
@@ -368,38 +367,13 @@ async def _facility_group(
     )
 
 
-async def _resolve_conditions(
-    conditions: PlaceSearchConditions | None,
-) -> AppliedPlaceSearchConditions | None:
-    if conditions is None:
-        return None
-    dog_size = conditions.dog_size
-    dog_weight_kg = conditions.dog_weight_kg
-    dog_age_years = None
-    # dog_size 명시는 다른 개를 뜻할 수 있다. 그때 기존 프로필 무게를 조용히 섞지 않는다.
-    # **나이도 같은 규칙을 탄다** — 남의 개를 데려가는데 우리 개 나이로 판정하면 안 된다.
-    if dog_size is None and conditions.dog_id is not None:
-        profile = await profile_source().get(conditions.dog_id)
-        if profile is not None:
-            dog_size = profile.size_class
-            dog_age_years = profile.age_years
-            if dog_weight_kg is None:
-                dog_weight_kg = profile.weight_kg
-    return AppliedPlaceSearchConditions(
-        dog_id=conditions.dog_id,
-        dog_size=dog_size,
-        dog_weight_kg=dog_weight_kg,
-        dog_age_years=dog_age_years,
-    )
-
-
 async def search_place_groups(
     db: AsyncSession,
     request: PlaceSearchRequest,
 ) -> PlaceSearchResponse:
     """요청 kind 순서를 보존하고, 서로 다른 kind 사이에는 순위를 만들지 않는다."""
     limit = request.effective_limit_per_kind
-    conditions = await _resolve_conditions(request.conditions)
+    conditions = request.conditions
     groups: list[PlaceSearchGroup] = []
     for kind in request.kinds:
         if kind in MEDICAL_KINDS:

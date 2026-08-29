@@ -299,23 +299,23 @@ async def test_v2_groups_kinds_and_sorts_only_inside_each_candidate_set():
             })
             await session.commit()
 
+            # 장군(셰퍼드 large · 34kg)의 값. identity 가 아니라 값으로 보낸다 —
+            # dog_id → 프로필 projection 은 이 서비스 밖(프로필 소유자)의 일이다.
             for_dog = await search_place_groups(session, PlaceSearchRequest(
                 lat=TEST_ORIGIN[0],
                 lng=TEST_ORIGIN[1],
                 radius_m=1000,
                 kinds=["cafe", "shopping", "hospital"],
                 limit_per_kind=2,
-                conditions={"dog_id": "janggun"},
+                conditions={
+                    "dog_size": "large", "dog_weight_kg": 34.0, "dog_age_years": 11.5,
+                },
             ))
 
             assert for_dog.conditions is not None
-            applied = for_dog.conditions.model_dump()
-            # 나이는 `birth_date` 에서 매일 다시 계산되므로 값이 아니라 존재를 고정한다.
-            # `deny:age` 술어를 대조하는 유일한 재료이고 요청으로는 못 받는다.
-            age = applied.pop("dog_age_years")
-            assert isinstance(age, float) and age > 0
-            assert applied == {
-                "dog_id": "janggun", "dog_size": "large", "dog_weight_kg": 34.0,
+            # 서버는 값을 보정하지 않는다 — 준 그대로 평가하고 그대로 되돌린다.
+            assert for_dog.conditions.model_dump() == {
+                "dog_size": "large", "dog_weight_kg": 34.0, "dog_age_years": 11.5,
             }
             assert [hit.place.name for hit in for_dog.groups[0].results] == [
                 "가까운카페", "먼카페",
@@ -334,22 +334,24 @@ async def test_v2_groups_kinds_and_sorts_only_inside_each_candidate_set():
             assert medical_hit.evaluations.dog_access is None
             assert medical_hit.evaluations.model_dump() == {}
 
-            explicit_size = await search_place_groups(session, PlaceSearchRequest(
+            # 크기만 아는 개. 서버가 무게를 어디선가 채워 넣으면 안 된다 —
+            # 안 준 값은 미상으로 평가된다.
+            size_only = await search_place_groups(session, PlaceSearchRequest(
                 lat=TEST_ORIGIN[0],
                 lng=TEST_ORIGIN[1],
                 radius_m=1000,
                 kinds=["cafe"],
                 limit_per_kind=2,
-                conditions={"dog_id": "janggun", "dog_size": "small"},
+                conditions={"dog_size": "small"},
             ))
-            assert explicit_size.conditions is not None
-            assert explicit_size.conditions.dog_size == "small"
-            assert explicit_size.conditions.dog_weight_kg is None, (
-                "명시한 크기에 장군이의 34kg을 섞었다"
+            assert size_only.conditions is not None
+            assert size_only.conditions.dog_size == "small"
+            assert size_only.conditions.dog_weight_kg is None, (
+                "요청에 없는 무게를 서버가 지어냈다"
             )
             assert [
                 hit.evaluations.dog_access.state
-                for hit in explicit_size.groups[0].results
+                for hit in size_only.groups[0].results
             ] == ["unknown", "compatible"]
 
             await session.execute(text("""
@@ -357,25 +359,26 @@ async def test_v2_groups_kinds_and_sorts_only_inside_each_candidate_set():
                 WHERE source = 'kto' AND source_ref = :ref
             """), {"ref": _FACILITY_REFS[2]})
             await session.commit()
-            unknown_profile = await search_place_groups(session, PlaceSearchRequest(
+            # 크기·무게 미상인 개(나이만 안다). 미상을 불가로 판정하거나 값을 지어내지
+            # 않는다 — 개 자체 불가(dog_disallowed)만 크기 없이도 확정된다.
+            values_unknown = await search_place_groups(session, PlaceSearchRequest(
                 lat=TEST_ORIGIN[0],
                 lng=TEST_ORIGIN[1],
                 radius_m=1000,
                 kinds=["shopping", "cafe"],
                 limit_per_kind=2,
-                conditions={"dog_id": "missing-profile"},
+                conditions={"dog_age_years": 2.0},
             ))
-            assert unknown_profile.conditions is not None
-            assert unknown_profile.conditions.model_dump() == {
-                "dog_id": "missing-profile", "dog_size": None,
-                "dog_weight_kg": None, "dog_age_years": None,
+            assert values_unknown.conditions is not None
+            assert values_unknown.conditions.model_dump() == {
+                "dog_size": None, "dog_weight_kg": None, "dog_age_years": 2.0,
             }
-            assert unknown_profile.groups[0].results[0].evaluations.dog_access.model_dump() == {
+            assert values_unknown.groups[0].results[0].evaluations.dog_access.model_dump() == {
                 "state": "incompatible", "reason": "dog_disallowed",
             }
             assert [
                 hit.evaluations.dog_access.reason
-                for hit in unknown_profile.groups[1].results
+                for hit in values_unknown.groups[1].results
             ] == ["missing_dog_weight", "missing_dog_size"]
         finally:
             await session.rollback()

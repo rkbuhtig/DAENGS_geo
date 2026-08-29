@@ -119,8 +119,9 @@ def test_v2_openapi_exposes_the_shared_place_kind_vocabulary():
     assert request_schema["properties"]["kinds"]["maxItems"] == 6
     assert "conditions" in request_schema["properties"]
     assert "preferences" in request_schema["properties"]
+    # identity(dog_id)는 계약에 없다 — 프로필 → 값 projection 은 호출자의 일이다.
     assert set(schema["PlaceSearchConditions"]["properties"]) == {
-        "dog_id", "dog_size", "dog_weight_kg",
+        "dog_size", "dog_weight_kg", "dog_age_years",
     }
     assert set(schema["PlaceSearchPreferences"]["properties"]) == {"parking"}
 
@@ -157,7 +158,10 @@ def test_v2_place_search_rejects_empty_dog_conditions_before_reading_the_db():
         app.dependency_overrides.pop(get_session, None)
 
     assert response.status_code == 422
-    assert "conditions require dog_id or dog_size" in response.text
+    assert (
+        "conditions require at least one of dog_size, dog_weight_kg, dog_age_years"
+        in response.text
+    )
 
 
 def test_map_client_config_exposes_only_browser_key_id(monkeypatch):
