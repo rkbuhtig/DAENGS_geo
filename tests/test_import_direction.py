@@ -32,7 +32,8 @@ LAYERS = {
     "core": 0,
     "providers": 1, "usage": 1,
     "profile": 2, "geo": 2, "discovery": 2, "place": 2, "journey": 2,
-    "api": 3, "features": 3, "ingest": 3, "main": 3,
+    # search_main 은 main 과 같은 축의 진입점이다 — Place 검색 전용 (tests/test_search_closure.py).
+    "api": 3, "features": 3, "ingest": 3, "main": 3, "search_main": 3,
 }
 LAYER_NAMES = {0: "core", 1: "인프라", 2: "도메인", 3: "응용"}
 

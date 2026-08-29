@@ -1,5 +1,5 @@
 from app.geo.schemas import PlaceOut
-from app.geo.search import build_map
+from app.geo.search_surface import build_map
 from app.providers.base import NullProvider
 
 
@@ -18,7 +18,7 @@ def test_deeplink_carries_filters_and_ids():
 
 
 def test_no_provider_gives_no_preview(monkeypatch):
-    monkeypatch.setattr("app.geo.search.static_map_provider", lambda: NullProvider())
+    monkeypatch.setattr("app.geo.search_surface.static_map_provider", lambda: NullProvider())
     m = build_map(37.5, 127.0, 2000, None, False, False, [])
     assert m.preview_url is None
     assert "ids" not in m.deeplink

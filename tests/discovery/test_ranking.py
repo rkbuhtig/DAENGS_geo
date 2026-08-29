@@ -21,7 +21,7 @@ from app.geo.ranking import (
     preference_tags,
 )
 from app.geo.schemas import SearchParams
-from app.geo.search import search_places
+from app.geo.search_surface import search_places
 from tests.conftest import TEST_ORIGIN, TEST_SOURCE, place_row, seeded_places
 
 AT = datetime(2026, 8, 25, 22, 0, tzinfo=UTC)
