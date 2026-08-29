@@ -78,6 +78,13 @@ uv run uvicorn app.main:app --reload
 uv run pytest
 ```
 
+Place 검색만 필요하면 전용 진입점이 따로 있다 — provider/LLM 키 없이 PostGIS 만으로 뜬다
+(`tests/test_search_closure.py` 가 이 약속을 집행한다):
+
+```bash
+uv run uvicorn app.search_main:app --reload
+```
+
 DB 이미지는 팀 공용 환경과 같은 PostgreSQL 18 · PostGIS 3.6 · pgvector 0.8.6 조합이다
 (`docker/postgres/Dockerfile`). PG18 이미지의 VOLUME 은 `/var/lib/postgresql` 이고 PGDATA 는
 그 아래 `18/docker` 라, compose 는 상위 경로를 `pgdata` 볼륨에 마운트한다.
