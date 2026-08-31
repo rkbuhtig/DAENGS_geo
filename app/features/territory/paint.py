@@ -36,6 +36,7 @@
 """
 
 import hashlib
+import json
 import math
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
@@ -53,6 +54,11 @@ from app.geo.cells import (
 
 # 이웃 셀 중심 사이 거리 = sqrt(3) × 반지름 (육각 격자)
 NEIGHBOUR_FACTOR = math.sqrt(3)
+
+# 칠하기 계산 세대. v1 은 stamp 가 닿은 모든 셀에 시간을 각각 복제했고, v2 는 stamp 안에서
+# 가중치 합을 1 로 정규화해 segment 시간을 보존한다. 원좌표 purge 뒤에는 다시 칠할 수 없으므로
+# 계산법 변경은 마이그레이션이 아니라 새 세대다.
+PAINT_VERSION = 2
 
 
 @dataclass
@@ -81,6 +87,49 @@ class Paint:
 
 
 @dataclass(frozen=True)
+class PaintSpec:
+    """셀로판 한 장을 재현하는 계산 조건.
+
+    `profile_name` 은 표시용이라 지문에서 빠진다. 동일성은 실제 곡선의 `profile_fp` 가
+    담당한다. `sample_step_m` 도 공간 배분을 바꾸므로 버전만으로 숨기지 않고 실제 resolved
+    값을 넣는다.
+    """
+
+    paint_version: int
+    grid_version: str
+    radius_u: float
+    profile_name: str
+    profile_fp: str
+    sample_step_m: float
+
+    def __post_init__(self) -> None:
+        if self.paint_version < 1:
+            raise ValueError("paint_version 은 양수여야 한다")
+        if not self.grid_version or not self.profile_name or not self.profile_fp:
+            raise ValueError("grid/profile identity 는 비어 있을 수 없다")
+        if not math.isfinite(self.radius_u) or self.radius_u <= 0:
+            raise ValueError("radius_u 는 유한한 양수여야 한다")
+        if not math.isfinite(self.sample_step_m) or self.sample_step_m <= 0:
+            raise ValueError("sample_step_m 은 유한한 양수여야 한다")
+
+    @property
+    def fingerprint(self) -> str:
+        """표시 이름을 제외한 계산 의미의 지문."""
+        blob = json.dumps(
+            {
+                "grid_version": self.grid_version,
+                "paint_version": self.paint_version,
+                "profile_fp": self.profile_fp,
+                "radius_u": self.radius_u,
+                "sample_step_m": self.sample_step_m,
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        return hashlib.sha256(blob.encode()).hexdigest()[:12]
+
+
+@dataclass(frozen=True)
 class Cellophane:
     """산책 한 번의 셀 맵 — **셀로판 한 장**.
 
@@ -97,12 +146,31 @@ class Cellophane:
     profile: str
     occupancy: dict[Cell, float]
     peak: dict[Cell, float]
-    # 아래 둘이 "같은 장인가" 의 실제 계약이다. 이름(`profile`)은 사람 몫이고, 겹쳐도 되는지는
-    # 지문이 정한다 — 이름만 보면 3 개월 뒤 누가 같은 이름으로 weights 를 바꿨을 때 옛 장과
-    # 새 장이 조용히 섞인다. 격자도 같다: radius 와 이름이 같아도 격자 수학이 hex-v2 로
-    # 바뀌었다면 (q, r) 이 다른 자리다.
-    grid_version: str = GRID_VERSION
-    profile_fp: str = ""
+    # 기본값이 없다. v1 캐시가 v2 장으로 조용히 복원되는 것보다 명확히 실패하고 다시
+    # 칠하는 편이 안전하다.
+    paint_version: int
+    grid_version: str
+    profile_fp: str
+    sample_step_m: float
+    paint_fp: str
+
+    @property
+    def spec(self) -> PaintSpec:
+        return PaintSpec(
+            paint_version=self.paint_version,
+            grid_version=self.grid_version,
+            radius_u=self.radius_u,
+            profile_name=self.profile,
+            profile_fp=self.profile_fp,
+            sample_step_m=self.sample_step_m,
+        )
+
+    def __post_init__(self) -> None:
+        expected = self.spec.fingerprint
+        if self.paint_fp != expected:
+            raise ValueError(
+                f"paint_fp 가 계산 조건과 다르다: expected={expected}, actual={self.paint_fp}"
+            )
 
 
 @dataclass(frozen=True)
@@ -131,8 +199,16 @@ class BrushProfile:
     def __post_init__(self) -> None:
         if len(self.bands) != len(self.weights) or not self.bands:
             raise ValueError("bands 와 weights 는 길이가 같고 비어 있지 않아야 한다")
-        if list(self.bands) != sorted(self.bands):
-            raise ValueError("bands 는 오름차순이어야 한다")
+        if any(not math.isfinite(band) or band <= 0 for band in self.bands):
+            raise ValueError("bands 는 유한한 양수여야 한다")
+        if any(a >= b for a, b in zip(self.bands, self.bands[1:], strict=False)):
+            raise ValueError("bands 는 엄격한 오름차순이어야 한다")
+        if any(not math.isfinite(weight) or not 0 <= weight <= 1 for weight in self.weights):
+            raise ValueError("weights 는 0 이상 1 이하의 유한한 값이어야 한다")
+        if self.weights[0] <= 0:
+            raise ValueError("중심 weight 는 0보다 커야 한다")
+        if any(a < b for a, b in zip(self.weights, self.weights[1:], strict=False)):
+            raise ValueError("weights 는 중심에서 바깥으로 비증가해야 한다")
         # (반경, 세기) 쌍을 미리 묶는다. weight_at 은 점 하나마다 수십 번 불리는 자리라
         # 매번 zip 을 만들면 그것만으로 시간이 간다.
         object.__setattr__(self, "_pairs", tuple(zip(self.bands, self.weights, strict=True)))
@@ -186,6 +262,30 @@ FACILITY_STEP = BrushProfile("계단 10·15·20", (10.0, 15.0, 20.0), (1.0, 0.5,
 FACILITY_SMOOTH = BrushProfile(
     "연속 10·15·20", (10.0, 15.0, 20.0), (1.0, 0.5, 0.2), smooth=True
 )
+
+
+def paint_spec(
+    radius_u: float,
+    profile: BrushProfile,
+    step_m: float = 0.0,
+) -> PaintSpec:
+    """호출 인자에서 실제 계산 조건을 한 번만 결정한다.
+
+    현재 제품 경로는 아직 없으므로 실험은 `step_m` 을 바꿀 수 있다. 대신 어떤 값으로
+    칠했든 resolved 값과 지문이 장에 남는다. 나중에 canonical 제품 경로를 열 때는 이 인자를
+    노출하지 않고 결정된 spec 하나만 사용한다.
+    """
+    if not math.isfinite(step_m) or step_m < 0:
+        raise ValueError("step_m 은 0 이상의 유한한 값이어야 한다")
+    resolved_step = step_m or max(min(radius_u, profile.bands[0]) / 2.0, 1.5)
+    return PaintSpec(
+        paint_version=PAINT_VERSION,
+        grid_version=GRID_VERSION,
+        radius_u=radius_u,
+        profile_name=profile.name,
+        profile_fp=profile.fingerprint,
+        sample_step_m=resolved_step,
+    )
 
 
 def brush_stamp(
@@ -244,7 +344,8 @@ def paint_sheet(
     오래", 최대 세기는 "얼마나 가까이". 옆으로만 스쳐도 오래 걸으면 물감은 커지지만 세기는
     낮게 남는다.
     """
-    step = step_m or max(min(radius_u, profile.bands[0]) / 2.0, 1.5)
+    spec = paint_spec(radius_u, profile, step_m)
+    step = spec.sample_step_m
     occupancy: dict[Cell, float] = {}
     peak: dict[Cell, float] = {}
     for seg in segments:
@@ -254,13 +355,24 @@ def paint_sheet(
             frac = (index + 0.5) / pieces
             lat = seg.a.lat + (seg.b.lat - seg.a.lat) * frac
             lng = seg.a.lng + (seg.b.lng - seg.a.lng) * frac
-            for cell, weight in brush_stamp(lat, lng, radius_u, profile):
-                occupancy[cell] = occupancy.get(cell, 0.0) + share * weight
-                if weight > peak.get(cell, 0.0):
-                    peak[cell] = weight
+            stamp = brush_stamp(lat, lng, radius_u, profile)
+            total_weight = math.fsum(weight for _, weight in stamp)
+            if total_weight <= 0:  # BrushProfile 계약과 brush_stamp fallback 이 지키는 불변식
+                raise RuntimeError("brush stamp has no positive mass")
+            for cell, raw_weight in stamp:
+                # occupancy 는 셀에 배분된 **관측 시간 질량(초)** 이다. 실제 육각형 안 체류
+                # 시간은 아니지만, stamp 전체 합은 정확히 `share` 여야 한다.
+                occupancy[cell] = (
+                    occupancy.get(cell, 0.0) + share * raw_weight / total_weight
+                )
+                # peak 는 "얼마나 가까이 왔나"라 kernel 정규화의 영향을 받지 않는다.
+                if raw_weight > peak.get(cell, 0.0):
+                    peak[cell] = raw_weight
     return Cellophane(walk_id=walk_id, at=at, radius_u=radius_u, profile=profile.name,
                       occupancy=occupancy, peak=peak,
-                      grid_version=GRID_VERSION, profile_fp=profile.fingerprint)
+                      paint_version=spec.paint_version, grid_version=spec.grid_version,
+                      profile_fp=spec.profile_fp, sample_step_m=spec.sample_step_m,
+                      paint_fp=spec.fingerprint)
 
 
 def stack(sheets: list[Cellophane], min_peak: float = 0.0) -> dict[Cell, Paint]:
@@ -276,6 +388,13 @@ def stack(sheets: list[Cellophane], min_peak: float = 0.0) -> dict[Cell, Paint]:
 
     그래서 원본은 장으로 남기고, 문턱은 물을 때마다 고른다.
     """
+    identities = {sheet.paint_fp for sheet in sheets}
+    if len(identities) > 1:
+        raise ValueError(
+            "서로 다른 paint 세대의 셀로판은 겹칠 수 없다: "
+            f"{sorted(identities)}"
+        )
+
     canvas: dict[Cell, Paint] = {}
     for sheet in sheets:
         for cell, amount in sheet.occupancy.items():

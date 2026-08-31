@@ -30,7 +30,7 @@ from app.features.territory.layers import (
     Selector,
     render,
 )
-from app.features.territory.paint import NARROW_STEP, BrushProfile, flat
+from app.features.territory.paint import NARROW_STEP, BrushProfile, flat, paint_spec
 from app.geo.cells import cell_size_m, hex_center_latlng
 from scripts.spikes.territory_paint.latent_dwell_year import load_sheets
 
@@ -41,8 +41,7 @@ BRUSHES = {b.name: b for b in
 def spec_for(brush: BrushProfile, radius_u: float) -> LayerSpec:
     return LayerSpec(selector=Selector.of(),
                      aggregation=Aggregation(metric="occupancy"),
-                     projection=Projection(radius_u=radius_u, brush=brush.name,
-                                           profile_fp=brush.fingerprint))
+                     projection=Projection.from_paint_spec(paint_spec(radius_u, brush)))
 
 
 def quantile(values: list[float], share: float) -> float:

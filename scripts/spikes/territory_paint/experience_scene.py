@@ -75,6 +75,7 @@ from app.features.territory.experience import (
     chip_selector,
 )
 from app.features.territory.layers import Aggregation, LayerSpec, Projection, render
+from app.features.territory.paint import paint_spec
 from app.features.territory.region import Region
 from app.geo.cells import cell_size_m, hex_center_latlng
 from scripts.spikes.territory_paint.persona_experiment import PROFILE, RADIUS_U, load
@@ -246,8 +247,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"없는 페르소나 {sorted(missing)}: 있는 것은 {[p.persona for p in people]}")
         return 1
 
-    projection = Projection(radius_u=RADIUS_U, brush=PROFILE.name,
-                            profile_fp=PROFILE.fingerprint)
+    projection = Projection.from_paint_spec(paint_spec(RADIUS_U, PROFILE))
     scenes = []
     for person in chosen:
         # "지금" 은 마지막 산책 다음 날 저녁이다. **시계를 읽지 않는다** — 합성 1 년치라

@@ -28,6 +28,7 @@ import json
 import sys
 
 from app.features.territory.layers import Aggregation, LayerSpec, Projection, Selector, render
+from app.features.territory.paint import paint_spec
 from app.geo.cells import GRID_VERSION, hex_center_latlng
 from scripts.spikes.territory_paint.persona_experiment import PROFILE, RADIUS_U, load
 
@@ -89,9 +90,7 @@ def main(argv: list[str] | None = None) -> int:
                 spec = LayerSpec(
                     selector=Selector.of(**tags),
                     aggregation=Aggregation(metric="walks", min_peak=min_peak),
-                    projection=Projection(radius_u=RADIUS_U, brush=PROFILE.name,
-                                          profile_fp=PROFILE.fingerprint,
-                                          grid_version=GRID_VERSION),
+                    projection=Projection.from_paint_spec(paint_spec(RADIUS_U, PROFILE)),
                 )
                 layer = render(person.sheets, spec)
                 top = max((p.occupancy for p in layer.canvas.values()), default=1.0) or 1.0
@@ -132,6 +131,9 @@ def main(argv: list[str] | None = None) -> int:
             "brush": PROFILE.name,
             "grid_version": GRID_VERSION,
             "profile_fp": PROFILE.fingerprint,
+            "paint_fp": paint_spec(RADIUS_U, PROFILE).fingerprint,
+            "paint_version": paint_spec(RADIUS_U, PROFILE).paint_version,
+            "sample_step_m": paint_spec(RADIUS_U, PROFILE).sample_step_m,
             "bands": list(PROFILE.bands),
             "weights": list(PROFILE.weights),
         },

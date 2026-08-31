@@ -37,7 +37,7 @@ from collections.abc import Callable, Iterable
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime
 
-from app.features.territory.paint import Cellophane, Paint, stack
+from app.features.territory.paint import Cellophane, Paint, PaintSpec, stack
 from app.features.territory.region import Region, _point_in_ring, _projector
 from app.geo.cells import GRID_VERSION, Cell, hex_center_latlng
 
@@ -120,15 +120,49 @@ class Aggregation:
 class Projection:
     """어떻게 공간에 놓나. `radius_u` 는 격자 **단위**다 (`cells.py`).
 
-    `profile_fp` 가 붓의 실제 세대다 — 이름(`brush`)은 사람이 읽는 것이고 동일성은 지문이
-    정한다(`paint.BrushProfile.fingerprint`). 지문이 spec 에 없으면 `LayerSpec.fingerprint()`
-    가 곡선 변경을 못 잡아서, 화면에 띄운 spec 지문만 보고는 어느 세대의 붓이었는지 알 수 없다.
+    `paint_fp` 가 계산 세대의 실제 동일성이다. 붓 곡선뿐 아니라 격자, 반지름, 샘플링 간격,
+    페인트 알고리즘 버전까지 묶는다. 이름(`brush`)은 사람이 읽기 위한 설명일 뿐이다.
     """
 
     radius_u: float
     brush: str
     profile_fp: str
+    paint_version: int
+    paint_fp: str
+    sample_step_m: float
     grid_version: str = GRID_VERSION
+
+    @property
+    def paint_spec(self) -> PaintSpec:
+        return PaintSpec(
+            paint_version=self.paint_version,
+            grid_version=self.grid_version,
+            radius_u=self.radius_u,
+            profile_name=self.brush,
+            profile_fp=self.profile_fp,
+            sample_step_m=self.sample_step_m,
+        )
+
+    def __post_init__(self) -> None:
+        expected = self.paint_spec.fingerprint
+        if self.paint_fp != expected:
+            raise ValueError(
+                f"projection paint_fp 가 계산 조건과 다르다: "
+                f"expected={expected}, actual={self.paint_fp}"
+            )
+
+    @classmethod
+    def from_paint_spec(cls, spec: PaintSpec) -> "Projection":
+        """페인트와 질의가 같은 계산 계약을 쓰도록 만드는 유일한 정상 생성 경로."""
+        return cls(
+            radius_u=spec.radius_u,
+            brush=spec.profile_name,
+            profile_fp=spec.profile_fp,
+            paint_version=spec.paint_version,
+            paint_fp=spec.fingerprint,
+            sample_step_m=spec.sample_step_m,
+            grid_version=spec.grid_version,
+        )
 
 
 @dataclass(frozen=True)
@@ -167,15 +201,15 @@ class Layer:
 
 
 def select(sheets: Iterable[Cellophane], spec: LayerSpec) -> list[Cellophane]:
-    """조건에 맞는 장만. 장의 격자·붓이 spec 과 다르면 **섞지 않는다.**
+    """조건에 맞는 장만. 장의 페인트 계산 세대가 spec 과 다르면 **섞지 않는다.**
 
     다른 격자의 장을 겹치면 조용히 틀린 그림이 나온다 — 셀 id 가 같은 자리를 뜻하지 않는다.
     격자는 `grid_version` 까지 본다: radius 와 붓 이름이 같아도 격자 수학이 바뀌었으면
     (q, r) 이 다른 자리다.
 
-    붓은 **지문으로** 고른다. spec 이 세대를 명시하므로 이름이 같고 곡선이 다른 장은 그냥
-    다른 장이다. 다만 이름은 맞는데 그 세대가 하나도 없으면 **조용히 빈 지도를 주지 않고
-    에러다** — 데이터가 다른 세대뿐이라는 사실을 호출자가 알아야 한다.
+    계산은 **paint_fp 로** 고른다. spec 이 세대를 명시하므로 붓 이름과 격자가 같더라도
+    샘플링 간격이나 알고리즘 버전이 다른 장은 다른 세대다. 이름·반지름·격자가 맞는 장이
+    있는데 요청 세대가 하나도 없으면 **조용히 빈 지도를 주지 않고 에러다**.
     """
     named = [
         sheet for sheet in sheets
@@ -183,14 +217,14 @@ def select(sheets: Iterable[Cellophane], spec: LayerSpec) -> list[Cellophane]:
         and sheet.grid_version == spec.projection.grid_version
         and sheet.profile == spec.projection.brush
     ]
-    same_curve = [s for s in named if s.profile_fp == spec.projection.profile_fp]
-    if named and not same_curve:
+    same_generation = [s for s in named if s.paint_fp == spec.projection.paint_fp]
+    if named and not same_generation:
         raise ValueError(
-            f"붓 '{spec.projection.brush}' 의 지문 {spec.projection.profile_fp} 인 장이 없다. "
-            f"있는 지문: {sorted({s.profile_fp for s in named})} — 같은 이름으로 감쇠를 바꾼 "
-            f"장만 남아 있다"
+            f"페인트 세대 {spec.projection.paint_fp} 인 장이 없다. "
+            f"있는 세대: {sorted({s.paint_fp for s in named})} — 같은 이름·격자라도 계산 계약이 "
+            f"다른 장만 남아 있다"
         )
-    return [sheet for sheet in same_curve if spec.selector.matches(sheet.at)]
+    return [sheet for sheet in same_generation if spec.selector.matches(sheet.at)]
 
 
 def render(sheets: Iterable[Cellophane], spec: LayerSpec, note: str = "") -> Layer:

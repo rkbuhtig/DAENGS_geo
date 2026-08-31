@@ -11,13 +11,17 @@
 import math
 from datetime import UTC, datetime, timedelta
 
+import pytest
+
 from app.features.territory.paint import (
     NARROW_SMOOTH,
     NARROW_STEP,
+    BrushProfile,
     brush_stamp,
     canvas_stats,
     flat,
     paint_sheet,
+    paint_spec,
     stack,
 )
 from app.features.walk.facts import compute_facts
@@ -63,6 +67,81 @@ def test_step_profile_holds_value_inside_each_band():
     assert NARROW_STEP.weight_at(0.5) == NARROW_STEP.weight_at(3.0) == 1.0
     assert NARROW_STEP.weight_at(3.5) == NARROW_STEP.weight_at(8.0) == 0.45
     assert NARROW_SMOOTH.weight_at(5.0) != NARROW_SMOOTH.weight_at(8.0)
+
+
+@pytest.mark.parametrize(
+    ("bands", "weights"),
+    [
+        ((0.0,), (1.0,)),
+        ((3.0, 3.0), (1.0, 0.5)),
+        ((3.0,), (-0.1,)),
+        ((3.0,), (1.1,)),
+        ((3.0, 8.0), (0.5, 0.8)),
+    ],
+)
+def test_invalid_brush_profiles_fail_at_the_boundary(bands, weights):
+    with pytest.raises(ValueError):
+        BrushProfile("invalid", bands, weights)
+
+
+# ---- Paint v2: 질량과 계산 동일성 -----------------------------------------------------
+
+
+@pytest.mark.parametrize("radius_u", [4.0, 8.0, 15.0])
+def test_occupancy_conserves_observed_segment_seconds(radius_u: float):
+    """격자 해상도와 stamp 셀 수가 바뀌어도 관측 시간은 복제되지 않는다."""
+    target = hex_cell(LAT, LNG, radius_u)
+    lat0, lng0 = hex_center_latlng(*target, radius_u)
+    segments = _straight_walk(0, 0.0, lat0, lng0)
+    sheet = paint_sheet("w", START, segments, radius_u, NARROW_STEP)
+    assert math.isclose(
+        math.fsum(sheet.occupancy.values()),
+        math.fsum(segment.dt for segment in segments),
+        rel_tol=1e-12,
+        abs_tol=1e-9,
+    )
+
+
+def _legacy_peak(segments, radius_u: float) -> dict:
+    """v1 과 같은 raw kernel 최대값. occupancy 정규화가 이 값을 건드리면 안 된다."""
+    step = paint_spec(radius_u, NARROW_STEP).sample_step_m
+    peak = {}
+    for segment in segments:
+        pieces = max(1, math.ceil(segment.dist / step))
+        for index in range(pieces):
+            fraction = (index + 0.5) / pieces
+            lat = segment.a.lat + (segment.b.lat - segment.a.lat) * fraction
+            lng = segment.a.lng + (segment.b.lng - segment.a.lng) * fraction
+            for cell, weight in brush_stamp(lat, lng, radius_u, NARROW_STEP):
+                peak[cell] = max(peak.get(cell, 0.0), weight)
+    return peak
+
+
+def test_mass_normalisation_does_not_change_peak_semantics():
+    target = hex_cell(LAT, LNG, RADIUS_U)
+    lat0, lng0 = hex_center_latlng(*target, RADIUS_U)
+    segments = _straight_walk(0, 5.0, lat0, lng0)
+    sheet = paint_sheet("w", START, segments, RADIUS_U, NARROW_STEP)
+    assert sheet.peak == _legacy_peak(segments, RADIUS_U)
+
+
+def test_paint_identity_tracks_the_resolved_sample_step():
+    default = paint_spec(RADIUS_U, NARROW_STEP)
+    same = paint_spec(RADIUS_U, NARROW_STEP, default.sample_step_m)
+    changed = paint_spec(RADIUS_U, NARROW_STEP, default.sample_step_m + 0.5)
+    assert default.fingerprint == same.fingerprint
+    assert changed.fingerprint != default.fingerprint
+
+
+def test_stack_rejects_mixed_paint_generations():
+    target = hex_cell(LAT, LNG, RADIUS_U)
+    lat0, lng0 = hex_center_latlng(*target, RADIUS_U)
+    segments = _straight_walk(0, 0.0, lat0, lng0)
+    default = paint_sheet("default", START, segments, RADIUS_U, NARROW_STEP)
+    changed = paint_sheet("changed", START, segments, RADIUS_U, NARROW_STEP, step_m=2.0)
+    assert default.paint_fp != changed.paint_fp
+    with pytest.raises(ValueError, match="서로 다른 paint 세대"):
+        stack([default, changed])
 
 
 # ---- 단위: 실제 미터인가 (회귀) -------------------------------------------------------

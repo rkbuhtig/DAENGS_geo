@@ -2,6 +2,10 @@
 
 2026-08-27 측정. 재현:
 
+> **구현 상태 (Paint v2): 채택됨.** 각 stamp 의 occupancy 가중치 합을 1 로 정규화한다.
+> `peak` 은 정규화하지 않아 기존 근접도와 `min_peak` 의미를 유지한다. 계산 세대는
+> `paint_fp` 로 구분하고 서로 다른 세대는 선택·겹치기에서 섞지 않는다.
+
 ```bash
 uv run python -m scripts.spikes.territory_paint.mass_conserving_kernel
 uv run python -m scripts.spikes.territory_paint.mass_conserving_kernel --jitter 8
@@ -108,9 +112,8 @@ M0 은 "성긴 격자에서는 빈도가 체류를 이긴다(15 단위에서 25.
 
 ## 이 측정이 답하지 않는 것
 
-- **`peak` 을 어떻게 할지.** 정규화하면 칸당 값이 격자 의존이 되므로 `peak` 은 비정규화
-  kernel 값으로 두자는 것이 설계 의도인데, **여기서 안 쟀다.** `min_peak` 계약이 그대로
-  사는지 확인이 필요하다.
+- **`peak` 을 어떻게 할지.** 이 측정에서는 안 쟀다. 후속 Paint v2 회귀에서 비정규화 raw
+  kernel 값이 v1 과 같고 기존 `min_peak` 동작이 유지됨을 고정했다.
 - **어느 격자를 고를지.** 위 표가 재료지 결정이 아니다. #69 의 게이트가 요구하는 결정 문서
   몫이고, 잡음이 있으면 위치 이점이 사라진다는 것이 그 결정의 핵심 입력이다.
 - **`paint.py` 를 실제로 바꿀지.** 이 스파이크는 코드를 안 고쳤다. kernel 교체는 #69 의

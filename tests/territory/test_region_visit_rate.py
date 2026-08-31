@@ -27,7 +27,7 @@ from app.features.territory.layers import (
     region_visit_rate,
     render,
 )
-from app.features.territory.paint import NARROW_STEP, paint_sheet
+from app.features.territory.paint import NARROW_STEP, paint_sheet, paint_spec
 from app.features.territory.region import Region
 from app.features.walk.facts import compute_facts
 from app.features.walk.models import WalkFix
@@ -82,7 +82,7 @@ def _spec(min_peak: float = 0.0, **tags) -> LayerSpec:
     return LayerSpec(
         selector=Selector.of(**tags),
         aggregation=Aggregation(metric="walks", min_peak=min_peak),
-        projection=Projection(radius_u=RADIUS_U, brush=BRUSH, profile_fp=BRUSH_FP),
+        projection=Projection.from_paint_spec(paint_spec(RADIUS_U, NARROW_STEP)),
     )
 
 
@@ -167,7 +167,7 @@ def test_the_denominator_is_the_selected_walks_not_all_walks():
     one_day = LayerSpec(
         selector=Selector.of(since=JULY.date(), until=JULY.date()),
         aggregation=Aggregation(metric="walks"),
-        projection=Projection(radius_u=RADIUS_U, brush=BRUSH, profile_fp=BRUSH_FP),
+        projection=Projection.from_paint_spec(paint_spec(RADIUS_U, NARROW_STEP)),
     )
     narrowed = region_visit_rate(sheets, one_day, PARK)
     assert (narrowed.visited, narrowed.selected, narrowed.total) == (1, 1, 3)
@@ -233,7 +233,7 @@ def test_no_selected_walks_has_no_rate_instead_of_claiming_zero_percent():
     empty = LayerSpec(
         selector=Selector.of(since=datetime(2030, 1, 1, tzinfo=UTC).date()),
         aggregation=Aggregation(metric="walks"),
-        projection=Projection(radius_u=RADIUS_U, brush=BRUSH, profile_fp=BRUSH_FP),
+        projection=Projection.from_paint_spec(paint_spec(RADIUS_U, NARROW_STEP)),
     )
     rate = region_visit_rate(_three_walks(), empty, PARK)
     assert (rate.visited, rate.selected, rate.total) == (0, 0, 3)
