@@ -16,6 +16,7 @@
 | 갈래 | status | implementation | 한 줄 |
 |---|---|---|---|
 | [pet-axes](pet-axes.md) | exploring | working | `pet` 자유텍스트 봉투 → 필터 가능한 축. 근거는 커버리지 측정 |
+| [source-facts](source-facts.md) | exploring | shadow | KCISA/KTO를 합치기 전 원천별 의미와 결측 상태를 보존 |
 | [row-tags](row-tags.md) | proposed | partial | `kind` 가 버린 행 사이 차이를 태그로 복원. 근거는 [재료 측정](../../research/2026-08-27-tag-material.md) |
 
 ## 병원과 무엇이 다른가
