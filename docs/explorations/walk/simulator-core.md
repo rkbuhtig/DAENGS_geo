@@ -90,5 +90,6 @@ uv run uvicorn app.main:app --reload
 ```
 
 화면 payload에는 branch·hold·seed가 없고 다섯 `SpatialField`의 값과 영수증, `U_time`·
-`U_walk`의 50·80·95% 외곽선만 있다. Naver가 설정됐지만 현재 localhost 출처가 허용되지
-않거나 provider가 다르면 설정의 `fallback=osm`에 따라 OpenStreetMap 실지도로 전환한다.
+`U_walk`의 50·80·95% 외곽선만 있다. 대신 실험 재현에 필요한 모집단 generator version·
+run ID와 Paint 세대는 보존한다. Naver가 설정됐지만 현재 localhost 출처가 허용되지 않거나
+provider가 다르면 설정의 `fallback=osm`에 따라 OpenStreetMap 실지도로 전환한다.

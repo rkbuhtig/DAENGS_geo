@@ -10,11 +10,14 @@ def test_viewer_loads_the_app_naver_map_and_fixed_distribution_payload():
     assert "fetch('/map/client-config')" in HTML
     assert "https://oapi.map.naver.com/openapi/v3/maps.js" in HTML
     assert "new naver.maps.Map" in HTML
-    assert "config.fallback === 'osm'" in HTML
+    assert "state.config.fallback !== 'osm'" in HTML
     assert "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" in HTML
     assert "© OpenStreetMap contributors" in HTML
     assert "DATA_URL = '/cellophane-distribution/data'" in HTML
     assert "state.payload.format_version !== 1" in HTML
+    assert "state.authWatchTimer = setInterval" in HTML
+    assert "void useOsmFallback(error)" in HTML
+    assert "setTimeout(resolve,1500)" not in HTML
 
 
 def test_viewer_switches_one_metric_at_a_time_without_recomputing_statistics():
@@ -45,7 +48,9 @@ def test_viewer_draws_mass_regions_as_separate_boundaries_with_receipts():
 def test_viewer_exposes_value_denominator_generation_and_rendering_rule():
     assert 'id="r-denominator"' in HTML
     assert 'id="r-paint"' in HTML
+    assert 'id="r-population"' in HTML
     assert 'id="d-receipt"' in HTML
+    assert "formatReceiptPart" in HTML
     assert "값/최댓값 제곱근 · alpha 5–62%" in HTML
     assert "셀을 누르면 실제 값과 분자·분모" in HTML
 

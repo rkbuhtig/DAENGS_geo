@@ -17,6 +17,8 @@ def test_distribution_payload_contains_five_metrics_and_nested_mass_regions():
     assert payload["coordinate_order"] == "lat,lng"
     assert payload["sample_count"] == 30
     assert payload["cell_count"] == len(payload["cells"]) > 100
+    assert payload["population"]["generator_version"] == 1
+    assert len(payload["population"]["run_id"]) == 16
     assert tuple(payload["metrics"]) == METRICS
     assert payload["metrics"]["visit_rate"]["denominator"] == 30.0
     assert payload["metrics"]["conditional_dwell"]["denominator"] == "per_cell"

@@ -155,6 +155,10 @@ def build_distribution_payload() -> dict[str, object]:
         "bbox": [min(latitudes), min(longitudes), max(latitudes), max(longitudes)],
         "sample_count": len(observation.sheets),
         "cell_count": len(all_cells),
+        "population": {
+            "generator_version": observation.generator_version,
+            "run_id": observation.run_id,
+        },
         "paint": {
             "paint_fp": paint.fingerprint,
             "paint_version": paint.paint_version,

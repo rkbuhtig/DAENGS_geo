@@ -403,13 +403,13 @@ def highest_mass_regions(
     index = 0
     regions = []
     for level in levels:
-        achieved = math.fsum(field.values[cell] for cell in included)
+        achieved = math.fsum(field.values[cell] for cell in included) / total_mass
         cutoff = ranked[index - 1][1] if index else None
         while achieved < level and index < len(ranked):
             cutoff = ranked[index][1]
             while index < len(ranked) and ranked[index][1] == cutoff:
                 included.add(ranked[index][0])
                 index += 1
-            achieved = math.fsum(field.values[cell] for cell in included)
+            achieved = math.fsum(field.values[cell] for cell in included) / total_mass
         regions.append(MassRegion(level, achieved, cutoff, frozenset(included)))
     return MassRegionSet(field, tuple(regions))

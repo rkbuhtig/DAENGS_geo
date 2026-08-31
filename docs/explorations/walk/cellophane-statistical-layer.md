@@ -527,7 +527,7 @@ GPS noise seed와 accuracy만 변경
 - `population_truth.py` / `population.py` — 같은 집에서 14/9/4/3으로 갈라지는 30회
   evaluator truth와 truth label을 제거한 canonical Cellophane fixture
 - `/cellophane-distribution` — 다섯 metric과 질량 영역을 실제 Naver/OSM 지도에서 바꾸어 보는
-  dev console 검증 화면
+  dev console 검증 화면. 모집단 generator version·run ID와 Paint 세대를 함께 표시한다.
 - Cellophane GeoJSON — 한 장의 chain·셀·질량 진단 검증 표면
 
 ### 아직 없는 것

@@ -10,6 +10,7 @@
 """
 
 import math
+from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
 
 import pytest
@@ -260,6 +261,19 @@ def test_highest_mass_region_includes_every_cell_tied_at_the_cutoff():
     assert region.cutoff_value == 0.2
     assert region.cells == frozenset({(0, 0), (1, 0), (2, 0), (3, 0)})
     assert region.achieved_mass == 1.0
+
+
+def test_highest_mass_region_normalizes_tolerated_rounding_drift_at_one_hundred_percent():
+    field = time_utilization_field(_three_walks(), _spec("time_utilization"))
+    drifted = replace(
+        field,
+        values={cell: value * (1 - 5e-10) for cell, value in field.values.items()},
+    )
+
+    region = highest_mass_regions(drifted, (1.0,)).regions[0]
+
+    assert region.cells == frozenset(field.values)
+    assert region.achieved_mass == pytest.approx(1.0)
 
 
 def test_highest_mass_regions_reject_non_distribution_fields_and_bad_levels():

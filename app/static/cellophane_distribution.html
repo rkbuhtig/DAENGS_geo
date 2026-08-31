@@ -79,6 +79,7 @@
     <dt>표본</dt><dd id="r-sample">—</dd>
     <dt>분모</dt><dd id="r-denominator">—</dd>
     <dt>정규화</dt><dd id="r-normalization">—</dd>
+    <dt>실험 세대</dt><dd id="r-population">—</dd>
     <dt>Paint 세대</dt><dd id="r-paint">—</dd>
     <dt>표현</dt><dd>값/최댓값 제곱근 · alpha 5–62%</dd>
   </dl>
@@ -105,8 +106,11 @@ const NORMALIZATION_LABELS = {
   none:'합계', selected_walks:'선택 산책 수', visited_walks_per_cell:'셀별 방문 산책 수',
   total_observed_time:'전체 관측 시간', equal_contributing_walks:'기여 산책 동등 가중',
 };
-const state = {metric:'visit_rate', region:'none', payload:null, map:null, cells:[], outlines:[], selected:null};
-let naverAuthFailed = false;
+const state = {
+  metric:'visit_rate', region:'none', payload:null, config:null, provider:null, backend:null,
+  map:null, homeOverlay:null, cells:[], outlines:[], selected:null, switchPromise:null, authWatchTimer:null,
+};
+let naverAuthFailureHandler = null;
 const $ = (id) => document.getElementById(id);
 
 function showError(message) {
@@ -119,18 +123,15 @@ function loadNaverMaps(keyId) {
   return new Promise((resolve, reject) => {
     const callback = '__cellophaneDistributionReady';
     const timeout = setTimeout(() => reject(new Error('NAVER SDK timeout')), 8000);
-    let settle = null;
     window[callback] = () => {
       clearTimeout(timeout);
-      // SDK ready 뒤 출처 인증 실패 콜백이 늦게 올 수 있다. 즉시 성공 처리하면 실패 타일을
-      // 정상 지도라고 오인하므로 짧게 감시한 뒤 확정한다.
-      settle = setTimeout(resolve,1200);
+      resolve();
     };
     window.navermap_authFailure = () => {
-      naverAuthFailed = true;
+      const error = new Error('NAVER 인증 실패');
       clearTimeout(timeout);
-      if (settle) clearTimeout(settle);
-      reject(new Error('NAVER 인증 실패'));
+      if (naverAuthFailureHandler) naverAuthFailureHandler(error);
+      reject(error);
     };
     const script = document.createElement('script');
     script.src = `https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${encodeURIComponent(keyId)}&callback=${callback}`;
@@ -169,10 +170,13 @@ function naverBackend(payload) {
     fit:([south,west,north,east]) => map.fitBounds(new naver.maps.LatLngBounds(
       new naver.maps.LatLng(south,west), new naver.maps.LatLng(north,east)
     )),
-    home:(point) => new naver.maps.Marker({
-      map, position:new naver.maps.LatLng(...point), title:'공통 시작·종료점',
-      icon:{content:'<div class="home-marker" aria-label="공통 시작·종료점"></div>',anchor:new naver.maps.Point(9,9)},
-    }),
+    home:(point) => {
+      const marker = new naver.maps.Marker({
+        map, position:new naver.maps.LatLng(...point), title:'공통 시작·종료점',
+        icon:{content:'<div class="home-marker" aria-label="공통 시작·종료점"></div>',anchor:new naver.maps.Point(9,9)},
+      });
+      return {remove:() => marker.setMap(null)};
+    },
     polygon:(boundary,style) => wrap(new naver.maps.Polygon({
       map, paths:[boundary.map(([lat,lng]) => new naver.maps.LatLng(lat,lng))],
       ...style, clickable:true,
@@ -208,9 +212,12 @@ function leafletBackend(payload) {
   return {
     map,
     fit:([south,west,north,east]) => map.fitBounds([[south,west],[north,east]],{padding:[18,18]}),
-    home:(point) => L.circleMarker(point,{
-      radius:7,fillColor:'#a33c24',fillOpacity:1,color:'#fff',weight:3,
-    }).bindTooltip('공통 시작·종료점').addTo(map),
+    home:(point) => {
+      const marker = L.circleMarker(point,{
+        radius:7,fillColor:'#a33c24',fillOpacity:1,color:'#fff',weight:3,
+      }).bindTooltip('공통 시작·종료점').addTo(map);
+      return {remove:() => marker.remove()};
+    },
     polygon:(boundary,style) => wrap(L.polygon(boundary,leafletStyle(style)).addTo(map)),
     polyline:(edge,style) => wrap(L.polyline(edge,leafletStyle(style)).addTo(map)),
   };
@@ -221,6 +228,15 @@ function formatValue(value, unit) {
   if (unit === 's') return `${value.toFixed(1)}초`;
   if (unit === 's/visited_walk') return `${value.toFixed(1)}초/방문 산책`;
   return String(value);
+}
+
+function formatReceiptPart(value, denominator=false) {
+  if (value === null || value === undefined || value === 'per_cell') return '—';
+  const number = Number(value);
+  if (state.metric === 'time_utilization' || state.metric === 'total_time' ||
+      (state.metric === 'conditional_dwell' && !denominator)) return `${number.toFixed(1)}초`;
+  if (state.metric === 'walk_utilization' && !denominator) return number.toFixed(4);
+  return `${number.toLocaleString('ko-KR',{maximumFractionDigits:2})}장`;
 }
 
 function metricReceipt() { return state.payload.metrics[state.metric]; }
@@ -240,6 +256,7 @@ function updateReceipt() {
     $('r-denominator').textContent = `전체 ${Number(receipt.denominator).toFixed(1)}초`;
   } else $('r-denominator').textContent = `${receipt.denominator}장`;
   $('r-normalization').textContent = NORMALIZATION_LABELS[receipt.normalization] || receipt.normalization;
+  $('r-population').textContent = `v${state.payload.population.generator_version} · ${state.payload.population.run_id}`;
   $('r-paint').textContent = `${state.payload.paint.paint_fp} · ${state.payload.paint.grid_version}`;
   $('legend-max').textContent = formatValue(receipt.max_value, receipt.unit);
   const region = selectedRegion();
@@ -299,7 +316,9 @@ function selectCell(item) {
   $('detail-value').hidden = false;
   $('d-cell').textContent = item.row.cell_id;
   $('d-value').textContent = formatValue(value, receipt.unit);
-  $('d-receipt').textContent = `${item.row.numerators[state.metric]} / ${denominator ?? '—'}`;
+  const numeratorText = formatReceiptPart(item.row.numerators[state.metric]);
+  const denominatorText = formatReceiptPart(denominator,true);
+  $('d-receipt').textContent = `${numeratorText} / ${denominatorText}`;
   $('d-region').textContent = regionNamesForCell(item.row.cell_id);
 }
 
@@ -338,6 +357,7 @@ function chooseRegion(region) {
 }
 
 function buildControls() {
+  if ($('metric-buttons').childElementCount) return;
   METRIC_ORDER.forEach((metric) => {
     const button = document.createElement('button');
     button.type = 'button';
@@ -355,7 +375,7 @@ function buildControls() {
 function drawMap() {
   state.map = state.backend.map;
   state.backend.fit(state.payload.bbox);
-  state.backend.home(state.payload.home);
+  state.homeOverlay = state.backend.home(state.payload.home);
   state.cells = state.payload.cells.map((row) => {
     const overlay = state.backend.polygon(row.boundary,{
       fillColor:'#0b6e5f', fillOpacity:.05, strokeOpacity:0, strokeWeight:0,
@@ -369,6 +389,55 @@ function drawMap() {
   chooseMetric(state.metric);
 }
 
+function clearMapPresentation() {
+  const brokenNaver = state.provider === 'naver';
+  if (brokenNaver) state.outlines = [];
+  else clearOutlines();
+  if (!brokenNaver) state.cells.forEach((item) => item.overlay.remove());
+  state.cells = [];
+  if (state.homeOverlay && !brokenNaver) state.homeOverlay.remove();
+  state.homeOverlay = null;
+  state.selected = null;
+  state.map = null;
+  state.backend = null;
+  state.provider = null;
+  $('map').replaceChildren();
+  $('detail-empty').hidden = false;
+  $('detail-value').hidden = true;
+}
+
+async function useOsmFallback(cause) {
+  if (state.provider === 'osm') return;
+  if (state.switchPromise) return state.switchPromise;
+  const switching = (async () => {
+    clearMapPresentation();
+    if (state.authWatchTimer) clearInterval(state.authWatchTimer);
+    state.authWatchTimer = null;
+    if (state.config.fallback !== 'osm') throw cause;
+    await loadLeaflet();
+    state.backend = leafletBackend(state.payload);
+    state.provider = 'osm';
+    drawMap();
+    showError('');
+  })();
+  state.switchPromise = switching;
+  try {
+    await switching;
+  } finally {
+    if (state.switchPromise === switching) state.switchPromise = null;
+  }
+}
+
+function watchNaverAuthFailure() {
+  if (state.authWatchTimer) clearInterval(state.authWatchTimer);
+  state.authWatchTimer = setInterval(() => {
+    if ($('map').textContent.includes('인증이 실패')) {
+      const error = new Error('NAVER 인증 실패');
+      if (naverAuthFailureHandler) naverAuthFailureHandler(error);
+    }
+  },250);
+}
+
 async function main() {
   try {
     const [configResponse,dataResponse] = await Promise.all([
@@ -376,33 +445,36 @@ async function main() {
     ]);
     if (!configResponse.ok || !dataResponse.ok) throw new Error('지도 설정 또는 fixture를 읽지 못했습니다');
     const config = await configResponse.json();
+    state.config = config;
     state.payload = await dataResponse.json();
     if (state.payload.format_version !== 1 || state.payload.coordinate_order !== 'lat,lng') {
       throw new Error('지원하지 않는 공간 통계 payload입니다');
     }
+    naverAuthFailureHandler = (error) => {
+      void useOsmFallback(error).catch((fallbackError) => {
+        console.error(fallbackError);
+        showError(fallbackError.message || String(fallbackError));
+      });
+    };
     if (config.provider === 'naver' && config.naver_key_id) {
       try {
+        watchNaverAuthFailure();
         await loadNaverMaps(config.naver_key_id);
-        state.backend = naverBackend(state.payload);
-        // 실제 지도 인스턴스를 만든 뒤에야 출처 제한 실패가 드러나는 SDK 버전도 있다.
-        await new Promise((resolve) => setTimeout(resolve,1500));
-        const failedTile = $('map').textContent.includes('인증이 실패');
-        if (naverAuthFailed || failedTile) {
-          state.backend = null;
-          $('map').replaceChildren();
+        if (state.switchPromise) await state.switchPromise;
+        if (!state.backend) {
+          state.provider = 'naver';
+          state.backend = naverBackend(state.payload);
+          drawMap();
         }
       } catch (error) {
-        if (config.fallback !== 'osm') throw error;
+        await useOsmFallback(error);
       }
     }
-    if (!state.backend && config.fallback === 'osm') {
-      await loadLeaflet();
-      state.backend = leafletBackend(state.payload);
-    }
+    if (!state.backend) await useOsmFallback(new Error('사용 가능한 실제 지도 제공사가 없습니다'));
     if (!state.backend) throw new Error('사용 가능한 실제 지도 제공사가 없습니다');
-    drawMap();
     showError('');
   } catch (error) {
+    console.error(error);
     showError(`${error.message || error}. 먼저 cellophane-distribution.json을 생성하세요.`);
   }
 }
