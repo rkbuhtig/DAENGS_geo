@@ -58,3 +58,23 @@ cellophane.geojson  기존 canonical Paint 결과
 
 같은 seed는 위 다섯 출력을 다시 만들 수 있다. behavior는 그대로 두고 route만 바꾸면 실제
 동선 모양만, sensor seed를 추가할 다음 단계에서는 observation만 바꿔 원인을 분리한다.
+
+## 셀로판 모집단 fixture
+
+단일 산책의 싸인펜 검증과 여러 산책의 z축 검증을 섞지 않도록 30회 모집단은 별도 builder가
+만든다.
+
+```python
+from scripts.sim.walk.population import observe_population
+from scripts.sim.walk.population_truth import build_population_truth
+
+truth = build_population_truth()       # evaluator만 보관
+observation = observe_population(truth)
+sheets = observation.sheets            # 통계 계산기에 전달할 유일한 입력
+```
+
+모든 산책은 같은 집과 공통 현관·주 동선에서 시작해 다시 집으로 돌아온다. 생성 비율은 동쪽
+루프 14회, 남쪽 왕복 9회, 북쪽 공원 4회, 임시 탐색 3회다. 북쪽 공원에만 180초 이상의 긴
+체류를 심는다. `PopulationObservation`에는 이 branch와 hold label, 원래 seed가 없고 관측
+GPS·canonical Segment·Cellophane만 남는다. PR1 통계층은 `sheets`만 읽으며, branch별 기대
+순위와 질량 영역 회수는 evaluator가 truth를 사후 결합하는 다음 단계에서 검증한다.
