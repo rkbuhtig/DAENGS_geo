@@ -103,6 +103,10 @@ class PaintSpec:
     sample_step_m: float
 
     def __post_init__(self) -> None:
+        # JSON 은 같은 수인 8 과 8.0 을 다르게 직렬화한다. 호출자가 어느 표기를 썼는지로
+        # 계산 세대가 갈리지 않도록 지문을 만들기 전에 연속량을 한 표현으로 고정한다.
+        object.__setattr__(self, "radius_u", float(self.radius_u))
+        object.__setattr__(self, "sample_step_m", float(self.sample_step_m))
         if self.paint_version < 1:
             raise ValueError("paint_version 은 양수여야 한다")
         if not self.grid_version or not self.profile_name or not self.profile_fp:
@@ -166,7 +170,10 @@ class Cellophane:
         )
 
     def __post_init__(self) -> None:
-        expected = self.spec.fingerprint
+        spec = self.spec
+        object.__setattr__(self, "radius_u", spec.radius_u)
+        object.__setattr__(self, "sample_step_m", spec.sample_step_m)
+        expected = spec.fingerprint
         if self.paint_fp != expected:
             raise ValueError(
                 f"paint_fp 가 계산 조건과 다르다: expected={expected}, actual={self.paint_fp}"

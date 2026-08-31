@@ -144,7 +144,10 @@ class Projection:
         )
 
     def __post_init__(self) -> None:
-        expected = self.paint_spec.fingerprint
+        paint_spec = self.paint_spec
+        object.__setattr__(self, "radius_u", paint_spec.radius_u)
+        object.__setattr__(self, "sample_step_m", paint_spec.sample_step_m)
+        expected = paint_spec.fingerprint
         if self.paint_fp != expected:
             raise ValueError(
                 f"projection paint_fp 가 계산 조건과 다르다: "
@@ -211,13 +214,17 @@ def select(sheets: Iterable[Cellophane], spec: LayerSpec) -> list[Cellophane]:
     샘플링 간격이나 알고리즘 버전이 다른 장은 다른 세대다. 이름·반지름·격자가 맞는 장이
     있는데 요청 세대가 하나도 없으면 **조용히 빈 지도를 주지 않고 에러다**.
     """
+    pool = list(sheets)
+    same_generation = [
+        sheet for sheet in pool
+        if sheet.paint_fp == spec.projection.paint_fp
+    ]
     named = [
-        sheet for sheet in sheets
+        sheet for sheet in pool
         if sheet.radius_u == spec.projection.radius_u
         and sheet.grid_version == spec.projection.grid_version
         and sheet.profile == spec.projection.brush
     ]
-    same_generation = [s for s in named if s.paint_fp == spec.projection.paint_fp]
     if named and not same_generation:
         raise ValueError(
             f"페인트 세대 {spec.projection.paint_fp} 인 장이 없다. "
