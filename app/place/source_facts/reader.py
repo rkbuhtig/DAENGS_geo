@@ -100,6 +100,7 @@ def _project(record: _SourceRecord) -> SourceFactProjection:
 def _variants(records: list[_SourceRecord]) -> list[SourceFactVariant]:
     return [
         SourceFactVariant(
+            source_ref=record.source_ref,
             record_ref=record.record_ref,
             occurrence_count=record.occurrence_count,
             snapshot=record.snapshot,

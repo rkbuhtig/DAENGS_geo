@@ -103,10 +103,14 @@ async def test_reader_keeps_order_missing_candidates_and_source_variants() -> No
             bundles = await load_candidate_fact_bundles(session, keys)
 
             assert [bundle.key for bundle in bundles] == keys
-            assert bundles[0].state == "complete"
+            assert bundles[0].availability == "present"
+            assert bundles[0].projection_state == "complete"
             assert bundles[0].variants[0].detail_state == "not_fetched"
-            assert bundles[1].state == "missing"
-            assert bundles[2].state == "conflicting"
+            assert bundles[0].acquisition_states == ("not_fetched",)
+            assert bundles[1].availability == "missing"
+            assert bundles[2].availability == "present"
+            assert bundles[2].has_conflicts is True
+            assert bundles[2].projection_state == "complete"
             assert bundles[2].physical_occurrences == 5
             assert {variant.record_ref for variant in bundles[2].variants} == set(KCISA_REFS)
             assert "purpose" in {conflict.section for conflict in bundles[2].conflicts}

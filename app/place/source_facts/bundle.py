@@ -19,7 +19,7 @@ FactSection = Literal[
     "pet_fee",
     "operations",
 ]
-BundleState = Literal["missing", "complete", "partial", "conflicting"]
+BundleAvailability = Literal["missing", "present"]
 FACT_SECTIONS: tuple[FactSection, ...] = (
     "purpose",
     "pet_access",
@@ -40,6 +40,7 @@ class SourceFactKey(InternalModel):
 class SourceFactVariant(InternalModel):
     """shadow 원문 하나의 projection과 획득 provenance."""
 
+    source_ref: str = Field(min_length=1)
     record_ref: str = Field(min_length=1)
     occurrence_count: int = Field(ge=1)
     snapshot: str = Field(min_length=1)
@@ -78,6 +79,8 @@ class CandidateFactBundle(InternalModel):
             raise ValueError("bundle record_refs must be unique")
         if any(variant.projection.source != self.key.source for variant in self.variants):
             raise ValueError("bundle projection sources must match the candidate key")
+        if any(variant.source_ref != self.key.source_ref for variant in self.variants):
+            raise ValueError("bundle variant source_refs must match the candidate key")
         return self
 
     @computed_field  # type: ignore[prop-decorator]
@@ -89,16 +92,37 @@ class CandidateFactBundle(InternalModel):
 
     @computed_field  # type: ignore[prop-decorator]
     @property
-    def state(self) -> BundleState:
+    def availability(self) -> BundleAvailability:
+        return "present" if self.variants else "missing"
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def projection_state(self) -> ProjectionState | None:
+        """parser 성공도만 요약한다. detail 획득 상태나 conflict와 합치지 않는다."""
+
         if not self.variants:
-            return "missing"
-        if self.conflicts:
-            return "conflicting"
-        if any(
-            variant.projection.state is not ProjectionState.COMPLETE for variant in self.variants
-        ):
-            return "partial"
-        return "complete"
+            return None
+        states = {variant.projection.state for variant in self.variants}
+        if states == {ProjectionState.COMPLETE}:
+            return ProjectionState.COMPLETE
+        if states == {ProjectionState.FAILED}:
+            return ProjectionState.FAILED
+        return ProjectionState.PARTIAL
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def has_conflicts(self) -> bool:
+        return bool(self.conflicts)
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def acquisition_states(self) -> tuple[DetailAcquisitionState, ...]:
+        return tuple(
+            sorted(
+                {variant.detail_state for variant in self.variants},
+                key=lambda state: state.value,
+            )
+        )
 
     @computed_field  # type: ignore[prop-decorator]
     @property

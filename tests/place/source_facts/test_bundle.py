@@ -24,8 +24,15 @@ def _row(category: str = "카페", **changes) -> dict:
     }
 
 
-def _variant(record_ref: str, row: dict, occurrence_count: int = 1) -> SourceFactVariant:
+def _variant(
+    record_ref: str,
+    row: dict,
+    occurrence_count: int = 1,
+    *,
+    source_ref: str = "same-place",
+) -> SourceFactVariant:
     return SourceFactVariant(
+        source_ref=source_ref,
         record_ref=record_ref,
         occurrence_count=occurrence_count,
         snapshot="test-snapshot",
@@ -43,7 +50,9 @@ def test_bundle_keeps_variants_without_inventing_a_representative() -> None:
 
     assert [variant.record_ref for variant in bundle.variants] == ["record:a", "record:b"]
     assert bundle.conflicts == ()
-    assert bundle.state == "complete"
+    assert bundle.availability == "present"
+    assert bundle.projection_state == "complete"
+    assert bundle.has_conflicts is False
     assert bundle.physical_occurrences == 5
 
 
@@ -58,7 +67,9 @@ def test_bundle_exposes_section_conflict_and_preserves_both_values() -> None:
     bundle = build_candidate_fact_bundle(key, [museum, cafe])
 
     purpose_conflict = next(item for item in bundle.conflicts if item.section == "purpose")
-    assert bundle.state == "conflicting"
+    assert bundle.availability == "present"
+    assert bundle.projection_state == "complete"
+    assert bundle.has_conflicts is True
     assert {variant.projection.purpose.primary for variant in bundle.variants} == {
         "cafe",
         "museum",
@@ -75,10 +86,39 @@ def test_bundle_distinguishes_missing_and_partial() -> None:
     missing = build_candidate_fact_bundle(key, [])
     partial = build_candidate_fact_bundle(
         key,
-        [_variant("record:unknown", _row("새로운 분류"))],
+        [_variant("record:unknown", _row("새로운 분류"), source_ref="candidate")],
     )
 
-    assert missing.state == "missing"
+    assert missing.availability == "missing"
+    assert missing.projection_state is None
+    assert missing.acquisition_states == ()
     assert missing.physical_occurrences == 0
-    assert partial.state == "partial"
+    assert partial.availability == "present"
+    assert partial.projection_state == "partial"
     assert partial.variants[0].projection.issues[0].code == "unmapped_purpose"
+
+
+def test_conflict_does_not_hide_partial_projection_state() -> None:
+    key = SourceFactKey(source="kcisa", source_ref="same-place")
+    bundle = build_candidate_fact_bundle(
+        key,
+        [
+            _variant("record:cafe", _row("카페")),
+            _variant("record:unknown", _row("새로운 분류")),
+        ],
+    )
+
+    assert bundle.has_conflicts is True
+    assert bundle.projection_state == "partial"
+
+
+def test_bundle_rejects_a_variant_from_another_candidate() -> None:
+    key = SourceFactKey(source="kcisa", source_ref="candidate-a")
+    wrong = _variant("record:b", _row(), source_ref="candidate-b")
+
+    try:
+        build_candidate_fact_bundle(key, [wrong])
+    except ValueError as exc:
+        assert "source_refs must match" in str(exc)
+    else:
+        raise AssertionError("variant from another candidate was accepted")
