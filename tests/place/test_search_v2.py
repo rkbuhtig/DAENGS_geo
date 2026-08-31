@@ -7,7 +7,13 @@ from datetime import UTC, datetime
 from sqlalchemy import text
 
 from app.ingest.facility_store import upsert_rows
-from app.place.search import PlaceKind, PlaceSearchRequest, search_place_groups
+from app.place.search import (
+    PlaceKind,
+    PlaceSearchRequest,
+    compile_place_search_request,
+    search_place_groups,
+    search_place_plan,
+)
 from app.place.source_catalog import KCISA_KINDS, KTO_KINDS, MOIS_SOURCES
 from tests.conftest import TEST_ORIGIN, db_session
 
@@ -117,16 +123,19 @@ async def test_parking_preference_reaches_candidate_selection_before_limit():
             ], "2026-08-26", now)
             await session.commit()
 
-            response = await search_place_groups(session, PlaceSearchRequest(
+            request = PlaceSearchRequest(
                 lat=TEST_ORIGIN[0],
                 lng=TEST_ORIGIN[1],
                 radius_m=850,
                 kinds=["cafe"],
                 limit_per_kind=1,
                 preferences={"parking": True},
-            ))
+            )
+            response = await search_place_groups(session, request)
+            planned = await search_place_plan(session, compile_place_search_request(request))
 
             group = response.groups[0]
+            assert planned == response
             assert [hit.place.name for hit in group.results] == ["450m_주차가능"]
             assert group.truncated is True
             assert group.sort.coverage["parking"].model_dump() == {
