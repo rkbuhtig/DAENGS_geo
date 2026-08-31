@@ -186,6 +186,38 @@ projector 결과 자체는 저장하지 않는다. 아래 측정 명령이 shado
 uv run python scripts/source_fact_coverage.py
 ```
 
+## PR3 candidate fact bundle
+
+PR3는 저장된 shadow 원문을 검색 후보가 읽을 수 있게 하는 **내부 runtime bridge**다. 아직
+검색 조건, AI tool, 외부 Place 응답은 바꾸지 않는다. `PlaceRef(source, ref)`에서 KCISA/KTO만
+`SourceFactKey(source, source_ref)`로 옮기고, 최대 1,000개 키를 한 SQL로 조회한다.
+
+동일한 `source_ref`에 여러 `record_ref`가 있으면 하나를 대표로 고르지 않는다. 각 원문을 현재
+projector로 다시 읽은 `variants`와 물리 중복 수 `occurrence_count`를 모두 보존한다. canonical
+section 값이 다르면 `purpose`, `pet_access`, `restrictions`, `amenities`, `pet_fee`, `operations`
+단위의 `conflicts`를 명시한다. shadow가 없는 후보도 입력 위치에
+`availability=missing` bundle로 남겨,
+“데이터 미상”이 “필터 탈락”으로 바뀌지 않게 한다.
+
+```text
+PlaceRef 후보 (최대 1,000)
+        │ source/ref adapter
+        ▼
+SourceFactKey[] ── one SQL ── facility_source_record[]
+                                │ current projectors
+                                ▼
+CandidateFactBundle[] = availability + projection state + variants
+                      + conflicts + acquisition states
+```
+
+이 층은 충돌을 보여 주지만 해소하지 않는다. 어떤 variant를 믿을지, 미상 조건을 통과시킬지,
+AI가 어떤 조건 플래그를 제안할지는 다음 검색 정책 층의 책임이다.
+
+bundle 요약도 서로 다른 상태를 한 enum으로 합치지 않는다. `availability`는 shadow 존재 여부,
+`projection_state`는 parser 성공도, `acquisition_states`는 detail 획득 상태,
+`has_conflicts`는 variant 값 충돌만 말한다. 따라서 KTO detail이 `not_fetched`인 projection은
+parser가 완결됐더라도 데이터까지 완전하다고 표현되지 않는다.
+
 ## fixture와 실패 규칙
 
 무작위 몇 행이 아니라 의미 경계를 fixture로 고정한다.
@@ -196,7 +228,7 @@ uv run python scripts/source_fact_coverage.py
 - parser가 추측 없이 실패하는 것은 허용하지만, 원문을 잃거나 projector가 예외로 중단하는 것은
   허용하지 않는다.
 
-## PR1 종료 조건과 후속 순서
+## 종료 조건과 후속 순서
 
 PR1 종료 조건은 다음과 같다.
 
@@ -208,6 +240,7 @@ PR1 종료 조건은 다음과 같다.
 
 1. PR2: ingest acquisition 상태와 원천 snapshot shadow 저장 — 구현.
 2. PR2: projector 결과를 적재하지 않는 dual-read 비교 — 구현.
-3. PR3: purpose 후보 생성과 거리/공간 제약을 별도 단계로 둔 검색 실험을 한다.
-4. PR3 이후: 데이터가 수백~천 건이면 PostGIS 필터 + 결정론적 predicate + 필요 시 텍스트 embedding
+3. PR3: 후보별 source record variant와 section conflict를 보존하는 runtime bridge — 구현.
+4. 다음 PR: purpose 후보 생성과 거리/공간 제약을 별도 단계로 둔 검색 실험을 한다.
+5. 이후: 데이터가 수백~천 건이면 PostGIS 필터 + 결정론적 predicate + 필요 시 텍스트 embedding
    rerank부터 검증한다. spatial RAG는 이 작은 후보군에서 성능 근거가 생길 때만 검토한다.

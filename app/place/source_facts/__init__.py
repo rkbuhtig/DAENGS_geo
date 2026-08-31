@@ -4,8 +4,15 @@
 검증하는 순수 projection 층이며, DB·HTTP·현재 resolver에 의존하지 않는다.
 """
 
+from app.place.source_facts.bundle import CandidateFactBundle, SourceFactKey
 from app.place.source_facts.contract import SourceFactProjection
 from app.place.source_facts.kcisa import project_kcisa
 from app.place.source_facts.kto import project_kto
 
-__all__ = ["SourceFactProjection", "project_kcisa", "project_kto"]
+__all__ = [
+    "CandidateFactBundle",
+    "SourceFactKey",
+    "SourceFactProjection",
+    "project_kcisa",
+    "project_kto",
+]
