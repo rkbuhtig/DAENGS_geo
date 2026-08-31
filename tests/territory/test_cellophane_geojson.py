@@ -7,6 +7,7 @@
 import json
 import math
 from datetime import UTC, datetime, timedelta
+from itertools import pairwise
 
 import pytest
 
@@ -15,7 +16,7 @@ from app.features.territory.geojson import (
     dumps_cellophane_geojson,
     spatial_cell_id,
 )
-from app.features.territory.paint import NARROW_STEP, paint_sheet
+from app.features.territory.paint import NARROW_STEP, PaintSpec, paint_sheet
 from app.features.walk.facts import Segment
 from app.features.walk.models import WalkFix
 from app.geo.cells import hex_boundary_latlng
@@ -106,8 +107,14 @@ def test_cell_polygons_are_server_generated_closed_geojson_rings():
     assert ring[0] == ring[-1]
 
     q, r = first["properties"]["q"], first["properties"]["r"]
-    first_lat, first_lng = hex_boundary_latlng(q, r, RADIUS_U)[0]
-    assert ring[0] == [first_lng, first_lat], "GeoJSON 좌표는 [lng, lat] 순서여야 한다"
+    expected = [[lng, lat] for lat, lng in reversed(hex_boundary_latlng(q, r, RADIUS_U))]
+    expected.append(expected[0].copy())
+    assert ring == expected, "GeoJSON 좌표는 [lng, lat] 순서이고 외곽 링은 반시계여야 한다"
+    signed_area = math.fsum(
+        x1 * y2 - x2 * y1
+        for (x1, y1), (x2, y2) in pairwise(ring)
+    ) / 2
+    assert signed_area > 0
 
 
 def test_meta_exposes_exact_mass_diagnostics_and_paint_identity():
@@ -141,8 +148,30 @@ def test_cell_id_is_spatial_identity_not_paint_identity():
     cell = (12, -7)
     identifier = spatial_cell_id("hex-v1", 8.0, cell)
     assert identifier == "hex-v1:8.0:12:-7"
+    assert spatial_cell_id("hex-v1", 8, cell) == identifier
     assert spatial_cell_id("hex-v1", 15.0, cell) != identifier
     assert spatial_cell_id("hex-v2", 8.0, cell) != identifier
+
+
+def test_unknown_grid_version_fails_instead_of_using_current_geometry():
+    import dataclasses
+
+    sheet, segments, _payload_value = _payload()
+    future_spec = PaintSpec(
+        paint_version=sheet.paint_version,
+        grid_version="hex-v2",
+        radius_u=sheet.radius_u,
+        profile_name=sheet.profile,
+        profile_fp=sheet.profile_fp,
+        sample_step_m=sheet.sample_step_m,
+    )
+    future_sheet = dataclasses.replace(
+        sheet,
+        grid_version=future_spec.grid_version,
+        paint_fp=future_spec.fingerprint,
+    )
+    with pytest.raises(ValueError, match="지원하지 않는 grid_version"):
+        cellophane_feature_collection(future_sheet, segments)
 
 
 def test_cell_support_mismatch_fails_closed():
