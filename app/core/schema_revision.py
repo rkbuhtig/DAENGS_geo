@@ -81,6 +81,7 @@ LEGACY_MARKERS: tuple[LegacyMarker, ...] = (
         constraint="facility_restriction_state_v2_known",
     ),
     LegacyMarker("0020", "0020_walk_micro_observation.py", "walk_micro_observation"),
+    LegacyMarker("0021", "0021_facility_source_record.py", "facility_source_record"),
 )
 
 HEAD = LEGACY_MARKERS[-1].revision

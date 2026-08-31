@@ -117,6 +117,63 @@ KTO list + detail ─ project_kto ┘
 요청 실패, 정상 no-data를 구분하지 않기 때문이다. 상세 JSON은 있으나 scope가 없는 2행은
 `not_provided`다. 이 차이를 보존해야 나중에 수집 재시도와 검색의 “조건 미상”을 혼동하지 않는다.
 
+## PR2 shadow source record
+
+PR2는 `facility_source_record`를 추가한다. 제품 검색 행인 `facility`와 FK로 묶지 않고
+`(source, record_ref)`를 PK로 쓴다. `source_ref`는 제품 행과 연결하기 위한 별도 열이다.
+KCISA는 이름+좌표가 같은 원천 행이 여럿이라 `source_ref`를 PK로 쓰면 facility의 중복 제거가
+원천 기록까지 지운다. KCISA `record_ref`는 전체 원문 행의 결정적 SHA-256 축약 hash이고,
+KTO는 안정 `contentid`를 두 키에 같이 쓴다.
+
+KCISA의 확정 불허 행은 제품 후보에서 계속 제외되지만 필터 전 CSV 원문은 shadow에 남는다.
+2025-03-24 CSV 70,650개 물리 행은 23,980개 distinct 원문과 23,914개 제품 연결 키로
+나뉘었다. 동일 원문은 한 JSONB로 저장하되 `occurrence_count` 합계가 70,650을 보존한다.
+66개 제품 연결 키는 서로 다른 원문 variant를 두 개씩 가지고 있어, 기존 facility 중복 제거만
+보면 사라지던 차이다.
+
+실제 dual-read에서 KCISA distinct 원문 23,980개 중 2,802개는 제품 `facility`에 없었다
+(`allowed=N` 또는 개 불가). 제품 행과 연결된 원문은 21,178개이며, 이 중 66개는 제품이 고른
+원문과 다른 variant였다. 56개는 projector facts가 같았지만 **10개는 facts도 달랐다.** 따라서
+후속 resolver가 동일 `source_ref`의 여러 원문을 임의로 첫 행 선택해서는 안 된다는 측정 근거가
+생겼다. 플래그와 명시적 구역 제한이 충돌한 distinct 원문도 36개였다.
+
+| 컬럼 | 역할 |
+|---|---|
+| `listing_raw` | KCISA 전체 CSV 행 또는 KTO `petTourSyncList2` 항목 |
+| `occurrence_count` | snapshot 안에서 완전히 같은 원문 행이 반복된 횟수 |
+| `detail_raw` | 성공한 KTO `detailPetTour2` payload. 실패/no-data는 NULL |
+| `detail_state` | `not_applicable/not_fetched/fetched/no_data/fetch_failed/unknown` |
+| `snapshot`, `observed_at` | 어떤 snapshot에서 마지막으로 관측됐는지 |
+| `detail_attempted_at`, `detail_fetched_at` | 시도와 성공을 분리한 시각 |
+
+KTO 목록 재적재는 이미 얻은 detail과 상태를 보존한다. `showflag=0`처럼 제품에서 숨기는
+sync-list 항목도 shadow 목록에는 남기되, 실제 `facility`가 없는 레코드는 상세 수집 대상에서
+제외한다. 상세 요청은 다음처럼 전이한다.
+
+```text
+not_fetched ─┬─ payload ───> fetched
+             ├─ 정상 빈 응답 > no_data
+             └─ HTTP/쿼터 ─> fetch_failed ── 재시도 대상
+
+legacy pet={} ─> unknown ── 재시도 대상
+```
+
+`no_data`는 자동 재시도 대상에서 제외한다. 정상 응답으로 자료가 없었다는 사실과 일시적 실패를
+다시 합치지 않기 위해서다. 운영자가 정책을 정하면 별도 stale 기준으로 재검사할 수 있다.
+
+0021 migration은 기존 KTO `raw/pet`을 shadow로 backfill한다. 비어 있지 않은 detail 248행은
+`fetched`, 과거의 빈 `{}` 9,444행은 원인을 복원할 수 없어 `unknown`이다. backfill 직후
+dual-read 결과는 다음과 같았다.
+
+| 비교 | 일치/전체 |
+|---|---:|
+| 목록 원문 | 9,692 / 9,692 |
+| 상세 원문 | 9,692 / 9,692 |
+| projector facts | 9,692 / 9,692 |
+
+projector 결과 자체는 저장하지 않는다. 아래 측정 명령이 shadow와 현행 `facility.raw/pet`을
+같은 projector에 통과시켜 차이를 계산한다.
+
 측정은 다음 읽기 전용 명령으로 재현한다.
 
 ```bash
@@ -141,11 +198,10 @@ PR1 종료 조건은 다음과 같다.
 - 실제 KTO 저장 행 전체 projection 실패 0
 - 외부 `app/place/contracts.py`, OpenAPI, 검색 결과, ingest, schema 변경 0
 
-후속 PR은 이 순서다.
+후속 순서는 다음과 같다.
 
-1. ingest acquisition 상태와 원천 snapshot을 보존하는 shadow 저장소를 설계한다.
-2. projector 결과를 적재하지 않고 dual-read로 비교해 차이와 결측을 계측한다.
-3. purpose 후보 생성과 거리/공간 제약을 별도 단계로 둔 검색 실험을 한다.
-4. 데이터가 수백~천 건이면 PostGIS 필터 + 결정론적 predicate + 필요 시 텍스트 embedding
+1. PR2: ingest acquisition 상태와 원천 snapshot shadow 저장 — 구현.
+2. PR2: projector 결과를 적재하지 않는 dual-read 비교 — 구현.
+3. PR3: purpose 후보 생성과 거리/공간 제약을 별도 단계로 둔 검색 실험을 한다.
+4. PR3 이후: 데이터가 수백~천 건이면 PostGIS 필터 + 결정론적 predicate + 필요 시 텍스트 embedding
    rerank부터 검증한다. spatial RAG는 이 작은 후보군에서 성능 근거가 생길 때만 검토한다.
-

@@ -27,3 +27,28 @@ class ProjectionState(StrEnum):
     COMPLETE = "complete"
     PARTIAL = "partial"
     FAILED = "failed"
+
+
+class DetailAcquisitionState(StrEnum):
+    """목록과 별도인 source detail을 실제로 어떻게 획득했는가."""
+
+    NOT_APPLICABLE = "not_applicable"
+    NOT_FETCHED = "not_fetched"
+    FETCHED = "fetched"
+    NO_DATA = "no_data"
+    FETCH_FAILED = "fetch_failed"
+    # 이 테이블 이전의 `{}`처럼 과거 저장만으로 원인을 복원할 수 없는 경우다.
+    UNKNOWN = "unknown"
+
+
+def acquisition_fact_state(state: DetailAcquisitionState) -> FactState:
+    """획득 lifecycle을 값 evidence 상태로 옮기는 유일한 매핑."""
+
+    return {
+        DetailAcquisitionState.NOT_APPLICABLE: FactState.NOT_APPLICABLE,
+        DetailAcquisitionState.NOT_FETCHED: FactState.NOT_FETCHED,
+        DetailAcquisitionState.FETCHED: FactState.KNOWN,
+        DetailAcquisitionState.NO_DATA: FactState.NOT_PROVIDED,
+        DetailAcquisitionState.FETCH_FAILED: FactState.UNKNOWN,
+        DetailAcquisitionState.UNKNOWN: FactState.UNKNOWN,
+    }[state]

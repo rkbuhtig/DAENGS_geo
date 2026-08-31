@@ -7,7 +7,7 @@
 import csv
 import json
 
-from app.ingest.kcisa import concept_excluded, load_rows
+from app.ingest.kcisa import concept_excluded, load_rows, load_snapshot
 
 
 def test_allowed_n_is_excluded():
@@ -76,3 +76,47 @@ def test_loaded_pet_is_json_string(tmp_path):
     ])
     rows, *_ = load_rows(path)
     assert json.loads(rows[0]["pet"]) == {"allowed": "Y", "restrictions": "목줄"}
+
+
+def test_shadow_snapshot_keeps_rows_excluded_from_product_facility(tmp_path):
+    path = tmp_path / "kcisa.csv"
+    _write_csv(path, [
+        {"시설명": "불허미술관", "카테고리3": "미술관", "위도": "37.5", "경도": "127.1",
+         "반려동물 동반 가능정보": "N", "반려동물 제한사항": "해당없음"},
+    ])
+
+    loaded = load_snapshot(path)
+
+    assert loaded.facility_rows == []
+    assert loaded.excluded == 1
+    assert loaded.source_records[0]["listing_raw"]["반려동물 동반 가능정보"] == "N"
+
+
+def test_shadow_keeps_distinct_source_rows_that_share_product_source_ref(tmp_path):
+    path = tmp_path / "kcisa.csv"
+    _write_csv(path, [
+        {"시설명": "같은장소", "카테고리3": "카페", "위도": "37.5", "경도": "127.1",
+         "반려동물 동반 가능정보": "Y", "반려동물 제한사항": "목줄"},
+        {"시설명": "같은장소", "카테고리3": "카페", "위도": "37.5", "경도": "127.1",
+         "반려동물 동반 가능정보": "Y", "반려동물 제한사항": "야외만"},
+    ])
+
+    loaded = load_snapshot(path)
+
+    assert len(loaded.facility_rows) == 1
+    assert loaded.duplicates == 1
+    assert len(loaded.source_records) == 2
+    assert len({record["record_ref"] for record in loaded.source_records}) == 2
+    assert len({record["source_ref"] for record in loaded.source_records}) == 1
+
+
+def test_shadow_counts_physically_repeated_identical_rows(tmp_path):
+    path = tmp_path / "kcisa.csv"
+    row = {"시설명": "반복장소", "카테고리3": "카페", "위도": "37.5", "경도": "127.1",
+           "반려동물 동반 가능정보": "Y", "반려동물 제한사항": "목줄"}
+    _write_csv(path, [row, row])
+
+    loaded = load_snapshot(path)
+
+    assert len(loaded.source_records) == 1
+    assert loaded.source_records[0]["occurrence_count"] == 2
