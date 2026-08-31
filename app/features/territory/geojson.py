@@ -19,6 +19,8 @@ from app.features.walk.facts import Segment
 from app.features.walk.models import WalkFix
 from app.geo.cells import GRID_VERSION, Cell, hex_boundary_latlng
 
+CELLOPHANE_GEOJSON_VERSION = 2
+
 
 def spatial_cell_id(grid_version: str, radius_u: float, cell: Cell) -> str:
     """계산 세대와 분리된 셀의 공간 동일성.
@@ -62,6 +64,19 @@ def _chain_features(segments: list[Segment]) -> list[dict[str, object]]:
 
         coordinates = [[chain[0].a.lng, chain[0].a.lat]]
         coordinates.extend([segment.b.lng, segment.b.lat] for segment in chain)
+        durations = []
+        distances = []
+        speeds = []
+        moving = []
+        for segment in chain:
+            if not math.isfinite(segment.dt) or segment.dt <= 0:
+                raise ValueError("accepted segment dt는 유한한 양수여야 한다")
+            if not math.isfinite(segment.dist) or segment.dist < 0:
+                raise ValueError("accepted segment dist는 유한한 0 이상이어야 한다")
+            durations.append(segment.dt)
+            distances.append(segment.dist)
+            speeds.append(segment.dist / segment.dt)
+            moving.append(segment.moving)
         features.append(
             {
                 "type": "Feature",
@@ -71,6 +86,12 @@ def _chain_features(segments: list[Segment]) -> list[dict[str, object]]:
                     "chain_index": chain_index,
                     "segment_count": len(chain),
                     "source_segment_s": math.fsum(segment.dt for segment in chain),
+                    # 네 배열의 index는 LineString의 좌표 edge index와 같다. speed는 기기가
+                    # 직접 준 값이 아니라 canonical Segment의 dist / dt 파생값이다.
+                    "segment_duration_s": durations,
+                    "segment_distance_m": distances,
+                    "segment_speed_mps": speeds,
+                    "segment_moving": moving,
                 },
                 "geometry": {
                     "type": "LineString",
@@ -151,6 +172,7 @@ def cellophane_feature_collection(
     return {
         "type": "FeatureCollection",
         "meta": {
+            "cellophane_geojson_version": CELLOPHANE_GEOJSON_VERSION,
             "session_id": sheet.walk_id,
             "paint_version": sheet.paint_version,
             "paint_fp": sheet.paint_fp,
