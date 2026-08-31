@@ -9,7 +9,8 @@
     color-scheme:light;
     --ink:#18201c; --muted:#657168; --paper:#f5f4ed; --panel:#fffef9;
     --line:#d6d8cf; --green:#24735a; --green-dark:#14513e; --amber:#db8b33;
-    --bad:#b3261e; --selected:#ffb000;
+    --bad:#b3261e; --selected:#ffb000; --speed-still:#735f86; --speed-slow:#2877a8;
+    --speed-walk:#16805a; --speed-fast:#d1652f;
   }
   * { box-sizing:border-box }
   [hidden] { display:none !important }
@@ -37,6 +38,9 @@
   p { margin:6px 0 }
   .muted { color:var(--muted); font-size:12px }
   .controls { display:flex; gap:6px; margin:12px 0 }
+  .timeline-controls { display:grid; grid-template-columns:auto 1fr auto; gap:6px; align-items:center }
+  .timeline-controls input { min-width:0; width:100% }
+  #segment-position { grid-column:1 / -1; text-align:center; color:var(--muted); font-size:12px; font-variant-numeric:tabular-nums }
   button, .file-label { border:1px solid var(--line); border-radius:7px; background:#fff; color:var(--ink); padding:6px 9px; font:inherit; cursor:pointer }
   button:hover, button:focus-visible, .file-label:hover { border-color:#8b948d; background:#f3f5f1 }
   #file { position:absolute; width:1px; height:1px; opacity:0; pointer-events:none }
@@ -47,8 +51,14 @@
   dd { margin:0; overflow-wrap:anywhere }
   .empty { border:1px dashed var(--line); border-radius:8px; padding:12px; color:var(--muted); font-size:12px }
   #error { display:none; margin:10px 0; padding:8px; color:var(--bad); background:#fff0ef; border-radius:7px; font-size:12px }
-  .chain { fill:none; stroke:var(--green-dark); stroke-width:3.5; stroke-linecap:round; stroke-linejoin:round; vector-effect:non-scaling-stroke }
-  .chain.alt { stroke:var(--amber) }
+  .speed-segment { fill:none; stroke-width:4; stroke-linecap:round; vector-effect:non-scaling-stroke; cursor:pointer; outline:none }
+  .speed-segment.speed-still { stroke:var(--speed-still) }
+  .speed-segment.speed-slow { stroke:var(--speed-slow) }
+  .speed-segment.speed-walk { stroke:var(--speed-walk) }
+  .speed-segment.speed-fast { stroke:var(--speed-fast) }
+  .speed-stop-marker { fill:var(--speed-still); stroke:#fff; stroke-width:2 }
+  .speed-segment:hover, .speed-segment:focus-visible, .speed-segment.selected { stroke:var(--selected); stroke-width:6 }
+  .speed-stop-marker:hover, .speed-stop-marker:focus-visible, .speed-stop-marker.selected { fill:var(--selected); stroke:#fff; stroke-width:3 }
   .cell { stroke:rgba(20,81,62,.34); stroke-width:1; vector-effect:non-scaling-stroke; cursor:pointer; outline:none }
   .cell:hover, .cell:focus-visible { stroke:var(--selected); stroke-width:2.5 }
   .cell.selected { stroke:var(--selected); stroke-width:3 }
@@ -66,7 +76,8 @@
 </header>
 <main>
   <section class="map-shell" aria-label="Cellophane geometry">
-    <svg id="map" viewBox="0 0 1000 700" role="img" aria-label="accepted chain과 육각 셀"></svg>
+    <svg id="map" viewBox="0 0 1000 700" role="application" tabindex="0"
+      aria-label="속도별 accepted segment와 육각 셀. 방향키로 항목을 이동하고 Enter로 선택합니다"></svg>
     <div class="privacy">빈 배경 · 외부 지도 요청 없음</div>
   </section>
   <aside class="panel">
@@ -81,10 +92,31 @@
 
     <h2>Layers</h2>
     <div class="legend">
-      <span><i class="swatch" style="background:#14513e"></i>chain 0</span>
-      <span><i class="swatch" style="background:#db8b33"></i>chain 1+</span>
+      <span><i class="swatch" style="background:var(--speed-still)"></i><span id="legend-still">canonical still</span></span>
+      <span><i class="swatch" style="background:var(--speed-slow)"></i><span id="legend-slow">저속 후보</span></span>
+      <span><i class="swatch" style="background:var(--speed-walk)"></i><span id="legend-walk">일반 이동</span></span>
+      <span><i class="swatch" style="background:var(--speed-fast)"></i>≥1.5</span>
       <span><i class="swatch" style="height:12px;background:rgba(36,115,90,.45)"></i>occupancy</span>
     </div>
+
+    <h2>Segment timeline</h2>
+    <div class="timeline-controls">
+      <button type="button" id="segment-prev" aria-label="이전 구간">이전</button>
+      <input id="segment-scrubber" type="range" min="0" max="0" value="0" aria-label="시간순 구간 선택">
+      <button type="button" id="segment-next" aria-label="다음 구간">다음</button>
+      <span id="segment-position">– / –</span>
+    </div>
+
+    <h2>Selected segment</h2>
+    <div id="segment-empty" class="empty">경로 구간을 선택하면 GPS 점 사이에서 파생한 속도를 표시합니다.</div>
+    <dl id="segment-detail" hidden>
+      <dt>chain / edge</dt><dd id="s-index"></dd>
+      <dt>speed</dt><dd id="s-speed"></dd>
+      <dt>band</dt><dd id="s-band"></dd>
+      <dt>motion</dt><dd id="s-motion"></dd>
+      <dt>distance</dt><dd id="s-distance"></dd>
+      <dt>duration</dt><dd id="s-duration"></dd>
+    </dl>
 
     <h2>Selected cell</h2>
     <div id="cell-empty" class="empty">육각 셀을 선택하면 occupancy, peak, 계산 버전을 표시합니다.</div>
@@ -105,6 +137,8 @@
       <dt>grid</dt><dd id="f-grid">–</dd>
       <dt>profile</dt><dd id="f-profile">–</dd>
       <dt>sample step</dt><dd id="f-step">–</dd>
+      <dt>walk calc</dt><dd id="f-walk-calc">–</dd>
+      <dt>thresholds</dt><dd id="f-thresholds">–</dd>
     </dl>
   </aside>
 </main>
@@ -116,6 +150,10 @@ const SVG_NS = 'http://www.w3.org/2000/svg';
 const $ = (id) => document.getElementById(id);
 let currentPayload = null;
 let selectedElement = null;
+let selectedSegmentIndex = -1;
+let segmentItems = [];
+let focusItems = [];
+let focusIndex = -1;
 
 function fmt(value, digits) {
   return Number(value).toFixed(digits);
@@ -162,6 +200,10 @@ function selectCell(element, properties, meta) {
   if (selectedElement) selectedElement.classList.remove('selected');
   selectedElement = element;
   element.classList.add('selected');
+  selectedSegmentIndex = -1;
+  updateTimeline();
+  $('segment-empty').hidden = false;
+  $('segment-detail').hidden = true;
   $('cell-empty').hidden = true;
   $('cell-detail').hidden = false;
   $('d-cell-id').textContent = properties.cell_id;
@@ -172,27 +214,139 @@ function selectCell(element, properties, meta) {
   $('d-paint-fp').textContent = meta.paint_fp;
 }
 
+function speedBand(speed, moving, meta) {
+  const movingThreshold = meta.moving_speed_threshold_mps;
+  const slowThreshold = meta.slow_candidate_speed_threshold_mps;
+  if (!moving) return {className:'speed-still', label:`canonical still · < ${fmt(movingThreshold, 2)} m/s 기준`};
+  if (speed < slowThreshold) return {className:'speed-slow', label:`${fmt(movingThreshold, 2)}–${fmt(slowThreshold, 2)} m/s · 저속 후보`};
+  if (speed < 1.5) return {className:'speed-walk', label:`${fmt(slowThreshold, 2)}–1.50 m/s`};
+  return {className:'speed-fast', label:'≥ 1.5 m/s'};
+}
+
+function validateSpeedProvenance(meta) {
+  const moving = meta.moving_speed_threshold_mps;
+  const slow = meta.slow_candidate_speed_threshold_mps;
+  if (!Number.isInteger(meta.walk_calculation_version) || meta.walk_calculation_version < 1 ||
+      !Number.isFinite(moving) || moving < 0 || !Number.isFinite(slow) || slow <= moving) {
+    throw new Error('walk 계산 버전 또는 속도 threshold provenance가 유효하지 않습니다');
+  }
+}
+
+function updateTimeline() {
+  const total = segmentItems.length;
+  const scrubber = $('segment-scrubber');
+  scrubber.max = String(Math.max(0, total - 1));
+  scrubber.disabled = total === 0;
+  $('segment-prev').disabled = total === 0;
+  $('segment-next').disabled = total === 0;
+  if (selectedSegmentIndex >= 0) scrubber.value = String(selectedSegmentIndex);
+  $('segment-position').textContent = selectedSegmentIndex >= 0
+    ? `${selectedSegmentIndex + 1} / ${total}` : `– / ${total || '–'}`;
+}
+
+function registerInteractive(element, choose) {
+  const itemIndex = focusItems.length;
+  element.setAttribute('id', `map-item-${itemIndex}`);
+  element.setAttribute('tabindex', '-1');
+  element.addEventListener('click', choose);
+  element.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); choose(); }
+  });
+  focusItems.push({element, choose});
+}
+
+function selectSegmentAt(index, focus = false) {
+  if (!segmentItems.length) return;
+  const normalized = Math.max(0, Math.min(segmentItems.length - 1, index));
+  const item = segmentItems[normalized];
+  item.choose();
+  if (focus) item.element.focus();
+}
+
+function validateChainMetrics(feature) {
+  const properties = feature.properties;
+  const edgeCount = feature.geometry.coordinates.length - 1;
+  if (properties.segment_count !== edgeCount) {
+    throw new Error(`chain ${properties.chain_index}의 segment_count가 좌표 edge와 다릅니다`);
+  }
+  const keys = ['segment_duration_s', 'segment_distance_m', 'segment_speed_mps', 'segment_moving'];
+  keys.forEach((key) => {
+    if (!Array.isArray(properties[key]) || properties[key].length !== edgeCount) {
+      throw new Error(`chain ${properties.chain_index}의 ${key} 길이가 좌표 edge와 다릅니다`);
+    }
+  });
+  for (let index = 0; index < edgeCount; index += 1) {
+    const duration = properties.segment_duration_s[index];
+    const distance = properties.segment_distance_m[index];
+    const speed = properties.segment_speed_mps[index];
+    if (!Number.isFinite(duration) || duration <= 0 ||
+        !Number.isFinite(distance) || distance < 0 || !Number.isFinite(speed) || speed < 0) {
+      throw new Error(`chain ${properties.chain_index} edge ${index}의 속도 계약이 유효하지 않습니다`);
+    }
+    const expectedSpeed = distance / duration;
+    if (Math.abs(speed - expectedSpeed) > 1e-9 * Math.max(1, speed, expectedSpeed) ||
+        typeof properties.segment_moving[index] !== 'boolean') {
+      throw new Error(`chain ${properties.chain_index} edge ${index}의 파생 속도가 원천과 다릅니다`);
+    }
+  }
+}
+
+function selectSegment(element, properties, index, timelineIndex, meta) {
+  if (selectedElement) selectedElement.classList.remove('selected');
+  selectedElement = element;
+  element.classList.add('selected');
+  element.parentNode.appendChild(element);
+  selectedSegmentIndex = timelineIndex;
+  updateTimeline();
+  const speed = properties.segment_speed_mps[index];
+  $('cell-empty').hidden = false;
+  $('cell-detail').hidden = true;
+  $('segment-empty').hidden = true;
+  $('segment-detail').hidden = false;
+  $('s-index').textContent = `${properties.chain_index} / ${index}`;
+  $('s-speed').textContent = `${fmt(speed, 3)} m/s`;
+  $('s-band').textContent = speedBand(speed, properties.segment_moving[index], meta).label;
+  $('s-motion').textContent = properties.segment_moving[index] ? 'moving' : 'canonical still';
+  $('s-distance').textContent = `${fmt(properties.segment_distance_m[index], 3)} m`;
+  $('s-duration').textContent = `${fmt(properties.segment_duration_s[index], 3)} s`;
+}
+
 function render(payload) {
   if (!payload || payload.type !== 'FeatureCollection' || !payload.meta || !Array.isArray(payload.features)) {
     throw new Error('Cellophane FeatureCollection 계약이 아닙니다');
   }
   currentPayload = payload;
   selectedElement = null;
+  selectedSegmentIndex = -1;
+  segmentItems = [];
+  focusItems = [];
+  focusIndex = -1;
   $('cell-empty').hidden = false;
   $('cell-detail').hidden = true;
+  $('segment-empty').hidden = false;
+  $('segment-detail').hidden = true;
   const meta = payload.meta;
+  if (meta.cellophane_geojson_version !== 2) {
+    throw new Error('구간 속도가 없는 이전 Cellophane GeoJSON입니다. v2로 다시 생성하세요');
+  }
+  validateSpeedProvenance(meta);
   const meter = $('mass-check');
   meter.textContent = `segment ${fmt(meta.source_segment_s, 1)}s · ` +
     `painted ${fmt(meta.occupancy_mass_s, 1)}s · ` +
     `error ${fmt(meta.mass_error_s, 4)}s · ${meta.cell_count} cells`;
   meter.className = meta.mass_conserved ? 'ok' : 'bad';
-  $('paint-version').textContent = `Paint v${meta.paint_version} · ${meta.paint_fp}`;
+  $('paint-version').textContent = `GeoJSON v${meta.cellophane_geojson_version} · Paint v${meta.paint_version} · ${meta.paint_fp}`;
   $('f-session').textContent = meta.session_id;
   $('f-segments').textContent = String(meta.segment_count);
   $('f-chains').textContent = String(meta.chain_count);
   $('f-grid').textContent = `${meta.grid_version} · ${meta.radius_u}u`;
   $('f-profile').textContent = `${meta.profile_name} · ${meta.profile_fp}`;
   $('f-step').textContent = `${meta.sample_step_m} m`;
+  $('f-walk-calc').textContent = `v${meta.walk_calculation_version}`;
+  $('f-thresholds').textContent = `moving ${fmt(meta.moving_speed_threshold_mps, 2)} · slow ${fmt(meta.slow_candidate_speed_threshold_mps, 2)} m/s`;
+  $('legend-still').textContent = `canonical still (< ${fmt(meta.moving_speed_threshold_mps, 2)} m/s)`;
+  $('legend-slow').textContent = `${fmt(meta.moving_speed_threshold_mps, 2)}–${fmt(meta.slow_candidate_speed_threshold_mps, 2)} 저속 후보`;
+  $('legend-walk').textContent = `${fmt(meta.slow_candidate_speed_threshold_mps, 2)}–1.50 일반 이동`;
 
   const map = $('map');
   map.replaceChildren();
@@ -200,6 +354,7 @@ function render(payload) {
   const cells = payload.features.filter((feature) => feature.properties.kind === 'cell');
   const chains = payload.features.filter((feature) => feature.properties.kind === 'accepted_chain');
   const maxOccupancy = Math.max(...cells.map((feature) => feature.properties.occupancy_s), 0);
+  chains.forEach(validateChainMetrics);
 
   // 셀을 먼저 그려 chain이 위에 남게 한다. 색·opacity는 viewer 표현이며 payload에 저장하지 않는다.
   cells.forEach((feature) => {
@@ -211,29 +366,48 @@ function render(payload) {
       class:'cell',
       fill:'#24735a',
       'fill-opacity':0.08 + Math.sqrt(ratio) * 0.62,
-      tabindex:0,
       role:'button',
       'aria-label':`${feature.properties.cell_id}, occupancy ${feature.properties.occupancy_s}`,
     });
     const choose = () => selectCell(polygon, feature.properties, meta);
-    polygon.addEventListener('click', choose);
-    polygon.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); choose(); }
-    });
+    registerInteractive(polygon, choose);
     map.appendChild(polygon);
   });
 
   chains.forEach((feature) => {
-    const points = feature.geometry.coordinates.map(project).map((point) => point.join(',')).join(' ');
-    const chainIndex = feature.properties.chain_index;
-    const line = svgElement('polyline', {
-      points,
-      class:chainIndex === 0 ? 'chain' : 'chain alt',
-      'data-chain-index':chainIndex,
-      'aria-label':`accepted chain ${chainIndex}, ${feature.properties.segment_count} segments`,
+    const properties = feature.properties;
+    const coordinates = feature.geometry.coordinates;
+    properties.segment_speed_mps.forEach((speed, index) => {
+      const start = project(coordinates[index]);
+      const end = project(coordinates[index + 1]);
+      const moving = properties.segment_moving[index];
+      const band = speedBand(speed, moving, meta);
+      const isStop = properties.segment_distance_m[index] === 0;
+      const element = isStop ? svgElement('circle', {
+        cx:start[0], cy:start[1], r:6,
+        class:`speed-segment speed-stop-marker ${band.className}`,
+      }) : svgElement('line', {
+        x1:start[0], y1:start[1], x2:end[0], y2:end[1],
+        class:`speed-segment ${band.className}`,
+      });
+      Object.entries({
+        'data-chain-index':properties.chain_index,
+        'data-segment-index':index,
+        'data-speed-mps':speed,
+        role:'button',
+        'aria-label':`chain ${properties.chain_index} edge ${index}, speed ${fmt(speed, 3)} metres per second`,
+      }).forEach(([key, value]) => element.setAttribute(key, String(value)));
+      const title = svgElement('title', {});
+      title.textContent = `${fmt(speed, 3)} m/s · ${fmt(properties.segment_duration_s[index], 2)}s`;
+      element.appendChild(title);
+      const timelineIndex = segmentItems.length;
+      const choose = () => selectSegment(element, properties, index, timelineIndex, meta);
+      segmentItems.push({element, choose});
+      registerInteractive(element, choose);
+      map.appendChild(element);
     });
-    map.appendChild(line);
   });
+  updateTimeline();
   showError('');
 }
 
@@ -254,6 +428,34 @@ $('file').addEventListener('change', async (event) => {
   try { render(JSON.parse(await file.text())); }
   catch (error) { showError(error.message || String(error)); }
   event.target.value = '';
+});
+
+$('segment-prev').addEventListener('click', () => {
+  selectSegmentAt(selectedSegmentIndex <= 0 ? 0 : selectedSegmentIndex - 1, true);
+});
+$('segment-next').addEventListener('click', () => {
+  selectSegmentAt(selectedSegmentIndex < 0 ? 0 : selectedSegmentIndex + 1, true);
+});
+$('segment-scrubber').addEventListener('input', (event) => {
+  selectSegmentAt(Number(event.target.value));
+});
+$('map').addEventListener('keydown', (event) => {
+  const directions = ['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp', 'Home', 'End'];
+  if (!directions.includes(event.key) || !focusItems.length) return;
+  event.preventDefault();
+  const activeIndex = focusItems.findIndex((item) => item.element === document.activeElement);
+  if (activeIndex >= 0) focusIndex = activeIndex;
+  if (event.key === 'Home') focusIndex = 0;
+  else if (event.key === 'End') focusIndex = focusItems.length - 1;
+  else if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+    focusIndex = focusIndex < 0 ? 0 : (focusIndex + 1) % focusItems.length;
+  } else {
+    focusIndex = focusIndex < 0 ? focusItems.length - 1
+      : (focusIndex - 1 + focusItems.length) % focusItems.length;
+  }
+  const item = focusItems[focusIndex];
+  item.element.focus();
+  item.choose();
 });
 
 loadFixture();

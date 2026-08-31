@@ -12,13 +12,15 @@ from itertools import pairwise
 import pytest
 
 from app.features.territory.geojson import (
+    CELLOPHANE_GEOJSON_VERSION,
     cellophane_feature_collection,
     dumps_cellophane_geojson,
     spatial_cell_id,
 )
 from app.features.territory.paint import NARROW_STEP, PaintSpec, paint_sheet
-from app.features.walk.facts import Segment
-from app.features.walk.models import WalkFix
+from app.features.walk.facts import MOVING_SPEED_MPS, Segment
+from app.features.walk.models import CALCULATION_VERSION, WalkFix
+from app.features.walk.observation import CANDIDATE_SPEED_MPS
 from app.geo.cells import hex_boundary_latlng
 
 START = datetime(2026, 8, 31, 9, tzinfo=UTC)
@@ -77,6 +79,46 @@ def test_each_chain_is_its_own_linestring_without_a_bridge():
     ]
 
 
+def test_chain_edges_keep_canonical_duration_distance_and_derived_speed():
+    _sheet, _segments_input, payload = _payload()
+    chains = [feature for feature in payload["features"]
+              if feature["properties"]["kind"] == "accepted_chain"]
+
+    first = chains[0]["properties"]
+    assert first["segment_duration_s"] == [2.5, 2.5]
+    assert first["segment_distance_m"] == [4.4, 4.4]
+    assert first["segment_speed_mps"] == [pytest.approx(1.76), pytest.approx(1.76)]
+    assert first["segment_moving"] == [True, True]
+    assert all(
+        len(first[key]) == first["segment_count"]
+        for key in (
+            "segment_duration_s", "segment_distance_m",
+            "segment_speed_mps", "segment_moving",
+        )
+    )
+
+
+@pytest.mark.parametrize(("dt", "dist", "message"), [
+    (0.0, 1.0, "dt"),
+    (1.0, -1.0, "dist"),
+    (math.inf, 1.0, "dt"),
+    (1.0, math.nan, "dist"),
+])
+def test_invalid_segment_measurements_fail_instead_of_emitting_bad_speed(dt, dist, message):
+    sheet, segments, _payload_value = _payload()
+    malformed = Segment(
+        a=segments[2].a,
+        b=segments[2].b,
+        dt=dt,
+        dist=dist,
+        offset_m=segments[2].offset_m,
+        moving=segments[2].moving,
+        chain_index=segments[2].chain_index,
+    )
+    with pytest.raises(ValueError, match=message):
+        cellophane_feature_collection(sheet, [malformed])
+
+
 def test_disconnected_segments_in_one_chain_fail_instead_of_drawing_a_line():
     segments = _segments()
     disconnected = [segments[2], Segment(
@@ -124,6 +166,10 @@ def test_meta_exposes_exact_mass_diagnostics_and_paint_identity():
     occupancy_s = math.fsum(sheet.occupancy.values())
 
     assert meta["session_id"] == "session-1"
+    assert meta["cellophane_geojson_version"] == CELLOPHANE_GEOJSON_VERSION
+    assert meta["walk_calculation_version"] == CALCULATION_VERSION
+    assert meta["moving_speed_threshold_mps"] == MOVING_SPEED_MPS
+    assert meta["slow_candidate_speed_threshold_mps"] == CANDIDATE_SPEED_MPS
     assert meta["source_segment_s"] == source_s
     assert meta["occupancy_mass_s"] == occupancy_s
     assert meta["mass_error_s"] == occupancy_s - source_s

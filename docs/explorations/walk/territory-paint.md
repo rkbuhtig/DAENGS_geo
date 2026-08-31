@@ -93,9 +93,11 @@ Paint v2 부터 각 stamp 의 가중치 합을 1 로 정규화한다. 따라서 
 `LineString Feature`를 따로 내므로 break 사이를 잇지 않고, 셀 육각형과 질량 진단도 서버가
 같이 계산한다. 색상·opacity·범례는 저장값이 아니라 소비자 표현이라 포함하지 않는다.
 
-`/cellophane` — `dev_console` 뒤의 얇은 검증 화면. accepted chain, 서버가 직렬화한 육각 셀,
-선택 셀의 `occupancy_s`·`peak`·Paint version, 상단 질량 진단 한 줄만 보여준다. 외부 basemap을
-부르지 않는 빈 배경이라 로컬 artifact의 조회 영역이 지도 제공사로 나가지 않는다. fixture는
+`/cellophane` — `dev_console` 뒤의 얇은 검증 화면. accepted chain의 각 edge를 canonical
+`dist / dt` 속도 구간으로 색칠하고, 서버가 직렬화한 육각 셀과 선택 셀의
+`occupancy_s`·`peak`·Paint version, 상단 질량 진단을 함께 보여준다. 구간을 선택하면 속도,
+거리, 시간, moving 판정을 읽는다. 외부 basemap을 부르지 않는 빈 배경이라 로컬 artifact의
+조회 영역이 지도 제공사로 나가지 않는다. fixture는
 `scripts/spikes/territory_paint/cellophane_fixture.py`가 기존 산책 관통 fixture에서 만든다.
 
 `BrushProfile` 이 붓 단면이다. 현재 후보는 계단/연속 × `3·8·20` / `10·15·20`, 그리고 대조군인
