@@ -112,7 +112,10 @@ class Aggregation:
     단계에서 문턱을 하나 박으면 자기모순이다. 노브는 남기되 실험은 0 으로 돈다.
     """
 
-    metric: str = "walks"               # walks | occupancy | peak
+    # `walks | occupancy | peak`은 `render()`가 만드는 기존 canvas metric이다.
+    # `total_time | visit_rate | conditional_dwell | time_utilization | walk_utilization`은
+    # `spatial_stats.spatial_field()`가 산책별 z축을 읽는 통계 metric이다.
+    metric: str = "walks"
     min_peak: float = 0.0
 
 
