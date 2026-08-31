@@ -198,3 +198,42 @@ def test_named_function_rejects_a_mismatched_metric_receipt():
 def test_statistics_reject_invalid_peak_thresholds(threshold: float):
     with pytest.raises(ValueError, match="min_peak"):
         visit_rate_field(_three_walks(), _spec("visit_rate", threshold))
+
+
+class _ReadCountingDict(dict):
+    reads = 0
+
+    def __contains__(self, key):
+        type(self).reads += 1
+        return super().__contains__(key)
+
+    def get(self, key, default=None):
+        type(self).reads += 1
+        return super().get(key, default)
+
+
+@pytest.mark.parametrize(
+    ("metric", "calculate"),
+    [
+        ("total_time", total_time_field),
+        ("visit_rate", visit_rate_field),
+        ("conditional_dwell", conditional_dwell_field),
+        ("time_utilization", time_utilization_field),
+        ("walk_utilization", walk_utilization_field),
+    ],
+)
+def test_sparse_aggregation_reads_each_present_cell_a_constant_number_of_times(metric, calculate):
+    sheets = [
+        _sheet(
+            f"walk-{walk}",
+            walk,
+            _ReadCountingDict({(walk * 10 + cell, 0): 1.0 for cell in range(10)}),
+        )
+        for walk in range(10)
+    ]
+    _ReadCountingDict.reads = 0
+
+    result = calculate(sheets, _spec(metric))
+
+    assert len(result.values) == 100
+    assert _ReadCountingDict.reads <= 100

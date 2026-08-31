@@ -115,10 +115,6 @@ def _selection(
     return pool, select(pool, spec)
 
 
-def _cells(sheets: Iterable[Cellophane]) -> list[Cell]:
-    return sorted({cell for sheet in sheets for cell in sheet.occupancy})
-
-
 def _qualified(sheet: Cellophane, cell: Cell, min_peak: float) -> bool:
     # `min_peak=0`이어도 이 장에 아예 없는 셀은 방문이 아니다. `0 >= 0`만 검사하면 빈 장과
     # 다른 경로의 장까지 방문 분모에 들어가 모든 칠해진 셀의 방문률이 100%가 된다.
@@ -160,12 +156,16 @@ def total_time_field(sheets: Iterable[Cellophane], spec: LayerSpec) -> SpatialFi
     _require_metric(spec, "total_time")
     pool, chosen = _selection(sheets, spec)
     threshold = spec.aggregation.min_peak
-    numerators = {
-        cell: math.fsum(
-            sheet.occupancy.get(cell, 0.0) for sheet in chosen if _qualified(sheet, cell, threshold)
-        )
-        for cell in _cells(chosen)
-    }
+    numerators: dict[Cell, float] = {}
+    contributing = 0
+    for sheet in chosen:
+        sheet_contributes = False
+        for cell, amount in sheet.occupancy.items():
+            if not _qualified(sheet, cell, threshold):
+                continue
+            numerators[cell] = numerators.get(cell, 0.0) + amount
+            sheet_contributes = sheet_contributes or amount > 0
+        contributing += sheet_contributes
     numerators = {cell: value for cell, value in numerators.items() if value > 0}
     return _field(
         spec=spec,
@@ -175,14 +175,7 @@ def total_time_field(sheets: Iterable[Cellophane], spec: LayerSpec) -> SpatialFi
         denominator=None,
         selected=len(chosen),
         total=len(pool),
-        contributing=sum(
-            1
-            for sheet in chosen
-            if any(
-                amount > 0 and _qualified(sheet, cell, threshold)
-                for cell, amount in sheet.occupancy.items()
-            )
-        ),
+        contributing=contributing,
         min_peak=threshold,
         unit="s",
         normalization="none",
@@ -194,11 +187,11 @@ def visit_rate_field(sheets: Iterable[Cellophane], spec: LayerSpec) -> SpatialFi
     _require_metric(spec, "visit_rate")
     pool, chosen = _selection(sheets, spec)
     threshold = spec.aggregation.min_peak
-    counts = {
-        cell: float(sum(_qualified(sheet, cell, threshold) for sheet in chosen))
-        for cell in _cells(chosen)
-    }
-    counts = {cell: count for cell, count in counts.items() if count > 0}
+    counts: dict[Cell, float] = {}
+    for sheet in chosen:
+        for cell in sheet.occupancy:
+            if _qualified(sheet, cell, threshold):
+                counts[cell] = counts.get(cell, 0.0) + 1.0
     denominator = float(len(chosen))
     values = {cell: count / denominator for cell, count in counts.items()} if denominator else {}
     return _field(
@@ -223,15 +216,18 @@ def conditional_dwell_field(sheets: Iterable[Cellophane], spec: LayerSpec) -> Sp
     threshold = spec.aggregation.min_peak
     numerators: dict[Cell, float] = {}
     denominators: dict[Cell, float] = {}
-    for cell in _cells(chosen):
-        qualified = [sheet for sheet in chosen if _qualified(sheet, cell, threshold)]
-        if not qualified:
-            continue
-        amount = math.fsum(sheet.occupancy.get(cell, 0.0) for sheet in qualified)
-        if amount <= 0:
-            continue
-        numerators[cell] = amount
-        denominators[cell] = float(len(qualified))
+    contributing = 0
+    for sheet in chosen:
+        sheet_contributes = False
+        for cell, amount in sheet.occupancy.items():
+            if not _qualified(sheet, cell, threshold):
+                continue
+            numerators[cell] = numerators.get(cell, 0.0) + amount
+            denominators[cell] = denominators.get(cell, 0.0) + 1.0
+            sheet_contributes = sheet_contributes or amount > 0
+        contributing += sheet_contributes
+    numerators = {cell: value for cell, value in numerators.items() if value > 0}
+    denominators = {cell: denominators[cell] for cell in numerators}
     values = {cell: numerators[cell] / denominators[cell] for cell in numerators}
     return _field(
         spec=spec,
@@ -241,14 +237,7 @@ def conditional_dwell_field(sheets: Iterable[Cellophane], spec: LayerSpec) -> Sp
         denominator=denominators,
         selected=len(chosen),
         total=len(pool),
-        contributing=sum(
-            1
-            for sheet in chosen
-            if any(
-                amount > 0 and _qualified(sheet, cell, threshold)
-                for cell, amount in sheet.occupancy.items()
-            )
-        ),
+        contributing=contributing,
         min_peak=threshold,
         unit="s/visited_walk",
         normalization="visited_walks_per_cell",
@@ -261,11 +250,13 @@ def time_utilization_field(sheets: Iterable[Cellophane], spec: LayerSpec) -> Spa
     if spec.aggregation.min_peak != 0:
         raise ValueError("time_utilization은 질량을 자르지 않는 min_peak=0만 지원한다")
     pool, chosen = _selection(sheets, spec)
-    sheet_masses = [math.fsum(sheet.occupancy.values()) for sheet in chosen]
-    numerators = {
-        cell: math.fsum(sheet.occupancy.get(cell, 0.0) for sheet in chosen)
-        for cell in _cells(chosen)
-    }
+    numerators: dict[Cell, float] = {}
+    contributing = 0
+    for sheet in chosen:
+        mass = math.fsum(sheet.occupancy.values())
+        contributing += mass > 0
+        for cell, amount in sheet.occupancy.items():
+            numerators[cell] = numerators.get(cell, 0.0) + amount
     numerators = {cell: value for cell, value in numerators.items() if value > 0}
     denominator = math.fsum(numerators.values())
     values = (
@@ -279,7 +270,7 @@ def time_utilization_field(sheets: Iterable[Cellophane], spec: LayerSpec) -> Spa
         denominator=denominator,
         selected=len(chosen),
         total=len(pool),
-        contributing=sum(mass > 0 for mass in sheet_masses),
+        contributing=contributing,
         min_peak=0.0,
         unit="share",
         normalization="total_observed_time",
@@ -292,16 +283,17 @@ def walk_utilization_field(sheets: Iterable[Cellophane], spec: LayerSpec) -> Spa
     if spec.aggregation.min_peak != 0:
         raise ValueError("walk_utilization은 질량을 자르지 않는 min_peak=0만 지원한다")
     pool, chosen = _selection(sheets, spec)
-    with_mass = [
-        (sheet, math.fsum(sheet.occupancy.values())) for sheet in chosen if sheet.occupancy
-    ]
-    with_mass = [(sheet, mass) for sheet, mass in with_mass if mass > 0]
-    numerators = {
-        cell: math.fsum(sheet.occupancy.get(cell, 0.0) / mass for sheet, mass in with_mass)
-        for cell in _cells(sheet for sheet, _ in with_mass)
-    }
+    numerators: dict[Cell, float] = {}
+    contributing = 0
+    for sheet in chosen:
+        mass = math.fsum(sheet.occupancy.values())
+        if mass <= 0:
+            continue
+        contributing += 1
+        for cell, amount in sheet.occupancy.items():
+            numerators[cell] = numerators.get(cell, 0.0) + amount / mass
     numerators = {cell: value for cell, value in numerators.items() if value > 0}
-    denominator = float(len(with_mass))
+    denominator = float(contributing)
     values = (
         {cell: value / denominator for cell, value in numerators.items()} if denominator else {}
     )
@@ -313,7 +305,7 @@ def walk_utilization_field(sheets: Iterable[Cellophane], spec: LayerSpec) -> Spa
         denominator=denominator,
         selected=len(chosen),
         total=len(pool),
-        contributing=len(with_mass),
+        contributing=contributing,
         min_peak=0.0,
         unit="share",
         normalization="equal_contributing_walks",

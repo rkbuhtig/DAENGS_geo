@@ -42,6 +42,7 @@ from app.features.territory.region import Region, _point_in_ring, _projector
 from app.geo.cells import GRID_VERSION, Cell, hex_center_latlng
 
 LAYER_SPEC_VERSION = 1
+CANVAS_METRICS: frozenset[str] = frozenset({"walks", "occupancy", "peak"})
 
 # 질의층이 정하는 시간대. 생성기의 시각 분포와 **독립**이어야 파생이 검증 대상이 된다.
 TIME_BANDS: tuple[tuple[str, int, int], ...] = (
@@ -239,6 +240,11 @@ def select(sheets: Iterable[Cellophane], spec: LayerSpec) -> list[Cellophane]:
 
 def render(sheets: Iterable[Cellophane], spec: LayerSpec, note: str = "") -> Layer:
     """spec 하나 → 지도 한 장. 이 함수 밖에서 canvas 를 만들지 않는다."""
+    metric = spec.aggregation.metric
+    if metric not in CANVAS_METRICS:
+        raise ValueError(
+            f"canvas metric은 {sorted(CANVAS_METRICS)} 중 하나여야 한다: {metric!r}"
+        )
     pool = list(sheets)
     chosen = select(pool, spec)
     canvas = stack(chosen, min_peak=spec.aggregation.min_peak)
@@ -258,6 +264,10 @@ def rate_field(layer: Layer) -> dict[Cell, float]:
 def value_field(layer: Layer) -> dict[Cell, float]:
     """`aggregation.metric` 이 고른 값. `walks` 는 비율로 낸다 — 분모를 흘리지 않으려고."""
     metric = layer.spec.aggregation.metric
+    if metric not in CANVAS_METRICS:
+        raise ValueError(
+            f"canvas metric은 {sorted(CANVAS_METRICS)} 중 하나여야 한다: {metric!r}"
+        )
     if metric == "walks":
         return rate_field(layer)
     return {cell: getattr(paint, metric) for cell, paint in layer.canvas.items()}
