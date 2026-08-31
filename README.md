@@ -186,6 +186,17 @@ uv run python -m app.ingest full --kind pharmacy
 canonical kind별 검색, 주차 선호와 반려견 입장 3상태를 웹에서 확인한다. NAVER Web 서비스
 URL은 포트 없이 `http://127.0.0.1`을 등록한다. `/anchors`는 앵커 분포 전용 검증 지도다.
 
+**Cellophane Paint v2 검증 화면**은 외부 basemap 없이 chain·서버 육각형·질량 보존만 본다.
+
+```bash
+uv run python -m scripts.spikes.territory_paint.cellophane_fixture --out cellophane.json
+# DAENGS_DEV_CONSOLE=true 로 서버 실행 후 http://127.0.0.1:8000/cellophane
+```
+
+상단의 `segment · painted · error · cells` 한 줄이 계산 무결성이고, 육각 셀을 선택하면
+`occupancy_s` · `peak` · Paint version을 확인할 수 있다. JSON 열기로 로컬 artifact도 읽지만
+파일을 업로드하거나 외부 지도 제공사에 조회 영역을 보내지 않는다.
+
 현재 공급자 선택·폴백·교체 실험 방법은 [`docs/provider-assembly.md`](docs/provider-assembly.md)에
 한 표로 관리한다. 현재 실제 조립 범위는 NAVER Dynamic Map + Static Map이고, 검색은 PostGIS,
 지오코딩과 실제 경로 공급자는 보류다.

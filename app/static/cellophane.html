@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cellophane Paint v2 — 검증 표면</title>
+<style>
+  :root {
+    color-scheme:light;
+    --ink:#18201c; --muted:#657168; --paper:#f5f4ed; --panel:#fffef9;
+    --line:#d6d8cf; --green:#24735a; --green-dark:#14513e; --amber:#db8b33;
+    --bad:#b3261e; --selected:#ffb000;
+  }
+  * { box-sizing:border-box }
+  html, body { margin:0; min-height:100%; font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif; color:var(--ink) }
+  body { background:var(--paper); display:grid; grid-template-rows:auto 1fr }
+  .meter {
+    min-height:48px; display:flex; align-items:center; justify-content:space-between; gap:16px;
+    padding:10px 16px; border-bottom:1px solid var(--line); background:var(--panel);
+    font-variant-numeric:tabular-nums;
+  }
+  .meter strong { letter-spacing:-.2px }
+  .meter .ok { color:var(--green-dark) }
+  .meter .bad { color:var(--bad) }
+  .version { color:var(--muted); font-size:12px; white-space:nowrap }
+  main { min-height:0; display:grid; grid-template-columns:minmax(0,1fr) 310px; gap:12px; padding:12px }
+  .map-shell { position:relative; min-height:520px; background:#fbfaf4; border:1px solid var(--line); border-radius:12px; overflow:hidden }
+  #map { display:block; width:100%; height:100%; min-height:520px; background:
+    linear-gradient(rgba(35,56,47,.035) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(35,56,47,.035) 1px,transparent 1px), #fbfaf4;
+    background-size:32px 32px; }
+  .privacy { position:absolute; right:10px; bottom:8px; color:var(--muted); font-size:11px; background:rgba(255,254,249,.86); padding:3px 6px; border-radius:4px }
+  .panel { min-height:0; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px; overflow:auto }
+  h1 { margin:0; font-size:16px }
+  h2 { margin:16px 0 7px; font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted) }
+  p { margin:6px 0 }
+  .muted { color:var(--muted); font-size:12px }
+  .controls { display:flex; gap:6px; margin:12px 0 }
+  button, .file-label { border:1px solid var(--line); border-radius:7px; background:#fff; color:var(--ink); padding:6px 9px; font:inherit; cursor:pointer }
+  button:hover, button:focus-visible, .file-label:hover { border-color:#8b948d; background:#f3f5f1 }
+  #file { position:absolute; width:1px; height:1px; opacity:0; pointer-events:none }
+  .legend { display:flex; flex-wrap:wrap; gap:10px; font-size:12px }
+  .swatch { display:inline-block; width:14px; height:4px; margin-right:5px; vertical-align:2px; border-radius:2px }
+  dl { display:grid; grid-template-columns:92px 1fr; gap:5px 8px; margin:0; font-variant-numeric:tabular-nums }
+  dt { color:var(--muted) }
+  dd { margin:0; overflow-wrap:anywhere }
+  .empty { border:1px dashed var(--line); border-radius:8px; padding:12px; color:var(--muted); font-size:12px }
+  #error { display:none; margin:10px 0; padding:8px; color:var(--bad); background:#fff0ef; border-radius:7px; font-size:12px }
+  .chain { fill:none; stroke:var(--green-dark); stroke-width:3.5; stroke-linecap:round; stroke-linejoin:round; vector-effect:non-scaling-stroke }
+  .chain.alt { stroke:var(--amber) }
+  .cell { stroke:rgba(20,81,62,.34); stroke-width:1; vector-effect:non-scaling-stroke; cursor:pointer; outline:none }
+  .cell:hover, .cell:focus-visible { stroke:var(--selected); stroke-width:2.5 }
+  .cell.selected { stroke:var(--selected); stroke-width:3 }
+  @media (max-width:760px) {
+    main { grid-template-columns:1fr; grid-template-rows:minmax(430px,58vh) auto }
+    .map-shell, #map { min-height:430px }
+    .meter { align-items:flex-start; flex-direction:column; gap:2px }
+  }
+</style>
+</head>
+<body>
+<header class="meter">
+  <strong id="mass-check">segment – · painted – · error – · – cells</strong>
+  <span class="version" id="paint-version">Paint –</span>
+</header>
+<main>
+  <section class="map-shell" aria-label="Cellophane geometry">
+    <svg id="map" viewBox="0 0 1000 700" role="img" aria-label="accepted chain과 육각 셀"></svg>
+    <div class="privacy">빈 배경 · 외부 지도 요청 없음</div>
+  </section>
+  <aside class="panel">
+    <h1>Cellophane Paint v2</h1>
+    <p class="muted">canonical segment와 서버 육각형을 그대로 읽는 개발 검증 화면입니다.</p>
+    <div class="controls">
+      <button type="button" id="reload">fixture 다시 읽기</button>
+      <label class="file-label" for="file">JSON 열기</label>
+      <input id="file" type="file" accept="application/geo+json,application/json,.json">
+    </div>
+    <div id="error" role="alert"></div>
+
+    <h2>Layers</h2>
+    <div class="legend">
+      <span><i class="swatch" style="background:#14513e"></i>chain 0</span>
+      <span><i class="swatch" style="background:#db8b33"></i>chain 1+</span>
+      <span><i class="swatch" style="height:12px;background:rgba(36,115,90,.45)"></i>occupancy</span>
+    </div>
+
+    <h2>Selected cell</h2>
+    <div id="cell-empty" class="empty">육각 셀을 선택하면 occupancy, peak, 계산 버전을 표시합니다.</div>
+    <dl id="cell-detail" hidden>
+      <dt>cell_id</dt><dd id="d-cell-id"></dd>
+      <dt>q / r</dt><dd id="d-qr"></dd>
+      <dt>occupancy</dt><dd id="d-occupancy"></dd>
+      <dt>peak</dt><dd id="d-peak"></dd>
+      <dt>paint version</dt><dd id="d-version"></dd>
+      <dt>paint_fp</dt><dd id="d-paint-fp"></dd>
+    </dl>
+
+    <h2>Fixture</h2>
+    <dl id="fixture-detail">
+      <dt>session</dt><dd id="f-session">–</dd>
+      <dt>segments</dt><dd id="f-segments">–</dd>
+      <dt>chains</dt><dd id="f-chains">–</dd>
+      <dt>grid</dt><dd id="f-grid">–</dd>
+      <dt>profile</dt><dd id="f-profile">–</dd>
+      <dt>sample step</dt><dd id="f-step">–</dd>
+    </dl>
+  </aside>
+</main>
+<script>
+'use strict';
+
+const DATA_URL = '/cellophane/data';
+const SVG_NS = 'http://www.w3.org/2000/svg';
+const $ = (id) => document.getElementById(id);
+let currentPayload = null;
+let selectedElement = null;
+
+function fmt(value, digits) {
+  return Number(value).toFixed(digits);
+}
+
+function showError(message) {
+  $('error').textContent = message;
+  $('error').style.display = message ? 'block' : 'none';
+}
+
+function coordinateList(feature) {
+  const geometry = feature.geometry || {};
+  if (geometry.type === 'LineString') return geometry.coordinates || [];
+  if (geometry.type === 'Polygon') return (geometry.coordinates || []).flat();
+  return [];
+}
+
+function projector(features) {
+  const points = features.flatMap(coordinateList);
+  if (!points.length) throw new Error('표시할 GeoJSON 좌표가 없습니다');
+  const middleLat = points.reduce((sum, point) => sum + point[1], 0) / points.length;
+  const lngScale = Math.cos(middleLat * Math.PI / 180);
+  const xs = points.map((point) => point[0] * lngScale);
+  const ys = points.map((point) => point[1]);
+  const minX = Math.min(...xs), maxX = Math.max(...xs);
+  const minY = Math.min(...ys), maxY = Math.max(...ys);
+  const spanX = Math.max(maxX - minX, 1e-9), spanY = Math.max(maxY - minY, 1e-9);
+  const scale = Math.min(900 / spanX, 600 / spanY);
+  const usedW = spanX * scale, usedH = spanY * scale;
+  const left = (1000 - usedW) / 2, top = (700 - usedH) / 2;
+  return (point) => [
+    left + (point[0] * lngScale - minX) * scale,
+    top + (maxY - point[1]) * scale,
+  ];
+}
+
+function svgElement(name, attributes) {
+  const node = document.createElementNS(SVG_NS, name);
+  Object.entries(attributes).forEach(([key, value]) => node.setAttribute(key, String(value)));
+  return node;
+}
+
+function selectCell(element, properties, meta) {
+  if (selectedElement) selectedElement.classList.remove('selected');
+  selectedElement = element;
+  element.classList.add('selected');
+  $('cell-empty').hidden = true;
+  $('cell-detail').hidden = false;
+  $('d-cell-id').textContent = properties.cell_id;
+  $('d-qr').textContent = `${properties.q} / ${properties.r}`;
+  $('d-occupancy').textContent = `${fmt(properties.occupancy_s, 4)} s`;
+  $('d-peak').textContent = fmt(properties.peak, 3);
+  $('d-version').textContent = String(meta.paint_version);
+  $('d-paint-fp').textContent = meta.paint_fp;
+}
+
+function render(payload) {
+  if (!payload || payload.type !== 'FeatureCollection' || !payload.meta || !Array.isArray(payload.features)) {
+    throw new Error('Cellophane FeatureCollection 계약이 아닙니다');
+  }
+  currentPayload = payload;
+  selectedElement = null;
+  $('cell-empty').hidden = false;
+  $('cell-detail').hidden = true;
+  const meta = payload.meta;
+  const meter = $('mass-check');
+  meter.textContent = `segment ${fmt(meta.source_segment_s, 1)}s · ` +
+    `painted ${fmt(meta.occupancy_mass_s, 1)}s · ` +
+    `error ${fmt(meta.mass_error_s, 4)}s · ${meta.cell_count} cells`;
+  meter.className = meta.mass_conserved ? 'ok' : 'bad';
+  $('paint-version').textContent = `Paint v${meta.paint_version} · ${meta.paint_fp}`;
+  $('f-session').textContent = meta.session_id;
+  $('f-segments').textContent = String(meta.segment_count);
+  $('f-chains').textContent = String(meta.chain_count);
+  $('f-grid').textContent = `${meta.grid_version} · ${meta.radius_u}u`;
+  $('f-profile').textContent = `${meta.profile_name} · ${meta.profile_fp}`;
+  $('f-step').textContent = `${meta.sample_step_m} m`;
+
+  const map = $('map');
+  map.replaceChildren();
+  const project = projector(payload.features);
+  const cells = payload.features.filter((feature) => feature.properties.kind === 'cell');
+  const chains = payload.features.filter((feature) => feature.properties.kind === 'accepted_chain');
+  const maxOccupancy = Math.max(...cells.map((feature) => feature.properties.occupancy_s), 0);
+
+  // 셀을 먼저 그려 chain이 위에 남게 한다. 색·opacity는 viewer 표현이며 payload에 저장하지 않는다.
+  cells.forEach((feature) => {
+    const ring = feature.geometry.coordinates[0];
+    const points = ring.map(project).map((point) => point.join(',')).join(' ');
+    const ratio = maxOccupancy ? feature.properties.occupancy_s / maxOccupancy : 0;
+    const polygon = svgElement('polygon', {
+      points,
+      class:'cell',
+      fill:'#24735a',
+      'fill-opacity':0.08 + Math.sqrt(ratio) * 0.62,
+      tabindex:0,
+      role:'button',
+      'aria-label':`${feature.properties.cell_id}, occupancy ${feature.properties.occupancy_s}`,
+    });
+    const choose = () => selectCell(polygon, feature.properties, meta);
+    polygon.addEventListener('click', choose);
+    polygon.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); choose(); }
+    });
+    map.appendChild(polygon);
+  });
+
+  chains.forEach((feature) => {
+    const points = feature.geometry.coordinates.map(project).map((point) => point.join(',')).join(' ');
+    const chainIndex = feature.properties.chain_index;
+    const line = svgElement('polyline', {
+      points,
+      class:chainIndex === 0 ? 'chain' : 'chain alt',
+      'data-chain-index':chainIndex,
+      'aria-label':`accepted chain ${chainIndex}, ${feature.properties.segment_count} segments`,
+    });
+    map.appendChild(line);
+  });
+  showError('');
+}
+
+async function loadFixture() {
+  try {
+    const response = await fetch(DATA_URL, {cache:'no-store'});
+    if (!response.ok) throw new Error(`fixture HTTP ${response.status}`);
+    render(await response.json());
+  } catch (error) {
+    showError(`${error.message || error}. cellophane.json을 생성하거나 JSON 열기를 사용하세요.`);
+  }
+}
+
+$('reload').addEventListener('click', loadFixture);
+$('file').addEventListener('change', async (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+  try { render(JSON.parse(await file.text())); }
+  catch (error) { showError(error.message || String(error)); }
+  event.target.value = '';
+});
+
+loadFixture();
+</script>
+</body>
+</html>
