@@ -173,21 +173,32 @@ def _fallback_targets(
     return ()
 
 
-def _fallback_observation_id(intent: KindIntent | PurposeIntent) -> str:
+def _fallback_observation_id(
+    interpretation_index: int,
+    intent: KindIntent | PurposeIntent,
+) -> str:
     if isinstance(intent, KindIntent):
-        return f"product-fallback-kind-{intent.kind.value}"
-    return f"product-fallback-purpose-{intent.purpose_id.value}"
+        suffix = f"kind-{intent.kind.value}"
+    else:
+        suffix = f"purpose-{intent.purpose_id.value}"
+    return f"product-fallback-interpretation-{interpretation_index}-{suffix}"
 
 
-def _fallback_candidate_key(intent: KindIntent | PurposeIntent) -> str:
+def _fallback_candidate_key(
+    interpretation_index: int,
+    intent: KindIntent | PurposeIntent,
+) -> str:
     if isinstance(intent, KindIntent):
-        return f"fallback:kind:{intent.kind.value}"
-    return f"fallback:purpose:{intent.purpose_id.value}"
+        suffix = f"kind:{intent.kind.value}"
+    else:
+        suffix = f"purpose:{intent.purpose_id.value}"
+    return f"interpretation:{interpretation_index}:fallback:{suffix}"
 
 
 def _product_fallbacks(
     observations: tuple[IntentObservation, ...],
     *,
+    interpretation_index: int,
     spatial: PlaceSpatialConstraint,
     limit_per_kind: int,
     conditions: PlaceSearchConditions | None,
@@ -205,7 +216,7 @@ def _product_fallbacks(
     candidates = []
     for target in targets:
         assert isinstance(target, (KindIntent, PurposeIntent))
-        fallback_id = _fallback_observation_id(target)
+        fallback_id = _fallback_observation_id(interpretation_index, target)
         target_observation = observe_intent(
             IntentProposal(role=IntentRole.REQUIRED_TARGET, intent=target),
             IntentSource.RULE_INFERENCE,
@@ -217,11 +228,9 @@ def _product_fallbacks(
             limit_per_kind=limit_per_kind,
             conditions=conditions,
         )
-        if result.status is not PlannerStatus.READY:
-            continue
         candidates.append(
             IntentPlanCandidate(
-                candidate_key=_fallback_candidate_key(target),
+                candidate_key=_fallback_candidate_key(interpretation_index, target),
                 basis=SuggestionBasis.PRODUCT_FALLBACK,
                 basis_observation_ids=basis_ids,
                 result=result,
@@ -259,10 +268,8 @@ def compile_intent_suggestions(
         return _abstention_outcome(output)
 
     candidates: list[IntentPlanCandidate] = []
-    all_observations: list[IntentObservation] = []
     for index, interpretation in enumerate(output.interpretations, start=1):
         observations = interpretation.observations
-        all_observations.extend(observations)
         candidates.append(
             IntentPlanCandidate(
                 candidate_key=f"interpretation:{index}",
@@ -293,28 +300,43 @@ def compile_intent_suggestions(
             rejected=rejected,
         )
 
-    fallbacks = _product_fallbacks(
-        tuple(all_observations),
-        spatial=spatial,
-        limit_per_kind=limit_per_kind,
-        conditions=conditions,
+    fallback_candidates = tuple(
+        fallback
+        for index, interpretation in enumerate(output.interpretations, start=1)
+        for fallback in _product_fallbacks(
+            interpretation.observations,
+            interpretation_index=index,
+            spatial=spatial,
+            limit_per_kind=limit_per_kind,
+            conditions=conditions,
+        )
     )
-    if fallbacks:
+    fallback_ready = tuple(
+        item for item in fallback_candidates if item.result.status is PlannerStatus.READY
+    )
+    fallback_rejected = tuple(
+        item for item in fallback_candidates if item.result.status is not PlannerStatus.READY
+    )
+    all_rejected = (*rejected, *fallback_rejected)
+    if fallback_ready:
         return IntentSuggestionOutcome(
             status=PlannerStatus.READY,
             resolution=SuggestionResolution.EXPLORATORY,
             source_disposition=output.disposition,
-            suggestions=fallbacks,
-            rejected=rejected,
+            suggestions=fallback_ready,
+            rejected=all_rejected,
         )
 
     status = (
         PlannerStatus.NEEDS_CLARIFICATION
-        if any(item.result.status is PlannerStatus.NEEDS_CLARIFICATION for item in rejected)
+        if any(
+            item.result.status is PlannerStatus.NEEDS_CLARIFICATION
+            for item in all_rejected
+        )
         else PlannerStatus.UNSUPPORTED
     )
     return IntentSuggestionOutcome(
         status=status,
         source_disposition=output.disposition,
-        rejected=rejected,
+        rejected=all_rejected,
     )

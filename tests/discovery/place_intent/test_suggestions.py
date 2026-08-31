@@ -196,9 +196,9 @@ def test_allowlisted_soft_semantic_gets_default_leisure_groups_and_keeps_prefere
     assert outcome.resolution is SuggestionResolution.EXPLORATORY
     assert len(outcome.suggestions) == 3
     assert [item.candidate_key for item in outcome.suggestions] == [
-        "fallback:purpose:dining",
-        "fallback:purpose:outing",
-        "fallback:purpose:culture",
+        "interpretation:1:fallback:purpose:dining",
+        "interpretation:1:fallback:purpose:outing",
+        "interpretation:1:fallback:purpose:culture",
     ]
     assert all(item.result.plan is not None for item in outcome.suggestions)
     assert all(
@@ -206,6 +206,85 @@ def test_allowlisted_soft_semantic_gets_default_leisure_groups_and_keeps_prefere
         for item in outcome.suggestions
     )
     assert outcome.rejected[0].result.unsupported[0].code == "unsupported_semantic_intent"
+
+
+def test_ambiguous_fallbacks_keep_each_interpretations_preferences_and_evidence() -> None:
+    output = _materialize(
+        "카페 같은 곳에 주차되면 좋고 아니면 나들이 갈까",
+        (
+            _proposal(
+                IntentRole.ANALOGY,
+                KindIntent(kind=PlaceKind.CAFE),
+                "카페 같은",
+            ),
+            _proposal(
+                IntentRole.PREFERENCE,
+                BooleanCapabilityIntent(
+                    capability_id=CapabilityId.OPERATIONS_PARKING,
+                    value=True,
+                ),
+                "주차되면 좋고",
+            ),
+        ),
+        (
+            _proposal(
+                IntentRole.HYPOTHETICAL,
+                PurposeIntent(purpose_id=PurposeId.OUTING),
+                "나들이 갈까",
+            ),
+        ),
+        disposition=ProposalDisposition.AMBIGUOUS,
+    )
+
+    outcome = _compile(output)
+
+    assert [item.candidate_key for item in outcome.suggestions] == [
+        "interpretation:1:fallback:kind:cafe",
+        "interpretation:2:fallback:purpose:outing",
+    ]
+    cafe, outing = outcome.suggestions
+    assert cafe.basis_observation_ids == ("llm-test-1", "llm-test-2")
+    assert outing.basis_observation_ids == ("llm-test-3",)
+    assert cafe.result.plan is not None and outing.result.plan is not None
+    assert any(
+        gate.capability_id is CapabilityId.OPERATIONS_PARKING
+        for gate in cafe.result.plan.gates
+    )
+    assert all(
+        gate.capability_id is not CapabilityId.OPERATIONS_PARKING
+        for gate in outing.result.plan.gates
+    )
+
+
+def test_failed_product_fallback_remains_visible_as_rejected() -> None:
+    output = _materialize(
+        "조용한 곳",
+        (
+            _proposal(
+                IntentRole.REQUIRED_TARGET,
+                SemanticIntent(concept_id="semantic.quiet"),
+                "조용한 곳",
+            ),
+        ),
+    )
+
+    outcome = compile_intent_suggestions(
+        output,
+        spatial=_SPATIAL,
+        limit_per_kind=2000,
+    )
+
+    assert [item.candidate_key for item in outcome.suggestions] == [
+        "interpretation:1:fallback:purpose:dining",
+        "interpretation:1:fallback:purpose:outing",
+    ]
+    assert [item.candidate_key for item in outcome.rejected] == [
+        "interpretation:1",
+        "interpretation:1:fallback:purpose:culture",
+    ]
+    failed = outcome.rejected[-1].result
+    assert failed.status is PlannerStatus.NEEDS_CLARIFICATION
+    assert failed.clarifications[0].code == "result_budget_exceeded"
 
 
 @pytest.mark.parametrize(
