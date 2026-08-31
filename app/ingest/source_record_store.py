@@ -25,19 +25,39 @@ ON CONFLICT (source, record_ref) DO UPDATE SET
     snapshot = EXCLUDED.snapshot,
     observed_at = EXCLUDED.observed_at,
     detail_raw = CASE
-        WHEN :preserve_detail THEN facility_source_record.detail_raw
+        WHEN :preserve_detail AND (
+            CAST(:detail_version_field AS text) IS NULL
+            OR (facility_source_record.listing_raw ->> CAST(:detail_version_field AS text))
+               IS NOT DISTINCT FROM
+               (EXCLUDED.listing_raw ->> CAST(:detail_version_field AS text))
+        ) THEN facility_source_record.detail_raw
         ELSE EXCLUDED.detail_raw
     END,
     detail_state = CASE
-        WHEN :preserve_detail THEN facility_source_record.detail_state
+        WHEN :preserve_detail AND (
+            CAST(:detail_version_field AS text) IS NULL
+            OR (facility_source_record.listing_raw ->> CAST(:detail_version_field AS text))
+               IS NOT DISTINCT FROM
+               (EXCLUDED.listing_raw ->> CAST(:detail_version_field AS text))
+        ) THEN facility_source_record.detail_state
         ELSE EXCLUDED.detail_state
     END,
     detail_attempted_at = CASE
-        WHEN :preserve_detail THEN facility_source_record.detail_attempted_at
+        WHEN :preserve_detail AND (
+            CAST(:detail_version_field AS text) IS NULL
+            OR (facility_source_record.listing_raw ->> CAST(:detail_version_field AS text))
+               IS NOT DISTINCT FROM
+               (EXCLUDED.listing_raw ->> CAST(:detail_version_field AS text))
+        ) THEN facility_source_record.detail_attempted_at
         ELSE NULL
     END,
     detail_fetched_at = CASE
-        WHEN :preserve_detail THEN facility_source_record.detail_fetched_at
+        WHEN :preserve_detail AND (
+            CAST(:detail_version_field AS text) IS NULL
+            OR (facility_source_record.listing_raw ->> CAST(:detail_version_field AS text))
+               IS NOT DISTINCT FROM
+               (EXCLUDED.listing_raw ->> CAST(:detail_version_field AS text))
+        ) THEN facility_source_record.detail_fetched_at
         ELSE NULL
     END
 """)
@@ -52,8 +72,12 @@ async def upsert_source_records(
     *,
     detail_state: DetailAcquisitionState,
     preserve_detail: bool,
+    detail_version_field: str | None = None,
 ) -> int:
-    """목록/CSV 원문을 UPSERT한다. KTO 재목록은 이미 얻은 상세를 보존한다."""
+    """목록/CSV 원문을 UPSERT한다.
+
+    상세를 보존하는 원천도 version 필드가 바뀌면 새 목록에 맞춰 미수집 상태로 되돌린다.
+    """
 
     if detail_state not in {
         DetailAcquisitionState.NOT_APPLICABLE,
@@ -71,6 +95,7 @@ async def upsert_source_records(
             "snapshot": snapshot,
             "observed_at": observed_at,
             "preserve_detail": preserve_detail,
+            "detail_version_field": detail_version_field,
         }
         for record in records
     ]

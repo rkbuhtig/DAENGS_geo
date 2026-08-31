@@ -107,9 +107,7 @@ async def fetch_pet_detail(client: httpx.AsyncClient, content_id: str) -> Detail
     상세는 보강이지 본체가 아니다 — 상세 실패로 적재 전체가 죽으면 안 된다.
     """
     for attempt in range(4):
-        r = await client.get(
-            f"{BASE_URL}/detailPetTour2", params=_params(contentId=content_id)
-        )
+        r = await client.get(f"{BASE_URL}/detailPetTour2", params=_params(contentId=content_id))
         if r.status_code == 429:
             await asyncio.sleep(1.0 * (2**attempt))
             continue
@@ -164,7 +162,7 @@ def parse_item(item: dict) -> dict | None:
         "parking": None,
         "indoor": None,
         "outdoor": None,
-        "pet": "{}",                          # 빈 상세는 기존 상세를 덮지 않는다
+        "pet": "{}",  # 빈 상세는 기존 상세를 덮지 않는다
         "lat": lat,
         "lng": lng,
         "last_written": written,
@@ -205,12 +203,24 @@ async def _missing_detail_refs(session: AsyncSession, limit: int) -> list[str]:
     return await pending_detail_refs(session, "kto", limit, require_facility=True)
 
 
+async def _prune_after_listing(
+    session: AsyncSession, mode: str, observed_at: datetime
+) -> tuple[int, int]:
+    """제품은 full에서만, 전량 관측한 shadow는 성공한 매 실행마다 정리한다."""
+
+    product_pruned = await prune_unseen(session, "kto", observed_at) if mode == "full" else 0
+    source_pruned = await prune_source_records(session, "kto", observed_at)
+    return product_pruned, source_pruned
+
+
 async def _run(mode: str, details: int) -> None:
     synced_at = datetime.now(UTC)
     async with SessionLocal() as session:
-        prior = (await session.execute(
-            text("SELECT watermark FROM ingest_state WHERE source = :s"), {"s": SOURCE}
-        )).scalar_one_or_none()
+        prior = (
+            await session.execute(
+                text("SELECT watermark FROM ingest_state WHERE source = :s"), {"s": SOURCE}
+            )
+        ).scalar_one_or_none()
 
         async with httpx.AsyncClient(timeout=20.0) as client:
             items = await fetch_sync_list(client)
@@ -228,6 +238,7 @@ async def _run(mode: str, details: int) -> None:
                 synced_at,
                 detail_state=DetailAcquisitionState.NOT_FETCHED,
                 preserve_detail=True,
+                detail_version_field="modifiedtime",
             )
 
             rows = all_rows
@@ -246,11 +257,8 @@ async def _run(mode: str, details: int) -> None:
                 synced_at,
                 preserve_empty_pet=True,
             )
-            # full 에서만 정리한다. 증분은 안 바뀐 행을 안 건드리므로 prune 하면 다 지워진다.
-            pruned = await prune_unseen(session, "kto", synced_at) if mode == "full" else 0
-            source_pruned = (
-                await prune_source_records(session, "kto", synced_at) if mode == "full" else 0
-            )
+            # 제품 rows는 증분 필터를 거쳤지만 raw_records는 매번 전체 목록을 관측했다.
+            pruned, source_pruned = await _prune_after_listing(session, mode, synced_at)
 
             got_details = 0
             detail_no_data = 0
@@ -329,8 +337,12 @@ async def _run(mode: str, details: int) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description="관광공사 반려동물 동반여행을 facility에 적재")
     parser.add_argument("--mode", choices=("incremental", "full"), default="incremental")
-    parser.add_argument("--details", type=int, default=0,
-                        help="detailPetTour2 보강 상한 (건당 1호출 — 일일 트래픽 주의)")
+    parser.add_argument(
+        "--details",
+        type=int,
+        default=0,
+        help="detailPetTour2 보강 상한 (건당 1호출 — 일일 트래픽 주의)",
+    )
     args = parser.parse_args()
     if not settings.kto_service_key:
         raise SystemExit("DAENGS_KTO_SERVICE_KEY is required")

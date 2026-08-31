@@ -171,20 +171,21 @@ def load_snapshot(path: Path) -> LoadedSnapshot:
     seen: set[str] = set()
     with path.open(encoding="utf-8-sig", newline="") as f:
         for row in csv.DictReader(f):
-            item = parse_row(row)
-            if item is None:
-                rejected += 1
-                continue
             record_ref = source_record_ref(row)
+            item = parse_row(row)
+            record_source_ref = item["source_ref"] if item is not None else f"unlinked:{record_ref}"
             if record_ref in source_records:
                 source_records[record_ref]["occurrence_count"] += 1
             else:
                 source_records[record_ref] = {
                     "record_ref": record_ref,
-                    "source_ref": item["source_ref"],
+                    "source_ref": record_source_ref,
                     "listing_raw": dict(row),
                     "occurrence_count": 1,
                 }
+            if item is None:
+                rejected += 1
+                continue
             if concept_excluded(item["pet"]):
                 excluded += 1
                 continue
@@ -257,11 +258,19 @@ async def _run(csv_path: Path, snapshot: str) -> None:
             session, loaded.facility_rows, loaded.source_records, snapshot
         )
         await session.commit()
-    print(json.dumps(
-        {"source": SOURCE, "snapshot": snapshot, "rejected": loaded.rejected,
-         "duplicates": loaded.duplicates, "concept_excluded": loaded.excluded, **stats},
-        ensure_ascii=False,
-    ))
+    print(
+        json.dumps(
+            {
+                "source": SOURCE,
+                "snapshot": snapshot,
+                "rejected": loaded.rejected,
+                "duplicates": loaded.duplicates,
+                "concept_excluded": loaded.excluded,
+                **stats,
+            },
+            ensure_ascii=False,
+        )
+    )
 
 
 def main() -> None:

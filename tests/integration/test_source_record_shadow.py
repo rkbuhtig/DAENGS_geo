@@ -91,9 +91,7 @@ async def test_detail_queue_can_exclude_shadow_only_records() -> None:
             )
 
             assert await pending_detail_refs(session, SOURCE, 10) == ["hidden"]
-            assert await pending_detail_refs(
-                session, SOURCE, 10, require_facility=True
-            ) == []
+            assert await pending_detail_refs(session, SOURCE, 10, require_facility=True) == []
         finally:
             await _clean(session)
 
@@ -103,14 +101,17 @@ async def test_kto_relisting_preserves_fetched_detail_and_state() -> None:
         await _clean(session)
         try:
             first = datetime.now(UTC)
+            first_records = _records("1")
+            first_records[0]["listing_raw"]["modifiedtime"] = "20260831010000"
             await upsert_source_records(
                 session,
                 SOURCE,
-                _records("1"),
+                first_records,
                 "2026-08-31",
                 first,
                 detail_state=DetailAcquisitionState.NOT_FETCHED,
                 preserve_detail=True,
+                detail_version_field="modifiedtime",
             )
             await record_detail_result(
                 session,
@@ -124,6 +125,7 @@ async def test_kto_relisting_preserves_fetched_detail_and_state() -> None:
             second = first + timedelta(minutes=1)
             changed = _records("1")
             changed[0]["listing_raw"]["title"] = "바뀐 장소"
+            changed[0]["listing_raw"]["modifiedtime"] = "20260831010000"
             await upsert_source_records(
                 session,
                 SOURCE,
@@ -132,6 +134,7 @@ async def test_kto_relisting_preserves_fetched_detail_and_state() -> None:
                 second,
                 detail_state=DetailAcquisitionState.NOT_FETCHED,
                 preserve_detail=True,
+                detail_version_field="modifiedtime",
             )
             await session.commit()
 
@@ -150,6 +153,66 @@ async def test_kto_relisting_preserves_fetched_detail_and_state() -> None:
             assert row.detail_raw == {"acmpyTypeCd": "전구역 동반가능"}
             assert row.detail_state == "fetched"
             assert row.detail_attempted_at == row.detail_fetched_at
+        finally:
+            await _clean(session)
+
+
+async def test_kto_new_listing_version_marks_preserved_detail_stale() -> None:
+    async with db_session() as session:
+        await _clean(session)
+        try:
+            first = datetime.now(UTC)
+            original = _records("1")
+            original[0]["listing_raw"]["modifiedtime"] = "20260831010000"
+            await upsert_source_records(
+                session,
+                SOURCE,
+                original,
+                "2026-08-31",
+                first,
+                detail_state=DetailAcquisitionState.NOT_FETCHED,
+                preserve_detail=True,
+                detail_version_field="modifiedtime",
+            )
+            await record_detail_result(
+                session,
+                SOURCE,
+                "1",
+                DetailAcquisitionState.FETCHED,
+                first,
+                {"acmpyTypeCd": "전구역 동반가능"},
+            )
+
+            changed = _records("1")
+            changed[0]["listing_raw"]["modifiedtime"] = "20260901010000"
+            await upsert_source_records(
+                session,
+                SOURCE,
+                changed,
+                "2026-09-01",
+                first + timedelta(days=1),
+                detail_state=DetailAcquisitionState.NOT_FETCHED,
+                preserve_detail=True,
+                detail_version_field="modifiedtime",
+            )
+            await session.flush()
+
+            row = (
+                await session.execute(
+                    text("""
+                        SELECT detail_raw, detail_state,
+                               detail_attempted_at, detail_fetched_at
+                        FROM facility_source_record
+                        WHERE source = :source AND source_ref = '1'
+                    """),
+                    {"source": SOURCE},
+                )
+            ).one()
+            assert row.detail_raw is None
+            assert row.detail_state == "not_fetched"
+            assert row.detail_attempted_at is None
+            assert row.detail_fetched_at is None
+            assert await pending_detail_refs(session, SOURCE, 10) == ["1"]
         finally:
             await _clean(session)
 

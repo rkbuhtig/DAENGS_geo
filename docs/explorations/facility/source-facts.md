@@ -123,7 +123,12 @@ PR2는 `facility_source_record`를 추가한다. 제품 검색 행인 `facility`
 `(source, record_ref)`를 PK로 쓴다. `source_ref`는 제품 행과 연결하기 위한 별도 열이다.
 KCISA는 이름+좌표가 같은 원천 행이 여럿이라 `source_ref`를 PK로 쓰면 facility의 중복 제거가
 원천 기록까지 지운다. KCISA `record_ref`는 전체 원문 행의 결정적 SHA-256 축약 hash이고,
-KTO는 안정 `contentid`를 두 키에 같이 쓴다.
+제품 파싱에 실패한 행의 `source_ref`는 `unlinked:<record_ref>`로 격리한다. KTO는 안정
+`contentid`를 두 키에 같이 쓴다.
+
+KTO 제품 행은 워터마크 뒤 변경분만 적용하므로 `facility` 정리는 full 실행에서만 한다. 반면
+shadow는 매 실행마다 검증된 sync-list 전체를 관측하므로, 성공한 목록 수집 뒤에는 매번
+`observed_at` 기준으로 사라진 원천 레코드를 정리한다.
 
 KCISA의 확정 불허 행은 제품 후보에서 계속 제외되지만 필터 전 CSV 원문은 shadow에 남는다.
 2025-03-24 CSV 70,650개 물리 행은 23,980개 distinct 원문과 23,914개 제품 연결 키로
@@ -146,7 +151,8 @@ KCISA의 확정 불허 행은 제품 후보에서 계속 제외되지만 필터 
 | `snapshot`, `observed_at` | 어떤 snapshot에서 마지막으로 관측됐는지 |
 | `detail_attempted_at`, `detail_fetched_at` | 시도와 성공을 분리한 시각 |
 
-KTO 목록 재적재는 이미 얻은 detail과 상태를 보존한다. `showflag=0`처럼 제품에서 숨기는
+KTO 목록 재적재는 같은 `modifiedtime`에서 이미 얻은 detail과 상태를 보존한다. 버전이
+전진하면 `not_fetched`로 되돌려 정책 상세를 다시 얻는다. `showflag=0`처럼 제품에서 숨기는
 sync-list 항목도 shadow 목록에는 남기되, 실제 `facility`가 없는 레코드는 상세 수집 대상에서
 제외한다. 상세 요청은 다음처럼 전이한다.
 

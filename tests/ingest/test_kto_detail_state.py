@@ -1,8 +1,9 @@
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock
 
 import httpx
 
-from app.ingest.kto import fetch_pet_detail, source_records
+from app.ingest.kto import _prune_after_listing, fetch_pet_detail, source_records
 from app.place.source_facts.states import DetailAcquisitionState
 
 
@@ -57,9 +58,26 @@ async def test_exhausted_rate_limit_is_fetch_failed(monkeypatch) -> None:
 
 
 def test_shadow_list_keeps_hidden_items_filtered_from_product() -> None:
-    records = source_records([
-        {"contentid": "1", "title": "노출", "showflag": "1"},
-        {"contentid": "2", "title": "숨김", "showflag": "0"},
-    ])
+    records = source_records(
+        [
+            {"contentid": "1", "title": "노출", "showflag": "1"},
+            {"contentid": "2", "title": "숨김", "showflag": "0"},
+        ]
+    )
 
     assert {record["source_ref"] for record in records} == {"1", "2"}
+
+
+async def test_incremental_run_prunes_complete_shadow_snapshot(monkeypatch) -> None:
+    product_prune = AsyncMock(return_value=7)
+    source_prune = AsyncMock(return_value=3)
+    monkeypatch.setattr("app.ingest.kto.prune_unseen", product_prune)
+    monkeypatch.setattr("app.ingest.kto.prune_source_records", source_prune)
+    session = object()
+    observed_at = datetime.now(UTC)
+
+    result = await _prune_after_listing(session, "incremental", observed_at)
+
+    assert result == (0, 3)
+    product_prune.assert_not_awaited()
+    source_prune.assert_awaited_once_with(session, "kto", observed_at)
