@@ -38,6 +38,7 @@ async def bind_usage_request_scope(request, call_next):
 
 if settings.dev_console:
     _ANCHORS = Path(__file__).parent / "static" / "anchors.html"
+    _CELLOPHANE = Path(__file__).parent / "static" / "cellophane.html"
     _FACILITY = Path(__file__).parent / "static" / "facility.html"
 
     @app.get("/facility-map", include_in_schema=False)
@@ -49,6 +50,23 @@ if settings.dev_console:
     async def anchor_map():
         """앵커 분포 눈으로 보기. 검증용 표면이라 dev_console 과 같은 게이트 뒤에 둔다."""
         return FileResponse(_ANCHORS, media_type="text/html")
+
+    @app.get("/cellophane", include_in_schema=False)
+    async def cellophane_view():
+        """Paint v2 한 장의 chain·육각 셀·질량 보존을 보는 얇은 검증 표면."""
+        return FileResponse(_CELLOPHANE, media_type="text/html")
+
+    @app.get("/cellophane/data", include_in_schema=False)
+    async def cellophane_data():
+        """CWD의 명시적 fixture 하나만 제공한다. 임의 경로는 받지 않는다."""
+        path = Path.cwd() / "cellophane.json"
+        if not path.exists():
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+        return FileResponse(
+            path,
+            media_type="application/geo+json",
+            headers={"Cache-Control": "no-store"},
+        )
 
     _WORLD_CTX = Path(__file__).parent / "static" / "world_context.html"
     _WORLD_CTX_DATA = frozenset({"latent.json", "world_context.json", "osm_world.json"})
