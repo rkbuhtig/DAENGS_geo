@@ -7,10 +7,11 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import math
 from dataclasses import dataclass
 
-from app.features.territory.paint import NARROW_STEP, Cellophane, paint_sheet
+from app.features.territory.paint import NARROW_STEP, Cellophane, paint_sheet, paint_spec
 from app.features.walk.facts import ComputedFacts, compute_facts
 from scripts.sim.walk.kinematics import integrate_motion
 from scripts.sim.walk.population_truth import PopulationTruth
@@ -64,11 +65,19 @@ def observe_population(
 ) -> PopulationObservation:
     """truth를 생성 입력으로만 사용하고 결과에서는 evaluator-only label을 제거한다."""
     sensor = PerfectSensor(sample_interval_s=sample_interval_s, accuracy_m=3.0)
-    signature = (
-        f"{truth.generator_version}|{truth.seed}|{sample_interval_s}|{radius_u}|"
-        f"{origin_lat}|{origin_lng}"
-    )
-    run_id = hashlib.sha256(signature.encode()).hexdigest()[:12]
+    paint = paint_spec(radius_u, NARROW_STEP)
+    dog_id = "simulated-population-dog"
+    signature = {
+        "truth": truth.to_dict(),
+        "sensor": sensor.to_dict(),
+        "paint_fp": paint.fingerprint,
+        "dog_id": dog_id,
+        "origin": [origin_lat, origin_lng],
+    }
+    encoded = json.dumps(
+        signature, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+    ).encode("utf-8")
+    run_id = hashlib.sha256(encoded).hexdigest()[:16]
     walks = []
     for planted in truth.walks:
         session_id = f"cellophane-pop-v{truth.generator_version}-{run_id}-{planted.walk_id}"
@@ -77,7 +86,7 @@ def observe_population(
             motion,
             sensor,
             session_id=session_id,
-            dog_id="simulated-population-dog",
+            dog_id=dog_id,
             started_at=planted.started_at,
             origin_lat=origin_lat,
             origin_lng=origin_lng,

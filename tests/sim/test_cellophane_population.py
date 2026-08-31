@@ -77,6 +77,20 @@ def test_same_truth_reproduces_observed_fixes_and_cellophane():
     ]
 
 
+def test_population_run_id_changes_when_truth_membership_changes():
+    truth = build_population_truth(seed=23)
+    subset = replace(truth, walks=truth.walks[:1])
+
+    full_observation = observe_population(truth)
+    subset_observation = observe_population(subset)
+
+    assert full_observation.run_id != subset_observation.run_id
+    assert (
+        full_observation.walks[0].observed.session_id
+        != subset_observation.walks[0].observed.session_id
+    )
+
+
 def test_all_observed_walks_start_and_finish_at_the_same_home():
     observation = observe_population(build_population_truth())
     endpoints = {
