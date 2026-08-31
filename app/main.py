@@ -39,6 +39,7 @@ async def bind_usage_request_scope(request, call_next):
 if settings.dev_console:
     _ANCHORS = Path(__file__).parent / "static" / "anchors.html"
     _CELLOPHANE = Path(__file__).parent / "static" / "cellophane.html"
+    _CELLOPHANE_DISTRIBUTION = Path(__file__).parent / "static" / "cellophane_distribution.html"
     _FACILITY = Path(__file__).parent / "static" / "facility.html"
 
     @app.get("/facility-map", include_in_schema=False)
@@ -68,6 +69,23 @@ if settings.dev_console:
             headers={"Cache-Control": "no-store"},
         )
 
+    @app.get("/cellophane-distribution", include_in_schema=False)
+    async def cellophane_distribution_view():
+        """30회 Cellophane 통계와 질량 영역을 실제 지도에서 비교하는 검증 표면."""
+        return FileResponse(_CELLOPHANE_DISTRIBUTION, media_type="text/html")
+
+    @app.get("/cellophane-distribution/data", include_in_schema=False)
+    async def cellophane_distribution_data():
+        """CWD의 고정 통계 fixture만 제공한다. latent truth 파일은 제공하지 않는다."""
+        path = Path.cwd() / "cellophane-distribution.json"
+        if not path.exists():
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+        return FileResponse(
+            path,
+            media_type="application/json",
+            headers={"Cache-Control": "no-store"},
+        )
+
     _WORLD_CTX = Path(__file__).parent / "static" / "world_context.html"
     _WORLD_CTX_DATA = frozenset({"latent.json", "world_context.json", "osm_world.json"})
 
@@ -89,6 +107,7 @@ if settings.dev_console:
         if not path.exists():
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
         return FileResponse(path, media_type="application/json")
+
 
 @app.get("/health")
 async def health():

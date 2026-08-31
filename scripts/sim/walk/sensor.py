@@ -62,13 +62,11 @@ class ObservedWalk:
         }
 
 
-def _to_latlng(
+def local_xy_to_latlng(
     east_m: float, north_m: float, origin_lat: float, origin_lng: float
 ) -> tuple[float, float]:
     lat = origin_lat + math.degrees(north_m / EARTH_R)
-    lng = origin_lng + math.degrees(
-        east_m / (EARTH_R * math.cos(math.radians(origin_lat)))
-    )
+    lng = origin_lng + math.degrees(east_m / (EARTH_R * math.cos(math.radians(origin_lat))))
     return lat, lng
 
 
@@ -93,16 +91,18 @@ def observe_perfectly(
     for sample in truth.samples(sensor.sample_interval_s):
         # break 지점 자체는 이전 chain의 마지막 점이다. 그보다 전진한 첫 fix부터 새 chain이다.
         chain_index = sum(sample.progress_m > value for value in sensor.chain_breaks_m)
-        lat, lng = _to_latlng(sample.east_m, sample.north_m, origin_lat, origin_lng)
-        fixes.append(WalkFix(
-            client_seq=len(fixes),
-            chain_index=chain_index,
-            at=started_at + timedelta(seconds=sample.elapsed_s),
-            lat=round(lat, 9),
-            lng=round(lng, 9),
-            accuracy_m=sensor.accuracy_m,
-            is_mock=True,
-        ))
+        lat, lng = local_xy_to_latlng(sample.east_m, sample.north_m, origin_lat, origin_lng)
+        fixes.append(
+            WalkFix(
+                client_seq=len(fixes),
+                chain_index=chain_index,
+                at=started_at + timedelta(seconds=sample.elapsed_s),
+                lat=round(lat, 9),
+                lng=round(lng, 9),
+                accuracy_m=sensor.accuracy_m,
+                is_mock=True,
+            )
+        )
     return ObservedWalk(
         session_id=session_id,
         dog_id=dog_id,

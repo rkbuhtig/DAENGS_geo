@@ -1,0 +1,484 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>셀로판 공간 통계 — 검증 표면</title>
+<style>
+  :root {
+    --ink:#17211e; --muted:#66736f; --line:#d7dfdc; --panel:rgba(250,252,251,.96);
+    --accent:#0b6e5f; --accent-soft:#e3f0ec; --danger:#a33c24; --shadow:0 8px 28px rgba(20,35,30,.16);
+  }
+  * { box-sizing:border-box; }
+  html, body, #map { width:100%; height:100%; margin:0; }
+  body { color:var(--ink); font-family:system-ui,-apple-system,"Malgun Gothic",sans-serif; }
+  #map { background:#e8eeeb; }
+  .panel { position:absolute; z-index:1100; top:14px; left:14px; width:min(390px,calc(100% - 28px));
+           padding:15px 16px; background:var(--panel); border:1px solid var(--line); border-radius:12px;
+           box-shadow:var(--shadow); backdrop-filter:blur(8px); }
+  h1 { margin:0; font-size:17px; font-weight:650; letter-spacing:-.02em; }
+  .subtitle { margin:4px 0 13px; color:var(--muted); font-size:12px; line-height:1.55; }
+  .group { margin-top:11px; }
+  .group-title { display:flex; justify-content:space-between; gap:10px; margin-bottom:6px;
+                 color:var(--muted); font-size:10px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; }
+  .buttons { display:flex; flex-wrap:wrap; gap:5px; }
+  button { min-height:34px; padding:6px 10px; border:1px solid var(--line); border-radius:8px;
+           background:#fff; color:var(--ink); font:inherit; font-size:12px; cursor:pointer; }
+  button:hover { border-color:var(--accent); }
+  button[aria-pressed="true"] { border-color:var(--accent); background:var(--accent-soft); color:var(--accent); font-weight:700; }
+  button:disabled { cursor:not-allowed; opacity:.38; }
+  button:focus-visible { outline:3px solid rgba(11,110,95,.28); outline-offset:1px; }
+  .receipt { display:grid; grid-template-columns:auto 1fr; gap:4px 10px; margin:13px 0 0;
+             padding-top:11px; border-top:1px solid var(--line); font-size:11px; }
+  .receipt dt { color:var(--muted); }
+  .receipt dd { margin:0; text-align:right; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+  .legend { display:flex; align-items:center; gap:8px; margin-top:11px; color:var(--muted); font-size:10px; }
+  .ramp { flex:1; height:8px; border-radius:5px; background:linear-gradient(90deg,rgba(11,110,95,.05),rgba(11,110,95,.62)); }
+  .detail { position:absolute; z-index:1100; left:14px; bottom:18px; width:min(390px,calc(100% - 28px));
+            padding:11px 14px; border:1px solid var(--line); border-radius:10px; background:var(--panel);
+            box-shadow:var(--shadow); font-size:12px; }
+  .detail strong { color:var(--accent); }
+  .detail-line { display:flex; justify-content:space-between; gap:12px; margin:3px 0; }
+  .detail-line span:first-child { color:var(--muted); }
+  #banner { position:absolute; z-index:1200; top:14px; right:14px; max-width:430px; padding:9px 12px;
+            border-radius:8px; background:var(--danger); color:#fff; font-size:12px; display:none; }
+  .home-marker { width:18px; height:18px; border:3px solid #fff; border-radius:50%; background:#a33c24;
+                 box-shadow:0 1px 5px rgba(0,0,0,.35); }
+  @media (max-width:640px) {
+    .panel { top:8px; left:8px; width:calc(100% - 16px); padding:12px; }
+    .detail { left:8px; bottom:8px; width:calc(100% - 16px); }
+    .subtitle { display:none; }
+    button { min-height:40px; }
+  }
+</style>
+</head>
+<body>
+<div id="map" aria-label="셀로판 공간 통계 지도"></div>
+<div id="banner" role="alert"></div>
+
+<section class="panel" aria-label="공간 통계 설정">
+  <h1>30번의 산책, 다섯 가지 읽기</h1>
+  <p class="subtitle">같은 Cellophane z축을 한 번에 한 metric으로 읽는다. 지도 농도는 표현이고 값·분모는 아래 영수증이다.</p>
+
+  <div class="group">
+    <div class="group-title"><span>metric</span><span id="metric-unit">—</span></div>
+    <div class="buttons" id="metric-buttons"></div>
+  </div>
+  <div class="group">
+    <div class="group-title"><span>질량 영역</span><span id="region-achieved">분포 metric에서 사용</span></div>
+    <div class="buttons" id="region-buttons">
+      <button type="button" data-region="none" aria-pressed="true">끄기</button>
+      <button type="button" data-region="0.5" aria-pressed="false">핵심 50%</button>
+      <button type="button" data-region="0.8" aria-pressed="false">일상권 80%</button>
+      <button type="button" data-region="0.95" aria-pressed="false">외곽 95%</button>
+    </div>
+  </div>
+
+  <dl class="receipt">
+    <dt>질문</dt><dd id="r-label">—</dd>
+    <dt>표본</dt><dd id="r-sample">—</dd>
+    <dt>분모</dt><dd id="r-denominator">—</dd>
+    <dt>정규화</dt><dd id="r-normalization">—</dd>
+    <dt>실험 세대</dt><dd id="r-population">—</dd>
+    <dt>Paint 세대</dt><dd id="r-paint">—</dd>
+    <dt>표현</dt><dd>값/최댓값 제곱근 · alpha 5–62%</dd>
+  </dl>
+  <div class="legend"><span>0</span><div class="ramp"></div><span id="legend-max">—</span></div>
+</section>
+
+<section class="detail" aria-live="polite">
+  <div id="detail-empty">셀을 누르면 실제 값과 분자·분모를 확인할 수 있다.</div>
+  <div id="detail-value" hidden>
+    <div class="detail-line"><span>선택 셀</span><strong id="d-cell">—</strong></div>
+    <div class="detail-line"><span>값</span><strong id="d-value">—</strong></div>
+    <div class="detail-line"><span>분자 / 분모</span><span id="d-receipt">—</span></div>
+    <div class="detail-line"><span>질량 영역</span><span id="d-region">—</span></div>
+  </div>
+</section>
+
+<script>
+'use strict';
+const DATA_URL = '/cellophane-distribution/data';
+const METRIC_ORDER = ['visit_rate','total_time','conditional_dwell','time_utilization','walk_utilization'];
+const DISTRIBUTION_METRICS = new Set(['time_utilization','walk_utilization']);
+const UNIT_LABELS = {ratio:'비율',s:'초', 's/visited_walk':'초/방문 산책',share:'비중'};
+const NORMALIZATION_LABELS = {
+  none:'합계', selected_walks:'선택 산책 수', visited_walks_per_cell:'셀별 방문 산책 수',
+  total_observed_time:'전체 관측 시간', equal_contributing_walks:'기여 산책 동등 가중',
+};
+const state = {
+  metric:'visit_rate', region:'none', payload:null, config:null, provider:null, backend:null,
+  map:null, homeOverlay:null, cells:[], outlines:[], selected:null, switchPromise:null, authWatchTimer:null,
+};
+let naverAuthFailureHandler = null;
+const $ = (id) => document.getElementById(id);
+
+function showError(message) {
+  const banner = $('banner');
+  banner.textContent = message;
+  banner.style.display = message ? 'block' : 'none';
+}
+
+function loadNaverMaps(keyId) {
+  return new Promise((resolve, reject) => {
+    const callback = '__cellophaneDistributionReady';
+    const timeout = setTimeout(() => reject(new Error('NAVER SDK timeout')), 8000);
+    window[callback] = () => {
+      clearTimeout(timeout);
+      resolve();
+    };
+    window.navermap_authFailure = () => {
+      const error = new Error('NAVER 인증 실패');
+      clearTimeout(timeout);
+      if (naverAuthFailureHandler) naverAuthFailureHandler(error);
+      reject(error);
+    };
+    const script = document.createElement('script');
+    script.src = `https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${encodeURIComponent(keyId)}&callback=${callback}`;
+    script.onerror = () => { clearTimeout(timeout); reject(new Error('NAVER SDK 로드 실패')); };
+    document.head.appendChild(script);
+  });
+}
+
+function loadLeaflet() {
+  return new Promise((resolve, reject) => {
+    if (window.L) { resolve(); return; }
+    const stylesheet = document.createElement('link');
+    stylesheet.rel = 'stylesheet';
+    stylesheet.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    document.head.appendChild(stylesheet);
+    const script = document.createElement('script');
+    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    script.onload = resolve;
+    script.onerror = () => reject(new Error('OpenStreetMap viewer 로드 실패'));
+    document.head.appendChild(script);
+  });
+}
+
+function naverBackend(payload) {
+  const map = new naver.maps.Map('map', {
+    center:new naver.maps.LatLng(...payload.home), zoom:16,
+    scaleControl:true, mapDataControl:true,
+  });
+  const wrap = (overlay) => ({
+    setStyle:(style) => overlay.setOptions(style),
+    onClick:(choose) => naver.maps.Event.addListener(overlay,'click',choose),
+    remove:() => overlay.setMap(null),
+  });
+  return {
+    map,
+    fit:([south,west,north,east]) => map.fitBounds(new naver.maps.LatLngBounds(
+      new naver.maps.LatLng(south,west), new naver.maps.LatLng(north,east)
+    )),
+    home:(point) => {
+      const marker = new naver.maps.Marker({
+        map, position:new naver.maps.LatLng(...point), title:'공통 시작·종료점',
+        icon:{content:'<div class="home-marker" aria-label="공통 시작·종료점"></div>',anchor:new naver.maps.Point(9,9)},
+      });
+      return {remove:() => marker.setMap(null)};
+    },
+    polygon:(boundary,style) => wrap(new naver.maps.Polygon({
+      map, paths:[boundary.map(([lat,lng]) => new naver.maps.LatLng(lat,lng))],
+      ...style, clickable:true,
+    })),
+    polyline:(edge,style) => wrap(new naver.maps.Polyline({
+      map, path:edge.map(([lat,lng]) => new naver.maps.LatLng(lat,lng)),
+      ...style, clickable:false,
+    })),
+  };
+}
+
+function leafletStyle(style) {
+  const translated = {};
+  if ('fillColor' in style) translated.fillColor = style.fillColor;
+  if ('fillOpacity' in style) translated.fillOpacity = style.fillOpacity;
+  if ('strokeColor' in style) translated.color = style.strokeColor;
+  if ('strokeOpacity' in style) translated.opacity = style.strokeOpacity;
+  if ('strokeWeight' in style) translated.weight = style.strokeWeight;
+  return translated;
+}
+
+function leafletBackend(payload) {
+  const map = L.map('map',{zoomControl:false}).setView(payload.home,16);
+  L.control.zoom({position:'topright'}).addTo(map);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    maxZoom:19, attribution:'© OpenStreetMap contributors',
+  }).addTo(map);
+  const wrap = (overlay) => ({
+    setStyle:(style) => overlay.setStyle(leafletStyle(style)),
+    onClick:(choose) => overlay.on('click',choose),
+    remove:() => overlay.remove(),
+  });
+  return {
+    map,
+    fit:([south,west,north,east]) => map.fitBounds([[south,west],[north,east]],{padding:[18,18]}),
+    home:(point) => {
+      const marker = L.circleMarker(point,{
+        radius:7,fillColor:'#a33c24',fillOpacity:1,color:'#fff',weight:3,
+      }).bindTooltip('공통 시작·종료점').addTo(map);
+      return {remove:() => marker.remove()};
+    },
+    polygon:(boundary,style) => wrap(L.polygon(boundary,leafletStyle(style)).addTo(map)),
+    polyline:(edge,style) => wrap(L.polyline(edge,leafletStyle(style)).addTo(map)),
+  };
+}
+
+function formatValue(value, unit) {
+  if (unit === 'ratio' || unit === 'share') return `${(value * 100).toFixed(value < .01 ? 2 : 1)}%`;
+  if (unit === 's') return `${value.toFixed(1)}초`;
+  if (unit === 's/visited_walk') return `${value.toFixed(1)}초/방문 산책`;
+  return String(value);
+}
+
+function formatReceiptPart(value, denominator=false) {
+  if (value === null || value === undefined || value === 'per_cell') return '—';
+  const number = Number(value);
+  if (state.metric === 'time_utilization' || state.metric === 'total_time' ||
+      (state.metric === 'conditional_dwell' && !denominator)) return `${number.toFixed(1)}초`;
+  if (state.metric === 'walk_utilization' && !denominator) return number.toFixed(4);
+  return `${number.toLocaleString('ko-KR',{maximumFractionDigits:2})}장`;
+}
+
+function metricReceipt() { return state.payload.metrics[state.metric]; }
+function selectedRegion() {
+  if (state.region === 'none' || !DISTRIBUTION_METRICS.has(state.metric)) return null;
+  return state.payload.regions[state.metric].find((item) => item.target_mass === Number(state.region));
+}
+
+function updateReceipt() {
+  const receipt = metricReceipt();
+  $('metric-unit').textContent = UNIT_LABELS[receipt.unit] || receipt.unit;
+  $('r-label').textContent = receipt.label;
+  $('r-sample').textContent = `${receipt.selected}/${receipt.total}장 · 기여 ${receipt.contributing}장`;
+  if (receipt.denominator === 'per_cell') $('r-denominator').textContent = '셀별 방문 산책 수';
+  else if (receipt.denominator === null) $('r-denominator').textContent = '없음';
+  else if (state.metric === 'time_utilization') {
+    $('r-denominator').textContent = `전체 ${Number(receipt.denominator).toFixed(1)}초`;
+  } else $('r-denominator').textContent = `${receipt.denominator}장`;
+  $('r-normalization').textContent = NORMALIZATION_LABELS[receipt.normalization] || receipt.normalization;
+  $('r-population').textContent = `v${state.payload.population.generator_version} · ${state.payload.population.run_id}`;
+  $('r-paint').textContent = `${state.payload.paint.paint_fp} · ${state.payload.paint.grid_version}`;
+  $('legend-max').textContent = formatValue(receipt.max_value, receipt.unit);
+  const region = selectedRegion();
+  $('region-achieved').textContent = region
+    ? `실제 ${(region.achieved_mass * 100).toFixed(1)}% · ${region.cell_count}셀`
+    : DISTRIBUTION_METRICS.has(state.metric) ? '영역을 선택하세요' : '이용분포에서만 사용';
+}
+
+function updateRegionButtons() {
+  const enabled = DISTRIBUTION_METRICS.has(state.metric);
+  document.querySelectorAll('#region-buttons button').forEach((button) => {
+    const isNone = button.dataset.region === 'none';
+    button.disabled = !enabled && !isNone;
+    button.setAttribute('aria-pressed', String(button.dataset.region === state.region));
+  });
+}
+
+function clearOutlines() {
+  state.outlines.forEach((outline) => outline.remove());
+  state.outlines = [];
+}
+
+function drawRegion() {
+  clearOutlines();
+  const region = selectedRegion();
+  if (!region) return;
+  const style = {
+    '0.5': {color:'#8f321c', weight:4},
+    '0.8': {color:'#ca6b2b', weight:3},
+    '0.95': {color:'#d59a34', weight:2},
+  }[state.region];
+  region.boundary_edges.forEach((edge) => {
+    state.outlines.push(state.backend.polyline(edge,{
+      strokeColor:style.color, strokeWeight:style.weight, strokeOpacity:.95,
+      fillColor:style.color, fillOpacity:0,
+    }));
+  });
+}
+
+function regionNamesForCell(cellId) {
+  if (!DISTRIBUTION_METRICS.has(state.metric)) return '해당 없음';
+  const labels = {0.5:'핵심 50%',0.8:'일상권 80%',0.95:'외곽 95%'};
+  return state.payload.regions[state.metric]
+    .filter((region) => region.cell_ids.includes(cellId))
+    .map((region) => labels[region.target_mass])
+    .join(' · ') || '95% 밖';
+}
+
+function selectCell(item) {
+  if (state.selected) state.selected.overlay.setStyle({strokeWeight:0,strokeOpacity:0});
+  state.selected = item;
+  item.overlay.setStyle({strokeColor:'#102b25',strokeOpacity:1,strokeWeight:2});
+  const receipt = metricReceipt();
+  const value = item.row.values[state.metric];
+  const denominator = item.row.denominators[state.metric] ?? receipt.denominator;
+  $('detail-empty').hidden = true;
+  $('detail-value').hidden = false;
+  $('d-cell').textContent = item.row.cell_id;
+  $('d-value').textContent = formatValue(value, receipt.unit);
+  const numeratorText = formatReceiptPart(item.row.numerators[state.metric]);
+  const denominatorText = formatReceiptPart(denominator,true);
+  $('d-receipt').textContent = `${numeratorText} / ${denominatorText}`;
+  $('d-region').textContent = regionNamesForCell(item.row.cell_id);
+}
+
+function paintCells() {
+  const receipt = metricReceipt();
+  const maximum = Math.max(receipt.max_value, 1e-12);
+  state.cells.forEach((item) => {
+    const ratio = Math.max(0, item.row.values[state.metric] / maximum);
+    item.overlay.setStyle({
+      fillColor:'#0b6e5f',
+      fillOpacity:.05 + Math.sqrt(ratio) * .57,
+      strokeWeight:item === state.selected ? 2 : 0,
+    });
+  });
+  if (state.selected) selectCell(state.selected);
+}
+
+function chooseMetric(metric) {
+  state.metric = metric;
+  if (!DISTRIBUTION_METRICS.has(metric)) state.region = 'none';
+  document.querySelectorAll('#metric-buttons button').forEach((button) => {
+    button.setAttribute('aria-pressed', String(button.dataset.metric === metric));
+  });
+  updateRegionButtons();
+  updateReceipt();
+  paintCells();
+  drawRegion();
+}
+
+function chooseRegion(region) {
+  state.region = region;
+  updateRegionButtons();
+  updateReceipt();
+  drawRegion();
+  if (state.selected) selectCell(state.selected);
+}
+
+function buildControls() {
+  if ($('metric-buttons').childElementCount) return;
+  METRIC_ORDER.forEach((metric) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.dataset.metric = metric;
+    button.textContent = state.payload.metrics[metric].label;
+    button.setAttribute('aria-pressed', String(metric === state.metric));
+    button.addEventListener('click', () => chooseMetric(metric));
+    $('metric-buttons').appendChild(button);
+  });
+  document.querySelectorAll('#region-buttons button').forEach((button) => {
+    button.addEventListener('click', () => chooseRegion(button.dataset.region));
+  });
+}
+
+function drawMap() {
+  state.map = state.backend.map;
+  state.backend.fit(state.payload.bbox);
+  state.homeOverlay = state.backend.home(state.payload.home);
+  state.cells = state.payload.cells.map((row) => {
+    const overlay = state.backend.polygon(row.boundary,{
+      fillColor:'#0b6e5f', fillOpacity:.05, strokeOpacity:0, strokeWeight:0,
+    });
+    const item = {row,overlay};
+    overlay.onClick(() => selectCell(item));
+    return item;
+  });
+  buildControls();
+  updateRegionButtons();
+  chooseMetric(state.metric);
+}
+
+function clearMapPresentation() {
+  const brokenNaver = state.provider === 'naver';
+  if (brokenNaver) state.outlines = [];
+  else clearOutlines();
+  if (!brokenNaver) state.cells.forEach((item) => item.overlay.remove());
+  state.cells = [];
+  if (state.homeOverlay && !brokenNaver) state.homeOverlay.remove();
+  state.homeOverlay = null;
+  state.selected = null;
+  state.map = null;
+  state.backend = null;
+  state.provider = null;
+  $('map').replaceChildren();
+  $('detail-empty').hidden = false;
+  $('detail-value').hidden = true;
+}
+
+async function useOsmFallback(cause) {
+  if (state.provider === 'osm') return;
+  if (state.switchPromise) return state.switchPromise;
+  const switching = (async () => {
+    clearMapPresentation();
+    if (state.authWatchTimer) clearInterval(state.authWatchTimer);
+    state.authWatchTimer = null;
+    if (state.config.fallback !== 'osm') throw cause;
+    await loadLeaflet();
+    state.backend = leafletBackend(state.payload);
+    state.provider = 'osm';
+    drawMap();
+    showError('');
+  })();
+  state.switchPromise = switching;
+  try {
+    await switching;
+  } finally {
+    if (state.switchPromise === switching) state.switchPromise = null;
+  }
+}
+
+function watchNaverAuthFailure() {
+  if (state.authWatchTimer) clearInterval(state.authWatchTimer);
+  state.authWatchTimer = setInterval(() => {
+    if ($('map').textContent.includes('인증이 실패')) {
+      const error = new Error('NAVER 인증 실패');
+      if (naverAuthFailureHandler) naverAuthFailureHandler(error);
+    }
+  },250);
+}
+
+async function main() {
+  try {
+    const [configResponse,dataResponse] = await Promise.all([
+      fetch('/map/client-config'), fetch(DATA_URL,{cache:'no-store'}),
+    ]);
+    if (!configResponse.ok || !dataResponse.ok) throw new Error('지도 설정 또는 fixture를 읽지 못했습니다');
+    const config = await configResponse.json();
+    state.config = config;
+    state.payload = await dataResponse.json();
+    if (state.payload.format_version !== 1 || state.payload.coordinate_order !== 'lat,lng') {
+      throw new Error('지원하지 않는 공간 통계 payload입니다');
+    }
+    naverAuthFailureHandler = (error) => {
+      void useOsmFallback(error).catch((fallbackError) => {
+        console.error(fallbackError);
+        showError(fallbackError.message || String(fallbackError));
+      });
+    };
+    if (config.provider === 'naver' && config.naver_key_id) {
+      try {
+        watchNaverAuthFailure();
+        await loadNaverMaps(config.naver_key_id);
+        if (state.switchPromise) await state.switchPromise;
+        if (!state.backend) {
+          state.provider = 'naver';
+          state.backend = naverBackend(state.payload);
+          drawMap();
+        }
+      } catch (error) {
+        await useOsmFallback(error);
+      }
+    }
+    if (!state.backend) await useOsmFallback(new Error('사용 가능한 실제 지도 제공사가 없습니다'));
+    if (!state.backend) throw new Error('사용 가능한 실제 지도 제공사가 없습니다');
+    showError('');
+  } catch (error) {
+    console.error(error);
+    showError(`${error.message || error}. 먼저 cellophane-distribution.json을 생성하세요.`);
+  }
+}
+main();
+</script>
+</body>
+</html>

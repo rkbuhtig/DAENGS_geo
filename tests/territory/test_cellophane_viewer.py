@@ -20,8 +20,11 @@ HTML = (ROOT / "app" / "static" / "cellophane.html").read_text(encoding="utf-8")
 def test_fixture_runs_the_canonical_segment_paint_serializer_path():
     payload = build_fixture()
     meta = payload["meta"]
-    chains = [feature for feature in payload["features"]
-              if feature["properties"]["kind"] == "accepted_chain"]
+    chains = [
+        feature
+        for feature in payload["features"]
+        if feature["properties"]["kind"] == "accepted_chain"
+    ]
 
     assert payload["type"] == "FeatureCollection"
     assert meta["mass_conserved"] is True
@@ -29,10 +32,8 @@ def test_fixture_runs_the_canonical_segment_paint_serializer_path():
     assert meta["mass_error_s"] == 0.0
     assert meta["chain_count"] == len(chains) == 2
     assert [feature["properties"]["chain_index"] for feature in chains] == [0, 1]
-    speeds = [speed for feature in chains
-              for speed in feature["properties"]["segment_speed_mps"]]
-    moving = [value for feature in chains
-              for value in feature["properties"]["segment_moving"]]
+    speeds = [speed for feature in chains for speed in feature["properties"]["segment_speed_mps"]]
+    moving = [value for feature in chains for value in feature["properties"]["segment_moving"]]
     assert min(speeds) == 0.0
     assert max(speeds) == pytest.approx(1.4, abs=0.01)
     assert any(value is False for value in moving)
@@ -147,4 +148,9 @@ def _paths_with_dev_console(enabled: bool) -> set[str]:
 
 def test_cellophane_surface_is_behind_the_dev_console_gate():
     assert "/cellophane" not in _paths_with_dev_console(False)
-    assert {"/cellophane", "/cellophane/data"} <= _paths_with_dev_console(True)
+    assert {
+        "/cellophane",
+        "/cellophane/data",
+        "/cellophane-distribution",
+        "/cellophane-distribution/data",
+    } <= _paths_with_dev_console(True)
