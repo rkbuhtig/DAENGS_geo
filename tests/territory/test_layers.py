@@ -195,6 +195,21 @@ def test_brush_fingerprint_tracks_the_curve_not_the_name():
     assert a.fingerprint == c.fingerprint          # 이름은 지문에 안 들어간다
 
 
+def test_profile_display_name_change_does_not_hide_the_same_generation():
+    old = _sheet("old-name", datetime(2026, 7, 1, 9, tzinfo=UTC), 0.0)
+    renamed_profile = BrushProfile(
+        "새 표시 이름", NARROW_STEP.bands, NARROW_STEP.weights, NARROW_STEP.smooth
+    )
+    renamed_spec = LayerSpec(
+        selector=Selector.of(),
+        aggregation=Aggregation(),
+        projection=Projection.from_paint_spec(paint_spec(RADIUS_U, renamed_profile)),
+    )
+    assert old.profile != renamed_spec.projection.brush
+    assert old.paint_fp == renamed_spec.projection.paint_fp
+    assert select([old], renamed_spec) == [old]
+
+
 def test_sheets_from_another_grid_are_never_mixed_in():
     """격자가 다른 장은 셀 id 가 같은 자리를 뜻하지 않는다 — 조용히 겹치면 안 된다."""
     at = datetime(2026, 7, 1, 9, tzinfo=UTC)
