@@ -29,7 +29,7 @@ from app.features.territory.evidence import (
 )
 from app.features.territory.experience import NamedRegion, build, region_stats
 from app.features.territory.layers import Projection
-from app.features.territory.paint import NARROW_STEP, paint_sheet
+from app.features.territory.paint import NARROW_STEP, paint_sheet, paint_spec
 from app.features.territory.region import Region
 from app.features.walk.facts import compute_facts
 from app.features.walk.models import WalkFix
@@ -38,8 +38,7 @@ EARTH_R = 6_371_000.0
 RADIUS_U = 8.0
 LAT, LNG = 37.4979, 127.0276
 NOW = datetime(2026, 8, 26, 18, 30, tzinfo=UTC)          # 여름 · 저녁
-PROJECTION = Projection(radius_u=RADIUS_U, brush=NARROW_STEP.name,
-                        profile_fp=NARROW_STEP.fingerprint)
+PROJECTION = Projection.from_paint_spec(paint_spec(RADIUS_U, NARROW_STEP))
 
 
 def _east(x_m: float) -> float:

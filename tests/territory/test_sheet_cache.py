@@ -17,7 +17,11 @@ import pickle
 from dataclasses import asdict
 from datetime import UTC, datetime
 
-from app.features.territory.paint import NARROW_STEP, Cellophane
+import pytest
+
+from app.features.territory.paint import NARROW_STEP, Cellophane, paint_spec
+
+PAINT_SPEC = paint_spec(15.0, NARROW_STEP)
 
 
 def _sheet(walk_id: str) -> Cellophane:
@@ -28,7 +32,11 @@ def _sheet(walk_id: str) -> Cellophane:
         profile=NARROW_STEP.name,
         occupancy={(1, 2): 3.5, (1, 3): 1.25},
         peak={(1, 2): 1.0, (1, 3): 0.15},
-        profile_fp=NARROW_STEP.fingerprint,
+        paint_version=PAINT_SPEC.paint_version,
+        grid_version=PAINT_SPEC.grid_version,
+        profile_fp=PAINT_SPEC.profile_fp,
+        sample_step_m=PAINT_SPEC.sample_step_m,
+        paint_fp=PAINT_SPEC.fingerprint,
     )
 
 
@@ -50,6 +58,9 @@ def test_round_trip_rebuilds_an_identical_cellophane():
     assert restored.peak == original.peak
     assert restored.profile_fp == original.profile_fp
     assert restored.grid_version == original.grid_version
+    assert restored.paint_version == original.paint_version
+    assert restored.sample_step_m == original.sample_step_m
+    assert restored.paint_fp == original.paint_fp
 
 
 def test_cell_keys_stay_tuples_through_the_cache():
@@ -57,3 +68,12 @@ def test_cell_keys_stay_tuples_through_the_cache():
     restored = Cellophane(**pickle.loads(pickle.dumps(asdict(_sheet("w0")))))
     assert all(isinstance(cell, tuple) and len(cell) == 2 for cell in restored.occupancy)
     assert restored.occupancy[(1, 2)] == 3.5
+
+
+def test_v1_payload_without_paint_identity_fails_closed():
+    """옛 캐시가 v2 장으로 오인되면 질량 의미가 섞이므로 명확히 재계산시킨다."""
+    payload = asdict(_sheet("old"))
+    for field in ("paint_version", "sample_step_m", "paint_fp"):
+        payload.pop(field)
+    with pytest.raises(TypeError):
+        Cellophane(**payload)

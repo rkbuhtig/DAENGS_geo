@@ -22,7 +22,7 @@ from app.features.territory.layers import (
     render,
     select,
 )
-from app.features.territory.paint import NARROW_STEP, paint_sheet
+from app.features.territory.paint import NARROW_STEP, BrushProfile, paint_sheet, paint_spec
 from app.features.walk.facts import compute_facts
 from app.features.walk.models import WalkFix
 from app.geo.cells import hex_cell, hex_center_latlng
@@ -32,6 +32,7 @@ RADIUS_U = 8.0
 LAT, LNG = 37.4979, 127.0276
 BRUSH = NARROW_STEP.name
 BRUSH_FP = NARROW_STEP.fingerprint
+PAINT_SPEC = paint_spec(RADIUS_U, NARROW_STEP)
 
 
 def _sheet(walk_id: str, at: datetime, offset_m: float):
@@ -54,7 +55,7 @@ def _spec(metric: str = "walks", **tags) -> LayerSpec:
     return LayerSpec(
         selector=Selector.of(**tags),
         aggregation=Aggregation(metric=metric),
-        projection=Projection(radius_u=RADIUS_U, brush=BRUSH, profile_fp=BRUSH_FP),
+        projection=Projection.from_paint_spec(PAINT_SPEC),
     )
 
 
@@ -98,17 +99,35 @@ def test_period_narrows_independently_of_tags():
     spec = LayerSpec(
         selector=Selector.of(since=date(2026, 4, 1), until=date(2026, 4, 30), season="spring"),
         aggregation=Aggregation(),
-        projection=Projection(radius_u=RADIUS_U, brush=BRUSH, profile_fp=BRUSH_FP),
+        projection=Projection.from_paint_spec(PAINT_SPEC),
     )
     assert len(select(sheets, spec)) == 1
 
 
 def test_spec_picks_the_brush_generation_by_fingerprint():
     """같은 이름의 두 세대가 섞여 있으면 spec 이 명시한 지문의 장만 고른다."""
-    import dataclasses
-
     old = _sheet("old", datetime(2026, 7, 1, 9, tzinfo=UTC), 0.0)
-    other_curve = dataclasses.replace(old, walk_id="other", profile_fp="deadbeef0000")
+    other_profile = BrushProfile(BRUSH, (3.0, 8.0, 20.0), (1.0, 0.5, 0.1))
+    target = hex_cell(LAT, LNG, RADIUS_U)
+    lat0, lng0 = hex_center_latlng(*target, RADIUS_U)
+    other_curve = paint_sheet(
+        "other",
+        old.at,
+        compute_facts(
+            "w",
+            "d",
+            old.at,
+            old.at + timedelta(seconds=2),
+            [
+                WalkFix(client_seq=0, chain_index=0, at=old.at, lat=lat0, lng=lng0,
+                        accuracy_m=3.0, is_mock=False),
+                WalkFix(client_seq=1, chain_index=0, at=old.at + timedelta(seconds=1),
+                        lat=lat0, lng=lng0, accuracy_m=3.0, is_mock=False),
+            ],
+        ).segments,
+        RADIUS_U,
+        other_profile,
+    )
     assert select([old, other_curve], _spec()) == [old]
 
 
@@ -118,33 +137,77 @@ def test_missing_generation_is_an_error_not_an_empty_map():
     데이터가 다른 세대뿐이라는 사실을 호출자가 알아야 한다 — 빈 canvas 를 주면 "안 갔다"
     로 읽힌다.
     """
-    import dataclasses
-
     import pytest
 
-    only_other = dataclasses.replace(
-        _sheet("other", datetime(2026, 7, 1, 9, tzinfo=UTC), 0.0), profile_fp="deadbeef0000")
-    with pytest.raises(ValueError, match="지문"):
+    other_profile = BrushProfile(BRUSH, (3.0, 8.0, 20.0), (1.0, 0.5, 0.1))
+    at = datetime(2026, 7, 1, 9, tzinfo=UTC)
+    target = hex_cell(LAT, LNG, RADIUS_U)
+    lat0, lng0 = hex_center_latlng(*target, RADIUS_U)
+    fixes = [
+        WalkFix(client_seq=0, chain_index=0, at=at, lat=lat0, lng=lng0,
+                accuracy_m=3.0, is_mock=False),
+        WalkFix(client_seq=1, chain_index=0, at=at + timedelta(seconds=1),
+                lat=lat0, lng=lng0, accuracy_m=3.0, is_mock=False),
+    ]
+    only_other = paint_sheet(
+        "other",
+        at,
+        compute_facts("w", "d", at, at + timedelta(seconds=2), fixes).segments,
+        RADIUS_U,
+        other_profile,
+    )
+    with pytest.raises(ValueError, match="페인트 세대"):
         select([only_other], _spec())
 
 
 def test_grid_version_gates_mixing():
     """radius 와 붓 이름이 같아도 격자 수학이 바뀌었으면 (q, r) 이 다른 자리다."""
-    import dataclasses
-
     good = _sheet("v1", datetime(2026, 7, 1, 9, tzinfo=UTC), 0.0)
-    future = dataclasses.replace(good, walk_id="v2", grid_version="hex-v2")
+    future_spec = paint_spec(RADIUS_U, NARROW_STEP)
+    future = type(good)(
+        walk_id="v2",
+        at=good.at,
+        radius_u=good.radius_u,
+        profile=good.profile,
+        occupancy=good.occupancy,
+        peak=good.peak,
+        paint_version=good.paint_version,
+        grid_version="hex-v2",
+        profile_fp=good.profile_fp,
+        sample_step_m=good.sample_step_m,
+        paint_fp=type(future_spec)(
+            paint_version=future_spec.paint_version,
+            grid_version="hex-v2",
+            radius_u=future_spec.radius_u,
+            profile_name=future_spec.profile_name,
+            profile_fp=future_spec.profile_fp,
+            sample_step_m=future_spec.sample_step_m,
+        ).fingerprint,
+    )
     assert select([good, future], _spec()) == [good]
 
 
 def test_brush_fingerprint_tracks_the_curve_not_the_name():
-    from app.features.territory.paint import BrushProfile
-
     a = BrushProfile("같은이름", (3.0, 8.0, 20.0), (1.0, 0.45, 0.15))
     b = BrushProfile("같은이름", (3.0, 8.0, 20.0), (1.0, 0.5, 0.1))
     c = BrushProfile("다른이름", (3.0, 8.0, 20.0), (1.0, 0.45, 0.15))
     assert a.fingerprint != b.fingerprint          # 곡선이 다르면 지문이 다르다
     assert a.fingerprint == c.fingerprint          # 이름은 지문에 안 들어간다
+
+
+def test_profile_display_name_change_does_not_hide_the_same_generation():
+    old = _sheet("old-name", datetime(2026, 7, 1, 9, tzinfo=UTC), 0.0)
+    renamed_profile = BrushProfile(
+        "새 표시 이름", NARROW_STEP.bands, NARROW_STEP.weights, NARROW_STEP.smooth
+    )
+    renamed_spec = LayerSpec(
+        selector=Selector.of(),
+        aggregation=Aggregation(),
+        projection=Projection.from_paint_spec(paint_spec(RADIUS_U, renamed_profile)),
+    )
+    assert old.profile != renamed_spec.projection.brush
+    assert old.paint_fp == renamed_spec.projection.paint_fp
+    assert select([old], renamed_spec) == [old]
 
 
 def test_sheets_from_another_grid_are_never_mixed_in():
@@ -191,7 +254,7 @@ def test_changing_any_compartment_changes_the_fingerprint():
     assert _spec(season="winter").fingerprint() != base
     assert _spec(metric="occupancy", season="summer").fingerprint() != base
     other = LayerSpec(selector=Selector.of(season="summer"), aggregation=Aggregation(),
-                      projection=Projection(radius_u=15.0, brush=BRUSH, profile_fp=BRUSH_FP))
+                      projection=Projection.from_paint_spec(paint_spec(15.0, NARROW_STEP)))
     assert other.fingerprint() != base
 
 
@@ -201,10 +264,21 @@ def test_spec_fingerprint_catches_a_curve_change_under_the_same_name():
     화면에 띄우는 provenance 가 spec 지문 하나뿐이라, 여기서 안 갈리면 6 개월 뒤 "그 그림이
     어느 붓이었나" 를 따라갈 수 없다.
     """
+    changed_profile = BrushProfile(BRUSH, (3.0, 8.0, 20.0), (1.0, 0.5, 0.1))
     changed = LayerSpec(
         selector=Selector.of(season="summer"), aggregation=Aggregation(),
-        projection=Projection(radius_u=RADIUS_U, brush=BRUSH, profile_fp="deadbeef0000"))
+        projection=Projection.from_paint_spec(paint_spec(RADIUS_U, changed_profile)))
     assert changed.fingerprint() != _spec(season="summer").fingerprint()
+
+
+def test_projection_rejects_an_identity_that_disagrees_with_its_fields():
+    import dataclasses
+
+    import pytest
+
+    projection = Projection.from_paint_spec(PAINT_SPEC)
+    with pytest.raises(ValueError, match="projection paint_fp"):
+        dataclasses.replace(projection, sample_step_m=projection.sample_step_m + 0.5)
 
 
 # ---- 값 연산 vs 존재 연산 --------------------------------------------------------------

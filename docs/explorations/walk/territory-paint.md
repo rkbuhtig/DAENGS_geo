@@ -73,7 +73,7 @@ depends-on: contracts/walk-record.md (WalkFacts), app/geo/cells.py 격자
 
 | | 뜻 | 왜 하나로 안 되나 |
 |---|---|---|
-| `occupancy` | 감쇠 반영 물감 총량 | 가까이 오래 = 멀리 아주 오래 |
+| `occupancy` | 붓 자국에 배분된 관측 시간(초) | 실제 셀 안 체류가 아니라 근방 시간의 공간 배분 |
 | `walks` | 문턱 이상으로 칠한 산책 수 (빈도) | 문턱 없이 세면 옆으로 스쳐도 오른다 |
 | `peak` | 한 산책에서 받은 최대 세기 | **근접과 빈도를 가르는 축** |
 
@@ -81,6 +81,12 @@ depends-on: contracts/walk-record.md (WalkFacts), app/geo/cells.py 격자
 "한 번 심에 들고 49 번 옆으로 지나감" 이 `walks=50 · peak=1.0` 이 되어 "50 번 다 들어옴" 과
 구별되지 않는다 — 이 설계가 막으려던 혼동이 집계 단계에서 되살아난다. 그래서 겹치기(`stack`)는
 **질의**이고 문턱(`min_peak`)은 그때 고른다.
+
+Paint v2 부터 각 stamp 의 가중치 합을 1 로 정규화한다. 따라서 한 Segment 가 모든 칸에
+배분하는 `occupancy` 합은 그 Segment 의 `dt` 와 같다. 반면 `peak` 은 근접도 의미와
+`min_peak` 계약을 보존하려고 정규화 전 raw weight 를 그대로 쓴다. 두 계산을 함께 재현하는
+동일성은 `paint_version` · `grid_version` · `radius_u` · `profile_fp` · 실제
+`sample_step_m` 을 묶은 `paint_fp` 다. 다른 `paint_fp` 의 장은 겹치지 않는다.
 
 `BrushProfile` 이 붓 단면이다. 현재 후보는 계단/연속 × `3·8·20` / `10·15·20`, 그리고 대조군인
 이진. 측정 결과 **`3·8·20` 이 갈라내고 `10·15·20` 은 심이 넓어 가장자리를 못 잡는다.**
@@ -159,8 +165,10 @@ depends-on: contracts/walk-record.md (WalkFacts), app/geo/cells.py 격자
 > 정규화 없는 kernel 이 **관측 1 초를 격자에 따라 0.45~10.3 초로 쌓는 것**이었다 —
 > [질량 보존 kernel 측정](../../research/2026-08-27-mass-conserving-kernel.md).
 >
-> 정규화하면 격자는 `occupancy` 의 **뜻**을 못 바꾸고 **위치 해상도와 저장량**만 정한다.
-> 그러면 #69 의 격자 게이트는 의미 싸움이 아니라 해상도 × 비용 트레이드오프가 된다.
+> **Paint v2 에 채택했다.** 정규화 뒤 격자는 `occupancy` 의 **뜻**을 못 바꾸고, 이
+> fixture 에서 관측된 주된 차이는 위치 해상도와 저장량이다. 그러면 #69 의 격자 게이트는
+> 의미 싸움이 아니라 해상도 × 비용 트레이드오프가 된다. 다만 작은 영역 검출과 읽기 반경은
+> 여전히 격자 해상도의 영향을 받는다.
 
 ### B. 붓이 좁아지면 GPS 잡음이 표현보다 우세해진다
 

@@ -52,13 +52,14 @@ from app.features.territory.layers import (
     rate_diff,
     render,
 )
-from app.features.territory.paint import NARROW_STEP, Cellophane, paint_sheet
-from app.geo.cells import GRID_VERSION, Cell
+from app.features.territory.paint import NARROW_STEP, Cellophane, paint_sheet, paint_spec
+from app.geo.cells import Cell
 from scripts.spikes.territory_paint.paint import segments_for
 
 RADIUS_U = 15.0
 PROFILE = NARROW_STEP
 JITTER_SEED = 20260826
+PAINT_SPEC = paint_spec(RADIUS_U, PROFILE)
 
 
 @dataclass
@@ -74,8 +75,7 @@ def spec(metric: str = "walks", **tags) -> LayerSpec:
     return LayerSpec(
         selector=Selector.of(**tags),
         aggregation=Aggregation(metric=metric),
-        projection=Projection(radius_u=RADIUS_U, brush=PROFILE.name,
-                              profile_fp=PROFILE.fingerprint),
+        projection=Projection.from_paint_spec(PAINT_SPEC),
     )
 
 
@@ -89,7 +89,7 @@ def load(path: str, cache: str | None = None) -> list[Person]:
     이름으로 찾는데, `-m scripts.X` 로 돌린 것과 다른 스크립트에서 읽을 때 그 이름이 달라져
     깨진다(`__main__.Person`). 캐시는 진입점에 묶이면 안 된다.
     """
-    key = (f"{GRID_VERSION}|{RADIUS_U:.0f}|{PROFILE.name}|{PROFILE.fingerprint}|"
+    key = (f"{PAINT_SPEC.fingerprint}|{PROFILE.name}|"
            f"{JITTER_SEED}|{os.path.getmtime(path):.0f}")
     if cache and os.path.exists(cache):
         with open(cache, "rb") as handle:

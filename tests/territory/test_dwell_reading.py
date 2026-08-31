@@ -25,7 +25,7 @@ from app.features.territory.dwell import (
     route_baseline,
 )
 from app.features.territory.layers import Aggregation, LayerSpec, Projection, Selector
-from app.features.territory.paint import NARROW_STEP, paint_sheet
+from app.features.territory.paint import NARROW_STEP, paint_sheet, paint_spec
 from app.features.walk.facts import compute_facts
 from app.features.walk.models import WalkFix
 
@@ -51,8 +51,8 @@ AWAY_AT = _at(LEG_M / 6)          # 경로 위지만 멈춘 자리에서 먼 곳
 def _spec(radius_u: float, min_peak: float = 0.0, **tags) -> LayerSpec:
     return LayerSpec(selector=Selector.of(**tags),
                      aggregation=Aggregation(metric="walks", min_peak=min_peak),
-                     projection=Projection(radius_u=radius_u, brush=NARROW_STEP.name,
-                                           profile_fp=NARROW_STEP.fingerprint))
+                     projection=Projection.from_paint_spec(
+                         paint_spec(radius_u, NARROW_STEP)))
 
 
 def _sheet(walk_id: str, stop_s: int, radius_u: float, *, at: datetime = START,
@@ -125,8 +125,7 @@ def test_no_selected_walks_reads_as_unknown_not_zero():
     future = LayerSpec(
         selector=Selector.of(since=datetime(2030, 1, 1, tzinfo=UTC).date()),
         aggregation=Aggregation(metric="walks"),
-        projection=Projection(radius_u=FINE, brush=NARROW_STEP.name,
-                              profile_fp=NARROW_STEP.fingerprint))
+        projection=Projection.from_paint_spec(paint_spec(FINE, NARROW_STEP)))
     sheets = _days(5, stop_s=60, radius_u=FINE)
     reading = read_at(sheets, future, STOP_AT, READ_M)
     assert reading.selected == 0
@@ -216,17 +215,14 @@ def test_the_same_expected_dwell_can_hide_two_different_stories():
     assert b.dwell_per_visit > a.dwell_per_visit, "갔을 때 체류로는 뒤가 커야 한다"
 
 
-# ---- 규칙 1 — 절대값은 격자에 흔들리고, 대비는 덜 흔들린다 -------------------------------
+# ---- 규칙 1 — v2 질량 보존 뒤에는 격자가 값의 뜻을 바꾸지 않는다 --------------------------
 
 
-def test_absolute_dwell_swings_with_the_grid_but_contrast_swings_less():
-    """**절대값은 아직 못 견준다. 그래서 같은 세대 안에서 대비로 읽는다.**
+def test_mass_conserving_dwell_is_stable_across_grid_resolutions():
+    """**격자는 위치 해상도를 바꾸지만 occupancy 의 시간 의미는 바꾸지 않는다.**
 
-    적분하면 셀 배치의 우연은 사라지지만 격자 밀도는 안 사라진다 — 정규화 없는 kernel
-    때문이다(질량 보존 측정이 잰 결함, 코드는 아직 안 고쳤다).
-
-    비율에서는 그 인자가 크게 줄어든다. **다만 "격자가 달라도 같은 척도" 라고까지는 하지
-    않는다** — 40% 차이는 계약으로 쓰기엔 크고, #69 정책상 다른 세대의 장은 애초에 안 섞는다.
+    원형 읽기 경계에 걸친 셀 중심과 배분 오차 때문에 완전히 같지는 않다. 하지만 v1 처럼
+    셀 밀도에 비례해 몇 배씩 불어나지는 않아야 한다. 대비 역시 같은 허용 범위에서 안정적이다.
     """
     absolute, relative = {}, {}
     for radius_u in (COARSE, FINE):
@@ -237,8 +233,8 @@ def test_absolute_dwell_swings_with_the_grid_but_contrast_swings_less():
 
     swing = max(absolute.values()) / min(absolute.values())
     steady = max(relative.values()) / min(relative.values())
-    assert swing > 3.0, f"절대값이 안 흔들린다 — kernel 이 바뀐 것이다: {absolute}"
-    assert steady < swing / 2, f"대비가 절대값보다 안정적이어야 한다: {relative}"
+    assert swing < 1.1, f"격자가 occupancy 의 시간 의미를 바꾼다: {absolute}"
+    assert steady < 1.1, f"격자에 따라 체류 대비가 지나치게 달라진다: {relative}"
 
 
 # ---- 규칙 2 — 산책 수로 나눈다 ------------------------------------------------------------
