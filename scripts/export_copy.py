@@ -1,6 +1,10 @@
-"""이 저장소를 **사본으로 내보낸다** — 팀 모노레포의 `geo/` 가 받는 것.
+"""과거 `DAENGS_dev/geo` 전체 사본을 재현하는 레거시 도구.
 
-    uv run python -m scripts.export_copy ../DAENGS_dev/geo
+현재 운영 Place/Journey는 `DAENGS_dev/{place-search,journey-service}`, Android는
+`DAENGS_app`이 canonical이다. 이 도구는 현재 승격 경로가 아니며, 실수로 운영 폴더를
+덮지 않도록 명시적인 플래그를 요구한다.
+
+    uv run python -m scripts.export_copy --legacy-export <빈 임시 폴더>
 
 무엇이 빠지나, 그리고 왜:
 
@@ -77,10 +81,19 @@ def rewrite_links(text: str, doc: Path) -> tuple[str, int]:
 
 
 def main() -> int:
-    if len(sys.argv) != 2:
-        print(__doc__.strip().splitlines()[2].strip(), file=sys.stderr)
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+    if hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(encoding="utf-8")
+
+    if len(sys.argv) != 3 or sys.argv[1] != "--legacy-export":
+        print(
+            "현재 승격은 전체 사본 export가 아니다. 히스토리 재현만 "
+            "`--legacy-export <빈 임시 폴더>`로 실행한다.",
+            file=sys.stderr,
+        )
         return 2
-    out = Path(sys.argv[1]).resolve()
+    out = Path(sys.argv[2]).resolve()
 
     head = subprocess.run(
         ["git", "-C", str(REPO), "rev-parse", "--short", "HEAD"],
@@ -117,8 +130,7 @@ def main() -> int:
     print(f"  파일 {files}개 (빠진 것: {', '.join(DROP)})")
     print(f"  링크 {links}개를 원본 절대 URL 로 바꿈 ({rewritten}개 문서)")
     print()
-    print("받는 쪽에서:")
-    print(f'  git add -A geo && git commit -m "chore(geo): DAENGS_geo@{head} 동기화"')
+    print("레거시 사본만 생성했다. 현재 운영 저장소에 그대로 커밋하지 않는다.")
     return 0
 
 

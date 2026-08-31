@@ -21,6 +21,11 @@
 운영 수정사항을 이쪽 사본에 역동기화하지 않는다. 기존 Place/Android 코드가 이 저장소에 남아 있는
 것은 walk 연구와 실험이 그 사실·fixture를 참조하기 때문이며, 그 존재가 운영 소유권을 뜻하지 않는다.
 
+승격 기준점은 [promotion-ledger.toml](promotion-ledger.toml)에 기계가 읽을 수 있게 기록한다.
+`uv run python -m scripts.promotion_status`는 각 기준점 뒤의 관련 변경을 보여 주며 CI에도 notice를
+남긴다. 차이는 실험의 정상 상태이므로 실패 조건이 아니다. 운영 PR이 머지된 뒤에만 원장의 source와
+target 커밋을 함께 옮겨, "어디까지 채택됐나"를 추측하지 않게 한다.
+
 현재 제품 범위의 기준은 [결정 #51](decisions/2026-08-22-walk-as-spine.md), 장소 발견의 다음
 제품 축은 [결정 #65](decisions/2026-08-26-place-first-discovery.md), 병원 진입 정책은
 [결정 #71](decisions/2026-08-27-hospital-place-entry.md), 현재 구현 조립의 기준은

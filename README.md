@@ -219,19 +219,31 @@ uv run python -m scripts.spikes.territory_paint.cellophane_fixture --out celloph
 관통 검증 하네스(`verify/`) · 갈래별 측정 스파이크(`spikes/<갈래>/`)로 **수명**에 따라
 나뉘고, 스파이크는 갈래가 닫히면 폴더째 지운다.
 
-## 팀 모노레포로 내보내기
+## 운영 승격과 차이 추적
 
-이 저장소는 팀 모노레포([SAJOYO/DAENGS_dev](https://github.com/SAJOYO/DAENGS_dev))의 `geo/`
-에 **사본으로** 들어간다. **원본은 여기다** — 저쪽 `geo/` 를 고치면 다음 동기화 때 덮여
-사라진다. 고칠 일은 여기서 하고, 사본은 다시 내보낸다.
+이 저장소는 **산책·공간·시설 검색의 R&D/검증 원본**이다. 운영 코드의 원본은 이미 갈라졌다.
+
+| 운영 표면 | canonical 저장소 | 이 저장소의 역할 |
+|---|---|---|
+| Place 검색·Journey 백엔드 | [SAJOYO/DAENGS_dev](https://github.com/SAJOYO/DAENGS_dev) | 새 원천·분류·ranking·계약 후보를 검증 |
+| Android 지도·Place UX·로컬 산책 기록 | [SAJOYO/DAENGS_app](https://github.com/SAJOYO/DAENGS_app) | walk·공간 실험과 기준 구현을 검증 |
+
+흐름은 전체 폴더 **동기화가 아니라 승격**이다. 이곳에서 가설을 구현하고 측정·fixture·계약으로
+경계를 닫은 뒤, 채택할 단위만 운영 저장소의 명시적인 PR로 옮긴다. 운영 버그는 운영 저장소에서
+고치며, 아직 구체화 중인 코드를 맞춰 두려고 양쪽으로 자동 복사하지 않는다.
+
+그렇다고 차이를 기억에만 맡기지는 않는다. [`docs/promotion-ledger.toml`](docs/promotion-ledger.toml)에
+운영 표면별 마지막 Geo 승격 커밋과 운영 착륙 커밋을 기록한다. 다음 명령은 그 뒤 관련 경로에서
+무엇이 달라졌는지 보여 준다.
 
 ```bash
-uv run python -m scripts.export_copy ../DAENGS_dev/geo
+uv run python -m scripts.promotion_status
 ```
 
-`android/` · `.github/` 와 **이 저장소의 작업 방식 문서**(`docs/{decisions,research,
-explorations}`)는 빼고 나간다. 받는 쪽은 결정 기록 체계가 따로 있어서, 같이 가면 번호가
-서로를 가리킨다. 바깥에 주는 `docs/contracts/` 는 남는다 — 사본이 존재하는 이유다.
+`pending`은 오류나 자동 이관 지시가 아니다. **운영에 이미 들어간 계약과 관련된 새 실험이 있다**는
+검토 표식이다. 승격 PR에서 가져갈 것·남길 것·의도적으로 다르게 구현할 것을 정하고, 운영 PR이
+머지된 뒤 원장의 두 커밋을 함께 갱신한다. CI도 같은 보고를 띄우지만 실험 중인 차이 때문에
+빌드를 실패시키지는 않는다.
 
-빠진 문서를 가리키던 링크는 스크립트가 원본 절대 URL 로 바꾼다. **사본을 손으로 만들지
-마라** — 그 변환이 빠지면 링크가 깨진 채 올라가고, diff 에서는 멀쩡한 마크다운으로 보인다.
+과거 `DAENGS_dev/geo` 전체 사본을 만들던 `scripts.export_copy`는 현재 승격 경로가 아니다.
+히스토리 재현이 필요한 경우에만 명시적인 `--legacy-export` 플래그로 실행할 수 있다.
