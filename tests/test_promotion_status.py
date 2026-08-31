@@ -7,11 +7,11 @@ from scripts.promotion_status import (
     SurfaceStatus,
     load_surfaces,
     report,
-    validate_source_commits,
 )
 
 
-def test_repository_ledger_is_valid_and_anchored_in_history():
+def test_repository_ledger_has_the_expected_surfaces():
+    """일반 pytest checkout은 shallow다. 과거 commit 검증은 fetch-depth: 0인 승격 CI가 맡는다."""
     surfaces = load_surfaces()
     assert {surface.id for surface in surfaces} == {
         "place-search",
@@ -19,7 +19,6 @@ def test_repository_ledger_is_valid_and_anchored_in_history():
         "android-place",
         "android-walk",
     }
-    validate_source_commits(surfaces)
 
 
 def test_ledger_rejects_parent_traversal(tmp_path: Path):
