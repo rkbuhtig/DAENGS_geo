@@ -243,6 +243,7 @@ PR1 종료 조건은 다음과 같다.
 3. PR3: 후보별 source record variant와 section conflict를 보존하는 runtime bridge — 구현.
 4. PR4: 공간 경계와 capability gate를 분리한 typed `PlaceSearchPlan` — 구현.
 5. PR5: deterministic purpose policy와 gate별 executor/source-evidence preview — 구현.
-6. 다음 PR: preview 결과를 입력으로 제한된 deterministic relax 순서와 trace를 붙인다.
-7. 이후: 데이터가 수백~천 건이면 PostGIS 필터 + 결정론적 predicate + 필요 시 텍스트 embedding
+6. PR6: typed intent observation과 planner authority/compiler 경계 — 구현.
+7. 다음 PR: 보수적인 rule extractor로 비유·부정·가정과 literal target을 분리한다.
+8. 이후: 데이터가 수백~천 건이면 PostGIS 필터 + 결정론적 predicate + 필요 시 텍스트 embedding
    rerank부터 검증한다. spatial RAG는 이 작은 후보군에서 성능 근거가 생길 때만 검토한다.

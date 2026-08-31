@@ -134,6 +134,7 @@ preview 후보 수는 최종 응답의 `limit_per_kind`와 다르다. 작은 화
 
 다음 순서는 다음과 같다.
 
-1. 제한된 relax 순서와 trace
-2. rule-based planner
-3. 마지막에 LLM tool editor
+1. typed intent observation과 planner authority 경계 — 구현
+2. 보수적인 rule extractor와 ambiguity fixture
+3. 실제 planner/preview 사례를 관측한 뒤 필요한 relax 규칙만 추가
+4. 마지막에 LLM observation proposer

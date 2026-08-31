@@ -32,6 +32,8 @@ def build_place_search_plan(
     purpose_locked: bool = True,
     purpose_relaxable: bool = False,
     purpose_reason: str = "structured input selected canonical candidate kinds",
+    parking_origin: GateOrigin = GateOrigin.USER_PREFERENCE,
+    parking_reason: str = "structured input requested parking preference",
 ) -> PlaceSearchPlan:
     """LLM 없이도 UI·규칙 planner가 같은 실행 계약을 만들 수 있는 진입점."""
 
@@ -63,7 +65,7 @@ def build_place_search_plan(
                 operator=GateOperator.EQ,
                 value=True,
                 unknown_policy=UnknownPolicy.KEEP,
-                origin=GateOrigin.USER_PREFERENCE,
+                origin=parking_origin,
                 locked=False,
                 relaxable=True,
             )
@@ -72,8 +74,8 @@ def build_place_search_plan(
             PlanTraceEntry(
                 action="compiled",
                 capability_id=CapabilityId.OPERATIONS_PARKING,
-                origin=GateOrigin.USER_PREFERENCE,
-                reason="structured input requested parking preference",
+                origin=parking_origin,
+                reason=parking_reason,
             )
         )
     return guard_search_plan(
