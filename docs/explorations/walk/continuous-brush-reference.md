@@ -104,3 +104,7 @@ canonical Segment는 원좌표 purge 전까지만 재생성 가능하다. 따라
 
 그 결과가 나오기 전까지 “육각형 유지”와 “연속 field로 교체” 중 어느 쪽도 제품 결정으로
 승격하지 않는다.
+
+첫 정량 비교와 재현 명령은
+[연속 원 field와 Hex Cellophane 비교](../../research/2026-08-31-continuous-hex-comparison.md)에
+기록한다.
