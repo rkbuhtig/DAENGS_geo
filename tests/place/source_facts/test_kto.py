@@ -83,6 +83,24 @@ def test_fetched_detail_with_absent_field_is_not_provided():
     assert projection.evidence["restrictions.predicates"].state is FactState.NOT_PROVIDED
 
 
+def test_explicit_no_restrictions_is_not_downgraded_to_unknown():
+    projection = project_kto(
+        {"contenttypeid": "12"},
+        {
+            "acmpyTypeCd": "전구역 동반가능",
+            "acmpyNeedMtr": "없음",
+            "acmpyPsblCpam": "전 견종 동반 가능",
+            "etcAcmpyInfo": "없음",
+            "relaAcdntRiskMtr": "해당없음",
+        },
+        detail_state=FactState.KNOWN,
+    )
+
+    assert projection.restrictions.state == "none_confirmed"
+    assert projection.restrictions.predicates == ()
+    assert projection.evidence["restrictions.predicates"].state is FactState.KNOWN
+
+
 def test_unread_free_text_is_raw_only_not_silently_empty():
     projection = _project(_cases()["unparseable-detail"])
 

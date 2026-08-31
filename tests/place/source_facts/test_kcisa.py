@@ -49,10 +49,45 @@ def test_size_condition_and_fee_are_separate_facts():
     predicates = {item.code: item for item in projection.restrictions.predicates}
 
     assert predicates["deny:size"].applies_to == "size:medium_up"
-    assert predicates["deny:size"].params == {"max_kg": "10.0"}
+    assert predicates["deny:size"].params == {
+        "max_kg": "10.0",
+        "inclusive": "true",
+    }
     assert predicates["require:vaccination"].applies_to == "all"
     assert projection.pet_access.exclusive is True
     assert projection.pet_fee.amount_krw == 10_000
+
+
+def test_size_boundary_keeps_under_distinct_from_at_most():
+    base = _cases()["size-and-fee"]
+    under = project_kcisa({**base, "입장 가능 동물 크기": "10kg 미만 소형"})
+    at_most = project_kcisa({**base, "입장 가능 동물 크기": "10kg 이하 소형"})
+
+    under_size = next(item for item in under.restrictions.predicates if item.code == "deny:size")
+    at_most_size = next(
+        item for item in at_most.restrictions.predicates if item.code == "deny:size"
+    )
+    assert under_size.params == {"max_kg": "10.0", "inclusive": "false"}
+    assert at_most_size.params == {"max_kg": "10.0", "inclusive": "true"}
+
+
+def test_only_a_single_exact_fee_becomes_amount_krw():
+    base = _cases()["size-and-fee"]
+
+    fee_range = project_kcisa({**base, "애견 동반 추가 요금": "2,000~3,000원"})
+    fee_tiers = project_kcisa(
+        {
+            **base,
+            "애견 동반 추가 요금": ("8kg 미만 4,000원, 15kg 미만 7,000원, 15kg 이상 10,000원"),
+        }
+    )
+    not_applicable = project_kcisa({**base, "애견 동반 추가 요금": "해당없음"})
+
+    assert fee_range.pet_fee.amount_krw is None
+    assert fee_tiers.pet_fee.amount_krw is None
+    assert fee_range.evidence["pet_fee.amount_krw"].state.value == "parse_failed"
+    assert not_applicable.pet_fee.amount_krw is None
+    assert not_applicable.evidence["pet_fee.amount_krw"].state.value == "not_applicable"
 
 
 def test_species_denial_is_not_lost_inside_size_text():

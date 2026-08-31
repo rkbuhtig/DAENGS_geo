@@ -26,6 +26,8 @@ from app.place.source_facts.taxonomy.kto import (
 PARSER_VERSION = "kto-source-facts/1"
 _MISSING = {"", "정보없음", "-", "NULL"}
 _WEIGHT = re.compile(r"(\d+(?:\.\d+)?)\s*(?:kg|㎏)\s*(미만|이하)", re.IGNORECASE)
+_NO_RESTRICTION = {"없음", "해당없음"}
+_UNRESTRICTED_COMPANION = {"전 견종 동반 가능"}
 
 
 def _text(value) -> str | None:
@@ -163,6 +165,26 @@ def _parse_free_text(raw: str) -> list[RestrictionPredicate]:
         if area and "실내" not in area:
             result.append(_pred("zone:named_area", params={"name": area}))
     return result
+
+
+def _explicit_no_restrictions(detail: dict) -> bool:
+    """분산된 네 필드가 모두 명시적으로 무제약일 때만 확정한다."""
+
+    values = {
+        field: _text(detail.get(field))
+        for field in (
+            "acmpyNeedMtr",
+            "acmpyPsblCpam",
+            "etcAcmpyInfo",
+            "relaAcdntRiskMtr",
+        )
+    }
+    return (
+        values["acmpyNeedMtr"] in _NO_RESTRICTION
+        and values["acmpyPsblCpam"] in _UNRESTRICTED_COMPANION
+        and values["etcAcmpyInfo"] in _NO_RESTRICTION
+        and values["relaAcdntRiskMtr"] in _NO_RESTRICTION
+    )
 
 
 def _detail_state(detail: dict | None, requested: FactState) -> FactState:
@@ -318,12 +340,16 @@ def project_kto(
         complete = False
 
     predicates_tuple = _dedupe(predicates)
+    no_restrictions = _explicit_no_restrictions(detail)
     if predicates_tuple:
         restriction_state = "restricted"
         parse_state = "mapped" if complete else "partial"
     elif restriction_raw:
         restriction_state = "restricted"
         parse_state = "raw_only"
+    elif no_restrictions:
+        restriction_state = "none_confirmed"
+        parse_state = None
     else:
         restriction_state = "unknown"
         parse_state = None
@@ -346,10 +372,20 @@ def project_kto(
         )
     evidence["restrictions.predicates"] = _evidence(
         "acmpyNeedMtr/acmpyPsblCpam/etcAcmpyInfo/relaAcdntRiskMtr",
-        restriction_raw or None,
+        {
+            field: detail[field]
+            for field in (
+                "acmpyNeedMtr",
+                "acmpyPsblCpam",
+                "etcAcmpyInfo",
+                "relaAcdntRiskMtr",
+            )
+            if _text(detail.get(field)) is not None
+        }
+        or None,
         state=(
             FactState.KNOWN
-            if restriction_raw
+            if restriction_raw or no_restrictions
             else (
                 FactState.NOT_PROVIDED
                 if effective_detail_state is FactState.KNOWN

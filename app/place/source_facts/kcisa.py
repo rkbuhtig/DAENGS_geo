@@ -26,7 +26,8 @@ from app.place.source_facts.states import (
 
 PARSER_VERSION = "kcisa-source-facts/1"
 _MISSING = {"", "정보없음", "-", "NULL"}
-_WON = re.compile(r"(\d[\d,]*)\s*원")
+_EXACT_WON = re.compile(r"(\d[\d,]*)\s*원")
+_SIZE_BOUNDARY = re.compile(r"(\d+(?:\.\d+)?)\s*(?:kg|㎏)\s*(미만|이하)", re.IGNORECASE)
 
 
 def _text(value) -> str | None:
@@ -95,6 +96,19 @@ def _size_predicates(size: str | None) -> list[RestrictionPredicate]:
     if axes.size_class in ("small", "medium"):
         applies_to = "size:medium_up" if axes.size_class == "small" else "size:large"
         params = {"max_kg": str(axes.max_kg)} if axes.max_kg is not None else {}
+        boundaries = [
+            (float(value), operator) for value, operator in _SIZE_BOUNDARY.findall(size or "")
+        ]
+        boundary = next(
+            (
+                operator
+                for value, operator in reversed(boundaries)
+                if axes.max_kg is not None and value == axes.max_kg
+            ),
+            None,
+        )
+        if boundary is not None:
+            params["inclusive"] = "true" if boundary == "이하" else "false"
         result.append(RestrictionPredicate(code="deny:size", applies_to=applies_to, params=params))
     return result
 
@@ -103,19 +117,31 @@ def _fee(raw) -> tuple[PetFeeFacts, FactEvidence]:
     text = _text(raw)
     if text is None:
         return PetFeeFacts(), _evidence("애견 동반 추가 요금", raw)
-    if text in {"없음", "해당없음", "무료"}:
-        return PetFeeFacts(raw_text=text, amount_krw=0), _evidence("애견 동반 추가 요금", raw)
-    match = _WON.search(text)
+    if text in {"없음", "무료"}:
+        return PetFeeFacts(raw_text=text, amount_krw=0), _evidence(
+            "애견 동반 추가 요금",
+            raw,
+            certainty=EvidenceCertainty.DERIVED,
+        )
+    if text == "해당없음":
+        return PetFeeFacts(raw_text=text), _evidence(
+            "애견 동반 추가 요금", raw, state=FactState.NOT_APPLICABLE
+        )
+    match = _EXACT_WON.fullmatch(text)
     if match:
         return PetFeeFacts(
             raw_text=text, amount_krw=int(match.group(1).replace(",", ""))
-        ), _evidence("애견 동반 추가 요금", raw)
+        ), _evidence(
+            "애견 동반 추가 요금",
+            raw,
+            certainty=EvidenceCertainty.DERIVED,
+        )
     return PetFeeFacts(raw_text=text), _evidence(
         "애견 동반 추가 요금",
         raw,
         state=FactState.PARSE_FAILED,
         certainty=EvidenceCertainty.DERIVED,
-        note="금액 원문은 있으나 원 단위 수치를 읽지 못함",
+        note="단일 확정 원화 금액으로 읽을 수 없는 원문",
     )
 
 
