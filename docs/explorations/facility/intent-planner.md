@@ -140,9 +140,65 @@ uv run python -m scripts.evaluate_place_intent
 uv run python -m scripts.evaluate_place_intent --live
 ```
 
+## suggestion-first orchestration
+
+`PlaceIntentSuggestionService`가 proposer, evidence grounding, suggestion policy를 한 경로로 묶는다.
+각 interpretation은 독립적인 `PlannerRequest`로 컴파일하며, 대안의 kind를 한 plan에 합치지 않는다.
+이번 단계도 내부 orchestration 계약만 추가하며 외부 `/v2/places/search` 응답은 바꾸지 않는다.
+
+```text
+한 interpretation이 ready
+→ status=ready, resolution=inferred, plan 1개
+
+둘 이상의 대안 interpretation이 ready
+→ status=ready, resolution=exploratory, 독립 plan 2~3개
+
+일부 대안만 ready
+→ ready plan은 제안
+→ 실패한 대안은 rejected PlannerResult로 보존
+
+모두 실패
+→ 제한된 여가 soft fallback 또는 clarification/unsupported
+```
+
+`status`는 실행 가능한 plan의 존재 여부이고, `resolution`은 사용자 의도를 직접 확정했는지 또는
+탐색 제안인지다. 둘을 한 enum에 섞지 않는다. LLM 경로는 사용자 확인을 받지 않았으므로
+`explicit`을 만들지 않고 `inferred` 또는 `exploratory`만 만든다.
+
+제품 fallback은 일반 자연어 규칙이 아니다. 직접 실행 가능한 target이 없고 다음 allowlist만 있을
+때 별도의 `rule_inference` observation을 만들어 inferred plan을 제안한다.
+
+```text
+soft place role
+- preference / analogy / hypothetical
+
+soft semantic concept
+- semantic.atmosphere
+- semantic.comfort
+- semantic.cozy
+- semantic.quiet
+```
+
+장소 cue가 있으면 그 장소를 하나의 탐색 제안으로 사용한다. soft semantic만 있으면 제품이 고정한
+`dining`, `outing`, `culture` 세 그룹을 별도 plan으로 제안한다. 원래 interpretation은 rejected에
+남으므로 `quiet`나 `atmosphere`가 실제 데이터로 확인된 것처럼 보이지 않는다. 함께 제안된 parking
+preference는 fallback plan에도 보존한다.
+
+다음은 fallback을 열지 않는다.
+
+```text
+required_condition / excluded / negated / relational
+allowlist 밖 semantic concept
+hospital / pharmacy / healthcare의 soft 언급
+장소 target 없이 parking preference만 있는 경우
+```
+
+따라서 `주차 필수`, `카페 제외`, `병원이나 갈까`를 여가 기본 제안으로 조용히 약화하지 않는다.
+모델 evidence가 원문에 고정되지 않을 때도 service는 plan을 만들지 않고
+`intent_evidence_invalid` clarification으로 닫는다.
+
 ## 후속 순서
 
-다음 단계는 자연어 exact-command regex가 아니다. 실제 평가 출력에서 위험 오류를 먼저 측정한 뒤,
-여가 목적의 단일·복수 interpretation을 `inferred` 또는 `exploratory` 제안으로 표현하는 상위 응답
-정책을 추가한다. `RULE_EXACT_COMMAND` 승격은 UI 고정 액션이나 사용자 확인처럼 출처가 확실한
-경로에만 남긴다. 자동 완화와 신규 capability는 이 갈래에 포함하지 않는다.
+다음 단계는 제안 결과를 사용자가 선택·수정했을 때 해당 interpretation을 `user_confirmed`로 다시
+관찰해 explicit lock으로 승격하는 경계다. 자연어 exact-command regex, 자동 완화, 신규 capability는
+여전히 이 갈래에 포함하지 않는다.

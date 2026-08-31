@@ -1,0 +1,458 @@
+from collections.abc import Iterator
+
+import pytest
+
+from app.discovery.place_intent.contract import (
+    EvidenceQuote,
+    IntentInterpretation,
+    LLMIntentOutput,
+    LLMIntentProposal,
+    ProposalDisposition,
+    ProposalReason,
+    materialize_llm_output,
+)
+from app.discovery.place_intent.service import PlaceIntentSuggestionService
+from app.discovery.place_intent.suggestions import (
+    SuggestionBasis,
+    SuggestionResolution,
+    compile_intent_suggestions,
+)
+from app.place.planning.contract import CapabilityId, GateOrigin, PlaceKind
+from app.place.planning.intents import (
+    BooleanCapabilityIntent,
+    IntentRole,
+    KindIntent,
+    PlannerStatus,
+    PurposeIntent,
+    SemanticIntent,
+)
+from app.place.planning.purpose import PurposeId
+
+_SPATIAL = {"lat": 37.5, "lng": 127.0, "radius_m": 3000}
+
+
+def _ids() -> Iterator[str]:
+    index = 0
+    while True:
+        index += 1
+        yield f"llm-test-{index}"
+
+
+def _proposal(role: IntentRole, intent, quote: str) -> LLMIntentProposal:
+    return LLMIntentProposal(
+        role=role,
+        intent=intent,
+        evidence=EvidenceQuote(quote=quote, start=None, end=None),
+    )
+
+
+def _materialize(
+    utterance: str,
+    *interpretations: tuple[LLMIntentProposal, ...],
+    disposition: ProposalDisposition = ProposalDisposition.PROPOSED,
+):
+    ids = _ids()
+    return materialize_llm_output(
+        utterance,
+        LLMIntentOutput(
+            disposition=disposition,
+            interpretations=tuple(
+                IntentInterpretation(proposals=items) for items in interpretations
+            ),
+            reason=(
+                ProposalReason.MULTIPLE_PLAUSIBLE_READINGS
+                if disposition is ProposalDisposition.AMBIGUOUS
+                else None
+            ),
+        ),
+        id_factory=lambda: next(ids),
+    )
+
+
+def _compile(output):
+    return compile_intent_suggestions(
+        output,
+        spatial=_SPATIAL,
+        limit_per_kind=20,
+    )
+
+
+def test_single_literal_interpretation_becomes_one_inferred_unlocked_plan() -> None:
+    output = _materialize(
+        "식사할 곳",
+        (
+            _proposal(
+                IntentRole.REQUIRED_TARGET,
+                PurposeIntent(purpose_id=PurposeId.DINING),
+                "식사할 곳",
+            ),
+        ),
+    )
+
+    outcome = _compile(output)
+
+    assert outcome.status is PlannerStatus.READY
+    assert outcome.resolution is SuggestionResolution.INFERRED
+    assert len(outcome.suggestions) == 1 and not outcome.rejected
+    candidate = outcome.suggestions[0]
+    assert candidate.basis is SuggestionBasis.INTERPRETATION
+    assert candidate.result.plan is not None
+    purpose = candidate.result.plan.gates[0]
+    assert purpose.value == (PlaceKind.CAFE, PlaceKind.RESTAURANT)
+    assert purpose.origin is GateOrigin.INFERRED
+    assert purpose.locked is False and purpose.relaxable is True
+
+
+def test_ambiguous_interpretations_stay_as_separate_exploratory_plans() -> None:
+    output = _materialize(
+        "강아지랑 잠깐 머물 곳",
+        (
+            _proposal(
+                IntentRole.REQUIRED_TARGET,
+                PurposeIntent(purpose_id=PurposeId.DINING),
+                "잠깐 머물 곳",
+            ),
+        ),
+        (
+            _proposal(
+                IntentRole.REQUIRED_TARGET,
+                PurposeIntent(purpose_id=PurposeId.OUTING),
+                "잠깐 머물 곳",
+            ),
+        ),
+        disposition=ProposalDisposition.AMBIGUOUS,
+    )
+
+    outcome = _compile(output)
+
+    assert outcome.resolution is SuggestionResolution.EXPLORATORY
+    assert [item.candidate_key for item in outcome.suggestions] == [
+        "interpretation:1",
+        "interpretation:2",
+    ]
+    values = [item.result.plan.gates[0].value for item in outcome.suggestions]
+    assert values == [
+        (PlaceKind.CAFE, PlaceKind.RESTAURANT),
+        (PlaceKind.TRAVEL, PlaceKind.LEISURE),
+    ]
+    assert all(len(value) == 2 for value in values)
+
+
+def test_analogy_uses_disclosed_product_fallback_not_literal_observation() -> None:
+    output = _materialize(
+        "카페 같은 분위기의 장소",
+        (
+            _proposal(
+                IntentRole.ANALOGY,
+                KindIntent(kind=PlaceKind.CAFE),
+                "카페 같은",
+            ),
+            _proposal(
+                IntentRole.REQUIRED_TARGET,
+                SemanticIntent(concept_id="semantic.atmosphere"),
+                "분위기의 장소",
+            ),
+        ),
+    )
+
+    outcome = _compile(output)
+
+    assert outcome.status is PlannerStatus.READY
+    assert outcome.resolution is SuggestionResolution.EXPLORATORY
+    assert len(outcome.rejected) == 1
+    assert outcome.rejected[0].result.status is PlannerStatus.NEEDS_CLARIFICATION
+    assert outcome.rejected[0].result.unsupported[0].code == "non_literal_target"
+    assert len(outcome.suggestions) == 1
+    fallback = outcome.suggestions[0]
+    assert fallback.basis is SuggestionBasis.PRODUCT_FALLBACK
+    assert fallback.result.plan is not None
+    assert fallback.result.plan.gates[0].value == (PlaceKind.CAFE,)
+    assert fallback.result.plan.gates[0].origin is GateOrigin.INFERRED
+    assert "분위기의 장소" not in fallback.result.plan.model_dump_json()
+
+
+def test_allowlisted_soft_semantic_gets_default_leisure_groups_and_keeps_preference() -> None:
+    output = _materialize(
+        "조용하고 주차되면 좋겠어",
+        (
+            _proposal(
+                IntentRole.REQUIRED_TARGET,
+                SemanticIntent(concept_id="semantic.quiet"),
+                "조용하고",
+            ),
+            _proposal(
+                IntentRole.PREFERENCE,
+                BooleanCapabilityIntent(
+                    capability_id=CapabilityId.OPERATIONS_PARKING,
+                    value=True,
+                ),
+                "주차되면 좋겠어",
+            ),
+        ),
+    )
+
+    outcome = _compile(output)
+
+    assert outcome.resolution is SuggestionResolution.EXPLORATORY
+    assert len(outcome.suggestions) == 3
+    assert [item.candidate_key for item in outcome.suggestions] == [
+        "interpretation:1:fallback:purpose:dining",
+        "interpretation:1:fallback:purpose:outing",
+        "interpretation:1:fallback:purpose:culture",
+    ]
+    assert all(item.result.plan is not None for item in outcome.suggestions)
+    assert all(
+        item.result.plan.gates[-1].capability_id is CapabilityId.OPERATIONS_PARKING
+        for item in outcome.suggestions
+    )
+    assert outcome.rejected[0].result.unsupported[0].code == "unsupported_semantic_intent"
+
+
+def test_ambiguous_fallbacks_keep_each_interpretations_preferences_and_evidence() -> None:
+    output = _materialize(
+        "카페 같은 곳에 주차되면 좋고 아니면 나들이 갈까",
+        (
+            _proposal(
+                IntentRole.ANALOGY,
+                KindIntent(kind=PlaceKind.CAFE),
+                "카페 같은",
+            ),
+            _proposal(
+                IntentRole.PREFERENCE,
+                BooleanCapabilityIntent(
+                    capability_id=CapabilityId.OPERATIONS_PARKING,
+                    value=True,
+                ),
+                "주차되면 좋고",
+            ),
+        ),
+        (
+            _proposal(
+                IntentRole.HYPOTHETICAL,
+                PurposeIntent(purpose_id=PurposeId.OUTING),
+                "나들이 갈까",
+            ),
+        ),
+        disposition=ProposalDisposition.AMBIGUOUS,
+    )
+
+    outcome = _compile(output)
+
+    assert [item.candidate_key for item in outcome.suggestions] == [
+        "interpretation:1:fallback:kind:cafe",
+        "interpretation:2:fallback:purpose:outing",
+    ]
+    cafe, outing = outcome.suggestions
+    assert cafe.basis_observation_ids == ("llm-test-1", "llm-test-2")
+    assert outing.basis_observation_ids == ("llm-test-3",)
+    assert cafe.result.plan is not None and outing.result.plan is not None
+    assert any(
+        gate.capability_id is CapabilityId.OPERATIONS_PARKING
+        for gate in cafe.result.plan.gates
+    )
+    assert all(
+        gate.capability_id is not CapabilityId.OPERATIONS_PARKING
+        for gate in outing.result.plan.gates
+    )
+
+
+def test_failed_product_fallback_remains_visible_as_rejected() -> None:
+    output = _materialize(
+        "조용한 곳",
+        (
+            _proposal(
+                IntentRole.REQUIRED_TARGET,
+                SemanticIntent(concept_id="semantic.quiet"),
+                "조용한 곳",
+            ),
+        ),
+    )
+
+    outcome = compile_intent_suggestions(
+        output,
+        spatial=_SPATIAL,
+        limit_per_kind=2000,
+    )
+
+    assert [item.candidate_key for item in outcome.suggestions] == [
+        "interpretation:1:fallback:purpose:dining",
+        "interpretation:1:fallback:purpose:outing",
+    ]
+    assert [item.candidate_key for item in outcome.rejected] == [
+        "interpretation:1",
+        "interpretation:1:fallback:purpose:culture",
+    ]
+    failed = outcome.rejected[-1].result
+    assert failed.status is PlannerStatus.NEEDS_CLARIFICATION
+    assert failed.clarifications[0].code == "result_budget_exceeded"
+
+
+@pytest.mark.parametrize(
+    ("utterance", "proposals", "expected_status"),
+    [
+        (
+            "주차되면 좋겠어",
+            (
+                _proposal(
+                    IntentRole.PREFERENCE,
+                    BooleanCapabilityIntent(
+                        capability_id=CapabilityId.OPERATIONS_PARKING,
+                        value=True,
+                    ),
+                    "주차되면 좋겠어",
+                ),
+            ),
+            PlannerStatus.NEEDS_CLARIFICATION,
+        ),
+        (
+            "조용하고 주차 필수",
+            (
+                _proposal(
+                    IntentRole.REQUIRED_TARGET,
+                    SemanticIntent(concept_id="semantic.quiet"),
+                    "조용하고",
+                ),
+                _proposal(
+                    IntentRole.REQUIRED_CONDITION,
+                    BooleanCapabilityIntent(
+                        capability_id=CapabilityId.OPERATIONS_PARKING,
+                        value=True,
+                    ),
+                    "주차 필수",
+                ),
+            ),
+            PlannerStatus.UNSUPPORTED,
+        ),
+        (
+            "병원이나 갈까",
+            (
+                _proposal(
+                    IntentRole.HYPOTHETICAL,
+                    KindIntent(kind=PlaceKind.HOSPITAL),
+                    "병원이나 갈까",
+                ),
+            ),
+            PlannerStatus.NEEDS_CLARIFICATION,
+        ),
+        (
+            "카페 말고 산책할 곳",
+            (
+                _proposal(
+                    IntentRole.EXCLUDED,
+                    KindIntent(kind=PlaceKind.CAFE),
+                    "카페 말고",
+                ),
+                _proposal(
+                    IntentRole.REQUIRED_TARGET,
+                    PurposeIntent(purpose_id=PurposeId.OUTING),
+                    "산책할 곳",
+                ),
+            ),
+            PlannerStatus.UNSUPPORTED,
+        ),
+    ],
+)
+def test_product_fallback_never_weakens_missing_target_hard_or_healthcare_intents(
+    utterance,
+    proposals,
+    expected_status,
+) -> None:
+    outcome = _compile(_materialize(utterance, proposals))
+
+    assert outcome.status is expected_status
+    assert not outcome.suggestions
+    assert outcome.resolution is None
+    assert outcome.rejected
+
+
+@pytest.mark.parametrize(
+    ("reason", "status"),
+    [
+        (ProposalReason.INSUFFICIENT_TARGET, PlannerStatus.NEEDS_CLARIFICATION),
+        (ProposalReason.UNSAFE_TO_GUESS, PlannerStatus.NEEDS_CLARIFICATION),
+        (ProposalReason.UNSUPPORTED_LANGUAGE, PlannerStatus.UNSUPPORTED),
+    ],
+)
+def test_abstention_reason_is_policy_input_not_an_executable_suggestion(reason, status) -> None:
+    output = materialize_llm_output(
+        "어디 갈까",
+        LLMIntentOutput(
+            disposition=ProposalDisposition.ABSTAINED,
+            interpretations=(),
+            reason=reason,
+        ),
+    )
+
+    outcome = _compile(output)
+
+    assert outcome.status is status
+    assert not outcome.suggestions and not outcome.rejected
+    assert outcome.issues[0].code == "intent_proposer_abstained"
+
+
+class _StaticProposer:
+    def __init__(self, output: LLMIntentOutput):
+        self.output = output
+
+    async def propose(self, utterance: str) -> LLMIntentOutput:
+        return self.output
+
+
+async def test_service_runs_proposer_grounding_and_suggestion_policy_end_to_end() -> None:
+    raw = LLMIntentOutput(
+        disposition=ProposalDisposition.PROPOSED,
+        interpretations=(
+            IntentInterpretation(
+                proposals=(
+                    _proposal(
+                        IntentRole.REQUIRED_TARGET,
+                        PurposeIntent(purpose_id=PurposeId.DINING),
+                        "식사할 곳",
+                    ),
+                )
+            ),
+        ),
+        reason=None,
+    )
+    service = PlaceIntentSuggestionService(
+        _StaticProposer(raw),
+        observation_id_factory=lambda: "server-observation",
+    )
+
+    outcome = await service.suggest(
+        "식사할 곳",
+        spatial=_SPATIAL,
+        limit_per_kind=20,
+    )
+
+    assert outcome.status is PlannerStatus.READY
+    assert outcome.suggestions[0].basis_observation_ids == ("server-observation",)
+
+
+async def test_service_turns_ungrounded_model_evidence_into_safe_clarification() -> None:
+    raw = LLMIntentOutput(
+        disposition=ProposalDisposition.PROPOSED,
+        interpretations=(
+            IntentInterpretation(
+                proposals=(
+                    _proposal(
+                        IntentRole.REQUIRED_TARGET,
+                        KindIntent(kind=PlaceKind.CAFE),
+                        "원문에 없는 카페 근거",
+                    ),
+                )
+            ),
+        ),
+        reason=None,
+    )
+    service = PlaceIntentSuggestionService(_StaticProposer(raw))
+
+    outcome = await service.suggest(
+        "어디 갈까",
+        spatial=_SPATIAL,
+        limit_per_kind=20,
+    )
+
+    assert outcome.status is PlannerStatus.NEEDS_CLARIFICATION
+    assert not outcome.suggestions
+    assert outcome.issues[0].code == "intent_evidence_invalid"
