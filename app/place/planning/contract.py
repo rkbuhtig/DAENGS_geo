@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from app.place.contracts import DogSize
 
 MAX_KINDS_PER_REQUEST = 6
+MAX_RESULTS_PER_KIND = 3000
 MAX_TOTAL_RESULTS = 5000
 
 
@@ -137,6 +138,6 @@ class PlaceSearchPlan(PlanningModel):
 
     spatial: PlaceSpatialConstraint
     gates: tuple[SearchGate, ...] = Field(min_length=1)
-    limit_per_kind: int = Field(ge=1, le=MAX_TOTAL_RESULTS)
+    limit_per_kind: int = Field(ge=1, le=MAX_RESULTS_PER_KIND)
     conditions: PlaceSearchConditions | None = None
     trace: PlanTrace = Field(default_factory=PlanTrace)

@@ -1,4 +1,5 @@
 import pytest
+from pydantic import ValidationError
 
 from app.place.planning.compiler import build_place_search_plan
 from app.place.planning.contract import (
@@ -6,12 +7,17 @@ from app.place.planning.contract import (
     GateMode,
     GateOperator,
     GateOrigin,
+    PlaceKind,
     PlaceSearchPlan,
     PlaceSpatialConstraint,
     SearchGate,
     UnknownPolicy,
 )
-from app.place.planning.guard import PlanValidationError, guard_search_plan
+from app.place.planning.guard import (
+    PlanValidationError,
+    guard_plan_transition,
+    guard_search_plan,
+)
 from app.place.search import PlaceSearchRequest, compile_place_search_request
 
 
@@ -130,9 +136,7 @@ def test_guard_rejects_duplicate_capability_and_total_budget_overflow() -> None:
 
 
 def test_system_gate_cannot_enter_an_executable_plan_unlocked() -> None:
-    base = compile_place_search_request(
-        PlaceSearchRequest(lat=37.5, lng=127.0, kinds=["cafe"])
-    )
+    base = compile_place_search_request(PlaceSearchRequest(lat=37.5, lng=127.0, kinds=["cafe"]))
     unlocked_system = base.gates[0].model_copy(
         update={"origin": GateOrigin.SYSTEM, "locked": False}
     )
@@ -140,3 +144,23 @@ def test_system_gate_cannot_enter_an_executable_plan_unlocked() -> None:
 
     with pytest.raises(PlanValidationError, match="system gates must be locked"):
         guard_search_plan(plan)
+
+
+def test_locked_gate_value_cannot_change_during_plan_transition() -> None:
+    previous = compile_place_search_request(PlaceSearchRequest(lat=37.5, lng=127.0, kinds=["cafe"]))
+    changed = previous.gates[0].model_copy(update={"value": (PlaceKind.HOSPITAL,)})
+    proposed = previous.model_copy(update={"gates": (changed,)})
+
+    with pytest.raises(PlanValidationError, match="locked gate cannot be changed"):
+        guard_plan_transition(previous, proposed)
+
+
+def test_direct_plan_cannot_exceed_the_resolver_per_kind_limit() -> None:
+    with pytest.raises(ValidationError, match="less than or equal to 3000"):
+        build_place_search_plan(
+            lat=37.5,
+            lng=127.0,
+            radius_m=1000,
+            kinds=["cafe"],
+            limit_per_kind=5000,
+        )

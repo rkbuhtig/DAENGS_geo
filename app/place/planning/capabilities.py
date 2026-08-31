@@ -12,10 +12,15 @@ from app.place.planning.contract import (
     PlanningModel,
     UnknownPolicy,
 )
+from app.place.source_catalog import MOIS_SOURCES
 
 CapabilityValueType = Literal["place_kind_set", "boolean"]
 ExecutionStage = Literal["candidate", "ranking"]
-EvidenceAuthority = Literal["canonical_classification", "canonical_fact"]
+ProjectionAuthority = Literal["source_projection"]
+ExecutionAuthority = Literal[
+    "canonical_classification",
+    "effective_fact_with_provenance",
+]
 
 
 class OriginModeAllowance(PlanningModel):
@@ -35,8 +40,10 @@ class SearchCapabilitySpec(PlanningModel):
     executor_id: str = Field(min_length=1)
     projection_paths: tuple[str, ...] = ()
     execution_paths: tuple[str, ...] = Field(min_length=1)
-    supported_sources: tuple[str, ...] = Field(min_length=1)
-    authority: EvidenceAuthority
+    projection_sources: tuple[str, ...] = Field(min_length=1)
+    execution_sources: tuple[str, ...] = Field(min_length=1)
+    projection_authority: ProjectionAuthority = "source_projection"
+    execution_authority: ExecutionAuthority
     allowed_boolean_values: tuple[bool, ...] = ()
 
     def modes_for(self, origin: GateOrigin) -> tuple[GateMode, ...]:
@@ -72,8 +79,13 @@ CAPABILITIES: tuple[SearchCapabilitySpec, ...] = (
         executor_id="purpose_kind_selector",
         projection_paths=("purpose.primary",),
         execution_paths=("match.kind",),
-        supported_sources=("kcisa", "kto", "mois"),
-        authority="canonical_classification",
+        projection_sources=("kcisa", "kto"),
+        execution_sources=(
+            "kcisa",
+            "kto",
+            *(source.source for source in MOIS_SOURCES.values()),
+        ),
+        execution_authority="canonical_classification",
     ),
     SearchCapabilitySpec(
         capability_id=CapabilityId.OPERATIONS_PARKING,
@@ -100,8 +112,9 @@ CAPABILITIES: tuple[SearchCapabilitySpec, ...] = (
         executor_id="parking_preference_ranker",
         projection_paths=("operations.parking",),
         execution_paths=("facts.parking",),
-        supported_sources=("kcisa", "kto"),
-        authority="canonical_fact",
+        projection_sources=("kcisa",),
+        execution_sources=("kcisa", "kto"),
+        execution_authority="effective_fact_with_provenance",
         allowed_boolean_values=(True,),
     ),
 )

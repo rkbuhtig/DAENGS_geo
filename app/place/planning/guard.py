@@ -90,3 +90,21 @@ def guard_search_plan(plan: PlaceSearchPlan) -> PlaceSearchPlan:
             f"limit_per_kind across all kinds must not exceed {MAX_TOTAL_RESULTS} results"
         )
     return plan
+
+
+def guard_plan_transition(
+    previous: PlaceSearchPlan,
+    proposed: PlaceSearchPlan,
+) -> PlaceSearchPlan:
+    """후속 editor가 locked gate를 다시 써서 우회하지 못하게 전후 상태를 비교한다."""
+
+    previous = guard_search_plan(previous)
+    proposed = guard_search_plan(proposed)
+    proposed_by_id = {gate.capability_id: gate for gate in proposed.gates}
+    for locked_gate in (gate for gate in previous.gates if gate.locked):
+        replacement = proposed_by_id.get(locked_gate.capability_id)
+        if replacement is None:
+            raise PlanValidationError(f"locked gate cannot be removed: {locked_gate.capability_id}")
+        if replacement != locked_gate:
+            raise PlanValidationError(f"locked gate cannot be changed: {locked_gate.capability_id}")
+    return proposed

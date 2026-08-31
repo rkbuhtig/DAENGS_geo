@@ -25,6 +25,7 @@ from app.geo.ranking import (
     prefer_boost,
 )
 from app.place.contracts import DogSize
+from app.place.planning.contract import MAX_RESULTS_PER_KIND
 from app.place.restriction_map import RESTRICTION_SEMANTICS_VERSION
 
 MEDICAL = ("hospital", "pharmacy")
@@ -34,7 +35,7 @@ CANONICAL_SOURCES = ("kcisa", "kto")
 # 호출자가 카테고리로 나눠 부를 것이라는 기대는 경계가 아니다. 반경 상한(20km)만으로는
 # 부족하다: 강남역 20km 는 kind 를 지정해도 4,966 곳(3MB)이라 `kind` 를 요구해봐야
 # 최악이 거의 안 준다. 실제 지도 사용(반경 3km, kind 별)은 수백 곳이라 이 상한에 안 닿는다.
-MAX_RESULTS = 3000
+MAX_RESULTS = MAX_RESULTS_PER_KIND
 
 
 class FacilityParams(BaseModel):

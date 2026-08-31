@@ -66,7 +66,13 @@ origin / locked / relaxable
 
 사용자가 직접 넘긴 kind filter는 `user_explicit + locked`다. 향후 목적 정책이 만든 kind
 후보군은 `inferred + relaxable`로 만들 수 있다. profile/system gate는 guard가 잠금을
-강제한다.
+강제한다. 단일 plan의 모양만 검사해서는 잠긴 값을 바꾼 뒤 다시 잠그는 우회를 찾을 수 없으므로,
+후속 editor는 반드시 `guard_plan_transition(previous, proposed)`을 호출한다. 이 전이 guard는
+잠긴 gate의 삭제와 `value/mode/origin`을 포함한 모든 변경을 거부한다.
+
+`limit_per_kind`의 계약 상한과 실제 resolver 상한은 공통 상수 `3,000`을 사용한다. 따라서
+계약상 유효한 plan이 실행기 입력 변환 단계에서 뒤늦게 실패하지 않는다. 여러 kind의 합계는
+별도의 전체 예산 `5,000`으로 다시 제한한다.
 
 ## 기존 API와의 관계
 
@@ -80,9 +86,15 @@ plan으로 compile되고, HTTP wrapper와 직접 plan 실행이 같은 결과를
 
 ## 정적 명세와 동적 관측
 
-capability registry에는 의미, 타입, operator, 허용 mode/origin, 지원 원천, executor와 canonical
-projection path, 현재 execution path만 둔다. 예를 들어 주차는 `operations.parking`으로
-projection되고 현재 `PlaceResult.facts.parking`을 ranker가 읽는다. 두 경로와 실제 executor의
+capability registry에는 의미, 타입, operator, 허용 mode/origin, executor와 canonical projection
+path, 현재 execution path만 둔다. 원천 지원은 `projection_sources`와 `execution_sources`로
+분리한다. 전자는 각 원천 projector가 해당 evidence path를 직접 만드는지, 후자는 canonical
+분류나 provenance가 붙은 effective fact를 통해 실제 executor가 읽을 수 있는지를 뜻한다.
+
+예를 들어 주차의 `operations.parking` projection은 현재 KCISA만 직접 만들지만, ranker가 읽는
+`PlaceResult.facts.parking`에는 KTO에서 보강된 effective fact도 들어올 수 있다. 그러므로 KTO를
+직접 projection 지원 원천으로 가장하지 않고 execution 원천에만 선언한다. MOIS도 존재하지 않는
+`mois` 별칭 대신 catalog의 실제 source id를 사용한다. projection 경로·원천과 실제 executor의
 존재를 테스트로 대조해 registry와 구현이 따로 표류하지 않게 한다. coverage와 freshness는 현재
 DB를 읽어야 하는 동적 값이므로 정적 registry에 박지 않는다. 후속 preview가 candidate bundle을
 읽어 source별 known/mismatch/unknown을 계산한다.
