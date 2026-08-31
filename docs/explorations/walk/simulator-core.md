@@ -93,3 +93,9 @@ uv run uvicorn app.main:app --reload
 `U_walk`의 50·80·95% 외곽선만 있다. 대신 실험 재현에 필요한 모집단 generator version·
 run ID와 Paint 세대는 보존한다. Naver가 설정됐지만 현재 localhost 출처가 허용되지 않거나
 provider가 다르면 설정의 `fallback=osm`에 따라 OpenStreetMap 실지도로 전환한다.
+
+육각 격자 자체가 결과를 얼마나 바꾸는지는 같은 canonical Segment를 grid-free reference로
+읽는 `continuous_brush_field()`와 비교한다. 이 reference는 원형 kernel의 면적 적분을 1로
+정규화해 입력 `Σ Segment.dt`를 보존하며, 아직 저장·API·제품 renderer에 사용하지 않는다.
+계약과 다음 비교 항목은
+[`continuous-brush-reference.md`](./continuous-brush-reference.md)에 고정한다.
