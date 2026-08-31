@@ -5,6 +5,7 @@
 (결정 #51), 소비자가 규칙과 버전을 달고 만든다.
 
     paint.py       움직이는 점이 붓이 되어 칠한다 — Cellophane · stack
+    geojson.py     한 장과 canonical segment를 결정론적 GeoJSON으로 직렬화
     region.py      사용자가 그린 면 안의 체류 — walk/encounter.py 의 면 버전
     layers.py      어떤 산책을 골라 어떤 장을 겹칠지 — 위 둘의 질의층
     experience.py  그 질의를 화면·문장이 쓸 근거로 조합한다 — 방문률·추세·후보
