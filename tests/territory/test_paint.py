@@ -133,6 +133,15 @@ def test_paint_identity_tracks_the_resolved_sample_step():
     assert changed.fingerprint != default.fingerprint
 
 
+def test_paint_identity_normalises_equivalent_numeric_spellings():
+    integer_spelling = paint_spec(8, NARROW_STEP, 2)
+    float_spelling = paint_spec(8.0, NARROW_STEP, 2.0)
+    assert integer_spelling == float_spelling
+    assert integer_spelling.fingerprint == float_spelling.fingerprint
+    assert isinstance(integer_spelling.radius_u, float)
+    assert isinstance(integer_spelling.sample_step_m, float)
+
+
 def test_stack_rejects_mixed_paint_generations():
     target = hex_cell(LAT, LNG, RADIUS_U)
     lat0, lng0 = hex_center_latlng(*target, RADIUS_U)

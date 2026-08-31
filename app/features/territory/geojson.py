@@ -17,7 +17,7 @@ from itertools import pairwise
 from app.features.territory.paint import Cellophane
 from app.features.walk.facts import Segment
 from app.features.walk.models import WalkFix
-from app.geo.cells import Cell, hex_boundary_latlng
+from app.geo.cells import GRID_VERSION, Cell, hex_boundary_latlng
 
 
 def spatial_cell_id(grid_version: str, radius_u: float, cell: Cell) -> str:
@@ -26,7 +26,7 @@ def spatial_cell_id(grid_version: str, radius_u: float, cell: Cell) -> str:
     같은 ``(q, r)``도 격자 수학이나 반지름이 다르면 다른 공간이다. 반대로 붓이나 sampling이
     달라져도 같은 격자 셀은 같은 공간이므로 ``paint_fp``는 넣지 않는다.
     """
-    radius = json.dumps(radius_u, allow_nan=False, separators=(",", ":"))
+    radius = json.dumps(float(radius_u), allow_nan=False, separators=(",", ":"))
     return f"{grid_version}:{radius}:{cell[0]}:{cell[1]}"
 
 
@@ -102,7 +102,9 @@ def _cell_features(sheet: Cellophane) -> list[dict[str, object]]:
 
         cell = (q, r)
         identifier = spatial_cell_id(sheet.grid_version, sheet.radius_u, cell)
-        boundary = hex_boundary_latlng(q, r, sheet.radius_u)
+        # cells.py 의 경계는 Android Canvas용 시계 방향이다. GeoJSON 외곽 링은
+        # RFC 7946의 right-hand rule에 맞춰 반시계 방향으로 뒤집는다.
+        boundary = reversed(hex_boundary_latlng(q, r, sheet.radius_u))
         ring = [[lng, lat] for lat, lng in boundary]
         ring.append(ring[0].copy())
         features.append(
@@ -135,6 +137,10 @@ def cellophane_feature_collection(
     Feature 순서는 chain_index 오름차순의 LineString 뒤에 ``(q, r)`` 오름차순 Polygon이다.
     ``occupancy_mass_s``와 ``source_segment_s``는 반올림하지 않아 계산 오차를 숨기지 않는다.
     """
+    if sheet.grid_version != GRID_VERSION:
+        raise ValueError(
+            f"지원하지 않는 grid_version: {sheet.grid_version!r} (지원: {GRID_VERSION!r})"
+        )
     segment_list = list(segments)
     source_segment_s = math.fsum(segment.dt for segment in segment_list)
     occupancy_mass_s = math.fsum(sheet.occupancy.values())
