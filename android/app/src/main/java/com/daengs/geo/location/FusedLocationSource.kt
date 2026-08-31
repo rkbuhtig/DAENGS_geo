@@ -3,6 +3,7 @@ package com.daengs.geo.location
 import android.annotation.SuppressLint
 import android.content.Context
 import android.location.Location
+import android.os.Build
 import android.os.Looper
 import androidx.core.location.LocationCompat
 import com.google.android.gms.location.LocationCallback
@@ -68,5 +69,30 @@ private fun Location.toSample(): LocationSample = LocationSample(
     elapsedRealtimeNanos = elapsedRealtimeNanos,
     accuracyMeters = accuracy.takeIf { hasAccuracy() },
     speedMetersPerSecond = speed.takeIf { hasSpeed() },
-    isMock = LocationCompat.isMock(this),
+    // AVD의 `adb emu geo fix`는 실제로 만든 위치인데도 LocationCompat.isMock=false로
+    // 전달된다. 그 값만 믿으면 검증 산책이 device evidence로 업로드된다. 플랫폼 표식과
+    // 실행 환경을 함께 보되, 실제 Pixel의 google brand 자체는 mock 근거로 쓰지 않는다.
+    isMock = isMockEvidence(
+        platformReportedMock = LocationCompat.isMock(this),
+        fingerprint = Build.FINGERPRINT,
+        model = Build.MODEL,
+        manufacturer = Build.MANUFACTURER,
+        device = Build.DEVICE,
+        product = Build.PRODUCT,
+    ),
 )
+
+internal fun isMockEvidence(
+    platformReportedMock: Boolean,
+    fingerprint: String,
+    model: String,
+    manufacturer: String,
+    device: String,
+    product: String,
+): Boolean = platformReportedMock ||
+    fingerprint.startsWith("generic", ignoreCase = true) ||
+    model.contains("emulator", ignoreCase = true) ||
+    model.startsWith("sdk_", ignoreCase = true) ||
+    manufacturer.contains("genymotion", ignoreCase = true) ||
+    device.startsWith("emu", ignoreCase = true) ||
+    product.startsWith("sdk_", ignoreCase = true)
