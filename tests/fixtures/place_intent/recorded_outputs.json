@@ -1,0 +1,106 @@
+[
+  {
+    "case_id": "explicit-cafe-a",
+    "utterance": "카페만 찾아줘",
+    "expected": {"disposition": "proposed", "interpretations": [{"proposals": [{"role": "required_target", "intent": {"intent_type": "kind", "kind": "cafe"}, "evidence": {"quote": "카페", "start": null, "end": null}}]}], "reason": null},
+    "recorded_output": {"disposition": "proposed", "interpretations": [{"proposals": [{"role": "required_target", "intent": {"intent_type": "kind", "kind": "cafe"}, "evidence": {"quote": "카페", "start": null, "end": null}}]}], "reason": null},
+    "exact_command": true,
+    "paraphrase_group": "explicit-cafe"
+  },
+  {
+    "case_id": "explicit-cafe-b",
+    "utterance": "카페로만 검색해",
+    "expected": {"disposition": "proposed", "interpretations": [{"proposals": [{"role": "required_target", "intent": {"intent_type": "kind", "kind": "cafe"}, "evidence": {"quote": "카페", "start": null, "end": null}}]}], "reason": null},
+    "recorded_output": {"disposition": "proposed", "interpretations": [{"proposals": [{"role": "required_target", "intent": {"intent_type": "kind", "kind": "cafe"}, "evidence": {"quote": "카페", "start": null, "end": null}}]}], "reason": null},
+    "exact_command": true,
+    "paraphrase_group": "explicit-cafe"
+  },
+  {
+    "case_id": "analogy-cafe",
+    "utterance": "카페 같은 분위기의 장소",
+    "expected": {"disposition": "proposed", "interpretations": [{"proposals": [{"role": "analogy", "intent": {"intent_type": "kind", "kind": "cafe"}, "evidence": {"quote": "카페 같은", "start": null, "end": null}}, {"role": "required_target", "intent": {"intent_type": "semantic", "concept_id": "semantic.atmosphere"}, "evidence": {"quote": "분위기의 장소", "start": null, "end": null}}]}], "reason": null},
+    "recorded_output": {"disposition": "proposed", "interpretations": [{"proposals": [{"role": "analogy", "intent": {"intent_type": "kind", "kind": "cafe"}, "evidence": {"quote": "카페 같은", "start": null, "end": null}}, {"role": "required_target", "intent": {"intent_type": "semantic", "concept_id": "semantic.atmosphere"}, "evidence": {"quote": "분위기의 장소", "start": null, "end": null}}]}], "reason": null},
+    "exact_command": false,
+    "paraphrase_group": null
+  },
+  {
+    "case_id": "excluded-cafe-outing",
+    "utterance": "카페 말고 산책할 곳",
+    "expected": {"disposition": "proposed", "interpretations": [{"proposals": [{"role": "excluded", "intent": {"intent_type": "kind", "kind": "cafe"}, "evidence": {"quote": "카페 말고", "start": null, "end": null}}, {"role": "required_target", "intent": {"intent_type": "purpose", "purpose_id": "outing"}, "evidence": {"quote": "산책할 곳", "start": null, "end": null}}]}], "reason": null},
+    "recorded_output": {"disposition": "proposed", "interpretations": [{"proposals": [{"role": "excluded", "intent": {"intent_type": "kind", "kind": "cafe"}, "evidence": {"quote": "카페 말고", "start": null, "end": null}}, {"role": "required_target", "intent": {"intent_type": "purpose", "purpose_id": "outing"}, "evidence": {"quote": "산책할 곳", "start": null, "end": null}}]}], "reason": null},
+    "exact_command": false,
+    "paraphrase_group": null
+  },
+  {
+    "case_id": "hypothetical-cafe",
+    "utterance": "카페나 갈까",
+    "expected": {"disposition": "proposed", "interpretations": [{"proposals": [{"role": "hypothetical", "intent": {"intent_type": "kind", "kind": "cafe"}, "evidence": {"quote": "카페나 갈까", "start": null, "end": null}}]}], "reason": null},
+    "recorded_output": {"disposition": "proposed", "interpretations": [{"proposals": [{"role": "hypothetical", "intent": {"intent_type": "kind", "kind": "cafe"}, "evidence": {"quote": "카페나 갈까", "start": null, "end": null}}]}], "reason": null},
+    "exact_command": false,
+    "paraphrase_group": null
+  },
+  {
+    "case_id": "negated-hospital",
+    "utterance": "병원 갈 정도는 아니야",
+    "expected": {"disposition": "proposed", "interpretations": [{"proposals": [{"role": "negated", "intent": {"intent_type": "kind", "kind": "hospital"}, "evidence": {"quote": "병원 갈 정도는 아니야", "start": null, "end": null}}]}], "reason": null},
+    "recorded_output": {"disposition": "proposed", "interpretations": [{"proposals": [{"role": "negated", "intent": {"intent_type": "kind", "kind": "hospital"}, "evidence": {"quote": "병원 갈 정도는 아니야", "start": null, "end": null}}]}], "reason": null},
+    "exact_command": false,
+    "paraphrase_group": null
+  },
+  {
+    "case_id": "relational-cafe-lodging",
+    "utterance": "숙소에 카페가 있으면 좋겠어",
+    "expected": {"disposition": "proposed", "interpretations": [{"proposals": [{"role": "required_target", "intent": {"intent_type": "purpose", "purpose_id": "lodging"}, "evidence": {"quote": "숙소", "start": null, "end": null}}, {"role": "relational", "intent": {"intent_type": "kind", "kind": "cafe"}, "evidence": {"quote": "카페가 있으면", "start": null, "end": null}}]}], "reason": null},
+    "recorded_output": {"disposition": "proposed", "interpretations": [{"proposals": [{"role": "required_target", "intent": {"intent_type": "purpose", "purpose_id": "lodging"}, "evidence": {"quote": "숙소", "start": null, "end": null}}, {"role": "relational", "intent": {"intent_type": "kind", "kind": "cafe"}, "evidence": {"quote": "카페가 있으면", "start": null, "end": null}}]}], "reason": null},
+    "exact_command": false,
+    "paraphrase_group": null
+  },
+  {
+    "case_id": "parking-preference",
+    "utterance": "주차되면 좋겠어",
+    "expected": {"disposition": "proposed", "interpretations": [{"proposals": [{"role": "preference", "intent": {"intent_type": "boolean_capability", "capability_id": "operations.parking", "value": true}, "evidence": {"quote": "주차되면 좋겠어", "start": null, "end": null}}]}], "reason": null},
+    "recorded_output": {"disposition": "proposed", "interpretations": [{"proposals": [{"role": "preference", "intent": {"intent_type": "boolean_capability", "capability_id": "operations.parking", "value": true}, "evidence": {"quote": "주차되면 좋겠어", "start": null, "end": null}}]}], "reason": null},
+    "exact_command": false,
+    "paraphrase_group": null
+  },
+  {
+    "case_id": "parking-required",
+    "utterance": "주차 필수",
+    "expected": {"disposition": "proposed", "interpretations": [{"proposals": [{"role": "required_condition", "intent": {"intent_type": "boolean_capability", "capability_id": "operations.parking", "value": true}, "evidence": {"quote": "주차 필수", "start": null, "end": null}}]}], "reason": null},
+    "recorded_output": {"disposition": "proposed", "interpretations": [{"proposals": [{"role": "required_condition", "intent": {"intent_type": "boolean_capability", "capability_id": "operations.parking", "value": true}, "evidence": {"quote": "주차 필수", "start": null, "end": null}}]}], "reason": null},
+    "exact_command": false,
+    "paraphrase_group": null
+  },
+  {
+    "case_id": "unsupported-quiet",
+    "utterance": "조용한 곳",
+    "expected": {"disposition": "proposed", "interpretations": [{"proposals": [{"role": "required_target", "intent": {"intent_type": "semantic", "concept_id": "semantic.quiet"}, "evidence": {"quote": "조용한 곳", "start": null, "end": null}}]}], "reason": null},
+    "recorded_output": {"disposition": "proposed", "interpretations": [{"proposals": [{"role": "required_target", "intent": {"intent_type": "semantic", "concept_id": "semantic.quiet"}, "evidence": {"quote": "조용한 곳", "start": null, "end": null}}]}], "reason": null},
+    "exact_command": false,
+    "paraphrase_group": null
+  },
+  {
+    "case_id": "dining-a",
+    "utterance": "밥 먹을 만한 곳",
+    "expected": {"disposition": "proposed", "interpretations": [{"proposals": [{"role": "required_target", "intent": {"intent_type": "purpose", "purpose_id": "dining"}, "evidence": {"quote": "밥 먹을 만한 곳", "start": null, "end": null}}]}], "reason": null},
+    "recorded_output": {"disposition": "proposed", "interpretations": [{"proposals": [{"role": "required_target", "intent": {"intent_type": "purpose", "purpose_id": "dining"}, "evidence": {"quote": "밥 먹을 만한 곳", "start": null, "end": null}}]}], "reason": null},
+    "exact_command": false,
+    "paraphrase_group": "dining-purpose"
+  },
+  {
+    "case_id": "dining-b",
+    "utterance": "식사할 곳",
+    "expected": {"disposition": "proposed", "interpretations": [{"proposals": [{"role": "required_target", "intent": {"intent_type": "purpose", "purpose_id": "dining"}, "evidence": {"quote": "식사할 곳", "start": null, "end": null}}]}], "reason": null},
+    "recorded_output": {"disposition": "proposed", "interpretations": [{"proposals": [{"role": "required_target", "intent": {"intent_type": "purpose", "purpose_id": "dining"}, "evidence": {"quote": "식사할 곳", "start": null, "end": null}}]}], "reason": null},
+    "exact_command": false,
+    "paraphrase_group": "dining-purpose"
+  },
+  {
+    "case_id": "ambiguous-rest",
+    "utterance": "강아지랑 잠깐 머물 곳",
+    "expected": {"disposition": "ambiguous", "interpretations": [{"proposals": [{"role": "required_target", "intent": {"intent_type": "purpose", "purpose_id": "dining"}, "evidence": {"quote": "잠깐 머물 곳", "start": null, "end": null}}]}, {"proposals": [{"role": "required_target", "intent": {"intent_type": "purpose", "purpose_id": "outing"}, "evidence": {"quote": "잠깐 머물 곳", "start": null, "end": null}}]}], "reason": "multiple_plausible_readings"},
+    "recorded_output": {"disposition": "ambiguous", "interpretations": [{"proposals": [{"role": "required_target", "intent": {"intent_type": "purpose", "purpose_id": "dining"}, "evidence": {"quote": "잠깐 머물 곳", "start": null, "end": null}}]}, {"proposals": [{"role": "required_target", "intent": {"intent_type": "purpose", "purpose_id": "outing"}, "evidence": {"quote": "잠깐 머물 곳", "start": null, "end": null}}]}], "reason": "multiple_plausible_readings"},
+    "exact_command": false,
+    "paraphrase_group": null
+  }
+]

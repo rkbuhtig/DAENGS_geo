@@ -73,7 +73,6 @@ IntentConcept = Annotated[
 class IntentProposal(PlanningModel):
     """extractor·LLM이 제안할 수 있는 내용. source/origin/locked는 의도적으로 없다."""
 
-    observation_id: str = Field(min_length=1, max_length=80, pattern=r"^[a-zA-Z0-9_.:-]+$")
     role: IntentRole
     intent: IntentConcept
     evidence: str | None = Field(None, min_length=1, max_length=500)
@@ -82,12 +81,24 @@ class IntentProposal(PlanningModel):
 class IntentObservation(IntentProposal):
     """서버가 신뢰 가능한 호출 경로를 확인한 뒤 source를 붙인 봉투."""
 
+    observation_id: str = Field(min_length=1, max_length=80, pattern=r"^[a-zA-Z0-9_.:-]+$")
     source: IntentSource
 
 
-def observe_intent(proposal: IntentProposal, source: IntentSource) -> IntentObservation:
+def observe_intent(
+    proposal: IntentProposal,
+    source: IntentSource,
+    *,
+    observation_id: str,
+) -> IntentObservation:
+    """검증된 adapter만 audit id와 호출 경로의 source를 부여한다."""
+
     return IntentObservation.model_validate(
-        {**proposal.model_dump(mode="python"), "source": source}
+        {
+            **proposal.model_dump(mode="python"),
+            "observation_id": observation_id,
+            "source": source,
+        }
     )
 
 
