@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 from sqlalchemy import text
 
 from app.ingest.facility_store import upsert_rows
+from app.ingest.source_record_store import upsert_source_records
 from app.place.search import (
     PlaceKind,
     PlaceSearchRequest,
@@ -14,7 +15,9 @@ from app.place.search import (
     search_place_groups,
     search_place_plan,
 )
+from app.place.search_preview import preview_search_plan
 from app.place.source_catalog import KCISA_KINDS, KTO_KINDS, MOIS_SOURCES
+from app.place.source_facts.states import DetailAcquisitionState
 from tests.conftest import TEST_ORIGIN, db_session
 
 _MEDICAL_SOURCE = "public:mois:animal_hospital"
@@ -78,6 +81,10 @@ async def _delete_owned_rows(session) -> None:
     await session.execute(text(
         "DELETE FROM facility WHERE source = 'kcisa' AND source_ref IS NULL AND name = :name"
     ), {"name": _NULL_REF_FACILITY_NAME})
+    await session.execute(
+        text("DELETE FROM facility_source_record WHERE source_ref = ANY(:refs)"),
+        {"refs": [*_FACILITY_REFS, *_PREFERENCE_REFS]},
+    )
 
 
 def test_place_kind_exactly_matches_all_resolver_vocabularies():
@@ -141,6 +148,146 @@ async def test_parking_preference_reaches_candidate_selection_before_limit():
             assert group.sort.coverage["parking"].model_dump() == {
                 "known_true": 1, "known_false": 0, "unknown": 0,
             }
+        finally:
+            await session.rollback()
+            await _delete_owned_rows(session)
+            await session.commit()
+
+
+async def test_plan_preview_reads_spatial_candidates_and_shadow_evidence_separately():
+    async with db_session() as session:
+        await _delete_owned_rows(session)
+        await session.commit()
+        try:
+            now = datetime.now(UTC)
+            await upsert_rows(
+                session,
+                "kcisa",
+                [
+                    _facility_row(
+                        _FACILITY_REFS[0],
+                        "preview-known",
+                        "cafe",
+                        "카페",
+                        100,
+                        parking=True,
+                    ),
+                    _facility_row(
+                        _FACILITY_REFS[1],
+                        "preview-missing",
+                        "cafe",
+                        "카페",
+                        200,
+                        parking=False,
+                    ),
+                ],
+                "preview",
+                now,
+            )
+            await upsert_rows(
+                session,
+                "kto",
+                [
+                    _facility_row(
+                        _FACILITY_REFS[2],
+                        "preview-kto-effective",
+                        "shopping",
+                        "38",
+                        300,
+                        parking=True,
+                        raw={"contenttypeid": "38"},
+                    )
+                ],
+                "preview",
+                now,
+            )
+            await upsert_source_records(
+                session,
+                "kcisa",
+                [
+                    {
+                        "record_ref": _FACILITY_REFS[0],
+                        "source_ref": _FACILITY_REFS[0],
+                        "listing_raw": {
+                            "카테고리1": "반려동물업",
+                            "카테고리2": "반려동물식당카페",
+                            "카테고리3": "카페",
+                            "반려동물 동반 가능정보": "Y",
+                            "반려동물 전용 정보": "해당없음",
+                            "입장 가능 동물 크기": "모두 가능",
+                            "반려동물 제한사항": "없음",
+                            "주차 가능여부": "Y",
+                        },
+                    }
+                ],
+                "preview",
+                now,
+                detail_state=DetailAcquisitionState.NOT_APPLICABLE,
+                preserve_detail=False,
+            )
+            await upsert_source_records(
+                session,
+                "kto",
+                [
+                    {
+                        "record_ref": _FACILITY_REFS[2],
+                        "source_ref": _FACILITY_REFS[2],
+                        "listing_raw": {
+                            "contentid": _FACILITY_REFS[2],
+                            "contenttypeid": "38",
+                        },
+                    }
+                ],
+                "preview",
+                now,
+                detail_state=DetailAcquisitionState.NOT_FETCHED,
+                preserve_detail=True,
+            )
+            await session.commit()
+
+            request = PlaceSearchRequest(
+                lat=TEST_ORIGIN[0],
+                lng=TEST_ORIGIN[1],
+                radius_m=1000,
+                kinds=["cafe", "shopping"],
+                limit_per_kind=1,
+                preferences={"parking": True},
+            )
+            preview = await preview_search_plan(
+                session,
+                compile_place_search_request(request),
+            )
+
+            assert preview.initial_candidates == 3
+            assert preview.candidate_limit_per_kind == 500
+            assert preview.truncated_kinds == ()
+            purpose, parking = preview.gates
+            assert (purpose.known_match, purpose.remaining) == (3, 3)
+            assert purpose.source_evidence.model_dump(exclude={"acquisition_states"}) == {
+                "known": 2,
+                "unknown": 0,
+                "missing": 1,
+                "conflicted": 0,
+                "failed": 0,
+                "unsupported": 0,
+            }
+            assert (
+                parking.known_match,
+                parking.known_mismatch,
+                parking.unknown,
+                parking.remaining,
+            ) == (2, 1, 0, 3)
+            assert parking.source_evidence.model_dump(exclude={"acquisition_states"}) == {
+                "known": 1,
+                "unknown": 0,
+                "missing": 1,
+                "conflicted": 0,
+                "failed": 0,
+                "unsupported": 1,
+            }
+
+            response = await search_place_groups(session, request)
+            assert sum(len(group.results) for group in response.groups) == 2
         finally:
             await session.rollback()
             await _delete_owned_rows(session)
