@@ -40,6 +40,9 @@ if settings.dev_console:
     _ANCHORS = Path(__file__).parent / "static" / "anchors.html"
     _CELLOPHANE = Path(__file__).parent / "static" / "cellophane.html"
     _CELLOPHANE_DISTRIBUTION = Path(__file__).parent / "static" / "cellophane_distribution.html"
+    _CONTINUOUS_HEX_COMPARISON = (
+        Path(__file__).parent / "static" / "continuous_hex_comparison.html"
+    )
     _FACILITY = Path(__file__).parent / "static" / "facility.html"
 
     @app.get("/facility-map", include_in_schema=False)
@@ -78,6 +81,23 @@ if settings.dev_console:
     async def cellophane_distribution_data():
         """CWD의 고정 통계 fixture만 제공한다. latent truth 파일은 제공하지 않는다."""
         path = Path.cwd() / "cellophane-distribution.json"
+        if not path.exists():
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+        return FileResponse(
+            path,
+            media_type="application/json",
+            headers={"Cache-Control": "no-store"},
+        )
+
+    @app.get("/continuous-hex-comparison", include_in_schema=False)
+    async def continuous_hex_comparison_view():
+        """연속 원 reference와 4·8·12u Hex를 실제 지도에서 비교하는 검증 표면."""
+        return FileResponse(_CONTINUOUS_HEX_COMPARISON, media_type="text/html")
+
+    @app.get("/continuous-hex-comparison/data", include_in_schema=False)
+    async def continuous_hex_comparison_data():
+        """CWD의 고정 비교 fixture만 제공한다. 임의 경로나 latent truth는 받지 않는다."""
+        path = Path.cwd() / "continuous-hex-visualization.json"
         if not path.exists():
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
         return FileResponse(
