@@ -62,6 +62,7 @@ def test_viewer_has_no_external_basemap_or_network_dependency():
 
 
 def test_cell_selection_is_clickable_and_keyboard_accessible():
+    assert "[hidden] { display:none !important }" in HTML
     assert "polygon.addEventListener('click', choose)" in HTML
     assert "polygon.addEventListener('keydown'" in HTML
     assert "event.key === 'Enter' || event.key === ' '" in HTML
