@@ -195,7 +195,8 @@ PR3는 저장된 shadow 원문을 검색 후보가 읽을 수 있게 하는 **�
 동일한 `source_ref`에 여러 `record_ref`가 있으면 하나를 대표로 고르지 않는다. 각 원문을 현재
 projector로 다시 읽은 `variants`와 물리 중복 수 `occurrence_count`를 모두 보존한다. canonical
 section 값이 다르면 `purpose`, `pet_access`, `restrictions`, `amenities`, `pet_fee`, `operations`
-단위의 `conflicts`를 명시한다. shadow가 없는 후보도 입력 위치에 `state=missing` bundle로 남겨,
+단위의 `conflicts`를 명시한다. shadow가 없는 후보도 입력 위치에
+`availability=missing` bundle로 남겨,
 “데이터 미상”이 “필터 탈락”으로 바뀌지 않게 한다.
 
 ```text
@@ -205,11 +206,17 @@ PlaceRef 후보 (최대 1,000)
 SourceFactKey[] ── one SQL ── facility_source_record[]
                                 │ current projectors
                                 ▼
-CandidateFactBundle[] = variants + conflicts + acquisition state
+CandidateFactBundle[] = availability + projection state + variants
+                      + conflicts + acquisition states
 ```
 
 이 층은 충돌을 보여 주지만 해소하지 않는다. 어떤 variant를 믿을지, 미상 조건을 통과시킬지,
 AI가 어떤 조건 플래그를 제안할지는 다음 검색 정책 층의 책임이다.
+
+bundle 요약도 서로 다른 상태를 한 enum으로 합치지 않는다. `availability`는 shadow 존재 여부,
+`projection_state`는 parser 성공도, `acquisition_states`는 detail 획득 상태,
+`has_conflicts`는 variant 값 충돌만 말한다. 따라서 KTO detail이 `not_fetched`인 projection은
+parser가 완결됐더라도 데이터까지 완전하다고 표현되지 않는다.
 
 ## fixture와 실패 규칙
 
