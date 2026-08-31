@@ -10,6 +10,8 @@
 import math
 from datetime import UTC, date, datetime, timedelta
 
+import pytest
+
 from app.features.territory.layers import (
     Aggregation,
     LayerSpec,
@@ -237,6 +239,11 @@ def test_layer_carries_spec_and_denominator():
     layer = render(sheets, _spec(season="summer"))
     assert layer.selected == 5 and layer.total == 6
     assert layer.spec.selector.label.startswith("season=summer")
+
+
+def test_canvas_renderer_rejects_a_spatial_statistics_metric_early():
+    with pytest.raises(ValueError, match="canvas metric"):
+        render([], _spec(metric="visit_rate"))
 
 
 def test_same_spec_same_fingerprint_and_canvas():

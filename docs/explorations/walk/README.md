@@ -17,6 +17,7 @@
 | [session-engine-draft](session-engine-draft.md) | exploring | draft | 초기 start/locations/finish 흐름과 소비자 아이디어. 구현 현황은 Android README/계약이 더 최신 |
 | [session-continuity-and-dwell](session-continuity-and-dwell.md) | exploring | partial | 이미 있는 pause/chain/unfinished-session 위에서 세션 연속성·복구·체류·territory 의미를 정리 |
 | [territory-paint](territory-paint.md) | exploring | working-skeleton | 산책 점을 붓으로 지도를 칠한다. 산책 한 번 = 셀로판 한 장, 조건으로 골라 겹친다. §A(영구 형태)는 [결정 #69](../../decisions/2026-08-26-walk-permanent-spatial-form.md) 로 닫혔고 §B·§C 는 열려 있다 |
+| [cellophane-statistical-layer](cellophane-statistical-layer.md) | exploring | working-skeleton | **싸인펜 생성 연산 → 산책별 셀로판 표본 → z축 적층 → 통계 질의**를 분리한다. 방문률·총 시간·방문당 체류·두 이용 분포의 통계 코어는 구현됐고, 50·80·95% 영역과 Raw/Adjusted 집 편향, 실험 B/C는 열려 있다 |
 | [repeated-dwell-area](repeated-dwell-area.md) | exploring | draft | **반복 체류 영역의 조작적 정의.** 의미어 없이 — 국소 적분 · 산책당 · 경로 대비. M2 이후 M3 의 첫 일은 문턱을 고르는 것이 아니라 **문턱을 걸 수 있는 지표를 찾는 것**이다 |
 | [evidence-layer](evidence-layer.md) | exploring | draft | **원시 행동 → 판단 가능한 상태.** 사람과 AI 가 같은 근거 계약을 다른 표현으로 읽는다. 지도는 그 인간용 투영이고 맨 마지막이다 |
 | [experience-scenario](experience-scenario.md) | exploring | draft | 저녁 산책 직전 화면 한 장. 셀로판이 기록·해석·행동 중 **어떤 가치를 만드는지** 가장 싼 형태로 검증한다. 금지 목록과 판정 기준이 여기 있다 |
@@ -28,6 +29,11 @@
 남길지는 [결정 #69](../../decisions/2026-08-26-walk-permanent-spatial-form.md)가 산책별 셀 맵으로
 닫았다(칸마다 `occupancy`와 `peak`, 겹치기는 질의지 저장이 아니다). 남은 §B·§C는 그 위에서
 무엇을 어떻게 읽을지다.
+
+`cellophane-statistical-layer`는 그 “어떻게 읽을지”의 단계 경계를 고정한다. 싸인펜은
+`Segment[] → occupancy·peak` 생성 연산, 셀로판은 산책별 영구 표본, 적층은 장 경계를 유지한
+선택 집합, 통계층은 방문률·시간·조건부 체류·공간 이용 분포를 만드는 질의다. 같은 색의
+진하기로 이 축들을 미리 접지 않으며, UI보다 통계 이름과 분모 계약을 먼저 만든다.
 
 `memory-engine`은 이 갈래들이 **왜 한 번 흔들렸는지**를 남긴다. M2 대조군이 정답지를 이기면서
 (`research/2026-08-27-latent-dwell-synthesis.md`) 문제가 검출기가 아니라 저장 경계였다는 쪽으로
