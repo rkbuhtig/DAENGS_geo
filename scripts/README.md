@@ -66,6 +66,10 @@ git grep -n 'scripts/spikes/<갈래>'   # app · tests · docs · android 전부
 `facility_pet_coverage.py` 는 [pet-axes 갈래](../docs/explorations/facility/pet-axes.md)가
 부른다. 소속이 애매하면 최상위가 아니라 `spikes/<갈래>/` 다.
 
+`source_fact_coverage.py`는 [source-facts 갈래](../docs/explorations/facility/source-facts.md)가
+부른다. 현재 KTO 저장 레코드를 순수 projector에 통과시켜 scope·predicate·amenity·실패 수를
+읽기 전용으로 다시 잰다.
+
 `discover_place_tags.py` 는 [결정 #72](../docs/decisions/2026-08-27-place-tag-catalog.md)의
 **발견** 칸이다 — 사전을 고칠 때마다 다시 돈다. 갈래가 닫히면 사라질 측정 장치가 아니라
 `app/place/tag_catalog.py` 를 손보는 사람이 매번 여는 작업대라서 최상위에 있다.
