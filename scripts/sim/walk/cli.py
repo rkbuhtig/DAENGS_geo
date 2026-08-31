@@ -31,6 +31,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--seed", type=int, default=48123)
     parser.add_argument("--sample-interval-s", type=float, default=5.0)
     parser.add_argument("--chain-break-m", type=float, action="append", default=[])
+    parser.add_argument("--session-id")
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args(argv)
 
@@ -42,6 +43,7 @@ def main(argv: list[str] | None = None) -> int:
             seed=args.seed,
             sample_interval_s=args.sample_interval_s,
             chain_breaks_m=tuple(sorted(args.chain_break_m)),
+            session_id=args.session_id,
         )
         write_scenario(args.out.resolve(), artifacts)
     except (FileExistsError, OSError, ValueError) as error:

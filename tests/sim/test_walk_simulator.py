@@ -10,7 +10,7 @@ import pytest
 from scripts.sim.walk.bundle import build_scenario, write_scenario
 from scripts.sim.walk.cli import main
 from scripts.sim.walk.kinematics import integrate_motion
-from scripts.sim.walk.model import behavior_preset
+from scripts.sim.walk.model import BehaviorPlan, SlowMotif, behavior_preset
 from scripts.sim.walk.route import route_preset
 from scripts.spikes.territory_paint.cellophane_replay import DeviceExport, parse_export
 
@@ -32,6 +32,41 @@ def test_seed_changes_behavior_without_changing_the_named_route():
 
     assert first.manifest["behavior"] != second.manifest["behavior"]
     assert first.manifest["route"] == second.manifest["route"]
+    assert first.manifest["session_id"] != second.manifest["session_id"]
+
+
+@pytest.mark.parametrize(
+    ("override", "value"),
+    (
+        ({"route_name": "loop"}, "route"),
+        ({"sample_interval_s": 3.0}, "sampling"),
+        ({"chain_breaks_m": (300.0,)}, "chain break"),
+        ({"origin_lat": 37.6}, "origin"),
+    ),
+)
+def test_scenario_identity_changes_with_observation_inputs(override, value):
+    baseline = build_scenario(seed=17)
+    changed = build_scenario(seed=17, **override)
+
+    assert baseline.manifest["session_id"] != changed.manifest["session_id"], value
+
+
+def test_explicit_session_identity_is_preserved():
+    artifacts = build_scenario(session_id="scenario-under-review")
+
+    assert artifacts.manifest["session_id"] == "scenario-under-review"
+    assert artifacts.observed.session_id == "scenario-under-review"
+    assert artifacts.computed.facts.session_id == "scenario-under-review"
+
+
+def test_slow_motif_must_fit_at_the_start_of_the_behavior():
+    with pytest.raises(ValueError, match="slow motif must fit"):
+        BehaviorPlan(
+            name="steady",
+            length_m=100.0,
+            base_speed_mps=1.0,
+            slow_motifs=(SlowMotif(centre_m=1.0, width_m=10.0, min_factor=0.5),),
+        )
 
 
 @pytest.mark.parametrize("name", ("straight", "s-curve", "loop", "out-and-back"))
@@ -127,6 +162,7 @@ def test_cli_writes_all_truth_observation_and_derived_layers(tmp_path, capsys):
         "--route", "loop",
         "--length-m", "300",
         "--seed", "9",
+        "--session-id", "fatigued-loop-review",
         "--chain-break-m", "180",
         "--out", str(out),
     ]) == 0
@@ -139,6 +175,9 @@ def test_cli_writes_all_truth_observation_and_derived_layers(tmp_path, capsys):
         "cellophane.geojson",
     }
     assert json.loads((out / "manifest.json").read_text(encoding="utf-8"))["seed"] == 9
+    assert json.loads((out / "manifest.json").read_text(encoding="utf-8"))[
+        "session_id"
+    ] == "fatigued-loop-review"
     assert "written to" in capsys.readouterr().out
 
 

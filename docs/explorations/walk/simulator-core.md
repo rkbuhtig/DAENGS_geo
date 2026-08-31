@@ -44,7 +44,9 @@ uv run python -m scripts.sim.walk.cli `
 
 `--behavior`은 `steady`, `exploratory`, `fatigued`, `stop-heavy`를, `--route`는 `straight`,
 `s-curve`, `loop`, `out-and-back`을 받는다. 출력 폴더가 비어 있지 않으면 기존 실행을 덮지
-않고 실패한다.
+않고 실패한다. 기본 session ID는 generator version과 behavior, route, seed, sampling,
+chain break, 시작 시각·원점 등 관측 결과를 바꾸는 입력 전체에서 결정론적으로 만든다. 외부
+실행명과 맞춰야 할 때만 `--session-id`로 명시한다.
 
 ```text
 manifest.json       generator version, seed, 최종 motif, route, sensor 계약

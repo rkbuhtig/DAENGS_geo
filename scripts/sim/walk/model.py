@@ -97,7 +97,10 @@ class BehaviorPlan:
             raise ValueError("fatigue_start_fraction must be in [0, 1)")
         if not math.isfinite(self.fatigue_end_factor) or not 0 < self.fatigue_end_factor <= 1:
             raise ValueError("fatigue_end_factor must be in (0, 1]")
-        if any(motif.end_m > self.length_m for motif in self.slow_motifs):
+        if any(
+            motif.start_m < 0 or motif.end_m > self.length_m
+            for motif in self.slow_motifs
+        ):
             raise ValueError("slow motif must fit inside behavior length")
         if any(hold.progress_m > self.length_m for hold in self.holds):
             raise ValueError("hold must fit inside behavior length")
