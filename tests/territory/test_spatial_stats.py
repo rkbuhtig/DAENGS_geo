@@ -18,6 +18,7 @@ from app.features.territory.layers import Aggregation, LayerSpec, Projection, Se
 from app.features.territory.paint import NARROW_STEP, BrushProfile, Cellophane, paint_spec
 from app.features.territory.spatial_stats import (
     conditional_dwell_field,
+    highest_mass_regions,
     spatial_field,
     time_utilization_field,
     total_time_field,
@@ -237,3 +238,33 @@ def test_sparse_aggregation_reads_each_present_cell_a_constant_number_of_times(m
 
     assert len(result.values) == 100
     assert _ReadCountingDict.reads <= 100
+
+
+def test_highest_mass_regions_are_nested_and_keep_the_field_receipt():
+    field = walk_utilization_field(_three_walks(), _spec("walk_utilization"))
+    result = highest_mass_regions(field, (0.5, 0.8, 0.95))
+
+    core, routine, fringe = result.regions
+    assert result.field is field
+    assert core.cells <= routine.cells <= fringe.cells
+    assert core.achieved_mass >= 0.5
+    assert routine.achieved_mass >= 0.8
+    assert fringe.achieved_mass >= 0.95
+
+
+def test_highest_mass_region_includes_every_cell_tied_at_the_cutoff():
+    sheets = [_sheet("one", 0, {(0, 0): 4.0, (1, 0): 2.0, (2, 0): 2.0, (3, 0): 2.0})]
+    field = time_utilization_field(sheets, _spec("time_utilization"))
+    region = highest_mass_regions(field, (0.5,)).regions[0]
+
+    assert region.cutoff_value == 0.2
+    assert region.cells == frozenset({(0, 0), (1, 0), (2, 0), (3, 0)})
+    assert region.achieved_mass == 1.0
+
+
+def test_highest_mass_regions_reject_non_distribution_fields_and_bad_levels():
+    with pytest.raises(ValueError, match="time_utilization"):
+        highest_mass_regions(visit_rate_field(_three_walks(), _spec("visit_rate")))
+    field = time_utilization_field(_three_walks(), _spec("time_utilization"))
+    with pytest.raises(ValueError, match="오름차순"):
+        highest_mass_regions(field, (0.8, 0.5))

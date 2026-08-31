@@ -40,6 +40,8 @@ SPATIAL_METRICS: frozenset[str] = frozenset(
         "walk_utilization",
     }
 )
+UTILIZATION_METRICS: frozenset[str] = frozenset({"time_utilization", "walk_utilization"})
+DEFAULT_MASS_LEVELS: tuple[float, ...] = (0.5, 0.8, 0.95)
 
 
 @dataclass(frozen=True)
@@ -97,6 +99,46 @@ class SpatialField:
         elif self.denominator is not None:
             if not math.isfinite(self.denominator) or self.denominator < 0:
                 raise ValueError("공통 denominator는 유한한 0 이상이어야 한다")
+
+
+@dataclass(frozen=True)
+class MassRegion:
+    """한 이용 분포에서 상위 밀도 셀로 회수한 목표 질량 영역."""
+
+    target_mass: float
+    achieved_mass: float
+    cutoff_value: float | None
+    cells: frozenset[Cell]
+
+    def __post_init__(self) -> None:
+        if not math.isfinite(self.target_mass) or not 0 < self.target_mass <= 1:
+            raise ValueError("target_mass는 0보다 크고 1 이하여야 한다")
+        if not math.isfinite(self.achieved_mass) or not 0 <= self.achieved_mass <= 1 + 1e-9:
+            raise ValueError("achieved_mass는 0 이상 1 이하여야 한다")
+        if self.cells and self.cutoff_value is None:
+            raise ValueError("비어 있지 않은 질량 영역에는 cutoff_value가 필요하다")
+        if self.cutoff_value is not None and (
+            not math.isfinite(self.cutoff_value) or self.cutoff_value < 0
+        ):
+            raise ValueError("cutoff_value는 유한한 0 이상이어야 한다")
+
+
+@dataclass(frozen=True)
+class MassRegionSet:
+    """분포 field 영수증과 50·80·95% 영역을 함께 보존한다."""
+
+    field: SpatialField
+    regions: tuple[MassRegion, ...]
+
+    def __post_init__(self) -> None:
+        if self.field.metric not in UTILIZATION_METRICS:
+            raise ValueError("질량 영역은 time_utilization 또는 walk_utilization만 지원한다")
+        targets = tuple(region.target_mass for region in self.regions)
+        if tuple(sorted(set(targets))) != targets:
+            raise ValueError("질량 영역 target은 중복 없이 오름차순이어야 한다")
+        for smaller, larger in zip(self.regions, self.regions[1:], strict=False):
+            if not smaller.cells <= larger.cells:
+                raise ValueError("질량 영역은 target이 커질수록 포함 관계여야 한다")
 
 
 def _require_metric(spec: LayerSpec, expected: SpatialMetric) -> None:
@@ -328,3 +370,46 @@ def spatial_field(sheets: Iterable[Cellophane], spec: LayerSpec) -> SpatialField
             f"공간 통계 metric은 {sorted(SPATIAL_METRICS)} 중 하나여야 한다: {metric!r}"
         )
     return calculate(sheets, spec)
+
+
+def highest_mass_regions(
+    field: SpatialField,
+    levels: tuple[float, ...] = DEFAULT_MASS_LEVELS,
+) -> MassRegionSet:
+    """값이 큰 셀부터 누적한 질량 영역. cutoff 동률 셀은 모두 포함한다.
+
+    동률을 셀 id 순서로 잘라 목표치에 억지로 맞추면 같은 밀도의 공간 중 일부만 임의로
+    선택된다. 따라서 목표를 넘더라도 cutoff와 값이 같은 셀은 한꺼번에 포함하고 실제 회수
+    질량을 `achieved_mass`로 돌려준다.
+    """
+    if field.metric not in UTILIZATION_METRICS:
+        raise ValueError("질량 영역은 time_utilization 또는 walk_utilization만 지원한다")
+    if not levels or any(not math.isfinite(level) or not 0 < level <= 1 for level in levels):
+        raise ValueError("질량 영역 level은 0보다 크고 1 이하인 유한한 값이어야 한다")
+    if tuple(sorted(set(levels))) != levels:
+        raise ValueError("질량 영역 level은 중복 없이 오름차순이어야 한다")
+
+    total_mass = math.fsum(field.values.values())
+    if field.values and not math.isclose(total_mass, 1.0, rel_tol=1e-9, abs_tol=1e-9):
+        raise ValueError(f"이용 분포의 총질량은 1이어야 한다: {total_mass}")
+    if not field.values:
+        return MassRegionSet(
+            field,
+            tuple(MassRegion(level, 0.0, None, frozenset()) for level in levels),
+        )
+
+    ranked = sorted(field.values.items(), key=lambda item: (-item[1], item[0]))
+    included: set[Cell] = set()
+    index = 0
+    regions = []
+    for level in levels:
+        achieved = math.fsum(field.values[cell] for cell in included)
+        cutoff = ranked[index - 1][1] if index else None
+        while achieved < level and index < len(ranked):
+            cutoff = ranked[index][1]
+            while index < len(ranked) and ranked[index][1] == cutoff:
+                included.add(ranked[index][0])
+                index += 1
+            achieved = math.fsum(field.values[cell] for cell in included)
+        regions.append(MassRegion(level, achieved, cutoff, frozenset(included)))
+    return MassRegionSet(field, tuple(regions))

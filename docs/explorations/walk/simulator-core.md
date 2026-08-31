@@ -78,3 +78,17 @@ sheets = observation.sheets            # 통계 계산기에 전달할 유일한
 체류를 심는다. `PopulationObservation`에는 이 branch와 hold label, 원래 seed가 없고 관측
 GPS·canonical Segment·Cellophane만 남는다. PR1 통계층은 `sheets`만 읽으며, branch별 기대
 순위와 질량 영역 회수는 evaluator가 truth를 사후 결합하는 다음 단계에서 검증한다.
+
+통계 지도 fixture와 dev 화면:
+
+```powershell
+uv run python -m scripts.spikes.territory_paint.population_distribution `
+  --out cellophane-distribution.json
+$env:DAENGS_DEV_CONSOLE="true"
+uv run uvicorn app.main:app --reload
+# http://127.0.0.1:8000/cellophane-distribution
+```
+
+화면 payload에는 branch·hold·seed가 없고 다섯 `SpatialField`의 값과 영수증, `U_time`·
+`U_walk`의 50·80·95% 외곽선만 있다. Naver가 설정됐지만 현재 localhost 출처가 허용되지
+않거나 provider가 다르면 설정의 `fallback=osm`에 따라 OpenStreetMap 실지도로 전환한다.
