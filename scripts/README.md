@@ -77,8 +77,19 @@ git grep -n 'scripts/spikes/<갈래>'   # app · tests · docs · android 전부
 임베딩 모드는 레포 의존성 밖이라 `uv run --with sentence-transformers --with scikit-learn` 이
 필요하고, `--mode mine` 만 추가 의존성 없이 돈다.
 
-`export_copy.py` 는 [README 의 사본 절](../README.md)이 부른다. 이 저장소를 팀 모노레포의
-`geo/` 로 내보낸다 — `android/` · `.github/` · 이 저장소의 작업 방식 문서
-(`docs/{decisions,research,explorations}`)를 빼고, 그 문서를 가리키던 링크 47개를 원본
-절대 URL 로 바꾼다. **사본을 손으로 만들면 그 링크 변환이 빠지고, 깨진 링크는 diff 에서
-멀쩡한 마크다운으로 보인다.**
+`promotion_status.py`는 [승격 원장](../docs/promotion-ledger.toml)의 source 기준점 뒤에서
+운영 표면 관련 경로가 얼마나 달라졌는지 읽기 전용으로 보고한다. `pending`은 실패가 아니라
+승격 검토 재료다. CI도 이 명령을 실행하지만 실험 중 차이를 막지 않는다.
+
+```bash
+uv run python -m scripts.promotion_status
+```
+
+`export_copy.py`는 `DAENGS_dev/geo` 전체 사본을 만들던 **과거 이관 도구**다. 지금 운영
+Place/Journey는 `DAENGS_dev/{place-search,journey-service}`, Android는 `DAENGS_app`이
+canonical이라 현재 승격에 쓰지 않는다. 히스토리 재현이 꼭 필요할 때만 오출력을 막는
+`--legacy-export` 플래그를 명시한다.
+
+```bash
+uv run python -m scripts.export_copy --legacy-export <빈 임시 폴더>
+```

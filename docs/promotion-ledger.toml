@@ -1,0 +1,107 @@
+version = 1
+
+# source_commit: 이 저장소에서 운영 표면이 마지막으로 승격된 기준점
+# target_commit: 운영 저장소에서 그 승격 작업이 마지막으로 닫힌 기준점
+#
+# target 쪽이 앱 구조에 맞게 달라지는 것은 정상이다. 이 원장은 파일 동일성을 선언하지 않고
+# "이 Geo 기준점 뒤의 관련 변경은 아직 운영 채택 여부를 검토하지 않았다"만 말한다.
+
+[[surface]]
+id = "place-search"
+title = "Place 검색 백엔드"
+source_commit = "c5f0d5f738410e90cac294fd5f407cd88f5330ac"
+target_repo = "SAJOYO/DAENGS_dev"
+target_branch = "dev"
+target_path = "place-search/"
+target_commit = "a51514fc9a04b53e58e0cea283b1d98bd89a9e7f"
+paths = [
+  "app/api/places_v2.py",
+  "app/search_main.py",
+  "app/core/clock.py",
+  "app/core/config.py",
+  "app/core/db.py",
+  "app/geo",
+  "app/place",
+  "app/ingest",
+  "alembic",
+  "docs/contracts/place-search-v2.md",
+  "tests/api/test_input_validation.py",
+  "tests/core",
+  "tests/geo",
+  "tests/ingest",
+  "tests/integration",
+  "tests/place",
+  "tests/test_search_closure.py",
+]
+
+[[surface]]
+id = "journey-service"
+title = "Journey 백엔드"
+source_commit = "c5f0d5f738410e90cac294fd5f407cd88f5330ac"
+target_repo = "SAJOYO/DAENGS_dev"
+target_branch = "dev"
+target_path = "journey-service/"
+target_commit = "1e2bff0ab23929c0a8d0492ebd9d86db7372c70e"
+paths = [
+  "app/features/journey",
+  "app/journey",
+  "app/providers",
+  "app/usage",
+  "app/discovery",
+  "app/profile",
+  "app/geo/polyline.py",
+  "docs/contracts/dog-profile.md",
+  "docs/contracts/owner-profile.md",
+  "tests/journey",
+  "tests/providers",
+  "tests/usage",
+  "tests/discovery",
+]
+
+[[surface]]
+id = "android-place"
+title = "Android 지도·Place·Journey"
+source_commit = "c5f0d5f738410e90cac294fd5f407cd88f5330ac"
+target_repo = "SAJOYO/DAENGS_app"
+target_branch = "dev"
+target_path = "app/src/main/java/com/daengs/app/{map,place,journey,location}/"
+target_commit = "f361d5739802695012ff23da32abeb90bab0b55c"
+paths = [
+  "android/app/build.gradle.kts",
+  "android/app/src/main/AndroidManifest.xml",
+  "android/app/src/main/java/com/daengs/geo/DaengsApplication.kt",
+  "android/app/src/main/java/com/daengs/geo/MainActivity.kt",
+  "android/app/src/main/java/com/daengs/geo/ServerAddress.kt",
+  "android/app/src/main/java/com/daengs/geo/journey",
+  "android/app/src/main/java/com/daengs/geo/location",
+  "android/app/src/main/java/com/daengs/geo/map",
+  "android/app/src/main/java/com/daengs/geo/place",
+  "android/app/src/main/res",
+  "android/app/src/test/java/com/daengs/geo/journey",
+  "android/app/src/test/java/com/daengs/geo/location",
+  "android/app/src/test/java/com/daengs/geo/map",
+  "android/app/src/test/java/com/daengs/geo/place",
+]
+
+[[surface]]
+id = "android-walk"
+title = "Android 로컬 산책 기록"
+source_commit = "a145375927ce2372de376475f85e1377eeaf0168"
+target_repo = "SAJOYO/DAENGS_app"
+target_branch = "dev"
+target_path = "app/src/main/java/com/daengs/app/walk/"
+target_commit = "c058a848409bfe2815c50bcd618650309dcc0505"
+paths = [
+  "android/app/build.gradle.kts",
+  "android/app/src/main/AndroidManifest.xml",
+  "android/app/src/main/java/com/daengs/geo/location",
+  "android/app/src/main/java/com/daengs/geo/map/LocationFeedCoordinator.kt",
+  "android/app/src/main/java/com/daengs/geo/map/LocationOwnershipPolicy.kt",
+  "android/app/src/main/java/com/daengs/geo/map/MapViewModel.kt",
+  "android/app/src/main/java/com/daengs/geo/map/layers/trail",
+  "android/app/src/main/java/com/daengs/geo/walk",
+  "android/app/src/test/java/com/daengs/geo/location",
+  "android/app/src/test/java/com/daengs/geo/map",
+  "android/app/src/test/java/com/daengs/geo/walk",
+  "docs/contracts/walk-record.md",
+]

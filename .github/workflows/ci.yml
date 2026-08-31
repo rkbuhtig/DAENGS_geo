@@ -15,6 +15,24 @@ permissions:
   contents: read
 
 jobs:
+  promotion-status:
+    name: 운영 승격 차이 (비차단 보고)
+    runs-on: ubuntu-latest
+
+    steps:
+      # 원장 기준점은 HEAD보다 오래됐으므로 shallow clone이면 비교 자체가 거짓이 된다.
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      # pending은 실험의 정상 상태라 exit 0이다. 원장이 깨졌을 때만 이 잡이 실패한다.
+      - name: 마지막 승격 뒤 관련 변경 보고
+        run: python -m scripts.promotion_status --github-summary
+
   backend:
     name: 백엔드 (ruff + pytest, PostGIS 포함)
     runs-on: ubuntu-latest
