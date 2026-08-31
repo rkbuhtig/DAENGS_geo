@@ -31,6 +31,7 @@ def build_place_search_plan(
     purpose_origin: GateOrigin = GateOrigin.USER_EXPLICIT,
     purpose_locked: bool = True,
     purpose_relaxable: bool = False,
+    purpose_reason: str = "structured input selected canonical candidate kinds",
 ) -> PlaceSearchPlan:
     """LLM 없이도 UI·규칙 planner가 같은 실행 계약을 만들 수 있는 진입점."""
 
@@ -51,7 +52,7 @@ def build_place_search_plan(
             action="compiled",
             capability_id=CapabilityId.PURPOSE_KIND,
             origin=purpose_origin,
-            reason="structured input selected canonical candidate kinds",
+            reason=purpose_reason,
         )
     ]
     if prefer_parking:
