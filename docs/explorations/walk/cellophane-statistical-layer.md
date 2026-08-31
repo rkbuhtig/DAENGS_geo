@@ -523,6 +523,8 @@ GPS noise seed와 accuracy만 변경
 - `LayerSpec` — selector·aggregation·projection과 분모 보존
 - `rate_field()`·`region_visit_rate()` — 산책당 방문률의 기반
 - `spatial_stats.py` — 총 시간·산책당 방문률·방문당 체류·`U_time`·`U_walk`과 계산 영수증
+- `population_truth.py` / `population.py` — 같은 집에서 14/9/4/3으로 갈라지는 30회
+  evaluator truth와 truth label을 제거한 canonical Cellophane fixture
 - Cellophane GeoJSON — 한 장의 chain·셀·질량 진단 검증 표면
 
 ### 아직 없는 것
@@ -530,7 +532,6 @@ GPS noise seed와 accuracy만 변경
 - 산책별 중앙값·IQR·최근 변화 같은 z축 안정성 readout
 - `U_time`과 `U_walk`의 50·80·95% 질량 영역 계산
 - Raw/Adjusted 집 편향 질의 계약
-- 한 집에서 여러 방향으로 갈라지는 셀로판 fixture
 - Paint profile과 센서 불확실성을 분리해 검증하는 실험
 - 한 장·여러 장·분포 모드를 구분한 제품 표면
 
@@ -539,7 +540,8 @@ GPS noise seed와 accuracy만 변경
 1. **완료 —** 통계 이름과 분모 계약을 `SpatialField`로 고정한다.
 2. **완료 —** 기존 장을 변형하지 않는 순수 집계 함수로 `visit_rate`, `total_time`,
    `conditional_dwell`, `U_time`, `U_walk`을 만든다.
-3. 같은 집에서 갈라지는 결정론적 20~30회 fixture와 latent truth를 별도 파일로 만든다.
+3. **완료 —** 같은 집에서 갈라지는 결정론적 30회 fixture와 evaluator-only latent truth를
+   별도 파일로 만든다.
 4. metric별 기대 순위와 50·80·95% 영역 회수 테스트를 작성한다.
 5. GPS noise seed만 바꾸는 센서 내성 fixture를 추가한다.
 6. 마지막에 한 장·여러 장·분포 화면을 만들고, 화면 수치를 집계 함수 결과와 대조한다.
