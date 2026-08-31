@@ -18,8 +18,9 @@ from app.features.territory.geojson import (
     spatial_cell_id,
 )
 from app.features.territory.paint import NARROW_STEP, PaintSpec, paint_sheet
-from app.features.walk.facts import Segment
-from app.features.walk.models import WalkFix
+from app.features.walk.facts import MOVING_SPEED_MPS, Segment
+from app.features.walk.models import CALCULATION_VERSION, WalkFix
+from app.features.walk.observation import CANDIDATE_SPEED_MPS
 from app.geo.cells import hex_boundary_latlng
 
 START = datetime(2026, 8, 31, 9, tzinfo=UTC)
@@ -166,6 +167,9 @@ def test_meta_exposes_exact_mass_diagnostics_and_paint_identity():
 
     assert meta["session_id"] == "session-1"
     assert meta["cellophane_geojson_version"] == CELLOPHANE_GEOJSON_VERSION
+    assert meta["walk_calculation_version"] == CALCULATION_VERSION
+    assert meta["moving_speed_threshold_mps"] == MOVING_SPEED_MPS
+    assert meta["slow_candidate_speed_threshold_mps"] == CANDIDATE_SPEED_MPS
     assert meta["source_segment_s"] == source_s
     assert meta["occupancy_mass_s"] == occupancy_s
     assert meta["mass_error_s"] == occupancy_s - source_s

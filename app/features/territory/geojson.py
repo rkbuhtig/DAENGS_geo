@@ -15,8 +15,9 @@ from collections.abc import Iterable
 from itertools import pairwise
 
 from app.features.territory.paint import Cellophane
-from app.features.walk.facts import Segment
-from app.features.walk.models import WalkFix
+from app.features.walk.facts import MOVING_SPEED_MPS, Segment
+from app.features.walk.models import CALCULATION_VERSION, WalkFix
+from app.features.walk.observation import CANDIDATE_SPEED_MPS
 from app.geo.cells import GRID_VERSION, Cell, hex_boundary_latlng
 
 CELLOPHANE_GEOJSON_VERSION = 2
@@ -173,6 +174,9 @@ def cellophane_feature_collection(
         "type": "FeatureCollection",
         "meta": {
             "cellophane_geojson_version": CELLOPHANE_GEOJSON_VERSION,
+            "walk_calculation_version": CALCULATION_VERSION,
+            "moving_speed_threshold_mps": MOVING_SPEED_MPS,
+            "slow_candidate_speed_threshold_mps": CANDIDATE_SPEED_MPS,
             "session_id": sheet.walk_id,
             "paint_version": sheet.paint_version,
             "paint_fp": sheet.paint_fp,

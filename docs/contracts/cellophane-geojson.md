@@ -20,6 +20,9 @@ raw fix를 다시 판정하거나 경계 사이를 보간하지 않는다.
   "type": "FeatureCollection",
   "meta": {
     "cellophane_geojson_version": 2,
+    "walk_calculation_version": 4,
+    "moving_speed_threshold_mps": 0.5,
+    "slow_candidate_speed_threshold_mps": 1.0,
     "session_id": "walk-1",
     "paint_version": 2,
     "paint_fp": "…",
@@ -62,5 +65,7 @@ Feature는 두 종류다.
 7. `occupancy`와 `peak`의 셀 집합이 다르거나 값이 유한한 계약 범위를 벗어나면 실패한다.
 8. chain의 segment 배열 네 개는 모두 `segment_count == coordinates.length - 1` 길이다.
    `duration_s`는 유한한 양수, `distance_m`와 파생 `speed_mps`는 유한한 0 이상이다.
+9. `segment_moving`은 `walk_calculation_version`의 canonical 판정이다. viewer는 정지 여부를
+   속도에서 다시 추론하지 않는다. 저속 후보 표시는 payload의 두 threshold를 사용한다.
 
 색상, opacity, 범례, hover 상태는 이 계약에 없다. 그것들은 지도를 그리는 소비자의 표현이다.
