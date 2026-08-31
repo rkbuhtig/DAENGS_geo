@@ -65,3 +65,24 @@ fix, 좌표, q/r, cell id를 포함하지 않지만 GeoJSON 네 개는 정확한
 
 PR5로 넘어가는 조건은 실제 산책에서 네 후보를 비교해 canonical radius/profile을 선택할
 근거가 생기는 것이다. 그 전에는 DB migration이나 Android overlay를 만들지 않는다.
+
+## Android Studio AVD 관통 결과 (2026-08-31)
+
+Pixel 8 AVD에서 `walk_emulator_drive`의 58점 경로를 실제 Fused Location → foreground
+service → Room → `WalkSessionExporter`로 통과시켰다. Fused Location이 시작·resume 때 점을
+추가로 내어 export는 62 fix였고, 62개 모두 수용되어 60 segment와 명시적 chain 2개가 됐다.
+네 후보 모두 `source_segment_s=295.181`을 보존했다.
+
+| 후보 | 셀 | payload | paint | support | local p50 | top10 |
+|---|---:|---:|---:|---:|---:|---:|
+| r8-step | 170 | 88,173 B | 5.40 ms | 17,793 m² | 34.57 s | 20.73% |
+| r8-smooth | 170 | 90,165 B | 5.71 ms | 17,793 m² | 34.86 s | 19.89% |
+| r15-step | 37 | 20,846 B | 2.78 ms | 13,614 m² | 35.11 s | 44.96% |
+| r15-smooth | 37 | 21,423 B | 2.85 ms | 13,614 m² | 35.23 s | 44.61% |
+
+이 측정은 **실기기 GPS 지터 근거가 아니다.** 다만 Android 수집 경계를 실제로 통과해 PR4
+adapter와 viewer가 wire format 그대로 작동함을 확인한다. 여기서 AVD `adb emu geo fix`가
+`LocationCompat.isMock=false`로 들어오는 문제도 발견했다. Android는 이제 플랫폼 표식뿐 아니라
+에뮬레이터 build identity도 mock 근거로 사용하고, 검증 스크립트는 새 export가 전부 mock인지
+끝에서 확인한다. 수정 APK를 다시 설치한 짧은 foreground-service 산책에서 export fix 3/3이
+`is_mock=true`로 확인됐다. 가상 산책이 서버의 device evidence로 섞이는 것을 막는 회귀다.

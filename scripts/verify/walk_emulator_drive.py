@@ -13,6 +13,7 @@ Phase 1 은 좌표를 서버에 직접 넣었고, 여기서는 GPS → FusedLoca
     uv run python -m scripts.verify.walk_emulator_drive
 """
 
+import json
 import re
 import subprocess
 import sys
@@ -59,8 +60,19 @@ def geo(lat: float, lng: float) -> None:
     sh("emu", "geo", "fix", f"{lng:.7f}", f"{lat:.7f}")   # 경도가 먼저다
 
 
+def device_exports() -> set[str]:
+    listing = sh("shell", "run-as", "com.daengs.geo", "ls", "files/walk-exports")
+    return {name for name in listing.split() if name.endswith(".json")}
+
+
+def mock_fix_summary(export: dict) -> tuple[int, int]:
+    fixes = export.get("fixes") or []
+    return sum(fix.get("is_mock") is True for fix in fixes), len(fixes)
+
+
 def main() -> int:
     fixes = route()
+    exports_before = device_exports()
     step_m = 0.0
     print(f"경로 {len(fixes)} 점, 예상 소요 {fixes[-1]['offset_s']:.0f}s")
 
@@ -104,6 +116,19 @@ def main() -> int:
     if not tap("종료"):
         return 1
     time.sleep(8)
+
+    created = sorted(device_exports() - exports_before)
+    if len(created) != 1:
+        print(f"  [!] 새 export가 하나여야 한다: {created}")
+        return 1
+    payload = json.loads(sh(
+        "exec-out", "run-as", "com.daengs.geo", "cat", f"files/walk-exports/{created[0]}",
+    ))
+    mock_count, fix_count = mock_fix_summary(payload)
+    print(f"  export {created[0]} · mock {mock_count}/{fix_count}")
+    if fix_count == 0 or mock_count != fix_count:
+        print("  [!] 에뮬레이터 위치가 device evidence로 기록됐다")
+        return 1
 
     print("\n--- logcat ---")
     print(sh("logcat", "-d", "-s", "WalkTrackingService:*", "WalkUploader:*"))
