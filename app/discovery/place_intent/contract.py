@@ -33,6 +33,26 @@ class ProposalReason(StrEnum):
     UNSAFE_TO_GUESS = "unsafe_to_guess"
 
 
+def _validate_disposition_shape(
+    disposition: ProposalDisposition,
+    interpretation_count: int,
+    reason: ProposalReason | None,
+) -> None:
+    if disposition is ProposalDisposition.PROPOSED and interpretation_count != 1:
+        raise ValueError("proposed output requires exactly one interpretation")
+    if disposition is ProposalDisposition.AMBIGUOUS and interpretation_count < 2:
+        raise ValueError("ambiguous output requires at least two interpretations")
+    if disposition is ProposalDisposition.ABSTAINED and interpretation_count:
+        raise ValueError("abstained output cannot carry interpretations")
+    if disposition is ProposalDisposition.AMBIGUOUS:
+        if reason is not ProposalReason.MULTIPLE_PLAUSIBLE_READINGS:
+            raise ValueError("ambiguous output requires multiple_plausible_readings reason")
+    elif disposition is ProposalDisposition.PROPOSED and reason is not None:
+        raise ValueError("proposed output cannot carry an abstention reason")
+    elif disposition is ProposalDisposition.ABSTAINED and reason is None:
+        raise ValueError("abstained output requires a reason")
+
+
 class EvidenceQuote(PlanningModel):
     """LLM이 복사한 원문과 선택적 Python code-point offset."""
 
@@ -70,20 +90,11 @@ class LLMIntentOutput(PlanningModel):
 
     @model_validator(mode="after")
     def disposition_matches_interpretations(self) -> Self:
-        count = len(self.interpretations)
-        if self.disposition is ProposalDisposition.PROPOSED and count != 1:
-            raise ValueError("proposed output requires exactly one interpretation")
-        if self.disposition is ProposalDisposition.AMBIGUOUS and count < 2:
-            raise ValueError("ambiguous output requires at least two interpretations")
-        if self.disposition is ProposalDisposition.ABSTAINED and count:
-            raise ValueError("abstained output cannot carry interpretations")
-        if self.disposition is ProposalDisposition.AMBIGUOUS:
-            if self.reason is not ProposalReason.MULTIPLE_PLAUSIBLE_READINGS:
-                raise ValueError("ambiguous output requires multiple_plausible_readings reason")
-        elif self.disposition is ProposalDisposition.PROPOSED and self.reason is not None:
-            raise ValueError("proposed output cannot carry an abstention reason")
-        elif self.disposition is ProposalDisposition.ABSTAINED and self.reason is None:
-            raise ValueError("abstained output requires a reason")
+        _validate_disposition_shape(
+            self.disposition,
+            len(self.interpretations),
+            self.reason,
+        )
         return self
 
 
@@ -112,6 +123,15 @@ class MaterializedIntentOutput(PlanningModel):
     disposition: ProposalDisposition
     interpretations: tuple[MaterializedInterpretation, ...] = Field(max_length=3)
     reason: ProposalReason | None
+
+    @model_validator(mode="after")
+    def disposition_matches_interpretations(self) -> Self:
+        _validate_disposition_shape(
+            self.disposition,
+            len(self.interpretations),
+            self.reason,
+        )
+        return self
 
 
 class IntentEvidenceError(ValueError):

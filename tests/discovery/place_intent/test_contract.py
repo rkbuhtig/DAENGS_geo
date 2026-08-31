@@ -9,6 +9,7 @@ from app.discovery.place_intent.contract import (
     IntentInterpretation,
     LLMIntentOutput,
     LLMIntentProposal,
+    MaterializedIntentOutput,
     ProposalDisposition,
     ProposalReason,
     materialize_llm_output,
@@ -140,4 +141,22 @@ def test_disposition_contract_cannot_hide_malformed_candidate_shape() -> None:
                 IntentInterpretation(proposals=(_kind_proposal("카페"),)),
             ),
             reason=ProposalReason.UNSAFE_TO_GUESS,
+        )
+
+
+@pytest.mark.parametrize("output_type", [LLMIntentOutput, MaterializedIntentOutput])
+def test_raw_and_materialized_outputs_share_disposition_invariants(
+    output_type: type[LLMIntentOutput] | type[MaterializedIntentOutput],
+) -> None:
+    with pytest.raises(ValidationError, match="exactly one interpretation"):
+        output_type(
+            disposition=ProposalDisposition.PROPOSED,
+            interpretations=(),
+            reason=None,
+        )
+    with pytest.raises(ValidationError, match="abstained output requires a reason"):
+        output_type(
+            disposition=ProposalDisposition.ABSTAINED,
+            interpretations=(),
+            reason=None,
         )
