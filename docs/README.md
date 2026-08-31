@@ -63,6 +63,7 @@ backlog.md           갈래에 안 붙는 미결
 - [견주 프로필](contracts/owner-profile.md) — 이동 제약 + 페르소나 5명 (축: 병원의 역할을 아는 정도)
 - [Place v2 검색](contracts/place-search-v2.md) — kinds별 그룹, 공통 identity·facts, 주차 사실 선호
 - [산책 기록](contracts/walk-record.md) — **우리가 주는 것** (outbound). 사실만, 의미 없음, 테스트로 고정
+- [Cellophane GeoJSON](contracts/cellophane-geojson.md) — chain별 선·서버 육각형·Paint v2 질량 진단
 
 ## 조사
 

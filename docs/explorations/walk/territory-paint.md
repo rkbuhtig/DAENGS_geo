@@ -88,6 +88,11 @@ Paint v2 부터 각 stamp 의 가중치 합을 1 로 정규화한다. 따라서 
 동일성은 `paint_version` · `grid_version` · `radius_u` · `profile_fp` · 실제
 `sample_step_m` 을 묶은 `paint_fp` 다. 다른 `paint_fp` 의 장은 겹치지 않는다.
 
+`app/features/territory/geojson.py` — 그 한 장과 원천 canonical Segment를
+[결정론적 GeoJSON](../../contracts/cellophane-geojson.md)으로 만든다. continuity chain마다
+`LineString Feature`를 따로 내므로 break 사이를 잇지 않고, 셀 육각형과 질량 진단도 서버가
+같이 계산한다. 색상·opacity·범례는 저장값이 아니라 소비자 표현이라 포함하지 않는다.
+
 `BrushProfile` 이 붓 단면이다. 현재 후보는 계단/연속 × `3·8·20` / `10·15·20`, 그리고 대조군인
 이진. 측정 결과 **`3·8·20` 이 갈라내고 `10·15·20` 은 심이 넓어 가장자리를 못 잡는다.**
 
