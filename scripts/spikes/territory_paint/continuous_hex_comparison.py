@@ -108,9 +108,13 @@ class RasterSpec:
 
     def centre_latlng(self, pixel: Pixel) -> tuple[float, float]:
         east, north = self.centre_xy(pixel)
+        return self.latlng_at_local(east, north)
+
+    def latlng_at_local(self, east_m: float, north_m: float) -> tuple[float, float]:
+        """측정 캔버스의 local ground-metre 좌표를 지도 좌표로 되돌린다."""
         origin_x, origin_y = self._origin_xy
         scale = self._ground_scale
-        return inverse_mercator(origin_x + east / scale, origin_y + north / scale)
+        return inverse_mercator(origin_x + east_m / scale, origin_y + north_m / scale)
 
 
 @dataclass(frozen=True)
@@ -460,15 +464,20 @@ def _mass_region_comparison(
     return rows
 
 
-def _radius_comparison(
+def radius_comparison(
     observation: PopulationObservation,
     reference_sheets: tuple[RasterSheet, ...],
     reference_fields: dict[str, RasterMetricField],
     radius_u: float,
     raster: RasterSpec,
+    *,
+    sheets: tuple[Cellophane, ...] | None = None,
+    fields: dict[str, SpatialField] | None = None,
 ) -> dict[str, object]:
-    sheets = repaint_observation(observation, radius_u)
-    fields = hex_metric_fields(sheets, radius_u)
+    if sheets is None:
+        sheets = repaint_observation(observation, radius_u)
+    if fields is None:
+        fields = hex_metric_fields(sheets, radius_u)
     pixels = _comparison_pixels(reference_fields, fields, radius_u, raster)
     reference_support = set(reference_fields["total_time"].values)
     hex_support = {
@@ -659,7 +668,7 @@ def build_comparison_payload(
             "raw_kernel_integral_ratio": weighted_kernel_ratio,
         },
         "radius_comparisons": [
-            _radius_comparison(
+            radius_comparison(
                 observation, reference_sheets, reference_fields, radius_u, raster
             )
             for radius_u in radius_units

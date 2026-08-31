@@ -70,6 +70,26 @@ uv run python -m scripts.spikes.territory_paint.continuous_hex_comparison \
 JSON에는 계산 시간 대신 결정론적인 dab 수, stamp 평가 수, pixel/cell 수를 싣는다. 벽시계
 시간은 실행 환경에 따라 달라지므로 CLI 완료 메시지에서만 보고한다.
 
+## 실제 지도 비교 화면
+
+PR C의 개발자 화면은 같은 값을 실제 Naver/OSM 지도 위에서 전환한다.
+
+```bash
+uv run python -m scripts.spikes.territory_paint.continuous_hex_visualization \
+  --out continuous-hex-visualization.json
+DAENGS_DEV_CONSOLE=true uv run uvicorn app.main:app --reload
+# http://127.0.0.1:8000/continuous-hex-comparison
+```
+
+기본 화면은 `U_time`의 연속 원 field다. `연속 원 / Hex / 겹쳐보기`, 다섯 metric,
+4·8·12u, 50·80·95% 영역을 바꿀 수 있다. Hex 경계는 기본적으로 숨기고 검산 버튼으로만
+드러낸다. 지도 클릭은 같은 위치의 연속 pixel과 Hex cell 값을 면적 단위로 환산해 함께 보여
+준다.
+
+연속장은 Naver HeatMap으로 다시 흐리지 않는다. 서버에서 이미 원 kernel을 적분한 4m 측정
+raster를 투명 이미지로 만들고 bilinear 표시만 적용한다. 따라서 렌더러가 두 번째 공간
+kernel을 더해 support를 넓히지 않는다.
+
 ## 현재 판단
 
 이 실험만으로 Hex를 버릴 근거는 없다. 4u는 연속 reference에 꽤 가깝지만 cell 수가 8u의 약

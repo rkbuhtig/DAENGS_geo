@@ -147,10 +147,13 @@ def _paths_with_dev_console(enabled: bool) -> set[str]:
 
 
 def test_cellophane_surface_is_behind_the_dev_console_gate():
-    assert "/cellophane" not in _paths_with_dev_console(False)
-    assert {
+    comparison_paths = {
         "/cellophane",
         "/cellophane/data",
         "/cellophane-distribution",
         "/cellophane-distribution/data",
-    } <= _paths_with_dev_console(True)
+        "/continuous-hex-comparison",
+        "/continuous-hex-comparison/data",
+    }
+    assert comparison_paths.isdisjoint(_paths_with_dev_console(False))
+    assert comparison_paths <= _paths_with_dev_console(True)
