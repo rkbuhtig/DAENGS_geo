@@ -10,7 +10,7 @@ implementation: internal
 `PlannerCompiler`만 observation의 역할과 서버가 붙인 출처를 대조해 실행 가능한 gate로 승격한다.
 
 ```text
-UI / structured request / future rule or LLM extractor
+UI / structured request / LLM intent proposer
                          │
                          ▼
                   IntentProposal[]
@@ -32,7 +32,8 @@ UI / structured request / future rule or LLM extractor
               PlanGuard → PlanPreview
 ```
 
-이번 단계에는 raw 한국어 parser와 LLM이 없다. 외부 `/v2/places/search` 계약도 바뀌지 않는다.
+LLM adapter는 Place Search의 순수 import closure 밖인 `app.discovery.place_intent`에 있다. 외부
+`/v2/places/search` 계약은 바뀌지 않는다.
 
 ## observation은 명령이 아니다
 
@@ -92,8 +93,56 @@ ID만 연결한다.
 `PlannerResult` 자체도 ready plan과 blocking issue를 함께 만들 수 없도록 검증한다. 후보 kind가
 6개를 넘거나 전체 결과 예산 5,000을 넘을 때도 조용히 자르지 않고 clarification으로 멈춘다.
 
+## LLM proposer도 authority를 갖지 않는다
+
+`app.discovery.place_intent`가 OpenAI Responses API의 strict Structured Outputs로 다음만 받는다.
+
+```text
+disposition = proposed | ambiguous | abstained
+interpretations[]
+  proposals[]
+    role
+    typed intent
+    evidence quote + optional offset
+```
+
+Structured Outputs는 JSON 형태를 제한할 뿐 의미 정확성을 보장하지 않는다. 따라서 모델 schema에는
+`observation_id`, `source`, `origin`, `locked`, `relaxable`, SQL이나 gate가 없다. 서버는 evidence
+quote가 실제 원문에 있는지 검증하고, 반복 quote면 정확한 offset을 요구한 다음에만 observation
+ID와 `source=llm_proposal`을 붙인다. 한 interpretation 안의 일부 evidence만 실패해도 전체를
+거절한다. 필수 조건 하나를 조용히 버리고 나머지만 실행하는 것을 막기 위해서다.
+
+서로 양립하지 않는 대안은 하나의 kind 합집합으로 합치지 않는다. 각 interpretation은 이후
+독립적인 `PlannerRequest`로 컴파일할 수 있게 분리된 채 유지한다. 질문할지, 여가 시설을 제안형으로
+보여줄지는 이 proposer가 아니라 후속 orchestration 정책의 책임이다.
+
+OpenAI 호출은 `language.parse` Usage Gate 뒤에 있고 출고 기본 정책은 `deny-all`이다. 구현은
+[OpenAI Structured Outputs 공식 문서](https://developers.openai.com/api/docs/guides/structured-outputs)의
+Responses API `text.format=json_schema` 계약을 따른다.
+
+## 평가 경계
+
+실제 모델을 CI에서 호출하지 않는다. 녹화 fixture는 다음 오류 비용을 각각 계산한다.
+
+| metric | 막으려는 실패 |
+|---|---|
+| `unsafe_positive_target_rate` | 부정·비유·가정·관계를 positive target으로 뒤집음 |
+| `unsupported_visibility` | 미지원 semantic·필수조건·제외를 조용히 버림 |
+| `evidence_span_accuracy` | 사용자가 말하지 않은 근거를 audit 근거로 사용 |
+| `paraphrase_plan_equivalence` | 같은 뜻이 서로 다른 plan 입력으로 흔들림 |
+| `exact_command_recall` | 명확한 장소 목적을 놓침 |
+
+```bash
+# 네트워크 없이 녹화 출력 평가
+uv run python -m scripts.evaluate_place_intent
+
+# DAENGS_LLM_PROVIDER=openai, API key, DAENGS_USAGE_POLICY=dev를 명시한 수동 실측
+uv run python -m scripts.evaluate_place_intent --live
+```
+
 ## 후속 순서
 
-다음 PR에서만 보수적인 한국어 rule extractor를 추가한다. 전체 문장의 일부 단어를 검색하지
-않고, 허용된 명령형 문법과 비유·부정·가정·관계 marker를 분리하며 애매하면 observation 또는
-clarification까지만 만든다. 그 parser도 plan이나 lock을 직접 만들지 못한다.
+다음 단계는 자연어 exact-command regex가 아니다. 실제 평가 출력에서 위험 오류를 먼저 측정한 뒤,
+여가 목적의 단일·복수 interpretation을 `inferred` 또는 `exploratory` 제안으로 표현하는 상위 응답
+정책을 추가한다. `RULE_EXACT_COMMAND` 승격은 UI 고정 액션이나 사용자 확인처럼 출처가 확실한
+경로에만 남긴다. 자동 완화와 신규 capability는 이 갈래에 포함하지 않는다.

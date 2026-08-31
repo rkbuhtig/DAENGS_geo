@@ -4,6 +4,10 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.core.config import settings
+from app.discovery.place_intent.openai import (
+    MeteredIntentProposer,
+    configured_intent_proposer,
+)
 from app.discovery.refine.nl import MeteredLLM, ToolCall
 from app.discovery.state import EditableState
 from app.journey import engine
@@ -215,6 +219,7 @@ def test_real_provider_factories_install_metered_adapters(monkeypatch):
         assert isinstance(usage_composition.route_provider("walk"), MeteredRouteProvider)
         assert isinstance(usage_composition.static_map_fetcher(), MeteredStaticMapFetcher)
         assert isinstance(llm(), MeteredLLM)
+        assert isinstance(configured_intent_proposer(), MeteredIntentProposer)
     finally:
         usage_composition.route_provider.cache_clear()
         usage_composition.static_map_fetcher.cache_clear()

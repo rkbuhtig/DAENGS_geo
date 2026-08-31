@@ -77,6 +77,15 @@ git grep -n 'scripts/spikes/<갈래>'   # app · tests · docs · android 전부
 임베딩 모드는 레포 의존성 밖이라 `uv run --with sentence-transformers --with scikit-learn` 이
 필요하고, `--mode mine` 만 추가 의존성 없이 돈다.
 
+`evaluate_place_intent.py`는 [intent-planner 갈래](../docs/explorations/facility/intent-planner.md)의
+LLM 의미 제안 평가기다. 기본 실행은 저장된 fixture만 읽고 네트워크를 쓰지 않는다. `--live`는
+명시적으로 OpenAI 설정과 `DAENGS_USAGE_POLICY=dev`를 제공했을 때만 기존 Usage Gate를 거쳐
+실측한다. CI는 모델 가용성·비용·출력 변동을 품지 않고 녹화 출력과 평가 수식만 검증한다.
+
+```bash
+uv run python -m scripts.evaluate_place_intent
+```
+
 `promotion_status.py`는 [승격 원장](../docs/promotion-ledger.toml)의 source 기준점 뒤에서
 운영 표면 관련 경로가 얼마나 달라졌는지 읽기 전용으로 보고한다. `pending`은 실패가 아니라
 승격 검토 재료다. CI도 이 명령을 실행하지만 실험 중 차이를 막지 않는다.

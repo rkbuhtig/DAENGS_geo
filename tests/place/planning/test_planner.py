@@ -39,12 +39,12 @@ def _kind(
 ) -> IntentObservation:
     return observe_intent(
         IntentProposal(
-            observation_id=observation_id,
             role=role,
             intent=KindIntent(kind=kind),
             evidence=evidence,
         ),
         source,
+        observation_id=observation_id,
     )
 
 
@@ -56,11 +56,11 @@ def _purpose(
 ) -> IntentObservation:
     return observe_intent(
         IntentProposal(
-            observation_id=observation_id,
             role=IntentRole.REQUIRED_TARGET,
             intent=PurposeIntent(purpose_id=purpose_id),
         ),
         source,
+        observation_id=observation_id,
     )
 
 
@@ -72,7 +72,6 @@ def _parking(
 ) -> IntentObservation:
     return observe_intent(
         IntentProposal(
-            observation_id=observation_id,
             role=role,
             intent=BooleanCapabilityIntent(
                 capability_id=CapabilityId.OPERATIONS_PARKING,
@@ -80,6 +79,7 @@ def _parking(
             ),
         ),
         source,
+        observation_id=observation_id,
     )
 
 
@@ -93,24 +93,22 @@ def _semantic(
 ) -> IntentObservation:
     return observe_intent(
         IntentProposal(
-            observation_id=observation_id,
             role=role,
             intent=SemanticIntent(concept_id=concept_id),
             evidence=evidence,
         ),
         source,
+        observation_id=observation_id,
     )
 
 
 def test_extractor_proposal_schema_cannot_set_authority_or_lock_fields() -> None:
     proposal = IntentProposal(
-        observation_id="cafe",
         role=IntentRole.REQUIRED_TARGET,
         intent=KindIntent(kind=PlaceKind.CAFE),
     )
 
     assert set(proposal.model_json_schema()["properties"]) == {
-        "observation_id",
         "role",
         "intent",
         "evidence",
@@ -124,8 +122,13 @@ def test_extractor_proposal_schema_cannot_set_authority_or_lock_fields() -> None
                 "locked": True,
             }
         )
-    observed = observe_intent(proposal, IntentSource.LLM_PROPOSAL)
+    observed = observe_intent(
+        proposal,
+        IntentSource.LLM_PROPOSAL,
+        observation_id="server-cafe",
+    )
     assert observed.source is IntentSource.LLM_PROPOSAL
+    assert observed.observation_id == "server-cafe"
 
 
 @pytest.mark.parametrize(
