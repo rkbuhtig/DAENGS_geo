@@ -12,6 +12,7 @@ from app.api import anchor, places_v2, static_map
 from app.core.config import settings
 from app.core.db import get_session
 from app.features.journey import api as journey
+from app.features.territory import api as spatial_diary
 from app.features.walk import api as walk
 from app.usage.composition import route_capability_problems
 from app.usage.gate import usage_request_scope
@@ -25,6 +26,7 @@ app = FastAPI(title="DAENGS_geo", version="0.1.0")
 app.include_router(places_v2.router)
 app.include_router(walk.router)
 app.include_router(journey.router)
+app.include_router(spatial_diary.router)
 app.include_router(static_map.router)
 app.include_router(anchor.router)
 
