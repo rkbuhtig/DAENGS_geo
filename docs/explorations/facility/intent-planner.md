@@ -284,9 +284,27 @@ facet만 연결하며, 다른 대안 해석의 필수조건 때문에 현재 후
 남긴다. 종류가 두 개인 purpose도 한 선반을 독점하지 않으며, lens끼리 점수 하나로 섞지 않는다.
 이 경계 역시 외부 `/v2/places/search` 계약은 변경하지 않는다.
 
-## 후속 순서
+## 사용자 확인과 target 잠금
 
-다음 단계는 사용자가 lens를 선택·수정했을 때 `confirmable_targets`만 `user_confirmed`로 다시
-관찰해 explicit lock으로 승격하는 경계다. 장소 마커 클릭은 탐색 행동일 뿐 confirmation으로
-취급하지 않는다. 자연어 exact-command regex, 자동 완화, 신규 capability는 여전히 이 갈래에
-포함하지 않는다.
+개발 lab의 검색 응답은 executable lens마다 짧게 유지되는 일회용 confirmation offer를 발급한다.
+클라이언트가 다시 보낼 수 있는 것은 `lens_id`와 opaque token뿐이며 target, source, origin, locked를
+직접 제출할 수 없다. 서버는 token이 가리키는 원본 `TargetSearchLens.confirmable_targets`만 새
+`IntentObservation`으로 만들고 `source=user_confirmed`, `role=required_target`을 부여한 뒤 planner를
+다시 통과시킨다.
+
+확인 전후의 purpose 값은 같아야 한다. 달라지는 것은 provenance와 강도뿐이다.
+
+```text
+before: purpose.kind / inferred / unlocked / relaxable
+explicit confirmation click
+after:  purpose.kind / user_explicit / locked / not relaxable
+```
+
+원본 lens가 planner에 적용했던 공통 observation과 structured conditions는 다시 조립하지만,
+`modifier_ids`나 unresolved facet을 확인된 사실로 승격하지 않는다. 실행 불가·선택 대기 lens는 target
+확인만으로 우회할 수 없다. 탭 선택과 장소 마커 클릭은 계속 탐색 행동일 뿐이며 오직
+`이 검색 방향을 명시적으로 확인` 버튼만 confirmation endpoint를 호출한다. offer는 만료·용량 제한·
+single-use이며 이 상태 저장은 dev lab 프로세스 안에만 존재한다.
+
+이 단계도 외부 `/v2/places/search` 계약이나 자동 완화, 신규 capability를 변경하지 않는다. 다음
+단계는 실제 실패 데이터와 사용자의 수정·취소 행동을 수집한 뒤에 결정한다.

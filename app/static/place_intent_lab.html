@@ -162,6 +162,7 @@ const resultLayer = L.layerGroup().addTo(map);
 let radiusLayer = null;
 let payload = null;
 let selectedKey = null;
+const confirmations = new Map();
 
 function badge(text, tone='') {
   const span = document.createElement('span');
@@ -317,6 +318,50 @@ function renderCandidateDetail(lens) {
   });
   root.append(planBox);
 
+  const confirmationBox = document.createElement('div'); confirmationBox.className = 'box';
+  const confirmationHead = document.createElement('div'); confirmationHead.className = 'interpretation-head';
+  const confirmationTitle = document.createElement('b'); confirmationTitle.textContent = '사용자 확인';
+  const confirmed = confirmations.get(lens.lens_id);
+  if (confirmed) {
+    const purpose = confirmed.confirmation.result.plan.gates
+      .find(gate => gate.capability_id === 'purpose.kind');
+    confirmationHead.append(confirmationTitle, badge('user_confirmed · locked', 'good'));
+    const detail = document.createElement('p');
+    detail.textContent = '이 lens의 target만 명시적으로 확인했습니다. ' +
+      'purpose.kind = ' + JSON.stringify(purpose.value) +
+      ' · ' + purpose.origin + ' · locked=' + purpose.locked;
+    confirmationBox.append(confirmationHead, detail);
+  } else {
+    confirmationHead.append(confirmationTitle, badge('not confirmed', 'warn'));
+    const note = document.createElement('p');
+    note.textContent = '탭이나 장소 마커를 누르는 것은 확인이 아닙니다. 아래 버튼만 target을 명시적으로 잠급니다.';
+    const confirmButton = document.createElement('button'); confirmButton.type = 'button';
+    confirmButton.className = 'candidate-tab'; confirmButton.textContent = '이 검색 방향을 명시적으로 확인';
+    const message = document.createElement('small');
+    confirmButton.addEventListener('click', async () => {
+      confirmButton.disabled = true; message.textContent = '확인된 target으로 plan을 다시 만드는 중…';
+      try {
+        const response = await fetch('/dev/place-intent/confirm', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({
+            lens_id:lens.lens_id,
+            confirmation_token:execution.confirmation_token,
+          }),
+        });
+        if (!response.ok) {
+          const error = await response.json().catch(() => ({}));
+          throw new Error(typeof error.detail === 'string' ? error.detail : '확인 실패 (' + response.status + ')');
+        }
+        confirmations.set(lens.lens_id, await response.json());
+        renderCandidateDetail(lens);
+      } catch (error) {
+        message.textContent = error.message || '확인에 실패했습니다.'; confirmButton.disabled = false;
+      }
+    });
+    confirmationBox.append(confirmationHead, note, confirmButton, message);
+  }
+  root.append(confirmationBox);
+
   const previewBox = document.createElement('div'); previewBox.className = 'box';
   const previewTitle = document.createElement('b'); previewTitle.textContent = 'gate preview'; previewBox.append(previewTitle);
   preview.gates.forEach(gate => {
@@ -439,6 +484,7 @@ function renderRejected(outcome) {
 
 function render(data) {
   payload = data;
+  confirmations.clear();
   $('analysis').hidden = false;
   $('model').textContent = data.model;
   const outcome = data.trace.outcome;
