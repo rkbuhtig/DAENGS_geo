@@ -117,6 +117,12 @@ LEGACY_MARKERS: tuple[LegacyMarker, ...] = (
         "walk_measurement_receipt",
         constraint="walk_measurement_drift_known_v2",
     ),
+    LegacyMarker(
+        "0030",
+        "0030_spatial_diary_attestation_correction.py",
+        "spatial_diary_walk_attestation",
+        constraint="spatial_diary_attestation_correction_shape",
+    ),
 )
 
 HEAD = LEGACY_MARKERS[-1].revision

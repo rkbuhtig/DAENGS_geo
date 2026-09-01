@@ -8,16 +8,20 @@ from sqlalchemy import text
 
 from app.features.spatial_diary.access import SpatialDiaryPrincipal
 from app.features.spatial_diary.api import (
+    PutPinAttestationCorrectionIn,
     PutPublishedJournalIn,
+    put_pin_attestation_correction,
     put_walk_journal_snapshot,
     read_candidates,
     read_journal_snapshot,
+    read_pin_attestations,
     read_walk_journal,
     read_walk_journal_snapshots,
 )
 from app.features.spatial_diary.contract import (
     AttestedClaim,
     ClaimSupport,
+    ElicitationMode,
     EntrySelector,
     MemoryAction,
     OfferInteractionKind,
@@ -32,8 +36,10 @@ from app.features.spatial_diary.episode import (
     SpatialDiaryEpisodeIntegrityError,
     SpatialDiaryEpisodeNotFoundError,
     attest_episode_offer,
+    correct_pin_attestation,
     list_episode_candidates,
     list_offer_review_states,
+    list_pin_attestations,
     put_episode_offer,
     put_offer_interaction,
 )
@@ -297,6 +303,162 @@ async def test_offer_attestation_pin_and_entry_selector_complete_one_product_loo
             )
             assert crossed_claims.receipt.pin_count == 0
             assert crossed_claims.pins == ()
+        finally:
+            await _cleanup(db)
+
+
+async def test_pin_attestation_correction_preserves_history_and_updates_read_models():
+    async with db_session() as db:
+        await _cleanup(db)
+        try:
+            await _seal_walk(db)
+            candidate = (await list_episode_candidates(db, SESSION_ID))[0].candidate
+            offer = await put_episode_offer(
+                db,
+                offer_id="offer-correction",
+                session_id=SESSION_ID,
+                source_observation_id=candidate.source_observation_ids[0],
+                candidate_policy_version=1,
+            )
+            initial = await attest_episode_offer(
+                db,
+                offer_id=offer.offer_id,
+                attestation_id="attestation-correction-origin",
+                review_disposition=ReviewDisposition.CONFIRMED,
+                claims=(
+                    AttestedClaim(
+                        subject_role=SubjectRole.DOG,
+                        meaning_code="exploration",
+                        vocabulary_version=1,
+                    ),
+                ),
+                memory_action=MemoryAction.SAVE,
+                pin_id="pin-correction",
+                attested_at=candidate.event_at + timedelta(minutes=2),
+            )
+            await db.commit()
+
+            owner_claim = AttestedClaim(
+                subject_role=SubjectRole.OWNER,
+                meaning_code="owner_pause",
+                vocabulary_version=1,
+            )
+            correction = await correct_pin_attestation(
+                db,
+                pin_id="pin-correction",
+                attestation_id="attestation-correction-1",
+                supersedes_attestation_id=initial.attestation.attestation_id,
+                review_disposition=ReviewDisposition.CONFIRMED,
+                claims=(owner_claim,),
+                attested_at=candidate.event_at + timedelta(minutes=3),
+            )
+            await db.commit()
+            same = await correct_pin_attestation(
+                db,
+                pin_id="pin-correction",
+                attestation_id="attestation-correction-1",
+                supersedes_attestation_id=initial.attestation.attestation_id,
+                review_disposition=ReviewDisposition.CONFIRMED,
+                claims=(owner_claim,),
+            )
+            assert same == correction
+            assert correction.elicitation_mode is ElicitationMode.PIN_CORRECTION
+            assert correction.offer_id is None
+            await db.rollback()
+
+            history = await list_pin_attestations(db, "pin-correction")
+            assert tuple(item.attestation_id for item in history) == (
+                "attestation-correction-origin",
+                "attestation-correction-1",
+            )
+            await db.rollback()
+
+            with pytest.raises(
+                SpatialDiaryEpisodeConflictError,
+                match="current head",
+            ):
+                await correct_pin_attestation(
+                    db,
+                    pin_id="pin-correction",
+                    attestation_id="attestation-correction-fork",
+                    supersedes_attestation_id=initial.attestation.attestation_id,
+                    review_disposition=ReviewDisposition.CONFIRMED,
+                    claims=(owner_claim,),
+                )
+            await db.rollback()
+
+            review_state = (await list_offer_review_states(db, SESSION_ID))[0]
+            assert review_state.attestation == initial.attestation
+            await db.rollback()
+
+            journal = await query_walk_journal(db, SESSION_ID)
+            assert journal.entries[0].pin.created_by_attestation_id == (
+                initial.attestation.attestation_id
+            )
+            assert journal.entries[0].attestation == correction
+            assert journal.entries[0].attestation.claims == (owner_claim,)
+            await db.rollback()
+
+            old_meaning = await query_spatial_diary_view(
+                db,
+                _view_spec(meanings=("exploration",)),
+            )
+            assert old_meaning.receipt.pin_count == 0
+            await db.rollback()
+            current_meaning = await query_spatial_diary_view(
+                db,
+                _view_spec(meanings=("owner_pause",), roles=(SubjectRole.OWNER,)),
+            )
+            assert current_meaning.receipt.pin_count == 1
+            await db.rollback()
+
+            second_body = PutPinAttestationCorrectionIn(
+                supersedes_attestation_id=correction.attestation_id,
+                review_disposition=ReviewDisposition.UNCERTAIN,
+                claims=(),
+            )
+            second = await put_pin_attestation_correction(
+                "pin-correction",
+                "attestation-correction-2",
+                second_body,
+                db,
+                PRINCIPAL,
+            )
+            assert second.supersedes_attestation_id == correction.attestation_id
+            same_second = await put_pin_attestation_correction(
+                "pin-correction",
+                "attestation-correction-2",
+                second_body,
+                db,
+                PRINCIPAL,
+            )
+            assert same_second == second
+            listed = await read_pin_attestations("pin-correction", db, PRINCIPAL)
+            assert listed.current_attestation_id == second.attestation_id
+            assert len(listed.attestations) == 3
+            await db.rollback()
+
+            outsider = SpatialDiaryPrincipal(
+                owner_id="owner-outsider",
+                dog_ids=frozenset({"another-dog"}),
+            )
+            with pytest.raises(HTTPException) as hidden:
+                await read_pin_attestations("pin-correction", db, outsider)
+            assert hidden.value.status_code == 404
+            await db.rollback()
+
+            await db.execute(
+                text("DELETE FROM spatial_diary_episode_pin WHERE pin_id = :pin_id"),
+                {"pin_id": "pin-correction"},
+            )
+            await db.commit()
+            remaining = (await db.execute(text("""
+                SELECT attestation_id
+                FROM spatial_diary_walk_attestation
+                WHERE session_id = :session_id
+                ORDER BY attestation_id
+            """), {"session_id": SESSION_ID})).scalars().all()
+            assert remaining == ["attestation-correction-origin"]
         finally:
             await _cleanup(db)
 

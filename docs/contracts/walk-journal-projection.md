@@ -44,6 +44,10 @@ Projection과 자동 문장은 저장하지 않는다. 같은 원판도 narratio
 결정 #80의 별도 [`PublishedJournalSnapshot`](published-journal-snapshot.md)으로 보존한다. 외부 공유는
 그 객체의 v0 범위에도 포함하지 않는다.
 
+Episode Pin에 append-only Attestation correction이 있으면 Entry와 narration은 현재 correction
+head를 사용한다. Pin의 `created_by_attestation_id`와 최초 Offer 응답은 바뀌지 않으며 전체 정정
+이력은 [별도 계약](pin-attestation-correction.md)으로 읽는다.
+
 조회는 인증 principal이 소유한 Capsule만 한 repeatable-read snapshot에서 조립한다. 봉인 manifest가
 있는데 WalkFacts 또는 TrailContext가 없으면 빈 일기를 만들지 않고 무결성 오류로 실패한다. v0는
 한 산책 최대 100개 Entry를 허용하며 초과분을 잘라 반환하지 않는다.

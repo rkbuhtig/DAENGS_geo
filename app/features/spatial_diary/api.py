@@ -35,10 +35,13 @@ from app.features.spatial_diary.episode import (
     SpatialDiaryEpisodeNotFoundError,
     attest_episode_offer,
     capsule_dog_id,
+    correct_pin_attestation,
     get_episode_offer,
     list_episode_candidates,
     list_offer_review_states,
+    list_pin_attestations,
     offer_dog_id,
+    pin_dog_id,
     put_episode_offer,
     put_offer_interaction,
 )
@@ -127,6 +130,36 @@ class AttestationOut(BaseModel):
     pin: EpisodePin | None
 
 
+class PutPinAttestationCorrectionIn(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    supersedes_attestation_id: str = Field(min_length=1, max_length=128)
+    review_disposition: ReviewDisposition
+    claims: tuple[AttestedClaim, ...] = Field(default=(), max_length=16)
+
+    @model_validator(mode="after")
+    def correction_keeps_a_meaningful_saved_memory(self) -> "PutPinAttestationCorrectionIn":
+        if self.review_disposition is ReviewDisposition.REJECTED:
+            raise ValueError("rejecting a saved pin belongs to pin retirement")
+        if self.review_disposition is ReviewDisposition.CONFIRMED and not self.claims:
+            raise ValueError("confirmed correction requires at least one claim")
+        claim_keys = [
+            (claim.subject_role, claim.meaning_code, claim.vocabulary_version)
+            for claim in self.claims
+        ]
+        if len(claim_keys) != len(set(claim_keys)):
+            raise ValueError("correction claims must be unique")
+        return self
+
+
+class PinAttestationHistoryOut(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    pin_id: str
+    attestations: tuple[WalkAttestation, ...]
+    current_attestation_id: str
+
+
 class OfferReviewStateOut(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -207,6 +240,19 @@ async def _authorize_offer(
     try:
         await ensure_repeatable_read_snapshot(db)
         dog_id = await offer_dog_id(db, offer_id)
+    except (SpatialDiaryEpisodeNotFoundError, SpatialDiaryTransactionError) as exc:
+        _raise_episode_http(exc)
+    require_dog_access(principal, dog_id)
+
+
+async def _authorize_pin(
+    db: AsyncSession,
+    principal: SpatialDiaryPrincipal,
+    pin_id: ResourceId,
+) -> None:
+    try:
+        await ensure_repeatable_read_snapshot(db)
+        dog_id = await pin_dog_id(db, pin_id)
     except (SpatialDiaryEpisodeNotFoundError, SpatialDiaryTransactionError) as exc:
         _raise_episode_http(exc)
     require_dog_access(principal, dog_id)
@@ -429,3 +475,51 @@ async def put_attestation(
         return AttestationOut(attestation=result.attestation, pin=result.pin)
     except _EPISODE_ERRORS as exc:
         _raise_episode_http(exc)
+
+
+@router.put(
+    "/pins/{pin_id}/attestations/{attestation_id}",
+    response_model=WalkAttestation,
+)
+async def put_pin_attestation_correction(
+    pin_id: ResourceId,
+    attestation_id: ResourceId,
+    body: PutPinAttestationCorrectionIn,
+    db: Annotated[AsyncSession, Depends(get_session)],
+    principal: Annotated[SpatialDiaryPrincipal, Depends(get_spatial_diary_principal)],
+) -> WalkAttestation:
+    await _authorize_pin(db, principal, pin_id)
+    try:
+        correction = await correct_pin_attestation(
+            db,
+            pin_id=pin_id,
+            attestation_id=attestation_id,
+            supersedes_attestation_id=body.supersedes_attestation_id,
+            review_disposition=body.review_disposition,
+            claims=body.claims,
+        )
+        await db.commit()
+        return correction
+    except _EPISODE_ERRORS as exc:
+        _raise_episode_http(exc)
+
+
+@router.get(
+    "/pins/{pin_id}/attestations",
+    response_model=PinAttestationHistoryOut,
+)
+async def read_pin_attestations(
+    pin_id: ResourceId,
+    db: Annotated[AsyncSession, Depends(get_session)],
+    principal: Annotated[SpatialDiaryPrincipal, Depends(get_spatial_diary_principal)],
+) -> PinAttestationHistoryOut:
+    await _authorize_pin(db, principal, pin_id)
+    try:
+        attestations = await list_pin_attestations(db, pin_id)
+    except _EPISODE_ERRORS as exc:
+        _raise_episode_http(exc)
+    return PinAttestationHistoryOut(
+        pin_id=pin_id,
+        attestations=attestations,
+        current_attestation_id=attestations[-1].attestation_id,
+    )

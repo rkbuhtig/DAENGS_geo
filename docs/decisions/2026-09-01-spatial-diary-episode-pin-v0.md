@@ -62,6 +62,9 @@ ClaimAllowance는 현재 영수증과 정책으로 다시 만드는 결과이며
 
 ## 실제 제시와 사용자 응답
 
+> 최초 Attestation 뒤 사용자 의미 정정은 [결정 #82](2026-09-01-spatial-diary-attestation-correction.md)의
+> Pin 기준 append-only correction 경로가 담당한다. Offer에는 최초 응답 하나만 남는다.
+
 생성 명령은 호출자가 경로 ID를 제공하는 idempotent `PUT`이다. 같은 ID와 같은 내용의 재전송은
 기존 불변 객체를 반환하고, 다른 내용과 충돌하면 409다.
 

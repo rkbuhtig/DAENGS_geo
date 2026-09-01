@@ -282,6 +282,26 @@ def test_attestation_separates_review_from_memory_action():
         _attestation(claims=(duplicate_claim, duplicate_claim))
 
 
+def test_pin_correction_is_the_only_superseding_attestation_shape():
+    correction = _attestation(
+        attestation_id="attestation-2",
+        elicitation_mode=ElicitationMode.PIN_CORRECTION,
+        offer_id=None,
+        supersedes_attestation_id="attestation-1",
+    )
+    assert correction.memory_action is MemoryAction.SAVE
+    with pytest.raises(ValidationError, match="only pin corrections"):
+        _attestation(supersedes_attestation_id="attestation-old")
+    with pytest.raises(ValidationError, match="keeps the existing memory"):
+        _attestation(
+            attestation_id="attestation-2",
+            elicitation_mode=ElicitationMode.PIN_CORRECTION,
+            offer_id=None,
+            supersedes_attestation_id="attestation-1",
+            memory_action=MemoryAction.DISMISS,
+        )
+
+
 def test_manual_attestation_and_pin_do_not_require_a_system_offer():
     attestation = _attestation(
         elicitation_mode=ElicitationMode.POST_WALK_MANUAL,
