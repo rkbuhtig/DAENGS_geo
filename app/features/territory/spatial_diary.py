@@ -1,8 +1,8 @@
-"""봉인된 Walk Capsule을 조건별 Cellophane field로 다시 읽는다. Decision: #76.
+"""봉인된 Walk Capsule을 조건별 Cellophane field와 Episode Pin으로 읽는다. #76·#77.
 
-v0는 배경 cohort만 만든다. 기간·강수·낮/밤으로 산책을 고르고 visit_rate 또는
-walk_utilization을 계산한다. Pin overlay와 quality 판정은 아직 만들지 않으며, 지원하지 않는
-요청을 무시한 채 빈 결과로 바꾸지 않는다.
+기간·강수·낮/밤으로 산책을 고르고 visit_rate 또는 walk_utilization을 계산한 뒤, Walk cohort는
+건드리지 않고 EntrySelector를 안정 Pin overlay에만 적용한다. quality judgeability는 아직
+만들지 않으며 지원하지 않는 요청을 무시한 채 빈 결과로 바꾸지 않는다.
 """
 
 import hashlib
@@ -16,12 +16,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.features.spatial_diary.contract import (
     ContextStatus,
-    EntrySelector,
     SpatialDiaryViewReceipt,
     SpatialDiaryViewSpec,
     TrailContextSnapshot,
     WalkSelector,
 )
+from app.features.spatial_diary.episode import (
+    CLAIM_POLICY_VERSION,
+    PinEntry,
+    load_pin_entries,
+    pin_entry_matches,
+)
+from app.features.spatial_diary.snapshot import ensure_repeatable_read_snapshot
 from app.features.territory.layers import Aggregation, LayerSpec, Projection, Selector
 from app.features.territory.paint import Cellophane, PaintSpec, paint_spec
 from app.features.territory.spatial_stats import SpatialField, spatial_field
@@ -29,7 +35,6 @@ from app.features.walk.capsule import CAPSULE_PROFILE, CAPSULE_RADIUS_U
 
 CONTEXT_POLICY_VERSION = 1
 QUALITY_POLICY_VERSION = 1
-CLAIM_POLICY_VERSION = 1
 QUALITY_POLICY_NAME = "diary_v1"
 DIARY_CALENDAR_TIMEZONE = "Asia/Seoul"
 RAIN_THRESHOLD_MM = 0.1
@@ -38,6 +43,7 @@ MAX_INDEX_ROWS = 2_000
 MAX_SELECTED_CAPSULES = 400
 MAX_RAW_CELL_ROWS = 100_000
 MAX_RESULT_CELLS = 50_000
+MAX_RESULT_PINS = 2_000
 
 SUPPORTED_METRICS = frozenset({"visit_rate", "walk_utilization"})
 FACET_VALUES = {
@@ -47,7 +53,6 @@ FACET_VALUES = {
 
 _DIARY_ZONE = ZoneInfo(DIARY_CALENDAR_TIMEZONE)
 _CURRENT_PAINT_SPEC = paint_spec(CAPSULE_RADIUS_U, CAPSULE_PROFILE)
-_SNAPSHOT_TRANSACTION_KEY = "spatial_diary_snapshot_transaction"
 
 
 class UnsupportedSpatialDiaryViewError(ValueError):
@@ -66,10 +71,6 @@ class SpatialDiaryViewTooLargeError(ValueError):
     pass
 
 
-class SpatialDiaryTransactionError(RuntimeError):
-    pass
-
-
 @dataclass(frozen=True)
 class CapsuleIndex:
     """셀 payload를 읽기 전에 cohort를 고르는 작은 Capsule 색인 행."""
@@ -84,6 +85,7 @@ class CapsuleIndex:
 class SpatialDiaryViewResult:
     spec: SpatialDiaryViewSpec
     field: SpatialField
+    pins: tuple[PinEntry, ...]
     receipt: SpatialDiaryViewReceipt
 
 
@@ -129,8 +131,6 @@ def _validate_spec(spec: SpatialDiaryViewSpec) -> None:
         raise UnsupportedSpatialDiaryViewError(
             f"SpatialDiaryView v0 field_metric은 {sorted(SUPPORTED_METRICS)}만 지원한다"
         )
-    if spec.entry_selector != EntrySelector():
-        raise UnsupportedSpatialDiaryViewError("SpatialDiaryView v0는 Pin entry filter를 지원하지 않는다")
     if (
         spec.quality_policy.policy_version != QUALITY_POLICY_VERSION
         or spec.quality_policy.name != QUALITY_POLICY_NAME
@@ -179,21 +179,6 @@ def _context_is_known(snapshot: TrailContextSnapshot, selector: WalkSelector) ->
     required_axes = {facet.axis for facet in selector.context_facets} or set(FACET_VALUES)
     derived = context_facets(snapshot)
     return all(derived[axis] != "unknown" for axis in required_axes)
-
-
-async def _ensure_repeatable_read_snapshot(db: AsyncSession) -> None:
-    """색인과 셀 payload가 같은 PostgreSQL MVCC snapshot을 보도록 한다."""
-
-    transaction = db.sync_session.get_transaction()
-    if transaction is not None:
-        if db.info.get(_SNAPSHOT_TRANSACTION_KEY) is transaction:
-            return
-        raise SpatialDiaryTransactionError(
-            "SpatialDiaryView query requires a fresh session transaction"
-        )
-
-    await db.execute(text("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ"))
-    db.info[_SNAPSHOT_TRANSACTION_KEY] = db.sync_session.get_transaction()
 
 
 def _index_from_row(row) -> CapsuleIndex:
@@ -356,7 +341,7 @@ async def query_spatial_diary_view(
     """Spec 하나를 Capsule cohort·공간 field·재현 영수증으로 조립한다."""
 
     _validate_spec(spec)
-    await _ensure_repeatable_read_snapshot(db)
+    await ensure_repeatable_read_snapshot(db)
     as_of = view_as_of or datetime.now(UTC)
     total_capsules = await _count_capsules(db, spec.walk_selector.dog_id)
     candidate_capsules = await _load_capsule_index(db, spec.walk_selector)
@@ -380,6 +365,23 @@ async def query_spatial_diary_view(
         raise SpatialDiaryViewTooLargeError(
             f"SpatialDiaryView v0 결과 cell은 최대 {MAX_RESULT_CELLS}개다"
         )
+    pin_entries = await load_pin_entries(
+        db,
+        [capsule.session_id for capsule in selected],
+    )
+    pins = tuple(
+        entry
+        for entry in pin_entries
+        if pin_entry_matches(
+            entry,
+            spec.entry_selector.subject_roles,
+            spec.entry_selector.meaning_codes,
+        )
+    )
+    if len(pins) > MAX_RESULT_PINS:
+        raise SpatialDiaryViewTooLargeError(
+            f"SpatialDiaryView v0 결과 Pin은 최대 {MAX_RESULT_PINS}개다"
+        )
 
     known = sum(
         _context_is_known(capsule.context, spec.walk_selector) for capsule in selected
@@ -392,7 +394,7 @@ async def query_spatial_diary_view(
         contributing_capsules=field.contributing,
         context_known_count=known,
         context_unknown_count=len(selected) - known,
-        pin_count=0,
+        pin_count=len(pins),
         paint_fp=selected_paint.fingerprint,
         field_metric=spec.field_metric,
         normalization=field.normalization,
@@ -400,4 +402,4 @@ async def query_spatial_diary_view(
         quality_policy_version=QUALITY_POLICY_VERSION,
         claim_policy_version=CLAIM_POLICY_VERSION,
     )
-    return SpatialDiaryViewResult(spec=spec, field=field, receipt=receipt)
+    return SpatialDiaryViewResult(spec=spec, field=field, pins=pins, receipt=receipt)
