@@ -16,6 +16,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.features.spatial_diary.contract import (
     ContextStatus,
+    DriftAssessment,
+    ObservationCapability,
     SpatialDiaryViewReceipt,
     SpatialDiaryViewSpec,
     TrailContextSnapshot,
@@ -79,6 +81,8 @@ class CapsuleIndex:
     started_at: datetime
     paint_spec: PaintSpec
     context: TrailContextSnapshot
+    capabilities: tuple[ObservationCapability, ...]
+    drift_assessment: DriftAssessment
 
 
 @dataclass(frozen=True)
@@ -182,7 +186,12 @@ def _context_is_known(snapshot: TrailContextSnapshot, selector: WalkSelector) ->
 
 
 def _index_from_row(row) -> CapsuleIndex:
-    if row.paint_version is None or row.context_version is None or row.started_at is None:
+    if (
+        row.paint_version is None
+        or row.context_version is None
+        or row.started_at is None
+        or row.drift_assessment is None
+    ):
         raise IncompleteCapsuleError(
             f"sealed capsule {row.session_id!r} is missing a required view child"
         )
@@ -217,6 +226,8 @@ def _index_from_row(row) -> CapsuleIndex:
         started_at=row.started_at,
         paint_spec=stored_paint,
         context=context,
+        capabilities=tuple(ObservationCapability(**item) for item in row.capabilities),
+        drift_assessment=DriftAssessment(row.drift_assessment),
     )
 
 
@@ -252,17 +263,19 @@ async def _load_capsule_index(
     date_clause = "".join(f" AND {predicate}" for predicate in date_predicates)
 
     rows = (await db.execute(text(f"""
-        SELECT manifest.session_id, session.started_at,
+        SELECT manifest.session_id, manifest.capabilities, session.started_at,
                sheet.paint_version, sheet.grid_version, sheet.radius_u,
                sheet.profile_name, sheet.profile_fp, sheet.sample_step_m, sheet.paint_fp,
                context.context_version, context.status AS context_status,
                context.walked_at, context.source_observed_at, context.captured_at,
                context.provider, context.precipitation_mm, context.temperature_c,
-               context.humidity_pct, context.sun_elevation_deg, context.failure_reason
+               context.humidity_pct, context.sun_elevation_deg, context.failure_reason,
+               receipt.drift_assessment
         FROM walk_capsule_manifest manifest
         JOIN walk_session session ON session.id = manifest.session_id
         LEFT JOIN walk_cellophane_sheet sheet ON sheet.session_id = manifest.session_id
         LEFT JOIN walk_trail_context context ON context.session_id = manifest.session_id
+        LEFT JOIN walk_measurement_receipt receipt ON receipt.session_id = manifest.session_id
         WHERE manifest.dog_id = :dog_id
         {date_clause}
         ORDER BY session.started_at, manifest.session_id

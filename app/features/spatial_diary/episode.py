@@ -719,10 +719,12 @@ async def attest_episode_offer(
 async def load_pin_entries(
     db: AsyncSession,
     session_ids: list[str],
+    pin_ids: set[str] | None = None,
 ) -> list[PinEntry]:
-    if not session_ids:
+    if not session_ids or pin_ids == set():
         return []
-    statement = text("""
+    pin_clause = " AND pin.pin_id IN :pin_ids" if pin_ids is not None else ""
+    statement = text(f"""
         SELECT pin.pin_id, pin.pin_version, pin.session_id, pin.origin,
                pin.source_offer_id, pin.created_by_attestation_id,
                pin.event_at, pin.temporal_precision,
@@ -741,9 +743,14 @@ async def load_pin_entries(
         JOIN spatial_diary_walk_attestation attestation
           ON attestation.attestation_id = pin.created_by_attestation_id
         WHERE pin.session_id IN :session_ids
+        {pin_clause}
         ORDER BY pin.event_at NULLS LAST, pin.pin_id
     """).bindparams(bindparam("session_ids", expanding=True))
-    rows = (await db.execute(statement, {"session_ids": session_ids})).all()
+    parameters: dict[str, object] = {"session_ids": session_ids}
+    if pin_ids is not None:
+        statement = statement.bindparams(bindparam("pin_ids", expanding=True))
+        parameters["pin_ids"] = sorted(pin_ids)
+    rows = (await db.execute(statement, parameters)).all()
     entries = []
     for row in rows:
         pin = _pin_from_row(row)
