@@ -17,6 +17,7 @@ from app.features.walk.models import WalkSession
 from app.ingest.facility_store import upsert_rows
 from app.ingest.kcisa import source_ref
 from tests.conftest import TEST_ORIGIN, WALK_T0, db_session, walk_fix
+from tests.walk.capsule_helpers import capsule_for
 
 SID = "test:walk:store"
 
@@ -56,6 +57,7 @@ async def test_full_session_lifecycle():
             )
             await store.finalize(
                 db, computed.facts, computed.quality, computed.events, encounters,
+                capsule=capsule_for(computed, loaded),
             )
             await db.commit()
 
@@ -209,7 +211,11 @@ async def test_finish_lock_prevents_late_upload_from_surviving():
             loaded = await store.load_fixes_ordered(finishing, sid)
             computed = compute_facts(sid, "halmae", WALK_T0, WALK_T0 + timedelta(seconds=10), loaded)
             await store.finalize(
-                finishing, computed.facts, computed.quality, computed.events
+                finishing,
+                computed.facts,
+                computed.quality,
+                computed.events,
+                capsule=capsule_for(computed, loaded),
             )
             await finishing.commit()
 
@@ -246,7 +252,15 @@ async def test_curve_is_written_with_its_version_and_omitted_together():
             computed = compute_facts(sid, "halmae", WALK_T0, ended, loaded)
 
             curve = compute_curve(WALK_T0, ended, computed.segments)
-            await store.finalize(db, computed.facts, computed.quality, computed.events, (), curve)
+            await store.finalize(
+                db,
+                computed.facts,
+                computed.quality,
+                computed.events,
+                (),
+                curve,
+                capsule=capsule_for(computed, loaded),
+            )
             await db.commit()
 
             row = (await db.execute(text(
@@ -271,7 +285,13 @@ async def test_a_session_without_a_curve_stores_neither_half():
             ended = WALK_T0 + timedelta(seconds=10)
             computed = compute_facts(sid, "halmae", WALK_T0, ended, loaded)
 
-            await store.finalize(db, computed.facts, computed.quality, computed.events)
+            await store.finalize(
+                db,
+                computed.facts,
+                computed.quality,
+                computed.events,
+                capsule=capsule_for(computed, loaded),
+            )
             await db.commit()
 
             row = (await db.execute(text(
