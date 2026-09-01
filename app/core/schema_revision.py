@@ -93,6 +93,13 @@ LEGACY_MARKERS: tuple[LegacyMarker, ...] = (
         "0024_spatial_diary_memory_place.py",
         "spatial_diary_memory_place",
     ),
+    LegacyMarker("0025", "0025_place_intent_lab_observation.py", "place_intent_lab_attempt"),
+    LegacyMarker(
+        "0026",
+        "0026_place_intent_outcome_metadata.py",
+        "place_intent_lab_attempt",
+        "response_mode",
+    ),
 )
 
 HEAD = LEGACY_MARKERS[-1].revision

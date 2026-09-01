@@ -306,5 +306,29 @@ after:  purpose.kind / user_explicit / locked / not relaxable
 `이 검색 방향을 명시적으로 확인` 버튼만 confirmation endpoint를 호출한다. offer는 만료·용량 제한·
 single-use이며 이 상태 저장은 dev lab 프로세스 안에만 존재한다.
 
-이 단계도 외부 `/v2/places/search` 계약이나 자동 완화, 신규 capability를 변경하지 않는다. 다음
-단계는 실제 실패 데이터와 사용자의 수정·취소 행동을 수집한 뒤에 결정한다.
+이 단계도 외부 `/v2/places/search` 계약이나 자동 완화, 신규 capability를 변경하지 않는다.
+
+## 명시적 수정과 dev 관측
+
+개발 lab은 자동 선택과 실제 사용자 행동을 구분한다. 첫 lens를 화면에 그리는 것은 이벤트가 아니고,
+사용자가 다른 lens 탭을 누른 때만 `lens_selected`다. `처음부터 다시`를 누르면 `search_reset`이며,
+페이지 이탈이나 무응답을 취소로 추정하지 않는다. 일반 `새 검색`은 화면에 이전 결과가 남아 있어도
+독립 attempt다. 사용자가 발화를 고친 뒤 `현재 검색 수정`을 명시적으로 눌렀을 때만 새 attempt를
+`previous_attempt_id`와 `search_revised`로 앞 시도에 연결한다.
+
+blocking `cost.dimension` 중 현재 실행 가능한 선택은 `cost.travel_distance` 하나다. 사용자가
+`가까운 곳`을 고르면 가격이 싸다고 주장하지 않고, 기본 거리 정렬을 비용의 proxy로 명시한 뒤 막혀
+있던 target lens만 연다. 목적 target 없이 비용만 말한 경우에는 식사·나들이·문화의 넓은 제품
+방향을 먼저 만들되 비용 축을 고르기 전에는 실행하지 않는다. 입장료·추가요금·상품 가격은 원천
+coverage가 없으므로 계속 선택 불가다.
+선택은 새 검색 attempt를 만들기 때문에 선택 전 0개 실행과 선택 후 실제 결과를 따로 비교할 수 있다.
+
+`place_intent_lab_attempt`는 검색 상태·실패 코드·lens별 결과 수와 gate 잔여 수를 저장하고,
+`place_intent_lab_event`는 선택·facet 수정·확인·초기화를 append-only로 저장한다. 실패는 적어도
+provider 장애, 유효하지 않은 intent 출력, facet 선택 필요, 실행 lens 부재, 공간 후보 0건,
+gate 전멸, 그 밖의 결과 0건, DB 검색 장애를
+구분한다. `/dev/place-intent/observations`와 lab의 `Operator observations`가 최근 실패를 읽는다.
+
+이 저장은 `DAENGS_DEV_CONSOLE` 검증 표면만 호출한다. 재현을 위해 최대 1,000자의 발화 원문을
+보존하므로 운영 검색에 그대로 연결해서는 안 된다. 운영 전에는 동의·보존 기간·삭제와 비식별화
+정책을 별도로 결정해야 한다. 이 관측은 자동 완화를 실행하지 않으며, 이후 완화 정책의 근거만 만든다.

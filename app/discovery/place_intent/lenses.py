@@ -60,6 +60,7 @@ class LensAvailability(StrEnum):
     BLOCKED = "blocked"
     DEFERRED = "deferred"
     NEEDS_SELECTION = "needs_selection"
+    RESOLVED = "resolved"
 
 
 class FacetOptionAvailability(StrEnum):
@@ -83,15 +84,35 @@ class SearchSignalLens(PlanningModel):
     support_note: str = Field(min_length=1, max_length=300)
     basis_observation_ids: tuple[str, ...] = Field(min_length=1, max_length=60)
     options: tuple[SearchFacetOption, ...] = Field(max_length=10)
+    selected_option_id: str | None = Field(
+        None,
+        max_length=120,
+        pattern=r"^[a-z0-9_.:-]+$",
+    )
 
     @model_validator(mode="after")
     def type_matches_options(self) -> Self:
         if self.lens_type is LensType.MODIFIER:
-            if self.availability is not LensAvailability.DEFERRED or self.options:
+            if (
+                self.availability is not LensAvailability.DEFERRED
+                or self.options
+                or self.selected_option_id is not None
+            ):
                 raise ValueError("modifier lens must be deferred and cannot carry options")
         elif self.lens_type is LensType.UNRESOLVED:
-            if self.availability is not LensAvailability.NEEDS_SELECTION or not self.options:
-                raise ValueError("unresolved lens requires selectable facet options")
+            if self.availability not in {
+                LensAvailability.NEEDS_SELECTION,
+                LensAvailability.RESOLVED,
+            } or not self.options:
+                raise ValueError("facet lens requires selectable options")
+            if self.selected_option_id is not None and self.selected_option_id not in {
+                item.option_id for item in self.options
+            }:
+                raise ValueError("selected facet option must belong to the signal lens")
+            if (self.availability is LensAvailability.RESOLVED) != (
+                self.selected_option_id is not None
+            ):
+                raise ValueError("resolved facet lens requires exactly one selected option")
         else:
             raise ValueError("signal lens cannot use target type")
         return self
