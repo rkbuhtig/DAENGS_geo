@@ -11,6 +11,10 @@ from app.discovery.place_intent.contract import (
     ProposalReason,
     SearchModeId,
 )
+from app.discovery.place_intent.hypotheses import (
+    HypothesisMappingScope,
+    build_search_hypotheses,
+)
 from app.place.planning.contract import (
     PlaceKind,
     PlaceSearchConditions,
@@ -48,6 +52,7 @@ class SuggestionBasis(StrEnum):
     INTERPRETATION = "interpretation"
     PRODUCT_FALLBACK = "product_fallback"
     HYPOTHESIS = "hypothesis"
+    OPEN_DISCOVERY = "open_discovery"
 
 
 class IntentPlanCandidate(PlanningModel):
@@ -57,8 +62,34 @@ class IntentPlanCandidate(PlanningModel):
         pattern=r"^[a-z0-9_.:-]+$",
     )
     basis: SuggestionBasis
-    basis_observation_ids: tuple[str, ...] = Field(min_length=1, max_length=20)
+    basis_observation_ids: tuple[str, ...] = Field(max_length=20)
+    basis_policy_id: str | None = Field(None, max_length=120, pattern=r"^[a-z0-9_.:-]+$")
+    basis_policy_version: str | None = Field(
+        None,
+        max_length=40,
+        pattern=r"^[a-z0-9_.:-]+$",
+    )
+    basis_policy_branch_id: str | None = Field(
+        None,
+        max_length=80,
+        pattern=r"^[a-z0-9-]+$",
+    )
     result: PlannerResult
+
+    @model_validator(mode="after")
+    def basis_has_real_provenance(self) -> Self:
+        policy_fields = (
+            self.basis_policy_id,
+            self.basis_policy_version,
+            self.basis_policy_branch_id,
+        )
+        if any(value is None for value in policy_fields) != all(
+            value is None for value in policy_fields
+        ):
+            raise ValueError("candidate policy provenance must be supplied together")
+        if not self.basis_observation_ids and self.basis_policy_id is None:
+            raise ValueError("candidate requires observation or product policy provenance")
+        return self
 
 
 class IntentSuggestionOutcome(PlanningModel):
@@ -278,6 +309,67 @@ def _abstention_outcome(output: MaterializedIntentOutput) -> IntentSuggestionOut
     )
 
 
+def _open_discovery_outcome(
+    output: MaterializedIntentOutput,
+    *,
+    spatial: PlaceSpatialConstraint,
+    limit_per_kind: int,
+    conditions: PlaceSearchConditions | None,
+) -> IntentSuggestionOutcome:
+    normalized = build_search_hypotheses(output)
+    candidates = tuple(
+        IntentPlanCandidate(
+            candidate_key=hypothesis.hypothesis_key,
+            basis=SuggestionBasis.OPEN_DISCOVERY,
+            basis_observation_ids=hypothesis.basis_observation_ids,
+            basis_policy_id=hypothesis.policy_id,
+            basis_policy_version=hypothesis.policy_version,
+            basis_policy_branch_id=hypothesis.policy_branch_id,
+            result=_compile(
+                hypothesis_set.planner_observations(hypothesis),
+                spatial=spatial,
+                limit_per_kind=limit_per_kind,
+                conditions=conditions,
+            ),
+        )
+        for hypothesis_set in normalized.hypothesis_sets
+        if hypothesis_set.search_directive.mode is SearchModeId.OPEN_DISCOVERY
+        for hypothesis in hypothesis_set.hypotheses
+        if hypothesis.mapping_scope is HypothesisMappingScope.PRODUCT_POLICY
+    )
+    if not candidates:
+        return IntentSuggestionOutcome(
+            status=PlannerStatus.NEEDS_CLARIFICATION,
+            source_disposition=output.disposition,
+            issues=(
+                PlannerIssue(
+                    code="open_discovery_policy_not_applicable",
+                    detail="explicit signals prevented the broad exploration policy from running",
+                ),
+            ),
+        )
+    ready = tuple(item for item in candidates if item.result.status is PlannerStatus.READY)
+    rejected = tuple(item for item in candidates if item.result.status is not PlannerStatus.READY)
+    if ready:
+        return IntentSuggestionOutcome(
+            status=PlannerStatus.READY,
+            resolution=SuggestionResolution.EXPLORATORY,
+            source_disposition=output.disposition,
+            suggestions=ready,
+            rejected=rejected,
+        )
+    status = (
+        PlannerStatus.NEEDS_CLARIFICATION
+        if any(item.result.status is PlannerStatus.NEEDS_CLARIFICATION for item in rejected)
+        else PlannerStatus.UNSUPPORTED
+    )
+    return IntentSuggestionOutcome(
+        status=status,
+        source_disposition=output.disposition,
+        rejected=rejected,
+    )
+
+
 def compile_intent_suggestions(
     output: MaterializedIntentOutput,
     *,
@@ -293,15 +385,11 @@ def compile_intent_suggestions(
         interpretation.search_directive.mode is SearchModeId.OPEN_DISCOVERY
         for interpretation in output.interpretations
     ):
-        return IntentSuggestionOutcome(
-            status=PlannerStatus.NEEDS_CLARIFICATION,
-            source_disposition=output.disposition,
-            issues=(
-                PlannerIssue(
-                    code="open_discovery_policy_unavailable",
-                    detail="open discovery was grounded but no product exploration policy ran",
-                ),
-            ),
+        return _open_discovery_outcome(
+            output,
+            spatial=spatial,
+            limit_per_kind=limit_per_kind,
+            conditions=conditions,
         )
 
     candidates: list[IntentPlanCandidate] = []

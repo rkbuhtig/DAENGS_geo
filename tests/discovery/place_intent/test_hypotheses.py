@@ -120,7 +120,25 @@ def test_open_discovery_directive_survives_normalization_without_becoming_common
 
     assert hypothesis_set.search_directive.mode is SearchModeId.OPEN_DISCOVERY
     assert hypothesis_set.common == ()
-    assert hypothesis_set.hypotheses == ()
+    assert [item.mapping_scope for item in hypothesis_set.hypotheses] == [
+        HypothesisMappingScope.PRODUCT_POLICY,
+    ] * 3
+    assert [item.targets[0].intent for item in hypothesis_set.hypotheses] == [
+        PurposeIntent(purpose_id=PurposeId.DINING),
+        PurposeIntent(purpose_id=PurposeId.OUTING),
+        PurposeIntent(purpose_id=PurposeId.CULTURE),
+    ]
+    assert all(
+        item.targets[0].source is IntentSource.RULE_INFERENCE
+        for item in hypothesis_set.hypotheses
+    )
+    assert all(item.basis_observation_ids == () for item in hypothesis_set.hypotheses)
+    assert all(item.policy_id == "place.open_discovery" for item in hypothesis_set.hypotheses)
+    assert all(item.policy_version == "v1" for item in hypothesis_set.hypotheses)
+    assert all(
+        hypothesis_set.planner_observations(item) == item.targets
+        for item in hypothesis_set.hypotheses
+    )
 
 
 def test_buy_and_dog_toy_compose_to_pet_shop_without_claiming_inventory() -> None:

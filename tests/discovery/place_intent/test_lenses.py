@@ -7,8 +7,10 @@ from app.discovery.place_intent.contract import (
     IntentInterpretation,
     LLMIntentOutput,
     LLMIntentProposal,
+    LLMSearchDirective,
     ProposalDisposition,
     ProposalReason,
+    SearchModeId,
     materialize_llm_output,
 )
 from app.discovery.place_intent.hypotheses import build_search_hypotheses
@@ -75,6 +77,98 @@ def _compile(utterance: str, *proposals: LLMIntentProposal):
         spatial=_SPATIAL,
         limit_per_kind=3,
     )
+
+
+def _compile_open(utterance: str, *proposals: LLMIntentProposal):
+    ids = _ids()
+    grounded = materialize_llm_output(
+        utterance,
+        LLMIntentOutput(
+            disposition=ProposalDisposition.PROPOSED,
+            interpretations=(
+                IntentInterpretation(
+                    search_directive=LLMSearchDirective(
+                        mode=SearchModeId.OPEN_DISCOVERY,
+                        evidence=EvidenceQuote(
+                            quote="네가 추천해봐",
+                            start=None,
+                            end=None,
+                        ),
+                    ),
+                    proposals=proposals,
+                ),
+            ),
+            reason=None,
+        ),
+        id_factory=lambda: next(ids),
+    )
+    normalized = build_search_hypotheses(grounded)
+    suggestions = compile_intent_suggestions(
+        grounded,
+        spatial=_SPATIAL,
+        limit_per_kind=3,
+    )
+    return compile_search_lenses(
+        normalized,
+        suggestions,
+        spatial=_SPATIAL,
+        limit_per_kind=3,
+    )
+
+
+def test_open_discovery_policy_exposes_three_transparent_executable_lenses() -> None:
+    lenses = _compile_open("오늘 심심한데 네가 추천해봐")
+
+    assert [item.display_label for item in lenses.target_lenses] == [
+        "#먹고 쉬기",
+        "#가볍게 나가기",
+        "#구경하기",
+    ]
+    assert all(
+        item.mapping_scope is LensMappingScope.OPEN_DISCOVERY
+        for item in lenses.target_lenses
+    )
+    assert all(item.availability is LensAvailability.EXECUTABLE for item in lenses.target_lenses)
+    assert all(item.candidate.basis_policy_id == "place.open_discovery" for item in lenses.target_lenses)
+    assert all(item.candidate.basis_policy_version == "v1" for item in lenses.target_lenses)
+    assert all("보장하지 않습니다" in item.support_note for item in lenses.target_lenses)
+
+
+def test_open_discovery_preserves_hard_parking_without_relaxing_any_branch() -> None:
+    lenses = _compile_open(
+        "주차는 꼭 돼야 하고 네가 추천해봐",
+        _proposal(
+            IntentRole.REQUIRED_CONDITION,
+            BooleanCapabilityIntent(
+                capability_id=CapabilityId.OPERATIONS_PARKING,
+                value=True,
+            ),
+            "주차는 꼭 돼야 하고",
+        ),
+    )
+
+    assert len(lenses.target_lenses) == 3
+    assert all(item.availability is LensAvailability.BLOCKED for item in lenses.target_lenses)
+    assert all(
+        "unsupported_capability_strength" in item.unsupported_signals
+        for item in lenses.target_lenses
+    )
+    assert not lenses.executable_targets
+
+
+def test_open_discovery_does_not_drop_an_explicit_exclusion_to_get_results() -> None:
+    lenses = _compile_open(
+        "카페 말고 네가 추천해봐",
+        _proposal(
+            IntentRole.EXCLUDED,
+            KindIntent(kind=PlaceKind.CAFE),
+            "카페 말고",
+        ),
+    )
+
+    assert len(lenses.target_lenses) == 3
+    assert all(item.availability is LensAvailability.BLOCKED for item in lenses.target_lenses)
+    assert not lenses.executable_targets
 
 
 def test_play_hypotheses_become_three_executable_broad_lenses() -> None:

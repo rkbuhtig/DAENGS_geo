@@ -82,7 +82,7 @@ def _compile(output):
     )
 
 
-def test_open_discovery_does_not_leak_into_planner_before_product_policy_exists() -> None:
+def test_open_discovery_compiles_three_product_owned_exploration_candidates() -> None:
     output = materialize_llm_output(
         "오늘 심심한데 네가 추천해봐",
         LLMIntentOutput(
@@ -106,14 +106,28 @@ def test_open_discovery_does_not_leak_into_planner_before_product_policy_exists(
 
     outcome = _compile(output)
 
-    assert outcome.status is PlannerStatus.NEEDS_CLARIFICATION
-    assert outcome.suggestions == ()
-    assert [issue.code for issue in outcome.issues] == [
-        "open_discovery_policy_unavailable"
+    assert outcome.status is PlannerStatus.READY
+    assert outcome.resolution is SuggestionResolution.EXPLORATORY
+    assert len(outcome.suggestions) == 3
+    assert all(item.basis is SuggestionBasis.OPEN_DISCOVERY for item in outcome.suggestions)
+    assert all(item.basis_observation_ids == () for item in outcome.suggestions)
+    assert all(item.basis_policy_id == "place.open_discovery" for item in outcome.suggestions)
+    assert all(item.basis_policy_version == "v1" for item in outcome.suggestions)
+    assert all(item.result.plan is not None for item in outcome.suggestions)
+    purpose_gates = [
+        next(
+            gate
+            for gate in item.result.plan.gates
+            if gate.capability_id is CapabilityId.PURPOSE_KIND
+        )
+        for item in outcome.suggestions
+        if item.result.plan is not None
     ]
+    assert all(gate.origin is GateOrigin.INFERRED for gate in purpose_gates)
+    assert all(not gate.locked and gate.relaxable for gate in purpose_gates)
 
 
-async def test_service_preserves_grounded_open_discovery_as_a_non_planner_directive() -> None:
+async def test_service_keeps_directive_separate_while_exposing_product_lenses() -> None:
     raw = LLMIntentOutput(
         disposition=ProposalDisposition.PROPOSED,
         interpretations=(
@@ -145,8 +159,18 @@ async def test_service_preserves_grounded_open_discovery_as_a_non_planner_direct
         SearchModeId.OPEN_DISCOVERY
     )
     assert trace.normalized.hypothesis_sets[0].common == ()
-    assert trace.outcome.issues[0].code == "open_discovery_policy_unavailable"
-    assert trace.lenses is not None and trace.lenses.target_lenses == ()
+    assert trace.outcome.status is PlannerStatus.READY
+    assert trace.outcome.resolution is SuggestionResolution.EXPLORATORY
+    assert trace.lenses is not None
+    assert [item.display_label for item in trace.lenses.target_lenses] == [
+        "#먹고 쉬기",
+        "#가볍게 나가기",
+        "#구경하기",
+    ]
+    assert all(
+        item.mapping_scope.value == "open_discovery"
+        for item in trace.lenses.target_lenses
+    )
 
 
 def test_single_literal_interpretation_becomes_one_inferred_unlocked_plan() -> None:
