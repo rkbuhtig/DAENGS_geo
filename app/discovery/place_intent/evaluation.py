@@ -11,7 +11,14 @@ from app.discovery.place_intent.contract import (
     materialize_llm_output,
 )
 from app.place.planning.contract import PlanningModel
-from app.place.planning.intents import IntentRole, KindIntent, PurposeIntent, SemanticIntent
+from app.place.planning.intents import (
+    ActivityIntent,
+    IntentRole,
+    KindIntent,
+    ObjectIntent,
+    PurposeIntent,
+    SemanticIntent,
+)
 from app.place.planning.purpose import resolve_purposes
 
 
@@ -152,7 +159,10 @@ def evaluate_intent_outputs(
                 if forbidden_kinds & predicted_positive_kinds:
                     unsafe_positive += 1
 
-            requires_visibility = isinstance(proposal.intent, SemanticIntent) or proposal.role in {
+            requires_visibility = isinstance(
+                proposal.intent,
+                (ActivityIntent, ObjectIntent, SemanticIntent),
+            ) or proposal.role in {
                 IntentRole.REQUIRED_CONDITION,
                 IntentRole.EXCLUDED,
             }

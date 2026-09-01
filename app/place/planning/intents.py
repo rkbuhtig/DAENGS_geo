@@ -31,6 +31,7 @@ class IntentSource(StrEnum):
 
 
 class IntentRole(StrEnum):
+    GOAL = "goal"
     REQUIRED_TARGET = "required_target"
     REQUIRED_CONDITION = "required_condition"
     PREFERENCE = "preference"
@@ -39,6 +40,19 @@ class IntentRole(StrEnum):
     NEGATED = "negated"
     HYPOTHETICAL = "hypothetical"
     RELATIONAL = "relational"
+
+
+class ActivityId(StrEnum):
+    """장소 종류로 곧장 축약하면 안 되는 사용자 활동."""
+
+    PLAY = "play"
+    BUY = "buy"
+
+
+class SearchObjectId(StrEnum):
+    """활동과 조합하기 전에는 목적지를 확정하지 않는 대상 객체."""
+
+    DOG_TOY = "dog_toy"
 
 
 class KindIntent(PlanningModel):
@@ -64,8 +78,23 @@ class SemanticIntent(PlanningModel):
     concept_id: str = Field(min_length=1, max_length=120, pattern=r"^[a-z0-9_.:-]+$")
 
 
+class ActivityIntent(PlanningModel):
+    intent_type: Literal["activity"] = "activity"
+    activity_id: ActivityId
+
+
+class ObjectIntent(PlanningModel):
+    intent_type: Literal["object"] = "object"
+    object_id: SearchObjectId
+
+
 IntentConcept = Annotated[
-    KindIntent | PurposeIntent | BooleanCapabilityIntent | SemanticIntent,
+    KindIntent
+    | PurposeIntent
+    | BooleanCapabilityIntent
+    | SemanticIntent
+    | ActivityIntent
+    | ObjectIntent,
     Field(discriminator="intent_type"),
 ]
 

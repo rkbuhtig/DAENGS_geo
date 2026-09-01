@@ -17,6 +17,7 @@ from app.place.planning.contract import (
     PlanningModel,
 )
 from app.place.planning.intents import (
+    ActivityIntent,
     BooleanCapabilityIntent,
     IntentConcept,
     IntentObservation,
@@ -24,6 +25,7 @@ from app.place.planning.intents import (
     IntentRole,
     IntentSource,
     KindIntent,
+    ObjectIntent,
     PlannerIssue,
     PlannerRequest,
     PlannerResult,
@@ -89,11 +91,7 @@ class IntentSuggestionOutcome(PlanningModel):
                     "missing source disposition requires an empty invalid-output clarification"
                 )
         if self.status is PlannerStatus.READY:
-            if (
-                not self.suggestions
-                or self.resolution is None
-                or self.source_disposition is None
-            ):
+            if not self.suggestions or self.resolution is None or self.source_disposition is None:
                 raise ValueError("ready suggestion outcome requires suggestions and resolution")
             if self.issues:
                 raise ValueError("ready suggestion outcome cannot carry global issues")
@@ -102,9 +100,7 @@ class IntentSuggestionOutcome(PlanningModel):
                 or len(self.suggestions) != 1
                 or self.suggestions[0].basis is not SuggestionBasis.INTERPRETATION
             ):
-                raise ValueError(
-                    "inferred resolution requires one direct proposed interpretation"
-                )
+                raise ValueError("inferred resolution requires one direct proposed interpretation")
             return self
         if self.suggestions or self.resolution is not None:
             raise ValueError("non-ready suggestion outcome cannot carry executable suggestions")
@@ -119,6 +115,7 @@ _SOFT_PLACE_ROLES = {
     IntentRole.HYPOTHETICAL,
 }
 _SOFT_SEMANTIC_ROLES = {
+    IntentRole.GOAL,
     IntentRole.REQUIRED_TARGET,
     IntentRole.PREFERENCE,
     IntentRole.ANALOGY,
@@ -180,6 +177,8 @@ def _fallback_targets(
                 return ()
             has_supported_semantic = True
             continue
+        if isinstance(intent, (ActivityIntent, ObjectIntent)):
+            return ()
         if observation.role not in _SOFT_PLACE_ROLES or _is_healthcare(intent):
             return ()
         mentioned[intent.model_dump_json()] = intent
@@ -347,10 +346,7 @@ def compile_intent_suggestions(
 
     status = (
         PlannerStatus.NEEDS_CLARIFICATION
-        if any(
-            item.result.status is PlannerStatus.NEEDS_CLARIFICATION
-            for item in all_rejected
-        )
+        if any(item.result.status is PlannerStatus.NEEDS_CLARIFICATION for item in all_rejected)
         else PlannerStatus.UNSUPPORTED
     )
     return IntentSuggestionOutcome(

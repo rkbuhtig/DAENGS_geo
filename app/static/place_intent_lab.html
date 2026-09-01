@@ -166,6 +166,8 @@ function badge(text, tone='') {
 function intentLabel(intent) {
   if (intent.intent_type === 'purpose') return 'purpose · ' + intent.purpose_id;
   if (intent.intent_type === 'kind') return 'kind · ' + intent.kind;
+  if (intent.intent_type === 'activity') return 'activity · ' + intent.activity_id;
+  if (intent.intent_type === 'object') return 'object · ' + intent.object_id;
   if (intent.intent_type === 'boolean_capability') {
     return intent.capability_id + ' · ' + String(intent.value);
   }
