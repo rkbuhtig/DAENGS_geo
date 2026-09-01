@@ -141,8 +141,52 @@ uv run python -m scripts.spikes.territory_paint.conservative_hex_evaluation \
 JSON은 A/B/C의 다섯 통계, 50·80·95% 양방향 질량 포착, 경계 거리, support·질량·연결성
 영수증을 담는다. 계산 시간은 환경에 따라 달라지므로 파일에 싣지 않고 CLI에서만 출력한다.
 
-## 다음 단계
+## 실제 지도 viewer v2
 
-수치상으로는 C를 실제 지도에 올려 볼 근거가 생겼다. 다음 PR에서는 A/B/C가 동일한 viewport,
-색상, 고정 exposure를 쓰게 하고 raw Hex 경계는 개발자 검산으로만 노출한다. 화면 평가가 끝날
-때까지 이 복원기는 `scripts/spikes` 밖으로 승격하지 않는다.
+PR E에서 A/B/C를 같은 실제 지도 viewport에 올렸다.
+
+```text
+A 연속 기준       청록 raster
+B raw Hex         주황 polygon
+C 복원 Field      보라 raster
+A+C 겹침          같은 exposure의 청록 + 보라
+```
+
+화면별 최댓값 정규화와 제곱근 alpha는 제거했다. 세 표현은 다음 고정 곡선을 공유한다.
+
+```text
+alpha = max_alpha · (1 - exp(-display_value / exposure_scale))
+max_alpha = 0.82
+```
+
+`visit_rate`만 무차원 값을 쓰고 나머지는 면적밀도로 바꾼 뒤 노출한다. scale은 30회 fixture의
+A/B/C 양수 값 p85 부근을 읽기 쉬운 값으로 반올림해 `viewer-v2`에 동결했다.
+
+| metric | 고정 scale | 화면 단위 |
+|---|---:|---|
+| `total_time` | 0.4 | s/m² |
+| `visit_rate` | 0.5 | ratio |
+| `conditional_dwell` | 0.04 | s/visited_walk/m² |
+| `time_utilization` | 0.00002 | share/m² |
+| `walk_utilization` | 0.00002 | share/m² |
+
+따라서 같은 농도는 mode와 Hex radius를 바꿔도 같은 수치를 뜻한다. 선택 기간에 큰 값 하나가
+추가돼 나머지 지도가 갑자기 옅어지는 문제도 없다. 이 scale은 실제 센서 실험 전까지 viewer
+fixture 계약이지 제품 상수는 아니다.
+
+8u `U_time`을 실제 OSM 지도에서 확인했을 때 raw Hex는 셀별 평면 농도와 칸 이음새가 먼저
+읽혔다. 복원 C는 같은 support 안에서 동선의 연속적인 굵기와 교차부 농도를 보여 줬다. A+C
+겹침에서 50% 경계 영수증 `B 58.2% · C 71.2%`가 수치 비교와 일치했고, 지도 클릭은 같은
+위치의 A/B/C 값 및 A−B·A−C 면적밀도 차이를 함께 반환했다. 브라우저 콘솔 오류는 없었다.
+
+```bash
+uv run python -m scripts.spikes.territory_paint.continuous_hex_visualization \
+  --out continuous-hex-visualization.json \
+  --blend-reach-cells 1.75
+DAENGS_DEV_CONSOLE=true uv run uvicorn app.main:app --reload
+# http://127.0.0.1:8000/continuous-hex-comparison
+```
+
+화면 평가까지 통과했지만 복원기는 여전히 `scripts/spikes` 안의 무상태 표시 후보다. 다음 단계는
+dropout·drift·outlier·가변 accuracy에서도 reach와 exposure의 순위가 유지되는지 확인하는
+센서 변형 실험이다.

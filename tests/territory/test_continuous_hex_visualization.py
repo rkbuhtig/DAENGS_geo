@@ -14,7 +14,7 @@ def payload():
 
 
 def test_visualization_payload_contains_common_raster_and_three_hex_resolutions(payload):
-    assert payload["format_version"] == 1
+    assert payload["format_version"] == 2
     assert payload["coordinate_order"] == "lat,lng"
     assert payload["population"]["sample_count"] == 30
     assert len(payload["reference"]["pixels"]) > 1000
@@ -25,6 +25,25 @@ def test_visualization_payload_contains_common_raster_and_three_hex_resolutions(
     assert bounds["height"] == bounds["max_y"] - bounds["min_y"] + 1
     assert set(payload["reference"]["metrics"]) == set(METRICS)
     assert all(set(pixel["values"]) == set(METRICS) for pixel in payload["reference"]["pixels"])
+
+
+def test_visualization_payload_freezes_one_metric_specific_exposure_for_all_layers(payload):
+    exposure = payload["exposure"]
+
+    assert exposure["curve"] == "one_minus_exp"
+    assert exposure["max_alpha"] == pytest.approx(0.82)
+    assert set(exposure["metrics"]) == set(METRICS)
+    assert exposure["metrics"]["visit_rate"] == {
+        "basis": "value",
+        "scale": 0.5,
+        "scale_unit": "ratio",
+    }
+    assert all(spec["scale"] > 0 for spec in exposure["metrics"].values())
+    assert all(
+        spec["basis"] == "area_density"
+        for metric, spec in exposure["metrics"].items()
+        if metric != "visit_rate"
+    )
 
 
 def test_hex_geometry_and_comparison_receipts_are_server_supplied(payload):
@@ -38,6 +57,21 @@ def test_hex_geometry_and_comparison_receipts_are_server_supplied(payload):
         assert all(set(cell["values"]) == set(METRICS) for cell in radius["cells"])
 
 
+def test_each_radius_contains_reconstructed_field_and_a_b_c_receipts(payload):
+    for radius in payload["radii"]:
+        reconstructed = radius["reconstructed"]
+        comparison = radius["reconstruction_comparison"]
+
+        assert reconstructed["pixel_m"] == payload["reference"]["pixel_m"]
+        assert reconstructed["pixels"]
+        assert all(set(pixel["values"]) == set(METRICS) for pixel in reconstructed["pixels"])
+        assert comparison["mass"]["reconstructed_absolute_error_s"] < 1e-8
+        assert comparison["support"]["leakage_pixels"] == 0
+        assert comparison["support"]["missing_pixels"] == 0
+        assert set(comparison["raw_piecewise"]["metrics"]) == set(METRICS)
+        assert set(comparison["reconstructed"]["metrics"]) == set(METRICS)
+
+
 def test_both_projections_expose_50_80_95_percent_region_boundaries(payload):
     for metric in ("time_utilization", "walk_utilization"):
         reference_regions = payload["reference"]["regions"][metric]
@@ -47,6 +81,9 @@ def test_both_projections_expose_50_80_95_percent_region_boundaries(payload):
             regions = radius["regions"][metric]
             assert [region["target_mass"] for region in regions] == [0.5, 0.8, 0.95]
             assert all(region["boundary_edges"] for region in regions)
+            reconstructed_regions = radius["reconstructed"]["regions"][metric]
+            assert [region["target_mass"] for region in reconstructed_regions] == [0.5, 0.8, 0.95]
+            assert all(region["boundary_edges"] for region in reconstructed_regions)
 
 
 def test_visualization_payload_does_not_expose_latent_generator_labels(payload):
@@ -61,6 +98,7 @@ def test_visualization_payload_does_not_expose_latent_generator_labels(payload):
         '"seed"',
     ):
         assert forbidden not in encoded
+    assert payload["roles"]["reconstructed"] == "ephemeral_display_only_not_statistics_source"
 
 
 def test_pixel_region_boundary_removes_an_internal_shared_edge():
@@ -75,7 +113,7 @@ def test_pixel_region_boundary_removes_an_internal_shared_edge():
 def test_visualization_cli_writes_json_without_requiring_the_expensive_fixture_twice(
     tmp_path, monkeypatch
 ):
-    expected = {"format_version": 1, "population": {"sample_count": 0}, "reference": {"pixels": []}, "radii": []}
+    expected = {"format_version": 2, "population": {"sample_count": 0}, "reference": {"pixels": []}, "radii": []}
     monkeypatch.setattr(visualization, "build_visualization_payload", lambda **_kwargs: expected)
     output = tmp_path / "visualization.json"
 

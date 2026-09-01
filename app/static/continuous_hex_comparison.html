@@ -3,11 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>연속 원 × Hex — 지도 비교</title>
+<title>연속 기준 × raw Hex × 복원 Field — 지도 비교</title>
 <style>
   :root {
     --ink:#17211e; --muted:#66736f; --line:#d7dfdc; --paper:rgba(250,252,251,.96);
-    --continuous:#087b68; --continuous-soft:#e0f2ed; --hex:#bd5c2d; --hex-soft:#f7e9df;
+    --reference:#087b68; --reference-soft:#e0f2ed; --hex:#bd5c2d; --hex-soft:#f7e9df;
+    --reconstructed:#6656b5; --reconstructed-soft:#ece9fa;
     --danger:#a33c24; --shadow:0 9px 30px rgba(20,35,30,.17);
   }
   * { box-sizing:border-box; }
@@ -25,11 +26,16 @@
   .buttons { display:flex; flex-wrap:wrap; gap:5px; }
   button { min-height:31px; padding:5px 9px; border:1px solid var(--line); border-radius:8px;
            background:#fff; color:var(--ink); font:inherit; font-size:11px; cursor:pointer; }
-  button:hover { border-color:var(--continuous); }
-  button[aria-pressed="true"] { border-color:var(--continuous); background:var(--continuous-soft);
-                                color:var(--continuous); font-weight:750; }
+  button:hover { border-color:var(--reference); }
+  button[aria-pressed="true"] { border-color:var(--reference); background:var(--reference-soft);
+                                color:var(--reference); font-weight:750; }
+  #mode-buttons button[data-mode="hex"][aria-pressed="true"],
   #radius-buttons button[aria-pressed="true"], #hex-debug[aria-pressed="true"] {
     border-color:var(--hex); background:var(--hex-soft); color:var(--hex);
+  }
+  #mode-buttons button[data-mode="reconstructed"][aria-pressed="true"],
+  #mode-buttons button[data-mode="overlay"][aria-pressed="true"] {
+    border-color:var(--reconstructed); background:var(--reconstructed-soft); color:var(--reconstructed);
   }
   button:disabled { opacity:.36; cursor:not-allowed; }
   button:focus-visible { outline:3px solid rgba(8,123,104,.28); outline-offset:1px; }
@@ -62,19 +68,20 @@
 </style>
 </head>
 <body>
-<div id="map" aria-label="연속 원과 Hex 비교 지도"></div>
+<div id="map" aria-label="연속 기준과 raw Hex와 복원 Field 비교 지도"></div>
 <div id="banner" role="alert"></div>
 
 <section class="panel" aria-label="비교 설정">
-  <h1>같은 산책, 두 개의 공간 투영</h1>
-  <p class="subtitle">청록은 4m 측정 raster로 읽은 연속 원 field, 주황은 같은 canonical Segment를 칠한 Hex다. 한 번에 같은 metric만 비교한다.</p>
+  <h1>같은 산책, 세 개의 공간 표현</h1>
+  <p class="subtitle">A는 perfect-sensor 연속 기준, B는 영구 Cellophane의 raw Hex, C는 같은 Hex에서 만든 보수적 표시 Field다. 세 표현은 같은 metric과 고정 exposure를 공유한다.</p>
 
   <div class="group">
     <div class="group-title"><span>보기</span><span id="mode-label">—</span></div>
     <div class="buttons" id="mode-buttons">
-      <button type="button" data-mode="continuous" aria-pressed="true">연속 원</button>
-      <button type="button" data-mode="hex" aria-pressed="false">Hex</button>
-      <button type="button" data-mode="overlay" aria-pressed="false">겹쳐보기</button>
+      <button type="button" data-mode="reference" aria-pressed="true">A 연속 기준</button>
+      <button type="button" data-mode="hex" aria-pressed="false">B raw Hex</button>
+      <button type="button" data-mode="reconstructed" aria-pressed="false">C 복원 Field</button>
+      <button type="button" data-mode="overlay" aria-pressed="false">A+C 겹침</button>
     </div>
   </div>
   <div class="group">
@@ -101,19 +108,26 @@
     <dt>질량</dt><dd id="r-mass">—</dd>
     <dt>Support</dt><dd id="r-support">—</dd>
     <dt>공간 차이</dt><dd id="r-distance">—</dd>
-    <dt>표현</dt><dd>값/최댓값 제곱근 · 연속 raster bilinear</dd>
+    <dt>Exposure</dt><dd id="r-exposure">—</dd>
+    <dt>표현</dt><dd>1−exp(−밀도/척도) · raster bilinear</dd>
   </dl>
-  <div class="legend"><span>0</span><div class="ramp" id="legend-ramp"></div><span id="legend-max">—</span></div>
-  <div class="layer-key"><span><i class="swatch" style="background:var(--continuous)"></i>연속 원</span><span><i class="swatch" style="background:var(--hex)"></i>Hex</span></div>
+  <div class="legend"><span>0</span><div class="ramp" id="legend-ramp"></div><span id="legend-scale">—</span></div>
+  <div class="layer-key">
+    <span><i class="swatch" style="background:var(--reference)"></i>A 연속 기준</span>
+    <span><i class="swatch" style="background:var(--hex)"></i>B raw Hex</span>
+    <span><i class="swatch" style="background:var(--reconstructed)"></i>C 복원</span>
+  </div>
 </section>
 
 <section class="detail" aria-live="polite">
-  <div id="detail-empty">지도를 누르면 같은 위치의 연속 pixel과 Hex 값을 함께 본다.</div>
+  <div id="detail-empty">지도를 누르면 같은 위치의 A/B/C 값을 함께 본다.</div>
   <div class="detail-grid" id="detail-value" hidden>
     <span>위치</span><strong id="d-location">—</strong>
-    <span>연속 원</span><strong id="d-continuous">—</strong>
-    <span>Hex</span><strong id="d-hex">—</strong>
-    <span>면적 단위 차이</span><strong id="d-difference">—</strong>
+    <span>A 연속 기준</span><strong id="d-reference">—</strong>
+    <span>B raw Hex</span><strong id="d-hex">—</strong>
+    <span>C 복원 Field</span><strong id="d-reconstructed">—</strong>
+    <span>A−B 면적밀도</span><strong id="d-raw-difference">—</strong>
+    <span>A−C 면적밀도</span><strong id="d-reconstructed-difference">—</strong>
   </div>
 </section>
 
@@ -123,12 +137,18 @@ const DATA_URL = '/continuous-hex-comparison/data';
 const METRIC_ORDER = ['visit_rate','total_time','conditional_dwell','time_utilization','walk_utilization'];
 const DISTRIBUTION_METRICS = new Set(['time_utilization','walk_utilization']);
 const UNIT_LABELS = {ratio:'비율',s:'초','s/visited_walk':'초/방문 산책',share:'비중'};
-const MODE_LABELS = {continuous:'연속 원 field',hex:'Hex Cellophane',overlay:'청록 + 주황 겹침'};
+const MODE_LABELS = {
+  reference:'A · 연속 평가 기준',hex:'B · raw Hex',reconstructed:'C · 보수적 복원',
+  overlay:'A 청록 + C 보라',
+};
+const LAYER_COLORS = {
+  reference:[8,123,104],hex:[189,92,45],reconstructed:[102,86,181],
+};
 const EARTH_R = 6378137;
 const state = {
-  payload:null, config:null, provider:null, backend:null, metric:'time_utilization', mode:'continuous',
-  radiusIndex:1, region:'none', hexDebug:false, rasterImages:new Map(), referenceIndex:new Map(),
-  hexIndex:new Map(), continuousOverlay:null, hexOverlays:[], outlines:[], homeOverlay:null,
+  payload:null, config:null, provider:null, backend:null, metric:'time_utilization', mode:'reference',
+  radiusIndex:0, region:'none', hexDebug:false, rasterImages:new Map(), referenceIndex:new Map(),
+  reconstructedIndex:new Map(), hexIndex:new Map(), rasterOverlays:[], hexOverlays:[], outlines:[], homeOverlay:null,
   selectedLatLng:null, switchPromise:null, authWatchTimer:null,
 };
 let naverAuthFailureHandler = null;
@@ -247,7 +267,7 @@ function leafletBackend(payload) {
 
 function currentRadius() { return state.payload.radii[state.radiusIndex]; }
 function currentReferenceMetric() { return state.payload.reference.metrics[state.metric]; }
-function currentHexMetric() { return currentRadius().metrics[state.metric]; }
+function currentExposure() { return state.payload.exposure.metrics[state.metric]; }
 
 function formatValue(value,unit) {
   if (unit === 'ratio' || unit === 'share') return `${(value * 100).toFixed(value < .01 ? 2 : 1)}%`;
@@ -256,22 +276,44 @@ function formatValue(value,unit) {
   return String(value);
 }
 
-function buildRasterImage(metric) {
-  if (state.rasterImages.has(metric)) return state.rasterImages.get(metric);
-  const reference = state.payload.reference;
-  const {width,height,min_x,max_y} = reference.bounds;
+function formatExposureScale(exposure) {
+  if (exposure.scale_unit === 'ratio') return `${(exposure.scale*100).toFixed(0)}%`;
+  if (exposure.scale_unit === 'share/m²') {
+    return `${(exposure.scale*100*100).toFixed(2)}% / 100m²`;
+  }
+  return `${exposure.scale.toLocaleString('ko-KR',{maximumFractionDigits:4})} ${exposure.scale_unit}`;
+}
+
+function exposureValue(value,metric,areaM2) {
+  const exposure = state.payload.exposure.metrics[metric];
+  return exposure.basis === 'area_density' ? value / areaM2 : value;
+}
+
+function exposureAlpha(value,metric,areaM2) {
+  const exposed = exposureValue(value,metric,areaM2);
+  const scale = state.payload.exposure.metrics[metric].scale;
+  return Math.max(0,Math.min(state.payload.exposure.max_alpha,
+    (1 - Math.exp(-exposed / scale)) * state.payload.exposure.max_alpha));
+}
+
+function buildRasterImage(layer,metric) {
+  const cacheKey = `${layer}:${layer === 'reference' ? 'fixed' : state.radiusIndex}:${metric}`;
+  if (state.rasterImages.has(cacheKey)) return state.rasterImages.get(cacheKey);
+  const source = layer === 'reference' ? state.payload.reference : currentRadius().reconstructed;
+  const {width,height,min_x,max_y} = source.bounds;
   const base = document.createElement('canvas');
   base.width = width; base.height = height;
   const context = base.getContext('2d');
   const image = context.createImageData(width,height);
-  const maximum = Math.max(reference.metrics[metric].max_value,1e-12);
-  reference.pixels.forEach((pixel) => {
+  const color = LAYER_COLORS[layer];
+  source.pixels.forEach((pixel) => {
     const x = pixel.x - min_x;
     const y = max_y - pixel.y;
-    const ratio = Math.max(0,pixel.values[metric] / maximum);
     const offset = (y * width + x) * 4;
-    image.data[offset] = 8; image.data[offset + 1] = 123; image.data[offset + 2] = 104;
-    image.data[offset + 3] = ratio > 0 ? Math.round((.035 + Math.sqrt(ratio) * .72) * 255) : 0;
+    image.data[offset] = color[0]; image.data[offset + 1] = color[1]; image.data[offset + 2] = color[2];
+    image.data[offset + 3] = Math.round(exposureAlpha(
+      pixel.values[metric],metric,source.pixel_m ** 2
+    ) * 255);
   });
   context.putImageData(image,0,0);
   const smooth = document.createElement('canvas');
@@ -281,13 +323,13 @@ function buildRasterImage(metric) {
   smoothContext.imageSmoothingQuality = 'high';
   smoothContext.drawImage(base,0,0,smooth.width,smooth.height);
   const url = smooth.toDataURL('image/png');
-  state.rasterImages.set(metric,url);
+  state.rasterImages.set(cacheKey,url);
   return url;
 }
 
 function clearLayers() {
-  if (state.continuousOverlay) state.continuousOverlay.remove();
-  state.continuousOverlay = null;
+  state.rasterOverlays.forEach((overlay) => overlay.remove());
+  state.rasterOverlays = [];
   state.hexOverlays.forEach((item) => item.overlay.remove());
   state.hexOverlays = [];
   state.outlines.forEach((overlay) => overlay.remove());
@@ -295,13 +337,12 @@ function clearLayers() {
   state.hexIndex.clear();
 }
 
-function drawHex() {
+function drawHex(fill) {
   const radius = currentRadius();
-  const maximum = Math.max(currentHexMetric().max_value,1e-12);
   state.hexOverlays = radius.cells.map((cell) => {
-    const ratio = Math.max(0,cell.values[state.metric] / maximum);
     const overlay = state.backend.polygon(cell.boundary,{
-      fillColor:'#bd5c2d',fillOpacity:.035 + Math.sqrt(ratio) * (state.mode === 'overlay' ? .38 : .67),
+      fillColor:'#bd5c2d',fillOpacity:fill
+        ? exposureAlpha(cell.values[state.metric],state.metric,radius.cell_area_m2_at_origin) : 0,
       strokeColor:'#6d2f16',strokeOpacity:state.hexDebug ? .5 : 0,strokeWeight:state.hexDebug ? 1 : 0,
     });
     overlay.onClick(() => selectAt(
@@ -315,7 +356,8 @@ function drawHex() {
 
 function selectedRegion(layer) {
   if (state.region === 'none' || !DISTRIBUTION_METRICS.has(state.metric)) return null;
-  const source = layer === 'reference' ? state.payload.reference : currentRadius();
+  const source = layer === 'reference' ? state.payload.reference
+    : layer === 'reconstructed' ? currentRadius().reconstructed : currentRadius();
   return source.regions[state.metric].find((item) => item.target_mass === Number(state.region));
 }
 
@@ -326,18 +368,31 @@ function drawRegions() {
       strokeColor:color,strokeOpacity:.96,strokeWeight:weight,fillOpacity:0,
     }));
   });
-  if (state.mode !== 'hex') draw(selectedRegion('reference'),'#087b68',4);
-  if (state.mode !== 'continuous') draw(selectedRegion('hex'),'#bd5c2d',state.mode === 'overlay' ? 3 : 4);
+  if (state.mode === 'reference' || state.mode === 'overlay') {
+    draw(selectedRegion('reference'),'#087b68',state.mode === 'overlay' ? 3 : 4);
+  }
+  if (state.mode === 'hex') draw(selectedRegion('hex'),'#bd5c2d',4);
+  if (state.mode === 'reconstructed' || state.mode === 'overlay') {
+    draw(selectedRegion('reconstructed'),'#6656b5',state.mode === 'overlay' ? 3 : 4);
+  }
 }
 
 function renderLayers() {
   clearLayers();
-  if (state.mode !== 'hex') {
-    state.continuousOverlay = state.backend.image(
-      buildRasterImage(state.metric),state.payload.reference.bbox,state.mode === 'overlay' ? .68 : .94
-    );
+  if (state.mode === 'reference' || state.mode === 'overlay') {
+    state.rasterOverlays.push(state.backend.image(
+      buildRasterImage('reference',state.metric),state.payload.reference.bbox,
+      state.mode === 'overlay' ? .72 : .96
+    ));
   }
-  if (state.mode !== 'continuous') drawHex();
+  if (state.mode === 'reconstructed' || state.mode === 'overlay') {
+    state.rasterOverlays.push(state.backend.image(
+      buildRasterImage('reconstructed',state.metric),currentRadius().reconstructed.bbox,
+      state.mode === 'overlay' ? .72 : .96
+    ));
+  }
+  if (state.mode === 'hex') drawHex(true);
+  else if (state.hexDebug) drawHex(false);
   drawRegions();
   updateReceipt();
   if (state.selectedLatLng) selectAt(...state.selectedLatLng);
@@ -349,14 +404,21 @@ function mercator(lat,lng) {
     EARTH_R * Math.log(Math.tan(Math.PI / 4 + safeLat * Math.PI / 360))];
 }
 
-function referencePixelAt(lat,lng) {
-  const reference = state.payload.reference;
+function rasterPixelAt(source,index,lat,lng) {
   const [x,y] = mercator(lat,lng);
-  const [originX,originY] = mercator(...reference.origin);
-  const scale = Math.cos(reference.origin[0] * Math.PI / 180);
-  const pixelX = Math.floor((x - originX) * scale / reference.pixel_m);
-  const pixelY = Math.floor((y - originY) * scale / reference.pixel_m);
-  return state.referenceIndex.get(`${pixelX}:${pixelY}`) || null;
+  const [originX,originY] = mercator(...source.origin);
+  const scale = Math.cos(source.origin[0] * Math.PI / 180);
+  const pixelX = Math.floor((x - originX) * scale / source.pixel_m);
+  const pixelY = Math.floor((y - originY) * scale / source.pixel_m);
+  return index.get(`${pixelX}:${pixelY}`) || null;
+}
+
+function referencePixelAt(lat,lng) {
+  return rasterPixelAt(state.payload.reference,state.referenceIndex,lat,lng);
+}
+
+function reconstructedPixelAt(lat,lng) {
+  return rasterPixelAt(currentRadius().reconstructed,state.reconstructedIndex,lat,lng);
 }
 
 function roundAxial(q,r) {
@@ -376,55 +438,77 @@ function hexAt(lat,lng,radiusU) {
 
 function density(value,area) { return value / area; }
 
+function areaDifference(referenceValue,candidateValue,candidateArea,unit) {
+  if (state.metric === 'visit_rate') {
+    return `${((referenceValue-candidateValue)*100).toFixed(2)}%p`;
+  }
+  const delta = density(referenceValue,state.payload.reference.pixel_m ** 2) -
+    density(candidateValue,candidateArea);
+  return `${delta.toExponential(3)} ${unit}/m²`;
+}
+
 function selectAt(lat,lng) {
   state.selectedLatLng = [lat,lng];
   const reference = referencePixelAt(lat,lng);
+  const reconstructed = reconstructedPixelAt(lat,lng);
   const [q,r] = hexAt(lat,lng,currentRadius().radius_u);
   const cell = state.hexIndex.get(`${q}:${r}`) || currentRadius().cells.find((row) => row.q === q && row.r === r) || null;
   const refValue = reference ? reference.values[state.metric] : 0;
   const hexValue = cell ? cell.values[state.metric] : 0;
+  const reconstructedValue = reconstructed ? reconstructed.values[state.metric] : 0;
   const unit = currentReferenceMetric().unit;
-  let difference;
-  if (state.metric === 'visit_rate') difference = `${((refValue-hexValue)*100).toFixed(2)}%p`;
-  else {
-    const delta = density(refValue,state.payload.reference.pixel_m ** 2) -
-      density(hexValue,currentRadius().cell_area_m2_at_origin);
-    difference = `${delta.toExponential(3)} ${unit}/m²`;
-  }
   $('detail-empty').hidden = true;
   $('detail-value').hidden = false;
   $('d-location').textContent = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-  $('d-continuous').textContent = formatValue(refValue,unit);
+  $('d-reference').textContent = formatValue(refValue,unit);
   $('d-hex').textContent = `${formatValue(hexValue,unit)} · (${q},${r})`;
-  $('d-difference').textContent = difference;
+  $('d-reconstructed').textContent = formatValue(reconstructedValue,unit);
+  $('d-raw-difference').textContent = areaDifference(
+    refValue,hexValue,currentRadius().cell_area_m2_at_origin,unit
+  );
+  $('d-reconstructed-difference').textContent = areaDifference(
+    refValue,reconstructedValue,currentRadius().reconstructed.pixel_m ** 2,unit
+  );
 }
 
 function updateReceipt() {
   const radius = currentRadius();
-  const metric = radius.comparison.metrics[state.metric];
+  const comparison = radius.reconstruction_comparison;
+  const rawMetric = comparison.raw_piecewise.metrics[state.metric];
+  const reconstructedMetric = comparison.reconstructed.metrics[state.metric];
   const unit = currentReferenceMetric().unit;
+  const exposure = currentExposure();
   $('mode-label').textContent = MODE_LABELS[state.mode];
   $('metric-unit').textContent = UNIT_LABELS[unit] || unit;
   $('ground-radius').textContent = `${radius.radius_u}u = ${radius.ground_radius_m_at_origin.toFixed(2)}m`;
   $('r-population').textContent = `${state.payload.population.sample_count}장 · v${state.payload.population.generator_version} · ${state.payload.population.run_id}`;
-  $('r-mass').textContent = `오차 ${radius.comparison.mass.absolute_error_s.toExponential(2)}초`;
-  $('r-support').textContent = `IoU ${(radius.comparison.support.sampled_area_iou*100).toFixed(1)}% · 면적비 ${radius.comparison.support.area_ratio_hex_over_reference.toFixed(3)}`;
-  $('r-distance').textContent = state.metric === 'visit_rate'
-    ? `MAE ${(metric.mean_absolute_error*100).toFixed(2)}%p`
-    : `normalized L1 ${metric.normalized_l1.toFixed(3)}`;
-  $('legend-max').textContent = formatValue(currentReferenceMetric().max_value,unit);
+  $('r-mass').textContent = `C 오차 ${comparison.mass.reconstructed_absolute_error_s.toExponential(2)}초`;
+  $('r-support').textContent = `누출 ${comparison.support.leakage_pixels}px · 연결 ${comparison.support.raw_components}→${comparison.support.reconstructed_components}`;
+  if (state.metric === 'visit_rate') {
+    $('r-distance').textContent = `MAE B ${(rawMetric.mean_absolute_error*100).toFixed(2)}%p · C ${(reconstructedMetric.mean_absolute_error*100).toFixed(2)}%p`;
+  } else if (state.metric === 'conditional_dwell') {
+    $('r-distance').textContent = `MAE B ${rawMetric.mean_absolute_error.toPrecision(3)}초 · C ${reconstructedMetric.mean_absolute_error.toPrecision(3)}초`;
+  } else {
+    $('r-distance').textContent = `L1 B ${rawMetric.normalized_l1.toFixed(3)} · C ${reconstructedMetric.normalized_l1.toFixed(3)}`;
+  }
+  $('r-exposure').textContent = `α63% @ ${formatExposureScale(exposure)}`;
+  $('legend-scale').textContent = `α63% ${formatExposureScale(exposure)}`;
   $('legend-ramp').style.background = state.mode === 'hex'
     ? 'linear-gradient(90deg,rgba(189,92,45,.04),rgba(189,92,45,.74))'
-    : state.mode === 'overlay'
-      ? 'linear-gradient(90deg,#087b68,#bd5c2d)'
+    : state.mode === 'reconstructed'
+      ? 'linear-gradient(90deg,rgba(102,86,181,.04),rgba(102,86,181,.74))'
+      : state.mode === 'overlay'
+        ? 'linear-gradient(90deg,#087b68,#6656b5)'
       : 'linear-gradient(90deg,rgba(8,123,104,.04),rgba(8,123,104,.74))';
   const refRegion = selectedRegion('reference');
-  const hexRegion = selectedRegion('hex');
-  if (!refRegion || !hexRegion) $('region-summary').textContent = DISTRIBUTION_METRICS.has(state.metric) ? '선택 가능' : '이용분포 전용';
+  const reconstructedRegion = selectedRegion('reconstructed');
+  if (!refRegion || !reconstructedRegion) $('region-summary').textContent = DISTRIBUTION_METRICS.has(state.metric) ? '선택 가능' : '이용분포 전용';
   else {
-    const comparison = radius.comparison.mass_regions[state.metric]
+    const rawRegion = comparison.raw_piecewise.mass_regions[state.metric]
       .find((row) => row.target_mass === Number(state.region));
-    $('region-summary').textContent = `영역 IoU ${(comparison.area_iou*100).toFixed(1)}%`;
+    const smoothRegion = comparison.reconstructed.mass_regions[state.metric]
+      .find((row) => row.target_mass === Number(state.region));
+    $('region-summary').textContent = `IoU B ${(rawRegion.area_iou*100).toFixed(1)}% · C ${(smoothRegion.area_iou*100).toFixed(1)}%`;
   }
 }
 
@@ -450,7 +534,11 @@ function chooseMetric(metric) {
 }
 
 function chooseRadius(index) {
-  state.radiusIndex = Number(index); setPressed('radius-buttons','radius',index); renderLayers();
+  state.radiusIndex = Number(index);
+  state.reconstructedIndex = new Map(currentRadius().reconstructed.pixels.map(
+    (pixel) => [`${pixel.x}:${pixel.y}`,pixel]
+  ));
+  setPressed('radius-buttons','radius',index); renderLayers();
 }
 
 function chooseRegion(region) {
@@ -492,6 +580,9 @@ function drawMap() {
   state.homeOverlay = state.backend.home(state.payload.home);
   state.backend.onMapClick((lat,lng) => selectAt(lat,lng));
   state.referenceIndex = new Map(state.payload.reference.pixels.map((pixel) => [`${pixel.x}:${pixel.y}`,pixel]));
+  state.reconstructedIndex = new Map(currentRadius().reconstructed.pixels.map(
+    (pixel) => [`${pixel.x}:${pixel.y}`,pixel]
+  ));
   buildControls();
   chooseMetric(state.metric);
 }
@@ -499,7 +590,7 @@ function drawMap() {
 function clearMapPresentation() {
   const brokenNaver = state.provider === 'naver';
   if (!brokenNaver) clearLayers();
-  else { state.continuousOverlay = null; state.hexOverlays = []; state.outlines = []; }
+  else { state.rasterOverlays = []; state.hexOverlays = []; state.outlines = []; }
   if (state.homeOverlay && !brokenNaver) state.homeOverlay.remove();
   state.homeOverlay = null; state.provider = null; state.backend = null;
   $('map').replaceChildren();
@@ -539,14 +630,18 @@ async function main() {
     if (!configResponse.ok || !dataResponse.ok) throw new Error('지도 설정 또는 fixture를 읽지 못했습니다');
     state.config = await configResponse.json();
     state.payload = await dataResponse.json();
-    if (state.payload.format_version !== 1 || state.payload.coordinate_order !== 'lat,lng') {
+    if (state.payload.format_version !== 2 || state.payload.coordinate_order !== 'lat,lng') {
       throw new Error('지원하지 않는 비교 payload입니다');
     }
     if (!state.payload.reference || !Number.isFinite(state.payload.reference.pixel_m) ||
         !Array.isArray(state.payload.radii) || state.payload.radii.length === 0 ||
-        state.payload.radii.some((radius) => !Number.isFinite(radius.cell_area_m2_at_origin))) {
+        !state.payload.exposure || state.payload.exposure.curve !== 'one_minus_exp' ||
+        state.payload.radii.some((radius) => !Number.isFinite(radius.cell_area_m2_at_origin) ||
+          !radius.reconstructed || !radius.reconstruction_comparison)) {
       throw new Error('면적 단위가 없는 비교 payload입니다');
     }
+    const preferredRadius = state.payload.radii.findIndex((radius) => radius.radius_u === 8);
+    state.radiusIndex = preferredRadius >= 0 ? preferredRadius : 0;
     naverAuthFailureHandler = (error) => {
       void useOsmFallback(error).catch((fallbackError) => showError(fallbackError.message || String(fallbackError)));
     };

@@ -73,7 +73,8 @@ JSON에는 계산 시간 대신 결정론적인 dab 수, stamp 평가 수, pixel
 
 ## 실제 지도 비교 화면
 
-PR C의 개발자 화면은 같은 값을 실제 Naver/OSM 지도 위에서 전환한다.
+현재 개발자 화면은 A 연속 reference, B raw Hex, C 보수적 복원 Field를 실제 Naver/OSM 지도
+위에서 전환한다.
 
 ```bash
 uv run python -m scripts.spikes.territory_paint.continuous_hex_visualization \
@@ -82,14 +83,13 @@ DAENGS_DEV_CONSOLE=true uv run uvicorn app.main:app --reload
 # http://127.0.0.1:8000/continuous-hex-comparison
 ```
 
-기본 화면은 `U_time`의 연속 원 field다. `연속 원 / Hex / 겹쳐보기`, 다섯 metric,
+기본 화면은 `U_time`의 A 연속 기준이다. `A / B / C / A+C 겹침`, 다섯 metric,
 4·8·12u, 50·80·95% 영역을 바꿀 수 있다. Hex 경계는 기본적으로 숨기고 검산 버튼으로만
-드러낸다. 지도 클릭은 같은 위치의 연속 pixel과 Hex cell 값을 면적 단위로 환산해 함께 보여
-준다.
+드러낸다. 지도 클릭은 같은 위치의 A/B/C 값과 면적밀도 차이를 함께 보여 준다.
 
-연속장은 Naver HeatMap으로 다시 흐리지 않는다. 서버에서 이미 원 kernel을 적분한 4m 측정
-raster를 투명 이미지로 만들고 bilinear 표시만 적용한다. 따라서 렌더러가 두 번째 공간
-kernel을 더해 support를 넓히지 않는다.
+A와 C는 Naver HeatMap으로 다시 흐리지 않는다. 서버에서 계산한 4m 측정 raster를 투명
+이미지로 만들고 bilinear 표시만 적용한다. 세 표현은 화면별 최댓값이 아닌 metric별 고정
+면적밀도 exposure를 공유하므로 mode 전환 뒤에도 색의 의미가 바뀌지 않는다.
 
 ## 현재 판단
 

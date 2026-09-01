@@ -91,7 +91,7 @@ if settings.dev_console:
 
     @app.get("/continuous-hex-comparison", include_in_schema=False)
     async def continuous_hex_comparison_view():
-        """연속 원 reference와 4·8·12u Hex를 실제 지도에서 비교하는 검증 표면."""
+        """연속 reference·raw Hex·보수적 복원 Field의 실제 지도 검증 표면."""
         return FileResponse(_CONTINUOUS_HEX_COMPARISON, media_type="text/html")
 
     @app.get("/continuous-hex-comparison/data", include_in_schema=False)
