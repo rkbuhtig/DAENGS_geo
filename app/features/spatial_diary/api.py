@@ -23,6 +23,7 @@ from app.features.spatial_diary.contract import (
     OfferInteractionKind,
     ReviewDisposition,
     WalkAttestation,
+    WalkJournalProjection,
 )
 from app.features.spatial_diary.episode import (
     CANDIDATE_POLICY_VERSION,
@@ -40,6 +41,7 @@ from app.features.spatial_diary.episode import (
     put_episode_offer,
     put_offer_interaction,
 )
+from app.features.spatial_diary.journal import query_walk_journal
 from app.features.spatial_diary.snapshot import (
     SpatialDiaryTransactionError,
     ensure_repeatable_read_snapshot,
@@ -237,6 +239,19 @@ async def read_walk_offers(
             for state in states
         ),
     )
+
+
+@router.get("/walks/{session_id}/journal", response_model=WalkJournalProjection)
+async def read_walk_journal(
+    session_id: ResourceId,
+    db: Annotated[AsyncSession, Depends(get_session)],
+    principal: Annotated[SpatialDiaryPrincipal, Depends(get_spatial_diary_principal)],
+) -> WalkJournalProjection:
+    await _authorize_capsule(db, principal, session_id)
+    try:
+        return await query_walk_journal(db, session_id)
+    except _EPISODE_ERRORS as exc:
+        _raise_episode_http(exc)
 
 
 @router.get("/offers/{offer_id}", response_model=EpisodeOfferSnapshot)

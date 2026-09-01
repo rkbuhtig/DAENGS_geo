@@ -14,8 +14,14 @@ from zoneinfo import ZoneInfo
 from sqlalchemy import bindparam, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.features.spatial_diary.context import (
+    CONTEXT_POLICY_VERSION,
+    DIARY_CALENDAR_TIMEZONE,
+    FACET_VALUES,
+    RAIN_THRESHOLD_MM,
+    context_facets,
+)
 from app.features.spatial_diary.contract import (
-    ContextStatus,
     DriftAssessment,
     ObservationCapability,
     SpatialDiaryViewReceipt,
@@ -35,11 +41,8 @@ from app.features.territory.paint import Cellophane, PaintSpec, paint_spec
 from app.features.territory.spatial_stats import SpatialField, spatial_field
 from app.features.walk.capsule import CAPSULE_PROFILE, CAPSULE_RADIUS_U
 
-CONTEXT_POLICY_VERSION = 1
 QUALITY_POLICY_VERSION = 1
 QUALITY_POLICY_NAME = "diary_v1"
-DIARY_CALENDAR_TIMEZONE = "Asia/Seoul"
-RAIN_THRESHOLD_MM = 0.1
 MAX_VIEW_RANGE_DAYS = 366
 MAX_INDEX_ROWS = 2_000
 MAX_SELECTED_CAPSULES = 400
@@ -48,11 +51,6 @@ MAX_RESULT_CELLS = 50_000
 MAX_RESULT_PINS = 2_000
 
 SUPPORTED_METRICS = frozenset({"visit_rate", "walk_utilization"})
-FACET_VALUES = {
-    "precipitation": frozenset({"rain", "dry", "unknown"}),
-    "daylight": frozenset({"day", "night", "unknown"}),
-}
-
 _DIARY_ZONE = ZoneInfo(DIARY_CALENDAR_TIMEZONE)
 _CURRENT_PAINT_SPEC = paint_spec(CAPSULE_RADIUS_U, CAPSULE_PROFILE)
 
@@ -91,30 +89,6 @@ class SpatialDiaryViewResult:
     field: SpatialField
     pins: tuple[PinEntry, ...]
     receipt: SpatialDiaryViewReceipt
-
-
-def context_facets(snapshot: TrailContextSnapshot) -> dict[str, str]:
-    """동결 원자에서 v1 필터 facet을 만든다. 없는 값은 반대 상태가 아니라 unknown이다."""
-
-    observed = snapshot.status in {ContextStatus.CAPTURED, ContextStatus.PARTIAL}
-    if not observed:
-        return {"precipitation": "unknown", "daylight": "unknown"}
-
-    precipitation = (
-        "unknown"
-        if snapshot.precipitation_mm is None
-        else "rain"
-        if snapshot.precipitation_mm >= RAIN_THRESHOLD_MM
-        else "dry"
-    )
-    daylight = (
-        "unknown"
-        if snapshot.sun_elevation_deg is None
-        else "day"
-        if snapshot.sun_elevation_deg >= 0
-        else "night"
-    )
-    return {"precipitation": precipitation, "daylight": daylight}
 
 
 def selector_fingerprint(spec: SpatialDiaryViewSpec) -> str:

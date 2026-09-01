@@ -67,6 +67,8 @@ backlog.md           갈래에 안 붙는 미결
 - [결정 #75 — Capsule finalize](decisions/2026-09-01-walk-capsule-finalize.md) — 8u Cellophane·원시 영수증·문맥·manifest를 한 트랜잭션으로 봉인한 뒤 raw fix를 지운다
 - [결정 #76 — SpatialDiaryView v0](decisions/2026-09-01-spatial-diary-view-v0.md) — 기간·강수·낮밤으로 Capsule을 골라 visit rate 또는 산책 동등가중 field로 읽는다
 - [결정 #77 — Candidate에서 Episode Pin으로](decisions/2026-09-01-spatial-diary-episode-pin-v0.md) — low-motion 후보를 실제 Offer·사용자 증언을 거쳐 안정 Pin으로 승격하고 조건별 지도에 겹친다
+- [결정 #78 — Memory Place v0](decisions/2026-09-01-spatial-diary-memory-place-v0.md) — 서로 다른 산책의 Pin을 안정 장소로 묶고 노출·판정 가능성·강수 비교를 전기로 읽는다
+- [결정 #79 — WalkJournalProjection v0](decisions/2026-09-01-spatial-diary-walk-journal-v0.md) — 한 산책의 사실·문맥·Pin을 저장 원본 없이 결정론적 시간 일기로 다시 읽는다
 
 ## 계약
 - [반려견 프로필](contracts/dog-profile.md) — 외부에서 받는 형태 + 가상 페르소나 8마리 (축: 지도 위 난점)
@@ -76,6 +78,7 @@ backlog.md           갈래에 안 붙는 미결
 - [Cellophane GeoJSON](contracts/cellophane-geojson.md) — chain별 선·서버 육각형·Paint v2 질량 진단
 - [Walk Capsule과 기억 경계](contracts/walk-capsule.md) — Capsule·Offer·Interaction·Attestation·Pin의 불변/파생/append-only 수명
 - [Spatial Diary View](contracts/spatial-diary-view.md) — Walk Selector 분모와 Entry Selector overlay, 품질·통계·결과 영수증
+- [Walk Journal Projection](contracts/walk-journal-projection.md) — Capsule 사실·문맥·Pin에서 재생성하는 한 산책의 결정론적 일기
 - [연속 원 field와 Hex 비교](research/2026-08-31-continuous-hex-comparison.md) — 30회 산책의 4·8·12u 왜곡·질량 영역·수집 간격 측정
 - [Hex Cellophane의 보수적 연속 Field 복원](research/2026-09-01-conservative-hex-reconstruction.md) — 저장 계약을 바꾸지 않는 A/B/C 복원·누출·양방향 질량 비교
 - [GPS 오염에서 Cellophane과 복원 Field](research/2026-09-01-sensor-robustness.md) — dropout·outlier·drift·accuracy를 수집→canonical→Cellophane→Field 단계별로 분리한 paired 평가
