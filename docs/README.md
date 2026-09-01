@@ -65,6 +65,7 @@ backlog.md           갈래에 안 붙는 미결
 - [결정 #71 — 병원은 Place로 찾되 UI에서는 바로 진입](decisions/2026-08-27-hospital-place-entry.md) — 병원 바로가기와 전용 action은 유지하고 검색 identity·순위는 canonical Place로 통일
 - [결정 #74 — Capsule에서 공간 일기로](decisions/2026-09-01-spatial-diary.md) — 산책 증거를 봉인하고 실제 Offer·증언·Pin을 분리해 조건별 공간 일기로 다시 읽는다
 - [결정 #75 — Capsule finalize](decisions/2026-09-01-walk-capsule-finalize.md) — 8u Cellophane·원시 영수증·문맥·manifest를 한 트랜잭션으로 봉인한 뒤 raw fix를 지운다
+- [결정 #76 — SpatialDiaryView v0](decisions/2026-09-01-spatial-diary-view-v0.md) — 기간·강수·낮밤으로 Capsule을 골라 visit rate 또는 산책 동등가중 field로 읽는다
 
 ## 계약
 - [반려견 프로필](contracts/dog-profile.md) — 외부에서 받는 형태 + 가상 페르소나 8마리 (축: 지도 위 난점)

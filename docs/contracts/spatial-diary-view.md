@@ -94,6 +94,18 @@ context / quality / claim policy version
 다른 `paint_fp` 세대는 같은 field에 섞지 않는다. 세대가 공존할 때 어떤 세대를 보여줄지는 후속
 제품 정책이고, 조용히 합치는 것은 허용하지 않는다.
 
+첫 실행 구현은 [결정 #76](../decisions/2026-09-01-spatial-diary-view-v0.md)에 따라 기간(KST
+달력)·강수(`rain|dry|unknown`)·낮밤(`day|night|unknown`)을 AND로 컴파일하고,
+`visit_rate|walk_utilization`만 계산한다. Pin이 아직 없으므로 Entry Selector는 비어 있어야 하며
+receipt의 `pin_count`는 0이다. 선택된 paint 세대가 둘 이상이면 조용히 일부를 버리지 않고
+실패한다.
+
+공개 query는 인증 principal이 소유한 `dog_id`만 읽고, 색인과 cell을 하나의 repeatable-read
+snapshot에서 조립한다. v0 동기 응답의 운영 상한(366일·2,000 후보 index·400 선택 Capsule·
+100,000 원시 cell·50,000 결과 cell)을 넘으면 부분 결과를 반환하지 않고 413으로 실패한다.
+context known 수는 필터에 사용한 축이 모두 알려진 Capsule 수이며, 무필터일 때는 지원하는 모든
+context 축을 요구한다.
+
 ## 표현
 
 통계는 원 Cellophane과 Micro Observation을 읽는다. 보수적 연속 복원 Field는 사용자 표시
