@@ -126,8 +126,8 @@
     <span>A 연속 기준</span><strong id="d-reference">—</strong>
     <span>B raw Hex</span><strong id="d-hex">—</strong>
     <span>C 복원 Field</span><strong id="d-reconstructed">—</strong>
-    <span>A−B 면적밀도</span><strong id="d-raw-difference">—</strong>
-    <span>A−C 면적밀도</span><strong id="d-reconstructed-difference">—</strong>
+    <span>A−B 밀도차</span><strong id="d-raw-difference">—</strong>
+    <span>A−C 밀도차</span><strong id="d-reconstructed-difference">—</strong>
   </div>
 </section>
 
@@ -438,13 +438,18 @@ function hexAt(lat,lng,radiusU) {
 
 function density(value,area) { return value / area; }
 
-function areaDifference(referenceValue,candidateValue,candidateArea,unit) {
+function comparableValue(value,area,unit) {
+  if (state.metric === 'visit_rate') return formatValue(value,unit);
+  return `${formatValue(density(value,area) * 100,unit)} / 100m²`;
+}
+
+function comparableDifference(referenceValue,candidateValue,candidateArea,unit) {
   if (state.metric === 'visit_rate') {
     return `${((referenceValue-candidateValue)*100).toFixed(2)}%p`;
   }
   const delta = density(referenceValue,state.payload.reference.pixel_m ** 2) -
     density(candidateValue,candidateArea);
-  return `${delta.toExponential(3)} ${unit}/m²`;
+  return `${formatValue(delta * 100,unit)} / 100m²`;
 }
 
 function selectAt(lat,lng) {
@@ -460,20 +465,26 @@ function selectAt(lat,lng) {
   $('detail-empty').hidden = true;
   $('detail-value').hidden = false;
   $('d-location').textContent = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-  $('d-reference').textContent = formatValue(refValue,unit);
-  $('d-hex').textContent = `${formatValue(hexValue,unit)} · (${q},${r})`;
-  $('d-reconstructed').textContent = formatValue(reconstructedValue,unit);
-  $('d-raw-difference').textContent = areaDifference(
+  $('d-reference').textContent = comparableValue(
+    refValue,state.payload.reference.pixel_m ** 2,unit
+  );
+  $('d-hex').textContent = `${comparableValue(
+    hexValue,currentRadius().cell_area_m2_at_origin,unit
+  )} · (${q},${r})`;
+  $('d-reconstructed').textContent = comparableValue(
+    reconstructedValue,currentRadius().reconstructed.pixel_m ** 2,unit
+  );
+  $('d-raw-difference').textContent = comparableDifference(
     refValue,hexValue,currentRadius().cell_area_m2_at_origin,unit
   );
-  $('d-reconstructed-difference').textContent = areaDifference(
+  $('d-reconstructed-difference').textContent = comparableDifference(
     refValue,reconstructedValue,currentRadius().reconstructed.pixel_m ** 2,unit
   );
 }
 
 function updateReceipt() {
   const radius = currentRadius();
-  const comparison = radius.reconstruction_comparison;
+  const comparison = radius.comparison;
   const rawMetric = comparison.raw_piecewise.metrics[state.metric];
   const reconstructedMetric = comparison.reconstructed.metrics[state.metric];
   const unit = currentReferenceMetric().unit;
@@ -630,14 +641,14 @@ async function main() {
     if (!configResponse.ok || !dataResponse.ok) throw new Error('지도 설정 또는 fixture를 읽지 못했습니다');
     state.config = await configResponse.json();
     state.payload = await dataResponse.json();
-    if (state.payload.format_version !== 2 || state.payload.coordinate_order !== 'lat,lng') {
+    if (state.payload.format_version !== 3 || state.payload.coordinate_order !== 'lat,lng') {
       throw new Error('지원하지 않는 비교 payload입니다');
     }
     if (!state.payload.reference || !Number.isFinite(state.payload.reference.pixel_m) ||
         !Array.isArray(state.payload.radii) || state.payload.radii.length === 0 ||
         !state.payload.exposure || state.payload.exposure.curve !== 'one_minus_exp' ||
         state.payload.radii.some((radius) => !Number.isFinite(radius.cell_area_m2_at_origin) ||
-          !radius.reconstructed || !radius.reconstruction_comparison)) {
+          !radius.reconstructed || !radius.comparison)) {
       throw new Error('면적 단위가 없는 비교 payload입니다');
     }
     const preferredRadius = state.payload.radii.findIndex((radius) => radius.radius_u === 8);

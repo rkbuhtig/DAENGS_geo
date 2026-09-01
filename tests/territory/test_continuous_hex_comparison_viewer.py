@@ -65,7 +65,8 @@ def test_hex_is_boundary_free_by_default_but_can_be_exposed_for_debugging():
 def test_viewer_exposes_mass_support_metric_and_region_comparison_receipts():
     for identifier in ("r-mass", "r-support", "r-distance", "region-summary"):
         assert f'id="{identifier}"' in HTML
-    assert "reconstruction_comparison" in HTML
+    assert "radius.comparison" in HTML
+    assert "reconstruction_comparison" not in HTML
     assert "leakage_pixels" in HTML
     assert "normalized_l1" in HTML
     assert "mean_absolute_error" in HTML
@@ -84,3 +85,8 @@ def test_click_readout_compares_values_in_their_area_units():
     assert 'id="d-reconstructed"' in HTML
     assert 'id="d-raw-difference"' in HTML
     assert 'id="d-reconstructed-difference"' in HTML
+    assert HTML.count("comparableValue(") >= 4
+    assert "density(value,area) * 100" in HTML
+    assert "refValue,state.payload.reference.pixel_m ** 2" in HTML
+    assert "hexValue,currentRadius().cell_area_m2_at_origin" in HTML
+    assert "reconstructedValue,currentRadius().reconstructed.pixel_m ** 2" in HTML

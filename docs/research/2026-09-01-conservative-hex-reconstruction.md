@@ -141,7 +141,7 @@ uv run python -m scripts.spikes.territory_paint.conservative_hex_evaluation \
 JSON은 A/B/C의 다섯 통계, 50·80·95% 양방향 질량 포착, 경계 거리, support·질량·연결성
 영수증을 담는다. 계산 시간은 환경에 따라 달라지므로 파일에 싣지 않고 CLI에서만 출력한다.
 
-## 실제 지도 viewer v2
+## 실제 지도 viewer v3
 
 PR E에서 A/B/C를 같은 실제 지도 viewport에 올렸다.
 
@@ -159,8 +159,8 @@ alpha = max_alpha · (1 - exp(-display_value / exposure_scale))
 max_alpha = 0.82
 ```
 
-`visit_rate`만 무차원 값을 쓰고 나머지는 면적밀도로 바꾼 뒤 노출한다. scale은 30회 fixture의
-A/B/C 양수 값 p85 부근을 읽기 쉬운 값으로 반올림해 `viewer-v2`에 동결했다.
+`visit_rate`만 무차원 값을 쓰고 나머지는 면적밀도로 바꾼 뒤 노출한다. scale은 분리된 30회
+holdout fixture의 A/B/C 양수 값 p85 부근을 읽기 쉬운 값으로 반올림해 `viewer-v3`에 동결했다.
 
 | metric | 고정 scale | 화면 단위 |
 |---|---:|---|
@@ -176,8 +176,10 @@ fixture 계약이지 제품 상수는 아니다.
 
 8u `U_time`을 실제 OSM 지도에서 확인했을 때 raw Hex는 셀별 평면 농도와 칸 이음새가 먼저
 읽혔다. 복원 C는 같은 support 안에서 동선의 연속적인 굵기와 교차부 농도를 보여 줬다. A+C
-겹침에서 50% 경계 영수증 `B 58.2% · C 71.2%`가 수치 비교와 일치했고, 지도 클릭은 같은
-위치의 A/B/C 값 및 A−B·A−C 면적밀도 차이를 함께 반환했다. 브라우저 콘솔 오류는 없었다.
+겹침에서 holdout 50% 경계 영수증 `B 57.8% · C 70.7%`가 수치 비교와 일치했다. 지도 클릭은
+`visit_rate`를 제외한 A/B/C 자체 값과 A−B·A−C 차이를 모두 `/100m²`로 맞춰 반환한다.
+브라우저 콘솔 오류는 없었다. payload에는 중심점 sampling 방식의 과거 비교를 제거하고 동일한
+보수적 common-raster 기준을 쓴 A/B/C 영수증 하나만 남겼다.
 
 ```bash
 uv run python -m scripts.spikes.territory_paint.continuous_hex_visualization \

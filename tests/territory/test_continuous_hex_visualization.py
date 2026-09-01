@@ -14,9 +14,10 @@ def payload():
 
 
 def test_visualization_payload_contains_common_raster_and_three_hex_resolutions(payload):
-    assert payload["format_version"] == 2
+    assert payload["format_version"] == 3
     assert payload["coordinate_order"] == "lat,lng"
     assert payload["population"]["sample_count"] == 30
+    assert payload["population"]["split"] == "holdout"
     assert len(payload["reference"]["pixels"]) > 1000
     assert [row["radius_u"] for row in payload["radii"]] == [4.0, 8.0, 12.0]
 
@@ -46,21 +47,19 @@ def test_visualization_payload_freezes_one_metric_specific_exposure_for_all_laye
     )
 
 
-def test_hex_geometry_and_comparison_receipts_are_server_supplied(payload):
+def test_hex_geometry_is_server_supplied_without_a_legacy_comparison(payload):
     for radius in payload["radii"]:
         assert radius["cells"]
         assert radius["cell_area_m2_at_origin"] > 0
-        assert radius["comparison"]["mass"]["absolute_error_s"] < 1e-8
-        assert 0 <= radius["comparison"]["support"]["sampled_area_iou"] <= 1
-        assert set(radius["comparison"]["metrics"]) == set(METRICS)
         assert all(len(cell["boundary"]) == 6 for cell in radius["cells"])
         assert all(set(cell["values"]) == set(METRICS) for cell in radius["cells"])
+        assert "reconstruction_comparison" not in radius
 
 
 def test_each_radius_contains_reconstructed_field_and_a_b_c_receipts(payload):
     for radius in payload["radii"]:
         reconstructed = radius["reconstructed"]
-        comparison = radius["reconstruction_comparison"]
+        comparison = radius["comparison"]
 
         assert reconstructed["pixel_m"] == payload["reference"]["pixel_m"]
         assert reconstructed["pixels"]
@@ -113,7 +112,7 @@ def test_pixel_region_boundary_removes_an_internal_shared_edge():
 def test_visualization_cli_writes_json_without_requiring_the_expensive_fixture_twice(
     tmp_path, monkeypatch
 ):
-    expected = {"format_version": 2, "population": {"sample_count": 0}, "reference": {"pixels": []}, "radii": []}
+    expected = {"format_version": 3, "population": {"sample_count": 0}, "reference": {"pixels": []}, "radii": []}
     monkeypatch.setattr(visualization, "build_visualization_payload", lambda **_kwargs: expected)
     output = tmp_path / "visualization.json"
 

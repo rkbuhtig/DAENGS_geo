@@ -16,10 +16,11 @@ from pathlib import Path
 
 from app.features.territory.paint import NARROW_STEP, paint_spec
 from app.features.territory.spatial_stats import highest_mass_regions
-from app.geo.cells import Cell, hex_boundary_latlng
+from app.geo.cells import Cell, cell_area_m2, hex_boundary_latlng, metres_per_unit
 from scripts.sim.walk.population import DEFAULT_POPULATION_ORIGIN, observe_population
 from scripts.sim.walk.population_truth import build_population_truth
 from scripts.spikes.territory_paint.conservative_hex_evaluation import (
+    RECONSTRUCTION_HOLDOUT_SEED,
     build_radius_reconstruction_layers,
     reconstruction_comparison_receipt,
 )
@@ -32,13 +33,12 @@ from scripts.spikes.territory_paint.continuous_hex_comparison import (
     RasterSpec,
     hex_metric_fields,
     highest_pixel_mass_regions,
-    radius_comparison,
     raster_metric_fields,
     rasterize_observation,
 )
 from scripts.spikes.territory_paint.population_distribution import region_boundary_edges
 
-VISUALIZATION_FORMAT_VERSION = 2
+VISUALIZATION_FORMAT_VERSION = 3
 METRIC_LABELS = {
     "total_time": "총 관측 시간",
     "visit_rate": "산책당 방문률",
@@ -46,8 +46,8 @@ METRIC_LABELS = {
     "time_utilization": "전체 시간 이용분포",
     "walk_utilization": "산책 동등 이용분포",
 }
-# 30회 고정 fixture의 A/B/C 양수 면적밀도 p85 부근을 사람이 읽기 쉬운 값으로 동결했다.
-# 화면별 max로 다시 맞추지 않는다. 실제 센서 실험 전에는 제품 상수가 아닌 viewer-v2 계약이다.
+# 30회 holdout fixture의 A/B/C 양수 면적밀도 p85 부근을 사람이 읽기 쉬운 값으로 동결했다.
+# 화면별 max로 다시 맞추지 않는다. 실제 센서 실험 전에는 제품 상수가 아닌 viewer-v3 계약이다.
 EXPOSURE_SPECS = {
     "total_time": {
         "basis": "area_density",
@@ -187,7 +187,7 @@ def _raster_payload(
 def _hex_payload(
     radius_u: float,
     fields,
-    summary: dict[str, object],
+    raster: RasterSpec,
 ) -> dict[str, object]:
     cells: set[Cell] = set(fields["total_time"].values)
     paint = paint_spec(radius_u, NARROW_STEP)
@@ -215,8 +215,8 @@ def _hex_payload(
     }
     return {
         "radius_u": radius_u,
-        "ground_radius_m_at_origin": summary["ground_radius_m_at_origin"],
-        "cell_area_m2_at_origin": summary["cell_area_m2_at_origin"],
+        "ground_radius_m_at_origin": radius_u * metres_per_unit(raster.origin_lat),
+        "cell_area_m2_at_origin": cell_area_m2(radius_u, raster.origin_lat),
         "paint_fp": paint.fingerprint,
         "cells": rows,
         "metrics": {
@@ -228,12 +228,6 @@ def _hex_payload(
             for metric in METRICS
         },
         "regions": regions,
-        "comparison": {
-            "mass": summary["mass"],
-            "support": summary["support"],
-            "metrics": summary["metrics"],
-            "mass_regions": summary["mass_regions"],
-        },
     }
 
 
@@ -243,7 +237,7 @@ def build_visualization_payload(
     radius_units: tuple[float, ...] = DEFAULT_RADIUS_UNITS,
     blend_reach_cells: float = 1.75,
 ) -> dict[str, object]:
-    truth = build_population_truth()
+    truth = build_population_truth(seed=RECONSTRUCTION_HOLDOUT_SEED)
     observation = observe_population(truth, sample_interval_s=5.0)
     raster = RasterSpec(pixel_m=pixel_m)
     reference_sheets = rasterize_observation(observation, raster)
@@ -264,18 +258,9 @@ def build_visualization_payload(
         )
         sheets = reconstruction.source_sheets
         fields = hex_metric_fields(sheets, radius_u)
-        summary = radius_comparison(
-            observation,
-            reference_sheets,
-            reference_fields,
-            radius_u,
-            raster,
-            sheets=sheets,
-            fields=fields,
-        )
-        row = _hex_payload(radius_u, fields, summary)
+        row = _hex_payload(radius_u, fields, raster)
         row["reconstructed"] = _raster_payload(reconstruction.reconstructed_fields, raster)
-        row["reconstruction_comparison"] = reconstruction_comparison_receipt(
+        row["comparison"] = reconstruction_comparison_receipt(
             reference_fields,
             raster,
             reconstruction,
@@ -307,6 +292,7 @@ def build_visualization_payload(
             "reconstructed": "ephemeral_display_only_not_statistics_source",
         },
         "population": {
+            "split": "holdout",
             "generator_version": observation.generator_version,
             "run_id": observation.run_id,
             "sample_count": len(observation.walks),
@@ -314,7 +300,7 @@ def build_visualization_payload(
         "exposure": {
             "curve": EXPOSURE_CURVE,
             "max_alpha": EXPOSURE_MAX_ALPHA,
-            "revision": "viewer-v2-2026-09-01-fixed-p85",
+            "revision": "viewer-v3-2026-09-01-fixed-p85",
             "metrics": EXPOSURE_SPECS,
         },
         "reference": reference,
