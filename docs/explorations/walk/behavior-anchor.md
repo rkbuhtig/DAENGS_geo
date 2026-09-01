@@ -10,6 +10,10 @@ depends-on: memory-engine.md, micro-judgment.md
 모든 기능이 동작한다.** 산책 후에는 시스템이 짚은 특이 지점에 사람이 의미를 붙일 수
 있다.
 
+> **2026-09-01 부분 채택.** [결정 #74](../../decisions/2026-09-01-spatial-diary.md)가 사용자의
+> 실제 응답을 append-only Attestation으로 남기고, 시스템 Offer와 직접 책갈피를 서로 다른
+> elicitation 경로로 보존하는 경계를 채택했다. 행동 아이콘·어휘·Android UI는 계속 열려 있다.
+
 프레이밍이 절반이다. 이건 어노테이션 기능이 아니다.
 
     "AI 정확도를 높이기 위해 행동을 라벨링해 주세요"   → 아무도 안 한다

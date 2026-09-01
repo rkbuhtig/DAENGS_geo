@@ -63,6 +63,7 @@ backlog.md           갈래에 안 붙는 미결
 - [결정 #65 — Place 우선 장소 발견](decisions/2026-08-26-place-first-discovery.md) — 원천 kind 후보군 → 조건 → 사실 순서, 의미 제안은 선택층
 - [결정 #69 — 원좌표 purge 뒤 남기는 공간 형태](decisions/2026-08-26-walk-permanent-spatial-form.md) — 집계 셀 맵 하나. 궤적은 안 남긴다. #57 의 네 번째 층이고 민감도는 장 수가 만든다
 - [결정 #71 — 병원은 Place로 찾되 UI에서는 바로 진입](decisions/2026-08-27-hospital-place-entry.md) — 병원 바로가기와 전용 action은 유지하고 검색 identity·순위는 canonical Place로 통일
+- [결정 #74 — Capsule에서 공간 일기로](decisions/2026-09-01-spatial-diary.md) — 산책 증거를 봉인하고 실제 Offer·증언·Pin을 분리해 조건별 공간 일기로 다시 읽는다
 
 ## 계약
 - [반려견 프로필](contracts/dog-profile.md) — 외부에서 받는 형태 + 가상 페르소나 8마리 (축: 지도 위 난점)
@@ -70,6 +71,8 @@ backlog.md           갈래에 안 붙는 미결
 - [Place v2 검색](contracts/place-search-v2.md) — kinds별 그룹, 공통 identity·facts, 주차 사실 선호
 - [산책 기록](contracts/walk-record.md) — **우리가 주는 것** (outbound). 사실만, 의미 없음, 테스트로 고정
 - [Cellophane GeoJSON](contracts/cellophane-geojson.md) — chain별 선·서버 육각형·Paint v2 질량 진단
+- [Walk Capsule과 기억 경계](contracts/walk-capsule.md) — Capsule·Offer·Interaction·Attestation·Pin의 불변/파생/append-only 수명
+- [Spatial Diary View](contracts/spatial-diary-view.md) — Walk Selector 분모와 Entry Selector overlay, 품질·통계·결과 영수증
 - [연속 원 field와 Hex 비교](research/2026-08-31-continuous-hex-comparison.md) — 30회 산책의 4·8·12u 왜곡·질량 영역·수집 간격 측정
 - [Hex Cellophane의 보수적 연속 Field 복원](research/2026-09-01-conservative-hex-reconstruction.md) — 저장 계약을 바꾸지 않는 A/B/C 복원·누출·양방향 질량 비교
 - [GPS 오염에서 Cellophane과 복원 Field](research/2026-09-01-sensor-robustness.md) — dropout·outlier·drift·accuracy를 수집→canonical→Cellophane→Field 단계별로 분리한 paired 평가

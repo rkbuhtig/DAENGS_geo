@@ -11,6 +11,10 @@ status: exploring
 이 문서는 **결정이 아니다.** 결정 후보는 §13 에 모았고, 채택하면 `README.md` 의 표로 올라간다.
 문서 안에서 다음 셋을 섞지 않는다 — 섞으면 이 문서가 스스로 경계하는 병에 그대로 걸린다.
 
+> **2026-09-01 부분 채택.** [결정 #74](../../decisions/2026-09-01-spatial-diary.md)가 Capsule
+> manifest, 원시 MeasurementReceipt, Offer→Attestation→Pin, Spatial Diary 읽기 경계를
+> 채택했다. 이 문서 전체와 Place 형성·나레이션·백업 제안은 계속 탐색 상태다.
+
 | 표기 | 뜻 |
 |---|---|
 | **측정** | 합성 자료 위에서 실제로 잰 값. 출처 문서가 있다 |
