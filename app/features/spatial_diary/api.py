@@ -3,7 +3,7 @@
 from typing import Annotated, Literal, NoReturn
 
 from fastapi import APIRouter, Depends, HTTPException, Path
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_session
@@ -21,6 +21,7 @@ from app.features.spatial_diary.contract import (
     MemoryAction,
     OfferInteraction,
     OfferInteractionKind,
+    PublishedJournalSnapshot,
     ReviewDisposition,
     WalkAttestation,
     WalkJournalProjection,
@@ -42,6 +43,12 @@ from app.features.spatial_diary.episode import (
     put_offer_interaction,
 )
 from app.features.spatial_diary.journal import query_walk_journal
+from app.features.spatial_diary.published_journal import (
+    get_published_journal_snapshot,
+    list_published_journal_snapshots,
+    published_journal_dog_id,
+    put_published_journal_snapshot,
+)
 from app.features.spatial_diary.snapshot import (
     SpatialDiaryTransactionError,
     ensure_repeatable_read_snapshot,
@@ -136,6 +143,37 @@ class OfferReviewListOut(BaseModel):
     offers: tuple[OfferReviewStateOut, ...]
 
 
+class PutPublishedJournalIn(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    title: str = Field(min_length=1, max_length=200)
+    summary: str = Field(min_length=1, max_length=5_000)
+    selected_pin_ids: tuple[str, ...] = Field(default=(), max_length=100)
+
+    @field_validator("title", "summary")
+    @classmethod
+    def text_is_not_blank(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("published journal text cannot be blank")
+        return value
+
+    @field_validator("selected_pin_ids")
+    @classmethod
+    def selected_pins_are_valid(cls, value: tuple[str, ...]) -> tuple[str, ...]:
+        if any(not pin_id or len(pin_id) > 128 for pin_id in value):
+            raise ValueError("selected pin ids must be between 1 and 128 characters")
+        if len(value) != len(set(value)):
+            raise ValueError("selected pin ids must be unique")
+        return value
+
+
+class PublishedJournalListOut(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    session_id: str
+    snapshots: tuple[PublishedJournalSnapshot, ...]
+
+
 def _raise_episode_http(exc: Exception) -> NoReturn:
     if isinstance(exc, SpatialDiaryEpisodeNotFoundError):
         raise HTTPException(404, "spatial diary resource not found") from exc
@@ -169,6 +207,19 @@ async def _authorize_offer(
     try:
         await ensure_repeatable_read_snapshot(db)
         dog_id = await offer_dog_id(db, offer_id)
+    except (SpatialDiaryEpisodeNotFoundError, SpatialDiaryTransactionError) as exc:
+        _raise_episode_http(exc)
+    require_dog_access(principal, dog_id)
+
+
+async def _authorize_published_journal(
+    db: AsyncSession,
+    principal: SpatialDiaryPrincipal,
+    snapshot_id: ResourceId,
+) -> None:
+    try:
+        await ensure_repeatable_read_snapshot(db)
+        dog_id = await published_journal_dog_id(db, snapshot_id)
     except (SpatialDiaryEpisodeNotFoundError, SpatialDiaryTransactionError) as exc:
         _raise_episode_http(exc)
     require_dog_access(principal, dog_id)
@@ -250,6 +301,66 @@ async def read_walk_journal(
     await _authorize_capsule(db, principal, session_id)
     try:
         return await query_walk_journal(db, session_id)
+    except _EPISODE_ERRORS as exc:
+        _raise_episode_http(exc)
+
+
+@router.put(
+    "/walks/{session_id}/journal-snapshots/{snapshot_id}",
+    response_model=PublishedJournalSnapshot,
+)
+async def put_walk_journal_snapshot(
+    session_id: ResourceId,
+    snapshot_id: ResourceId,
+    body: PutPublishedJournalIn,
+    db: Annotated[AsyncSession, Depends(get_session)],
+    principal: Annotated[SpatialDiaryPrincipal, Depends(get_spatial_diary_principal)],
+) -> PublishedJournalSnapshot:
+    await _authorize_capsule(db, principal, session_id)
+    try:
+        snapshot = await put_published_journal_snapshot(
+            db,
+            snapshot_id=snapshot_id,
+            session_id=session_id,
+            title=body.title,
+            summary=body.summary,
+            selected_pin_ids=body.selected_pin_ids,
+        )
+        await db.commit()
+        return snapshot
+    except _EPISODE_ERRORS as exc:
+        _raise_episode_http(exc)
+
+
+@router.get(
+    "/walks/{session_id}/journal-snapshots",
+    response_model=PublishedJournalListOut,
+)
+async def read_walk_journal_snapshots(
+    session_id: ResourceId,
+    db: Annotated[AsyncSession, Depends(get_session)],
+    principal: Annotated[SpatialDiaryPrincipal, Depends(get_spatial_diary_principal)],
+) -> PublishedJournalListOut:
+    await _authorize_capsule(db, principal, session_id)
+    try:
+        snapshots = await list_published_journal_snapshots(db, session_id)
+    except _EPISODE_ERRORS as exc:
+        _raise_episode_http(exc)
+    return PublishedJournalListOut(session_id=session_id, snapshots=snapshots)
+
+
+@router.get(
+    "/journal-snapshots/{snapshot_id}",
+    response_model=PublishedJournalSnapshot,
+)
+async def read_journal_snapshot(
+    snapshot_id: ResourceId,
+    db: Annotated[AsyncSession, Depends(get_session)],
+    principal: Annotated[SpatialDiaryPrincipal, Depends(get_spatial_diary_principal)],
+) -> PublishedJournalSnapshot:
+    await _authorize_published_journal(db, principal, snapshot_id)
+    try:
+        return await get_published_journal_snapshot(db, snapshot_id)
     except _EPISODE_ERRORS as exc:
         _raise_episode_http(exc)
 

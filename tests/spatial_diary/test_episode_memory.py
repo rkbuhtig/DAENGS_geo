@@ -7,7 +7,14 @@ from fastapi import HTTPException
 from sqlalchemy import text
 
 from app.features.spatial_diary.access import SpatialDiaryPrincipal
-from app.features.spatial_diary.api import read_candidates, read_walk_journal
+from app.features.spatial_diary.api import (
+    PutPublishedJournalIn,
+    put_walk_journal_snapshot,
+    read_candidates,
+    read_journal_snapshot,
+    read_walk_journal,
+    read_walk_journal_snapshots,
+)
 from app.features.spatial_diary.contract import (
     AttestedClaim,
     ClaimSupport,
@@ -23,6 +30,7 @@ from app.features.spatial_diary.contract import (
 from app.features.spatial_diary.episode import (
     SpatialDiaryEpisodeConflictError,
     SpatialDiaryEpisodeIntegrityError,
+    SpatialDiaryEpisodeNotFoundError,
     attest_episode_offer,
     list_episode_candidates,
     list_offer_review_states,
@@ -30,6 +38,11 @@ from app.features.spatial_diary.episode import (
     put_offer_interaction,
 )
 from app.features.spatial_diary.journal import query_walk_journal
+from app.features.spatial_diary.published_journal import (
+    get_published_journal_snapshot,
+    list_published_journal_snapshots,
+    put_published_journal_snapshot,
+)
 from app.features.territory.spatial_diary import query_spatial_diary_view
 from app.features.walk import store
 from app.features.walk.facts import compute_facts
@@ -478,6 +491,141 @@ async def test_walk_journal_projection_replays_context_facts_and_saved_pins():
                 match="missing journal material",
             ):
                 await query_walk_journal(db, SESSION_ID)
+        finally:
+            await _cleanup(db)
+
+
+async def test_published_journal_snapshot_is_private_immutable_and_cascades_with_walk():
+    async with db_session() as db:
+        await _cleanup(db)
+        try:
+            await _seal_walk(db)
+            candidate = (await list_episode_candidates(db, SESSION_ID))[0].candidate
+            offer = await put_episode_offer(
+                db,
+                offer_id="offer-published-journal",
+                session_id=SESSION_ID,
+                source_observation_id=candidate.source_observation_ids[0],
+                candidate_policy_version=1,
+            )
+            await attest_episode_offer(
+                db,
+                offer_id=offer.offer_id,
+                attestation_id="attestation-published-journal",
+                review_disposition=ReviewDisposition.CONFIRMED,
+                claims=(
+                    AttestedClaim(
+                        subject_role=SubjectRole.DOG,
+                        meaning_code="exploration",
+                        vocabulary_version=1,
+                    ),
+                ),
+                memory_action=MemoryAction.SAVE,
+                pin_id="pin-published-journal",
+            )
+            await db.commit()
+
+            published_at = WALK_T0 + timedelta(days=2)
+            snapshot = await put_published_journal_snapshot(
+                db,
+                snapshot_id="journal-snapshot-1",
+                session_id=SESSION_ID,
+                title="비 온 뒤 냄새 맡던 날",
+                summary="천천히 오래 머문 장면을 대표 기억으로 고정했다.",
+                selected_pin_ids=("pin-published-journal",),
+                published_at=published_at,
+            )
+            await db.commit()
+            assert snapshot.visibility == "private"
+            assert snapshot.published_at == published_at
+            assert snapshot.selected_pin_ids == ("pin-published-journal",)
+            assert snapshot.source_projection_version == 1
+
+            same = await put_published_journal_snapshot(
+                db,
+                snapshot_id="journal-snapshot-1",
+                session_id=SESSION_ID,
+                title="비 온 뒤 냄새 맡던 날",
+                summary="천천히 오래 머문 장면을 대표 기억으로 고정했다.",
+                selected_pin_ids=("pin-published-journal",),
+            )
+            assert same == snapshot
+            assert await get_published_journal_snapshot(db, snapshot.snapshot_id) == snapshot
+            assert await list_published_journal_snapshots(db, SESSION_ID) == (snapshot,)
+            await db.rollback()
+
+            with pytest.raises(
+                SpatialDiaryEpisodeConflictError,
+                match="already has different content",
+            ):
+                await put_published_journal_snapshot(
+                    db,
+                    snapshot_id="journal-snapshot-1",
+                    session_id=SESSION_ID,
+                    title="바꿀 수 없는 제목",
+                    summary=snapshot.summary,
+                    selected_pin_ids=snapshot.selected_pin_ids,
+                )
+            await db.rollback()
+
+            with pytest.raises(
+                SpatialDiaryEpisodeConflictError,
+                match="must belong",
+            ):
+                await put_published_journal_snapshot(
+                    db,
+                    snapshot_id="journal-snapshot-unknown-pin",
+                    session_id=SESSION_ID,
+                    title="없는 장면",
+                    summary="다른 산책이나 존재하지 않는 Pin은 고정할 수 없다.",
+                    selected_pin_ids=("pin-not-in-this-walk",),
+                )
+            await db.rollback()
+
+            await db.execute(
+                text("DELETE FROM walk_session WHERE id = :session_id"),
+                {"session_id": SESSION_ID},
+            )
+            await db.commit()
+            with pytest.raises(SpatialDiaryEpisodeNotFoundError):
+                await get_published_journal_snapshot(db, snapshot.snapshot_id)
+        finally:
+            await _cleanup(db)
+
+
+async def test_published_journal_api_hides_snapshot_and_allows_summary_only_version():
+    async with db_session() as db:
+        await _cleanup(db)
+        try:
+            await _seal_walk(db)
+            body = PutPublishedJournalIn(
+                title="대표 장면이 없는 산책",
+                summary="산책 전체를 한 편으로 고정한 비공개 일기다.",
+            )
+            snapshot = await put_walk_journal_snapshot(
+                SESSION_ID,
+                "journal-snapshot-api",
+                body,
+                db,
+                PRINCIPAL,
+            )
+            assert snapshot.selected_pin_ids == ()
+
+            listed = await read_walk_journal_snapshots(SESSION_ID, db, PRINCIPAL)
+            assert listed.snapshots == (snapshot,)
+            await db.rollback()
+
+            outsider = SpatialDiaryPrincipal(
+                owner_id="owner-outsider",
+                dog_ids=frozenset({"another-dog"}),
+            )
+            with pytest.raises(HTTPException) as hidden:
+                await read_journal_snapshot(snapshot.snapshot_id, db, outsider)
+            assert hidden.value.status_code == 404
+            await db.rollback()
+
+            visible = await read_journal_snapshot(snapshot.snapshot_id, db, PRINCIPAL)
+            assert visible == snapshot
         finally:
             await _cleanup(db)
 

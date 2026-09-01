@@ -19,6 +19,7 @@
 | `OfferInteraction` | view/dismiss/expire | append-only, 증언 아님 | session/subject |
 | `WalkAttestation` | 사용자가 실제 답할 때 | append-only, supersedes | session/subject |
 | `EpisodePin` | 사용자가 기억으로 남길 때 | stable identity | session/subject |
+| `PublishedJournalSnapshot` | 사용자가 자동 일기를 확정할 때 | frozen, private | session/subject |
 | `ClaimAllowance` | 영수증을 현재 정책으로 읽을 때 | derived | 저장 안 함 |
 
 ## Capsule 봉인
@@ -149,10 +150,12 @@ caller-provided ID의 idempotent PUT이고, drift suspected인 증언은 공간 
 - 보수적 연속 복원 Field
 - Memory Place biography 결과
 
-사용자가 자동 일기를 직접 수정·확정하는 기능이 생기면 별도 Published Snapshot 계약을 연다.
+사용자가 직접 확정한 제목·요약·대표 Pin은 자동 문장이 아니라 별도
+[`PublishedJournalSnapshot`](published-journal-snapshot.md)으로 저장한다.
 
 ## 삭제
 
-세션 삭제는 Capsule·Offer·Interaction·Attestation·Pin·Context를 모두 제거한다. Pin이 Memory
+세션 삭제는 Capsule·Offer·Interaction·Attestation·Pin·Context·Published Snapshot을 모두
+제거한다. Pin이 Memory
 Place에 기여했다면 남은 세션으로 전기를 다시 계산한다. 삭제된 세션의 기여를 롤업에 남기지
 않는다. 구체 보관 기간과 공유 projection은 결정 #57이 열어 둔 상태를 유지한다.

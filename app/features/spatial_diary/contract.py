@@ -23,6 +23,7 @@ MEMORY_PLACE_VERSION = 1
 MEMORY_PLACE_MEMBERSHIP_VERSION = 1
 VIEW_VERSION = 1
 JOURNAL_PROJECTION_VERSION = 1
+PUBLISHED_JOURNAL_SNAPSHOT_VERSION = 1
 
 EvidenceOrigin = Literal["device", "mock", "mixed", "unknown"]
 EvidenceScalar = str | int | float | bool | None
@@ -865,3 +866,40 @@ class WalkJournalProjection(FrozenContract):
         if self.receipt.pin_count != len(self.entries):
             raise ValueError("journal receipt pin count must match entries")
         return self
+
+
+class PublishedJournalSnapshot(FrozenContract):
+    """사용자가 한 시점의 파생 일기를 제목·요약·대표 Pin과 함께 고정한 비공개 불변본."""
+
+    snapshot_id: str = Field(min_length=1, max_length=128)
+    snapshot_version: Literal[PUBLISHED_JOURNAL_SNAPSHOT_VERSION] = (
+        PUBLISHED_JOURNAL_SNAPSHOT_VERSION
+    )
+    session_id: str = Field(min_length=1, max_length=128)
+    visibility: Literal["private"] = "private"
+    title: str = Field(min_length=1, max_length=200)
+    summary: str = Field(min_length=1, max_length=5_000)
+    selected_pin_ids: tuple[str, ...] = Field(default=(), max_length=100)
+    source_projection_version: int = Field(ge=1)
+    source_narration_policy_version: int = Field(ge=1)
+    source_context_policy_version: int = Field(ge=1)
+    source_capsule_version: int = Field(ge=1)
+    published_at: datetime
+
+    _tz = field_validator("published_at")(_timezone_required)
+
+    @field_validator("title", "summary")
+    @classmethod
+    def text_is_not_blank(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("published journal text cannot be blank")
+        return value
+
+    @field_validator("selected_pin_ids")
+    @classmethod
+    def selected_pins_are_unique(cls, value: tuple[str, ...]) -> tuple[str, ...]:
+        if any(not pin_id or len(pin_id) > 128 for pin_id in value):
+            raise ValueError("selected pin ids must be between 1 and 128 characters")
+        if len(value) != len(set(value)):
+            raise ValueError("selected pin ids must be unique")
+        return value

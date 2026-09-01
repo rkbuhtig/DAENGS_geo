@@ -40,8 +40,9 @@ unknown이면 시각을 추측하지 않는다. 시간순 정렬은 unknown 시�
 ## 수명과 재현
 
 Projection과 자동 문장은 저장하지 않는다. 같은 원판도 narration/context policy가 바뀌면 새
-문장으로 재생성될 수 있으므로 receipt에 버전을 남긴다. 사용자가 제목·문장·대표 장면을 수정해
-고정하거나 공유할 때만 별도 `PublishedJournalSnapshot` 결정을 연다.
+문장으로 재생성될 수 있으므로 receipt에 버전을 남긴다. 사용자가 제목·요약·대표 장면을 고정하면
+결정 #80의 별도 [`PublishedJournalSnapshot`](published-journal-snapshot.md)으로 보존한다. 외부 공유는
+그 객체의 v0 범위에도 포함하지 않는다.
 
 조회는 인증 principal이 소유한 Capsule만 한 repeatable-read snapshot에서 조립한다. 봉인 manifest가
 있는데 WalkFacts 또는 TrailContext가 없으면 빈 일기를 만들지 않고 무결성 오류로 실패한다. v0는
