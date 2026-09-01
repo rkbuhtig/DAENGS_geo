@@ -213,7 +213,7 @@ def compare_raster_fields(
     return receipt
 
 
-def _mass_region_receipts(
+def mass_region_receipts(
     reference: RasterMetricField,
     candidate: RasterMetricField,
     raster: RasterSpec,
@@ -328,7 +328,7 @@ def reconstruction_comparison_receipt(
                 for metric in METRICS
             },
             "mass_regions": {
-                metric: _mass_region_receipts(reference_fields[metric], raw_fields[metric], raster)
+                metric: mass_region_receipts(reference_fields[metric], raw_fields[metric], raster)
                 for metric in ("time_utilization", "walk_utilization")
             },
         },
@@ -340,7 +340,7 @@ def reconstruction_comparison_receipt(
                 for metric in METRICS
             },
             "mass_regions": {
-                metric: _mass_region_receipts(
+                metric: mass_region_receipts(
                     reference_fields[metric], reconstructed_fields[metric], raster
                 )
                 for metric in ("time_utilization", "walk_utilization")

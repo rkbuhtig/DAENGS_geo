@@ -536,7 +536,7 @@ GPS noise seed와 accuracy만 변경
 
 - 산책별 중앙값·IQR·최근 변화 같은 z축 안정성 readout
 - Raw/Adjusted 집 편향 질의 계약
-- Paint profile과 센서 불확실성을 분리해 검증하는 실험
+- 실제 기기 drift·accuracy 시계열로 합성 센서 강도를 보정하는 자료
 - 한 장·여러 장·분포 모드를 구분한 제품 표면
 
 ## 구현 순서
@@ -547,7 +547,8 @@ GPS noise seed와 accuracy만 변경
 3. **완료 —** 같은 집에서 갈라지는 결정론적 30회 fixture와 evaluator-only latent truth를
    별도 파일로 만든다.
 4. **완료 —** metric별 기대 순위와 50·80·95% 영역 회수 테스트를 작성한다.
-5. GPS noise seed만 바꾸는 센서 내성 fixture를 추가한다.
+5. **완료 —** 같은 latent 산책에 dropout·outlier·drift·가변 accuracy를 분리 주입하고
+   수집→canonical→Cellophane→복원 Field 단계별 손실을 paired fixture로 측정한다.
 6. **실험 화면 완료 —** 여러 장·분포 dev 화면의 수치를 집계 함수 결과와 대조했다. 한 장과
    제품 화면으로 승격하는 일은 센서 내성 검증 뒤에 남긴다.
 
