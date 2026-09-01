@@ -1,5 +1,6 @@
 """low-motion Candidate가 실제 제시·증언·Pin·지도 overlay로 이어지는 PR4 수직 테스트."""
 
+import asyncio
 from datetime import timedelta
 
 import pytest
@@ -8,16 +9,20 @@ from sqlalchemy import text
 
 from app.features.spatial_diary.access import SpatialDiaryPrincipal
 from app.features.spatial_diary.api import (
+    PutPinAttestationCorrectionIn,
     PutPublishedJournalIn,
+    put_pin_attestation_correction,
     put_walk_journal_snapshot,
     read_candidates,
     read_journal_snapshot,
+    read_pin_attestations,
     read_walk_journal,
     read_walk_journal_snapshots,
 )
 from app.features.spatial_diary.contract import (
     AttestedClaim,
     ClaimSupport,
+    ElicitationMode,
     EntrySelector,
     MemoryAction,
     OfferInteractionKind,
@@ -32,8 +37,10 @@ from app.features.spatial_diary.episode import (
     SpatialDiaryEpisodeIntegrityError,
     SpatialDiaryEpisodeNotFoundError,
     attest_episode_offer,
+    correct_pin_attestation,
     list_episode_candidates,
     list_offer_review_states,
+    list_pin_attestations,
     put_episode_offer,
     put_offer_interaction,
 )
@@ -301,6 +308,258 @@ async def test_offer_attestation_pin_and_entry_selector_complete_one_product_loo
             await _cleanup(db)
 
 
+async def test_pin_attestation_correction_preserves_history_and_updates_read_models():
+    async with db_session() as db:
+        await _cleanup(db)
+        try:
+            await _seal_walk(db)
+            candidate = (await list_episode_candidates(db, SESSION_ID))[0].candidate
+            offer = await put_episode_offer(
+                db,
+                offer_id="offer-correction",
+                session_id=SESSION_ID,
+                source_observation_id=candidate.source_observation_ids[0],
+                candidate_policy_version=1,
+            )
+            initial = await attest_episode_offer(
+                db,
+                offer_id=offer.offer_id,
+                attestation_id="attestation-correction-origin",
+                review_disposition=ReviewDisposition.CONFIRMED,
+                claims=(
+                    AttestedClaim(
+                        subject_role=SubjectRole.DOG,
+                        meaning_code="exploration",
+                        vocabulary_version=1,
+                    ),
+                ),
+                memory_action=MemoryAction.SAVE,
+                pin_id="pin-correction",
+                attested_at=candidate.event_at + timedelta(minutes=2),
+            )
+            await db.commit()
+
+            owner_claim = AttestedClaim(
+                subject_role=SubjectRole.OWNER,
+                meaning_code="owner_pause",
+                vocabulary_version=1,
+            )
+            correction = await correct_pin_attestation(
+                db,
+                pin_id="pin-correction",
+                attestation_id="attestation-correction-1",
+                supersedes_attestation_id=initial.attestation.attestation_id,
+                review_disposition=ReviewDisposition.CONFIRMED,
+                claims=(owner_claim,),
+                attested_at=candidate.event_at + timedelta(minutes=3),
+            )
+            await db.commit()
+            same = await correct_pin_attestation(
+                db,
+                pin_id="pin-correction",
+                attestation_id="attestation-correction-1",
+                supersedes_attestation_id=initial.attestation.attestation_id,
+                review_disposition=ReviewDisposition.CONFIRMED,
+                claims=(owner_claim,),
+            )
+            assert same == correction
+            assert correction.elicitation_mode is ElicitationMode.PIN_CORRECTION
+            assert correction.offer_id is None
+            assert correction.pin_id == "pin-correction"
+            await db.rollback()
+
+            history = await list_pin_attestations(db, "pin-correction")
+            assert tuple(item.attestation_id for item in history) == (
+                "attestation-correction-origin",
+                "attestation-correction-1",
+            )
+            await db.rollback()
+
+            with pytest.raises(
+                SpatialDiaryEpisodeConflictError,
+                match="current head",
+            ):
+                await correct_pin_attestation(
+                    db,
+                    pin_id="pin-correction",
+                    attestation_id="attestation-correction-fork",
+                    supersedes_attestation_id=initial.attestation.attestation_id,
+                    review_disposition=ReviewDisposition.CONFIRMED,
+                    claims=(owner_claim,),
+                )
+            await db.rollback()
+
+            review_state = (await list_offer_review_states(db, SESSION_ID))[0]
+            assert review_state.attestation == initial.attestation
+            await db.rollback()
+
+            journal = await query_walk_journal(db, SESSION_ID)
+            assert journal.entries[0].pin.created_by_attestation_id == (
+                initial.attestation.attestation_id
+            )
+            assert journal.entries[0].attestation == correction
+            assert journal.entries[0].attestation.claims == (owner_claim,)
+            await db.rollback()
+
+            old_meaning = await query_spatial_diary_view(
+                db,
+                _view_spec(meanings=("exploration",)),
+            )
+            assert old_meaning.receipt.pin_count == 0
+            await db.rollback()
+            current_meaning = await query_spatial_diary_view(
+                db,
+                _view_spec(meanings=("owner_pause",), roles=(SubjectRole.OWNER,)),
+            )
+            assert current_meaning.receipt.pin_count == 1
+            await db.rollback()
+
+            second_body = PutPinAttestationCorrectionIn(
+                supersedes_attestation_id=correction.attestation_id,
+                review_disposition=ReviewDisposition.UNCERTAIN,
+                claims=(),
+            )
+            second = await put_pin_attestation_correction(
+                "pin-correction",
+                "attestation-correction-2",
+                second_body,
+                db,
+                PRINCIPAL,
+            )
+            assert second.supersedes_attestation_id == correction.attestation_id
+            same_second = await put_pin_attestation_correction(
+                "pin-correction",
+                "attestation-correction-2",
+                second_body,
+                db,
+                PRINCIPAL,
+            )
+            assert same_second == second
+            listed = await read_pin_attestations("pin-correction", db, PRINCIPAL)
+            assert listed.current_attestation_id == second.attestation_id
+            assert len(listed.attestations) == 3
+            await db.rollback()
+
+            outsider = SpatialDiaryPrincipal(
+                owner_id="owner-outsider",
+                dog_ids=frozenset({"another-dog"}),
+            )
+            with pytest.raises(HTTPException) as hidden:
+                await read_pin_attestations("pin-correction", db, outsider)
+            assert hidden.value.status_code == 404
+            await db.rollback()
+
+            await db.execute(
+                text("DELETE FROM spatial_diary_episode_pin WHERE pin_id = :pin_id"),
+                {"pin_id": "pin-correction"},
+            )
+            await db.commit()
+            remaining = (await db.execute(text("""
+                SELECT attestation_id
+                FROM spatial_diary_walk_attestation
+                WHERE session_id = :session_id
+                ORDER BY attestation_id
+            """), {"session_id": SESSION_ID})).scalars().all()
+            assert remaining == ["attestation-correction-origin"]
+        finally:
+            await _cleanup(db)
+
+
+async def test_concurrent_identical_pin_corrections_are_idempotent():
+    async with db_session() as setup:
+        await _cleanup(setup)
+        await _seal_walk(setup)
+        candidate = (await list_episode_candidates(setup, SESSION_ID))[0].candidate
+        offer = await put_episode_offer(
+            setup,
+            offer_id="offer-concurrent-correction",
+            session_id=SESSION_ID,
+            source_observation_id=candidate.source_observation_ids[0],
+            candidate_policy_version=1,
+        )
+        initial = await attest_episode_offer(
+            setup,
+            offer_id=offer.offer_id,
+            attestation_id="attestation-concurrent-origin",
+            review_disposition=ReviewDisposition.CONFIRMED,
+            claims=(
+                AttestedClaim(
+                    subject_role=SubjectRole.DOG,
+                    meaning_code="exploration",
+                    vocabulary_version=1,
+                ),
+            ),
+            memory_action=MemoryAction.SAVE,
+            pin_id="pin-concurrent-correction",
+        )
+        await setup.commit()
+
+    try:
+        body = PutPinAttestationCorrectionIn(
+            supersedes_attestation_id=initial.attestation.attestation_id,
+            review_disposition=ReviewDisposition.CONFIRMED,
+            claims=(
+                AttestedClaim(
+                    subject_role=SubjectRole.OWNER,
+                    meaning_code="owner_pause",
+                    vocabulary_version=1,
+                ),
+            ),
+        )
+        async with (
+            db_session() as blocker,
+            db_session() as first,
+            db_session() as second,
+        ):
+            # db_session의 연결 확인 SELECT가 연 transaction을 닫아 endpoint가
+            # 자기 repeatable-read snapshot을 fresh하게 열도록 한다.
+            await first.rollback()
+            await second.rollback()
+            await blocker.execute(text("""
+                SELECT pin_id
+                FROM spatial_diary_episode_pin
+                WHERE pin_id = 'pin-concurrent-correction'
+                FOR UPDATE
+            """))
+            first_request = asyncio.create_task(
+                put_pin_attestation_correction(
+                    "pin-concurrent-correction",
+                    "attestation-concurrent-correction",
+                    body,
+                    first,
+                    PRINCIPAL,
+                )
+            )
+            second_request = asyncio.create_task(
+                put_pin_attestation_correction(
+                    "pin-concurrent-correction",
+                    "attestation-concurrent-correction",
+                    body,
+                    second,
+                    PRINCIPAL,
+                )
+            )
+            await asyncio.sleep(0.1)
+            await blocker.commit()
+            first_result, second_result = await asyncio.gather(
+                first_request,
+                second_request,
+            )
+
+        assert first_result == second_result
+        assert first_result.pin_id == "pin-concurrent-correction"
+        async with db_session() as verify:
+            await verify.rollback()
+            history = await list_pin_attestations(verify, "pin-concurrent-correction")
+            assert tuple(item.attestation_id for item in history) == (
+                "attestation-concurrent-origin",
+                "attestation-concurrent-correction",
+            )
+    finally:
+        async with db_session() as cleanup:
+            await _cleanup(cleanup)
+
+
 async def test_dismissed_offer_has_no_attestation_and_session_delete_cascades_memory():
     async with db_session() as db:
         await _cleanup(db)
@@ -508,7 +767,7 @@ async def test_published_journal_snapshot_is_private_immutable_and_cascades_with
                 source_observation_id=candidate.source_observation_ids[0],
                 candidate_policy_version=1,
             )
-            await attest_episode_offer(
+            initial = await attest_episode_offer(
                 db,
                 offer_id=offer.offer_id,
                 attestation_id="attestation-published-journal",
@@ -552,6 +811,26 @@ async def test_published_journal_snapshot_is_private_immutable_and_cascades_with
             assert same == snapshot
             assert await get_published_journal_snapshot(db, snapshot.snapshot_id) == snapshot
             assert await list_published_journal_snapshots(db, SESSION_ID) == (snapshot,)
+            await db.rollback()
+
+            correction = await correct_pin_attestation(
+                db,
+                pin_id="pin-published-journal",
+                attestation_id="attestation-published-journal-correction",
+                supersedes_attestation_id=initial.attestation.attestation_id,
+                review_disposition=ReviewDisposition.CONFIRMED,
+                claims=(
+                    AttestedClaim(
+                        subject_role=SubjectRole.OWNER,
+                        meaning_code="owner_pause",
+                        vocabulary_version=1,
+                    ),
+                ),
+            )
+            await db.commit()
+            current_journal = await query_walk_journal(db, SESSION_ID)
+            assert current_journal.entries[0].attestation == correction
+            assert await get_published_journal_snapshot(db, snapshot.snapshot_id) == snapshot
             await db.rollback()
 
             with pytest.raises(

@@ -34,6 +34,7 @@ from app.features.spatial_diary.snapshot import ensure_repeatable_read_snapshot
 CANDIDATE_POLICY_VERSION = 1
 CLAIM_POLICY_VERSION = 1
 MAX_CANDIDATES_PER_WALK = 3
+MAX_ATTESTATION_REVISIONS_PER_PIN = 100
 MIN_FOOTPRINT_RADIUS_M = 5.0
 
 
@@ -43,6 +44,10 @@ class SpatialDiaryEpisodeNotFoundError(LookupError):
 
 class SpatialDiaryEpisodeConflictError(RuntimeError):
     pass
+
+
+class SpatialDiaryEpisodeConcurrentWriteError(SpatialDiaryEpisodeConflictError):
+    """새 snapshot에서 한 번 재시도하면 멱등 여부를 판별할 수 있는 쓰기 경쟁."""
 
 
 class SpatialDiaryEpisodeIntegrityError(RuntimeError):
@@ -160,6 +165,18 @@ async def offer_dog_id(db: AsyncSession, offer_id: str) -> str:
     """), {"offer_id": offer_id})).one_or_none()
     if row is None:
         raise SpatialDiaryEpisodeNotFoundError("episode offer not found")
+    return row.dog_id
+
+
+async def pin_dog_id(db: AsyncSession, pin_id: str) -> str:
+    row = (await db.execute(text("""
+        SELECT manifest.dog_id
+        FROM spatial_diary_episode_pin pin
+        JOIN walk_capsule_manifest manifest ON manifest.session_id = pin.session_id
+        WHERE pin.pin_id = :pin_id
+    """), {"pin_id": pin_id})).one_or_none()
+    if row is None:
+        raise SpatialDiaryEpisodeNotFoundError("episode pin not found")
     return row.dog_id
 
 
@@ -506,6 +523,7 @@ def _attestation_from_row(row) -> WalkAttestation:
         session_id=row.session_id,
         elicitation_mode=row.elicitation_mode,
         offer_id=row.offer_id,
+        pin_id=row.pin_id,
         review_disposition=row.review_disposition,
         claims=tuple(AttestedClaim(**item) for item in row.claims),
         memory_action=row.memory_action,
@@ -537,7 +555,7 @@ def _pin_from_row(row) -> EpisodePin:
 _ATTESTATION_SELECT = """
     SELECT attestation_id, attestation_version, session_id, offer_id,
            elicitation_mode, review_disposition, claims, memory_action,
-           attested_at, supersedes_attestation_id
+           attested_at, supersedes_attestation_id, pin_id
     FROM spatial_diary_walk_attestation
 """
 
@@ -716,6 +734,138 @@ async def attest_episode_offer(
     return AttestationResult(attestation=attestation, pin=pin)
 
 
+async def list_pin_attestations(
+    db: AsyncSession,
+    pin_id: str,
+) -> tuple[WalkAttestation, ...]:
+    """Pin을 만든 최초 증언부터 현재 correction head까지 순서대로 읽는다."""
+
+    await ensure_repeatable_read_snapshot(db)
+    rows = (await db.execute(text("""
+        WITH RECURSIVE chain AS (
+            SELECT attestation.attestation_id, attestation.attestation_version,
+                   attestation.session_id, attestation.offer_id,
+                   attestation.elicitation_mode, attestation.review_disposition,
+                   attestation.claims, attestation.memory_action,
+                   attestation.attested_at, attestation.supersedes_attestation_id,
+                   attestation.pin_id, 0 AS depth
+            FROM spatial_diary_episode_pin pin
+            JOIN spatial_diary_walk_attestation attestation
+              ON attestation.attestation_id = pin.created_by_attestation_id
+            WHERE pin.pin_id = :pin_id
+
+            UNION ALL
+
+            SELECT child.attestation_id, child.attestation_version,
+                   child.session_id, child.offer_id,
+                   child.elicitation_mode, child.review_disposition,
+                   child.claims, child.memory_action,
+                   child.attested_at, child.supersedes_attestation_id,
+                   child.pin_id, chain.depth + 1
+            FROM spatial_diary_walk_attestation child
+            JOIN chain ON child.supersedes_attestation_id = chain.attestation_id
+            WHERE child.pin_id = :pin_id
+              AND chain.depth < :row_limit
+        )
+        SELECT attestation_id, attestation_version, session_id, offer_id,
+               elicitation_mode, review_disposition, claims, memory_action,
+               attested_at, supersedes_attestation_id, pin_id, depth
+        FROM chain
+        ORDER BY depth
+        LIMIT :row_limit
+    """), {
+        "pin_id": pin_id,
+        "row_limit": MAX_ATTESTATION_REVISIONS_PER_PIN + 1,
+    })).all()
+    if not rows:
+        raise SpatialDiaryEpisodeNotFoundError("episode pin not found")
+    if len(rows) > MAX_ATTESTATION_REVISIONS_PER_PIN:
+        raise SpatialDiaryEpisodeIntegrityError("pin attestation history is too large")
+    return tuple(_attestation_from_row(row) for row in rows)
+
+
+async def correct_pin_attestation(
+    db: AsyncSession,
+    *,
+    pin_id: str,
+    attestation_id: str,
+    supersedes_attestation_id: str,
+    review_disposition: ReviewDisposition,
+    claims: tuple[AttestedClaim, ...],
+    attested_at: datetime | None = None,
+) -> WalkAttestation:
+    """현재 head만 append-only로 정정한다. Pin identity와 최초 Offer 응답은 바꾸지 않는다."""
+
+    await ensure_repeatable_read_snapshot(db)
+    if review_disposition is ReviewDisposition.REJECTED:
+        raise SpatialDiaryEpisodeConflictError("rejecting a saved pin requires pin retirement")
+    existing_row = (await db.execute(
+        text(_ATTESTATION_SELECT + " WHERE attestation_id = :attestation_id"),
+        {"attestation_id": attestation_id},
+    )).one_or_none()
+    if existing_row is not None:
+        existing = _attestation_from_row(existing_row)
+        if (
+            existing_row.pin_id == pin_id
+            and existing.elicitation_mode is ElicitationMode.PIN_CORRECTION
+            and existing.supersedes_attestation_id == supersedes_attestation_id
+            and existing.review_disposition is review_disposition
+            and existing.claims == claims
+            and existing.memory_action is MemoryAction.SAVE
+        ):
+            return existing
+        raise SpatialDiaryEpisodeConflictError("attestation id already has different content")
+
+    pin_row = (await db.execute(
+        text(_PIN_SELECT + " WHERE pin_id = :pin_id FOR UPDATE"),
+        {"pin_id": pin_id},
+    )).one_or_none()
+    if pin_row is None:
+        raise SpatialDiaryEpisodeNotFoundError("episode pin not found")
+    pin = _pin_from_row(pin_row)
+    history = await list_pin_attestations(db, pin_id)
+    if len(history) >= MAX_ATTESTATION_REVISIONS_PER_PIN:
+        raise SpatialDiaryEpisodeConflictError("pin correction limit reached")
+    current = history[-1]
+    if current.attestation_id != supersedes_attestation_id:
+        raise SpatialDiaryEpisodeConflictError("correction must supersede the current head")
+
+    corrected_at = attested_at or datetime.now(UTC)
+    if corrected_at < current.attested_at:
+        raise SpatialDiaryEpisodeConflictError("correction cannot precede its current head")
+    correction = WalkAttestation(
+        attestation_id=attestation_id,
+        session_id=pin.session_id,
+        elicitation_mode=ElicitationMode.PIN_CORRECTION,
+        offer_id=None,
+        pin_id=pin_id,
+        review_disposition=review_disposition,
+        claims=claims,
+        memory_action=MemoryAction.SAVE,
+        attested_at=corrected_at,
+        supersedes_attestation_id=current.attestation_id,
+    )
+    inserted = await db.execute(text("""
+        INSERT INTO spatial_diary_walk_attestation
+            (attestation_id, attestation_version, session_id, offer_id,
+             elicitation_mode, review_disposition, claims, memory_action,
+             attested_at, supersedes_attestation_id, pin_id)
+        VALUES
+            (:attestation_id, :attestation_version, :session_id, :offer_id,
+             :elicitation_mode, :review_disposition, CAST(:claims AS jsonb),
+             :memory_action, :attested_at, :supersedes_attestation_id, :pin_id)
+        ON CONFLICT DO NOTHING
+        RETURNING attestation_id
+    """), {
+        **correction.model_dump(exclude={"claims", "pin_id"}),
+        "claims": json.dumps([claim.model_dump(mode="json") for claim in claims]),
+        "pin_id": pin_id,
+    })
+    if inserted.scalar_one_or_none() is None:
+        raise SpatialDiaryEpisodeConcurrentWriteError("correction changed concurrently")
+    return correction
+
+
 async def load_pin_entries(
     db: AsyncSession,
     session_ids: list[str],
@@ -742,10 +892,29 @@ async def load_pin_entries(
                attestation.offer_id, attestation.elicitation_mode,
                attestation.review_disposition, attestation.claims,
                attestation.memory_action, attestation.attested_at,
-               attestation.supersedes_attestation_id
+               attestation.supersedes_attestation_id,
+               attestation.pin_id AS attestation_pin_id
         FROM spatial_diary_episode_pin pin
-        JOIN spatial_diary_walk_attestation attestation
-          ON attestation.attestation_id = pin.created_by_attestation_id
+        JOIN LATERAL (
+            WITH RECURSIVE chain AS (
+                SELECT origin.*, 0 AS depth
+                FROM spatial_diary_walk_attestation origin
+                WHERE origin.attestation_id = pin.created_by_attestation_id
+
+                UNION ALL
+
+                SELECT successor.*, chain.depth + 1
+                FROM spatial_diary_walk_attestation successor
+                JOIN chain
+                  ON successor.supersedes_attestation_id = chain.attestation_id
+                WHERE successor.pin_id = pin.pin_id
+                  AND chain.depth < {MAX_ATTESTATION_REVISIONS_PER_PIN}
+            )
+            SELECT chain.*
+            FROM chain
+            ORDER BY chain.depth DESC
+            LIMIT 1
+        ) attestation ON TRUE
         WHERE pin.session_id IN :session_ids
         {pin_clause}
         ORDER BY pin.event_at NULLS LAST, pin.pin_id
@@ -767,6 +936,7 @@ async def load_pin_entries(
             session_id=row.session_id,
             elicitation_mode=row.elicitation_mode,
             offer_id=row.offer_id,
+            pin_id=row.attestation_pin_id,
             review_disposition=row.review_disposition,
             claims=tuple(AttestedClaim(**item) for item in row.claims),
             memory_action=row.memory_action,

@@ -25,6 +25,7 @@ from app.features.spatial_diary.contract import (
 )
 from app.features.spatial_diary.episode import (
     attest_episode_offer,
+    correct_pin_attestation,
     list_episode_candidates,
     put_episode_offer,
 )
@@ -251,6 +252,40 @@ async def test_memory_place_biography_and_rain_dry_comparison_keep_denominators(
             )
             assert all(
                 reading.negative_spatial_claim.eligible for reading in biography.readings
+            )
+            await db.rollback()
+
+            await correct_pin_attestation(
+                db,
+                pin_id=rain_pin,
+                attestation_id="attestation-memory-place-rain-correction",
+                supersedes_attestation_id="attestation-memory-place-rain",
+                review_disposition=ReviewDisposition.CONFIRMED,
+                claims=(
+                    AttestedClaim(
+                        subject_role=SubjectRole.OWNER,
+                        meaning_code="owner_pause",
+                        vocabulary_version=1,
+                    ),
+                ),
+            )
+            await db.commit()
+            corrected_biography = await query_memory_place_biography(
+                db, place_result.place.place_id, _spec()
+            )
+            current_claims = {
+                (item.subject_role, item.meaning_code): item.pin_count
+                for item in corrected_biography.claim_counts
+            }
+            assert current_claims == {
+                (SubjectRole.DOG, "exploration"): 1,
+                (SubjectRole.OWNER, "owner_pause"): 1,
+            }
+            corrected_entry = next(
+                item for item in corrected_biography.timeline if item.pin.pin_id == rain_pin
+            )
+            assert corrected_entry.attestation.attestation_id == (
+                "attestation-memory-place-rain-correction"
             )
             await db.rollback()
 

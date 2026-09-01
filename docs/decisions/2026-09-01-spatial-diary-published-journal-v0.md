@@ -32,11 +32,19 @@ caller가 정한 `snapshot_id`의 첫 PUT만 생성한다. 같은 내용의 재�
 Snapshot은 source Pin의 증거를 복제하지 않고 안정 ID와 생성 당시 정책 영수증만 고정한다.
 Episode Pin과 Snapshot 모두 source session 수명을 따르므로 산책 삭제 시 함께 삭제된다.
 
+`selected_pin_ids`는 저장 당시 선택과 순서를 뜻하지, 미래의 current Attestation을 Snapshot 본문으로
+소급 삽입하라는 뜻이 아니다. v0는 Entry 표시본을 반환하지 않는다. 향후 저장 일기 화면이 Pin의
+문장·의미를 포함할 때는 저장 당시 표시본을 함께 동결하며 이후 Pin correction으로 다시 쓰지 않는다.
+
 ## 비공개 경계
 
 이름의 `Published`는 자동 파생본을 사용자가 확정했다는 뜻이지 인터넷 공개를 뜻하지 않는다.
 v0의 visibility는 `private` 하나뿐이며 모든 생성·목록·단건 읽기는 source Capsule의 dog 소유권을
 검사한다. 공유 URL, 공개 ACL, 다른 사용자 전달용 payload, 위치 마스킹은 열지 않는다.
+
+사용자가 미래에 직접 쓰는 감정·생각·사적인 해석은 이 비공개 표현 계층에 머문다. 산책의
+속도·거리·시간, 당시 환경과 주변 공간 조건은 별도 객관적 원판으로 유지하지만, 개인의 속마음은
+행동 경향·Subject profile·Memory Place claim이나 다른 산책의 LLM 판단 Context로 승격하지 않는다.
 
 ## API
 

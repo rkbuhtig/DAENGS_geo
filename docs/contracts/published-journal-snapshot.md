@@ -39,8 +39,28 @@ published_at
 ```
 
 source version은 이 불변본이 어느 자동 일기 정책을 보고 만들어졌는지 설명하는 영수증이다.
-Snapshot은 좌표·증언·문장을 복제하지 않는다. 선택된 Pin의 상세는 그 ID가 가리키는 기존
-Episode Pin과 Attestation이 권위다.
+v0 Snapshot은 Entry 표시본을 포함하지 않으며 `selected_pin_ids`는 저장 당시 선택과 순서만
+보존한다. 소비자는 현재 Pin Attestation을 다시 읽어 그것을 저장 당시 Snapshot 내용인 것처럼
+표시하면 안 된다. 향후 Snapshot 화면에 Entry 문장이나 의미를 내장할 때는 저장 시점의 표시본을
+별도 필드로 동결한다.
+
+Pin Attestation correction은 현재 Pin overlay·자동 Journal Projection·Memory Place에는 반영되지만,
+이미 저장된 Snapshot의 제목·요약·Pin 선택이나 저장 당시 표현에는 소급 적용하지 않는다.
+
+## 객관적 기록과 개인의 속마음
+
+WalkFacts, 이동 속도·거리·시간, 동결된 환경, 주변 공간 조건과 그 경향은 Capsule·Context의
+객관적 재료로 계속 보존한다. 반면 사용자가 미래 Journal에 직접 쓰는 감정·생각·사적인 해석은
+private Journal 표현이며 다음 용도로 승격하지 않는다.
+
+```text
+Context capability / 행동 경향 근거 / Subject profile 갱신
+Memory Place claim / 다른 산책의 LLM 판단 context
+```
+
+AI가 일기 작성을 도울 때 해당 작성 요청 안에서 명시적으로 받은 문장을 다룰 수는 있지만,
+그 문장을 장기 판단 재료로 재사용하지 않는다. 개인 문장의 편집·삭제도 별도 Capsule 사실이나
+환경 원판을 삭제하는 의미가 아니다.
 
 ## 읽기와 삭제
 

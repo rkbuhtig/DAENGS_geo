@@ -22,6 +22,10 @@
 | `PublishedJournalSnapshot` | 사용자가 자동 일기를 확정할 때 | frozen, private | session/subject |
 | `ClaimAllowance` | 영수증을 현재 정책으로 읽을 때 | derived | 저장 안 함 |
 
+Pin을 만든 최초 Attestation은 Offer 응답 역사로 남는다. 이후 의미 정정은
+[`Pin Attestation correction`](pin-attestation-correction.md)에 따라 같은 Pin에 append되고,
+현재 Journal·Memory Place는 correction chain의 head를 읽는다.
+
 ## Capsule 봉인
 
 manifest는 기존 결과를 복제한 JSON bundle이 아니다. `session_id` 아래 다음 필수 자식이 완전히

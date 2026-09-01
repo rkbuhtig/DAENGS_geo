@@ -57,8 +57,9 @@ selected/exposure/capability/judgeable/observed/not-observed를 모두 원시 co
 `insufficient_evidence`에서도 approximate `observed`로 남길 수 있다. `suspected`는 양성·부정
 공간 관측 모두를 `unjudgeable`로 만든다. 상세 근거는 [결정 #81](../decisions/2026-09-01-negative-spatial-claim-eligibility.md)에 있다.
 
-Timeline은 선택된 Walk cohort 안의 membership Pin과 그 Pin을 만든 Attestation을 시간순으로
-돌려준다. 그래서 marker를 누르면 원래 review disposition과 사용자 claim을 다시 읽을 수 있다.
+Timeline은 선택된 Walk cohort 안의 membership Pin과 그 Pin의 현재 유효 Attestation을 시간순으로
+돌려준다. 최초 응답 뒤 correction이 있으면 현재 head를 쓰며, 전체 이력은 Pin Attestation history
+API에서 읽는다.
 Entry Selector는 timeline과 claim count만 거르며 산책 cohort나 노출·관측 분모를 바꾸지 않는다.
 
 ## 첫 비교

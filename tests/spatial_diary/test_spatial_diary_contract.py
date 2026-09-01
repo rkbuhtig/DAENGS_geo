@@ -24,6 +24,7 @@ from app.features.spatial_diary.contract import (
     MacroExposure,
     MeasurementReceipt,
     MemoryAction,
+    MemoryPlaceTimelineEntry,
     MemoryPlaceWalkReading,
     NegativeSpatialClaimAllowance,
     ObservationCapability,
@@ -41,6 +42,7 @@ from app.features.spatial_diary.contract import (
     UnjudgeableReason,
     WalkAttestation,
     WalkCapsuleManifest,
+    WalkJournalEntry,
     WalkSelector,
 )
 
@@ -280,6 +282,52 @@ def test_attestation_separates_review_from_memory_action():
     )
     with pytest.raises(ValidationError, match="claims must be unique"):
         _attestation(claims=(duplicate_claim, duplicate_claim))
+
+
+def test_pin_correction_is_the_only_superseding_attestation_shape():
+    correction = _attestation(
+        attestation_id="attestation-2",
+        elicitation_mode=ElicitationMode.PIN_CORRECTION,
+        offer_id=None,
+        pin_id="pin-1",
+        supersedes_attestation_id="attestation-1",
+    )
+    assert correction.memory_action is MemoryAction.SAVE
+    with pytest.raises(ValidationError, match="only pin corrections"):
+        _attestation(supersedes_attestation_id="attestation-old")
+    with pytest.raises(ValidationError, match="keeps the existing memory"):
+        _attestation(
+            attestation_id="attestation-2",
+            elicitation_mode=ElicitationMode.PIN_CORRECTION,
+            offer_id=None,
+            pin_id="pin-1",
+            supersedes_attestation_id="attestation-1",
+            memory_action=MemoryAction.DISMISS,
+        )
+    with pytest.raises(ValidationError, match="only pin corrections reference"):
+        _attestation(pin_id="pin-1")
+
+    pin = EpisodePin(
+        pin_id="pin-1",
+        session_id="walk-1",
+        origin=PinOrigin.SYSTEM_OFFER,
+        source_offer_id="offer-1",
+        created_by_attestation_id="attestation-1",
+        event_at=NOW,
+        temporal_precision=TemporalPrecision.APPROXIMATE,
+        representative_point=POINT,
+        event_footprint=FOOTPRINT,
+        promoted_at=NOW + timedelta(minutes=6),
+    )
+    wrong_pin_correction = correction.model_copy(update={"pin_id": "pin-2"})
+    with pytest.raises(ValidationError, match="journal correction must belong"):
+        WalkJournalEntry(
+            pin=pin,
+            attestation=wrong_pin_correction,
+            narration="잘못 연결된 정정",
+        )
+    with pytest.raises(ValidationError, match="timeline correction must belong"):
+        MemoryPlaceTimelineEntry(pin=pin, attestation=wrong_pin_correction)
 
 
 def test_manual_attestation_and_pin_do_not_require_a_system_offer():

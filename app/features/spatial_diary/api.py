@@ -4,6 +4,7 @@ from typing import Annotated, Literal, NoReturn
 
 from fastapi import APIRouter, Depends, HTTPException, Path
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_session
@@ -30,15 +31,19 @@ from app.features.spatial_diary.episode import (
     CANDIDATE_POLICY_VERSION,
     AttestationResult,
     OfferReviewState,
+    SpatialDiaryEpisodeConcurrentWriteError,
     SpatialDiaryEpisodeConflictError,
     SpatialDiaryEpisodeIntegrityError,
     SpatialDiaryEpisodeNotFoundError,
     attest_episode_offer,
     capsule_dog_id,
+    correct_pin_attestation,
     get_episode_offer,
     list_episode_candidates,
     list_offer_review_states,
+    list_pin_attestations,
     offer_dog_id,
+    pin_dog_id,
     put_episode_offer,
     put_offer_interaction,
 )
@@ -127,6 +132,36 @@ class AttestationOut(BaseModel):
     pin: EpisodePin | None
 
 
+class PutPinAttestationCorrectionIn(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    supersedes_attestation_id: str = Field(min_length=1, max_length=128)
+    review_disposition: ReviewDisposition
+    claims: tuple[AttestedClaim, ...] = Field(default=(), max_length=16)
+
+    @model_validator(mode="after")
+    def correction_keeps_a_meaningful_saved_memory(self) -> "PutPinAttestationCorrectionIn":
+        if self.review_disposition is ReviewDisposition.REJECTED:
+            raise ValueError("rejecting a saved pin belongs to pin retirement")
+        if self.review_disposition is ReviewDisposition.CONFIRMED and not self.claims:
+            raise ValueError("confirmed correction requires at least one claim")
+        claim_keys = [
+            (claim.subject_role, claim.meaning_code, claim.vocabulary_version)
+            for claim in self.claims
+        ]
+        if len(claim_keys) != len(set(claim_keys)):
+            raise ValueError("correction claims must be unique")
+        return self
+
+
+class PinAttestationHistoryOut(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    pin_id: str
+    attestations: tuple[WalkAttestation, ...]
+    current_attestation_id: str
+
+
 class OfferReviewStateOut(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -186,6 +221,13 @@ def _raise_episode_http(exc: Exception) -> NoReturn:
     raise exc
 
 
+def _is_serialization_failure(exc: DBAPIError) -> bool:
+    return (
+        getattr(exc.orig, "sqlstate", None) == "40001"
+        or getattr(exc.orig, "pgcode", None) == "40001"
+    )
+
+
 async def _authorize_capsule(
     db: AsyncSession,
     principal: SpatialDiaryPrincipal,
@@ -207,6 +249,19 @@ async def _authorize_offer(
     try:
         await ensure_repeatable_read_snapshot(db)
         dog_id = await offer_dog_id(db, offer_id)
+    except (SpatialDiaryEpisodeNotFoundError, SpatialDiaryTransactionError) as exc:
+        _raise_episode_http(exc)
+    require_dog_access(principal, dog_id)
+
+
+async def _authorize_pin(
+    db: AsyncSession,
+    principal: SpatialDiaryPrincipal,
+    pin_id: ResourceId,
+) -> None:
+    try:
+        await ensure_repeatable_read_snapshot(db)
+        dog_id = await pin_dog_id(db, pin_id)
     except (SpatialDiaryEpisodeNotFoundError, SpatialDiaryTransactionError) as exc:
         _raise_episode_http(exc)
     require_dog_access(principal, dog_id)
@@ -429,3 +484,63 @@ async def put_attestation(
         return AttestationOut(attestation=result.attestation, pin=result.pin)
     except _EPISODE_ERRORS as exc:
         _raise_episode_http(exc)
+
+
+@router.put(
+    "/pins/{pin_id}/attestations/{attestation_id}",
+    response_model=WalkAttestation,
+)
+async def put_pin_attestation_correction(
+    pin_id: ResourceId,
+    attestation_id: ResourceId,
+    body: PutPinAttestationCorrectionIn,
+    db: Annotated[AsyncSession, Depends(get_session)],
+    principal: Annotated[SpatialDiaryPrincipal, Depends(get_spatial_diary_principal)],
+) -> WalkAttestation:
+    for attempt in range(2):
+        try:
+            await _authorize_pin(db, principal, pin_id)
+            correction = await correct_pin_attestation(
+                db,
+                pin_id=pin_id,
+                attestation_id=attestation_id,
+                supersedes_attestation_id=body.supersedes_attestation_id,
+                review_disposition=body.review_disposition,
+                claims=body.claims,
+            )
+            await db.commit()
+            return correction
+        except SpatialDiaryEpisodeConcurrentWriteError as exc:
+            await db.rollback()
+            if attempt == 0:
+                continue
+            _raise_episode_http(exc)
+        except DBAPIError as exc:
+            await db.rollback()
+            if attempt == 0 and _is_serialization_failure(exc):
+                continue
+            raise
+        except _EPISODE_ERRORS as exc:
+            _raise_episode_http(exc)
+    raise AssertionError("pin correction retry loop must return or raise")
+
+
+@router.get(
+    "/pins/{pin_id}/attestations",
+    response_model=PinAttestationHistoryOut,
+)
+async def read_pin_attestations(
+    pin_id: ResourceId,
+    db: Annotated[AsyncSession, Depends(get_session)],
+    principal: Annotated[SpatialDiaryPrincipal, Depends(get_spatial_diary_principal)],
+) -> PinAttestationHistoryOut:
+    await _authorize_pin(db, principal, pin_id)
+    try:
+        attestations = await list_pin_attestations(db, pin_id)
+    except _EPISODE_ERRORS as exc:
+        _raise_episode_http(exc)
+    return PinAttestationHistoryOut(
+        pin_id=pin_id,
+        attestations=attestations,
+        current_attestation_id=attestations[-1].attestation_id,
+    )
