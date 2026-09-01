@@ -189,6 +189,7 @@ DAENGS_DEV_CONSOLE=true uv run uvicorn app.main:app --reload
 # http://127.0.0.1:8000/continuous-hex-comparison
 ```
 
-화면 평가까지 통과했지만 복원기는 여전히 `scripts/spikes` 안의 무상태 표시 후보다. 다음 단계는
-dropout·drift·outlier·가변 accuracy에서도 reach와 exposure의 순위가 유지되는지 확인하는
-센서 변형 실험이다.
+화면 평가까지 통과했지만 복원기는 여전히 `scripts/spikes` 안의 무상태 표시 후보다. 이어진
+[센서 내성 실험](2026-09-01-sensor-robustness.md)에서는 dropout·단발 outlier보다 drift와 accuracy
+거부가 분포를 크게 흔들었다. `1.75 cell`은 입력 support를 보수적으로 표시할 뿐 센서 위치 오류를
+고치지 않는다.
