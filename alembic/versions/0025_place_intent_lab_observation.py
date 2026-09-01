@@ -3,8 +3,8 @@
 제품 검색 로그가 아니라 `DAENGS_DEV_CONSOLE` 뒤의 검증 표면 전용이다. 발화 원문을 저장하는
 이유도 실패한 모델 해석을 재현하기 위해서이며, 운영 검색에 이 테이블을 자동 연결하지 않는다.
 
-Revision ID: 0023
-Revises: 0022
+Revision ID: 0025
+Revises: 0024
 """
 
 from collections.abc import Sequence
@@ -14,8 +14,8 @@ from sqlalchemy.dialects import postgresql
 
 from alembic import op
 
-revision: str = "0023"
-down_revision: str | None = "0022"
+revision: str = "0025"
+down_revision: str | None = "0024"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

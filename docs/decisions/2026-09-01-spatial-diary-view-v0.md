@@ -132,4 +132,5 @@ v0의 동기 응답은 다음 상한을 넘으면 413으로 거부한다. 숫자
 
 PR4는 기존 `low_motion` observation에서 산책당 소수의 Candidate를 만들고, 실제 제시된 Offer와
 사용자 Attestation을 거쳐 Episode Pin으로 승격한다. 이때 Entry Selector는 Pin overlay만 바꾸고
-이번 PR의 Walk cohort와 공간 분모는 그대로 유지한다.
+이번 PR의 Walk cohort와 공간 분모는 그대로 유지한다. 이 후속 단계는
+[결정 #77](2026-09-01-spatial-diary-episode-pin-v0.md)에서 채택됐다.

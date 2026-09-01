@@ -7,20 +7,22 @@ import pytest
 from fastapi import HTTPException
 from sqlalchemy import text
 
+from app.features.spatial_diary.access import (
+    SpatialDiaryPrincipal,
+    get_spatial_diary_principal,
+)
 from app.features.spatial_diary.contract import (
     ContextFacetFilter,
     ContextStatus,
     EntrySelector,
     QualityPolicy,
     SpatialDiaryViewSpec,
-    SubjectRole,
     TrailContextSnapshot,
     WalkSelector,
 )
+from app.features.spatial_diary.snapshot import SpatialDiaryTransactionError
 from app.features.territory import spatial_diary as spatial_diary_module
 from app.features.territory.api import (
-    SpatialDiaryPrincipal,
-    get_spatial_diary_principal,
     query_view,
     view_out,
 )
@@ -30,7 +32,6 @@ from app.features.territory.spatial_diary import (
     RAIN_THRESHOLD_MM,
     IncompleteCapsuleError,
     MixedPaintGenerationError,
-    SpatialDiaryTransactionError,
     SpatialDiaryViewTooLargeError,
     UnsupportedSpatialDiaryViewError,
     context_facets,
@@ -150,6 +151,7 @@ async def _seal_walk(
 
 
 async def _cleanup(db):
+    await db.rollback()
     await db.execute(
         text("DELETE FROM walk_session WHERE id LIKE :prefix"),
         {"prefix": f"{SID_PREFIX}%"},
@@ -441,7 +443,7 @@ async def test_manifest_with_a_missing_required_child_fails_closed():
             await _cleanup(db)
 
 
-async def test_v0_rejects_entry_filters_unknown_metrics_and_mixed_paint_generations():
+async def test_v0_rejects_unknown_metrics_and_mixed_paint_generations():
     async with db_session() as db:
         await _cleanup(db)
         try:
@@ -451,11 +453,6 @@ async def test_v0_rejects_entry_filters_unknown_metrics_and_mixed_paint_generati
 
             with pytest.raises(UnsupportedSpatialDiaryViewError, match="field_metric"):
                 await query_spatial_diary_view(db, _spec("total_time"))
-            with pytest.raises(UnsupportedSpatialDiaryViewError, match="entry filter"):
-                await query_spatial_diary_view(
-                    db,
-                    _spec(entry_selector=EntrySelector(subject_roles=(SubjectRole.DOG,))),
-                )
 
             other = paint_spec(
                 8.0,
