@@ -9,7 +9,12 @@ import json
 import httpx
 
 from app.core.config import settings
-from app.discovery.place_intent.contract import IntentProposer, LLMIntentOutput
+from app.discovery.place_intent.contract import (
+    IntentProposer,
+    IntentProposerInvalidOutputError,
+    LLMIntentOutput,
+    ProposalDisposition,
+)
 from app.discovery.place_intent.metering import MeteredIntentProposer
 from app.discovery.place_intent.prompt import gemini_output_schema, proposer_instructions
 from app.usage.registry import usage_gate
@@ -70,7 +75,12 @@ class GeminiIntentProposer:
                 json=payload,
             )
             response.raise_for_status()
-        body = response.json()
+        try:
+            body = response.json()
+        except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+            raise GeminiIntentProposerResponseError(
+                "Gemini response body is not valid JSON"
+            ) from exc
         if not isinstance(body, dict):
             raise GeminiIntentProposerResponseError("Gemini response must be an object")
         if body.get("status") != "completed":
@@ -81,7 +91,7 @@ class GeminiIntentProposer:
         try:
             return _adapter_output(output_text)
         except (TypeError, ValueError, json.JSONDecodeError) as exc:
-            raise GeminiIntentProposerResponseError(
+            raise IntentProposerInvalidOutputError(
                 "Gemini returned an invalid intent payload"
             ) from exc
 
@@ -127,6 +137,17 @@ def _adapter_output(output_text: str) -> LLMIntentOutput:
     if not isinstance(raw, dict):
         raise TypeError("Gemini adapter output must be an object")
     _reject_unknown_fields(raw, {"disposition", "interpretations", "reason"})
+    if raw.get("disposition") == ProposalDisposition.ABSTAINED.value:
+        # Flash-Lite의 평면 schema는 disposition에 따라 interpretations를 비우는 조건부
+        # 제약을 표현하지 못한다. abstained는 어떤 proposal도 실행하지 않는 선언이므로,
+        # 딸려온 불완전 proposal을 해석하거나 부분 salvage하지 않고 통째로 버린다.
+        return LLMIntentOutput.model_validate(
+            {
+                "disposition": raw.get("disposition"),
+                "interpretations": [],
+                "reason": raw.get("reason"),
+            }
+        )
     interpretations = []
     for interpretation in raw.get("interpretations", []):
         if not isinstance(interpretation, dict):

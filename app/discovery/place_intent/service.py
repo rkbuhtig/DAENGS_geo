@@ -5,6 +5,7 @@ from collections.abc import Callable
 from app.discovery.place_intent.contract import (
     IntentEvidenceError,
     IntentProposer,
+    IntentProposerInvalidOutputError,
     LLMIntentOutput,
     MaterializedIntentOutput,
     materialize_llm_output,
@@ -24,7 +25,7 @@ from app.place.planning.intents import PlannerIssue, PlannerStatus
 class PlaceIntentSuggestionTrace(PlanningModel):
     """검증 화면이 모델 출력·grounding·정책 결과를 한 요청에서 대조하는 내부 trace."""
 
-    raw: LLMIntentOutput
+    raw: LLMIntentOutput | None
     grounded: MaterializedIntentOutput | None
     outcome: IntentSuggestionOutcome
 
@@ -64,7 +65,23 @@ class PlaceIntentSuggestionService:
         limit_per_kind: int,
         conditions: PlaceSearchConditions | None = None,
     ) -> PlaceIntentSuggestionTrace:
-        raw = await self._proposer.propose(utterance)
+        try:
+            raw = await self._proposer.propose(utterance)
+        except IntentProposerInvalidOutputError:
+            return PlaceIntentSuggestionTrace(
+                raw=None,
+                grounded=None,
+                outcome=IntentSuggestionOutcome(
+                    status=PlannerStatus.NEEDS_CLARIFICATION,
+                    source_disposition=None,
+                    issues=(
+                        PlannerIssue(
+                            code="intent_proposer_invalid_output",
+                            detail="intent proposer output did not satisfy the intent contract",
+                        ),
+                    ),
+                ),
+            )
         try:
             if self._observation_id_factory is None:
                 grounded = materialize_llm_output(utterance, raw)

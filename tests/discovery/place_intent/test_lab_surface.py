@@ -22,6 +22,12 @@ def test_intent_lab_renders_provider_text_without_html_injection() -> None:
     assert "innerHTML = place.name" not in HTML
 
 
+def test_intent_lab_renders_invalid_model_output_as_a_typed_empty_state() -> None:
+    assert "if (!trace.raw)" in HTML
+    assert "modelState = raw ? raw.disposition : 'invalid_output'" in HTML
+    assert "data.trace.raw ? data.trace.raw.interpretations.length : 0" in HTML
+
+
 def _paths_with_dev_console(enabled: bool) -> set[str]:
     environment = os.environ.copy()
     environment["DAENGS_DEV_CONSOLE"] = "true" if enabled else "false"

@@ -9,7 +9,11 @@ import json
 import httpx
 
 from app.core.config import settings
-from app.discovery.place_intent.contract import IntentProposer, LLMIntentOutput
+from app.discovery.place_intent.contract import (
+    IntentProposer,
+    IntentProposerInvalidOutputError,
+    LLMIntentOutput,
+)
 from app.discovery.place_intent.metering import MeteredIntentProposer
 from app.discovery.place_intent.prompt import proposer_instructions, strict_output_schema
 from app.usage.registry import usage_gate
@@ -71,7 +75,12 @@ class OpenAIIntentProposer:
                 json=payload,
             )
             response.raise_for_status()
-        body = response.json()
+        try:
+            body = response.json()
+        except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+            raise IntentProposerResponseError(
+                "OpenAI response body is not valid JSON"
+            ) from exc
         if not isinstance(body, dict):
             raise IntentProposerResponseError("OpenAI response must be an object")
         if body.get("status") not in {None, "completed"}:
@@ -82,7 +91,9 @@ class OpenAIIntentProposer:
         try:
             return LLMIntentOutput.model_validate_json(output_text)
         except (ValueError, json.JSONDecodeError) as exc:
-            raise IntentProposerResponseError("OpenAI returned an invalid intent payload") from exc
+            raise IntentProposerInvalidOutputError(
+                "OpenAI returned an invalid intent payload"
+            ) from exc
 
 
 def configured_intent_proposer() -> IntentProposer:

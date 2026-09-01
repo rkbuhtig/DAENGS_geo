@@ -5,6 +5,7 @@ import pytest
 from app.discovery.place_intent.contract import (
     EvidenceQuote,
     IntentInterpretation,
+    IntentProposerInvalidOutputError,
     LLMIntentOutput,
     LLMIntentProposal,
     ProposalDisposition,
@@ -13,6 +14,7 @@ from app.discovery.place_intent.contract import (
 )
 from app.discovery.place_intent.service import PlaceIntentSuggestionService
 from app.discovery.place_intent.suggestions import (
+    IntentSuggestionOutcome,
     SuggestionBasis,
     SuggestionResolution,
     compile_intent_suggestions,
@@ -22,6 +24,7 @@ from app.place.planning.intents import (
     BooleanCapabilityIntent,
     IntentRole,
     KindIntent,
+    PlannerIssue,
     PlannerStatus,
     PurposeIntent,
     SemanticIntent,
@@ -398,6 +401,11 @@ class _StaticProposer:
         return self.output
 
 
+class _InvalidOutputProposer:
+    async def propose(self, utterance: str) -> LLMIntentOutput:
+        raise IntentProposerInvalidOutputError("provider details stay behind the boundary")
+
+
 async def test_service_runs_proposer_grounding_and_suggestion_policy_end_to_end() -> None:
     raw = LLMIntentOutput(
         disposition=ProposalDisposition.PROPOSED,
@@ -489,3 +497,48 @@ async def test_service_turns_ungrounded_model_evidence_into_safe_clarification()
     assert outcome.status is PlannerStatus.NEEDS_CLARIFICATION
     assert not outcome.suggestions
     assert outcome.issues[0].code == "intent_evidence_invalid"
+
+
+async def test_service_turns_invalid_provider_output_into_typed_clarification() -> None:
+    service = PlaceIntentSuggestionService(_InvalidOutputProposer())
+
+    trace = await service.inspect(
+        "강아지가 좋아하는거 있는곳",
+        spatial=_SPATIAL,
+        limit_per_kind=20,
+    )
+
+    assert trace.raw is None
+    assert trace.grounded is None
+    assert trace.outcome.status is PlannerStatus.NEEDS_CLARIFICATION
+    assert trace.outcome.source_disposition is None
+    assert not trace.outcome.suggestions
+    assert trace.outcome.issues[0].code == "intent_proposer_invalid_output"
+    assert "provider details" not in trace.outcome.issues[0].detail
+
+
+def test_missing_source_disposition_requires_explicit_invalid_output_issue() -> None:
+    with pytest.raises(
+        ValueError,
+        match="missing source disposition requires an empty invalid-output clarification",
+    ):
+        IntentSuggestionOutcome(
+            status=PlannerStatus.NEEDS_CLARIFICATION,
+            source_disposition=None,
+            issues=(PlannerIssue(code="other_failure", detail="not the provider boundary"),),
+        )
+
+    with pytest.raises(
+        ValueError,
+        match="missing source disposition requires an empty invalid-output clarification",
+    ):
+        IntentSuggestionOutcome(
+            status=PlannerStatus.UNSUPPORTED,
+            source_disposition=None,
+            issues=(
+                PlannerIssue(
+                    code="intent_proposer_invalid_output",
+                    detail="right issue code cannot excuse a contradictory status",
+                ),
+            ),
+        )

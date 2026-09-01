@@ -138,6 +138,10 @@ class IntentEvidenceError(ValueError):
     """근거가 원문에 고정되지 않아 interpretation 전체를 신뢰할 수 없음."""
 
 
+class IntentProposerInvalidOutputError(RuntimeError):
+    """제공사 호출은 성공했지만 출력이 authority-free intent 계약을 만족하지 못함."""
+
+
 class IntentProposer(Protocol):
     async def propose(self, utterance: str) -> LLMIntentOutput: ...
 

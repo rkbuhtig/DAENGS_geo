@@ -175,6 +175,13 @@ function intentLabel(intent) {
 function renderInterpretations(trace) {
   const root = $('interpretations');
   root.replaceChildren();
+  if (!trace.raw) {
+    const box = document.createElement('div');
+    box.className = 'box rejected';
+    box.textContent = '모델 출력이 intent 계약을 만족하지 않아 실행하지 않았습니다.';
+    root.append(box);
+    return;
+  }
   trace.raw.interpretations.forEach((interpretation, index) => {
     const card = document.createElement('article');
     card.className = 'interpretation';
@@ -372,9 +379,11 @@ function render(data) {
   $('analysis').hidden = false;
   $('model').textContent = data.model;
   const outcome = data.trace.outcome;
+  const raw = data.trace.raw;
+  const modelState = raw ? raw.disposition : 'invalid_output';
   const disposition = $('disposition'); disposition.replaceChildren();
   disposition.append(
-    badge('model · ' + data.trace.raw.disposition, data.trace.raw.disposition === 'proposed' ? 'good' : 'warn'),
+    badge('model · ' + modelState, modelState === 'proposed' ? 'good' : 'warn'),
     document.createTextNode(' '),
     badge('planner · ' + outcome.status, outcome.status === 'ready' ? 'good' : 'warn'),
     document.createTextNode(' '),
@@ -407,7 +416,8 @@ $('query-form').addEventListener('submit', async event => {
       throw new Error(typeof error.detail === 'string' ? error.detail : '검색 실패 (' + response.status + ')');
     }
     const data = await response.json(); render(data);
-    $('status').textContent = '완료 · 모델 후보 ' + data.trace.raw.interpretations.length +
+    const modelCandidateCount = data.trace.raw ? data.trace.raw.interpretations.length : 0;
+    $('status').textContent = '완료 · 모델 후보 ' + modelCandidateCount +
       '개 · 실행 후보 ' + data.executions.length + '개';
   } catch (error) {
     $('status').className = 'status error'; $('status').textContent = error.message || '검색에 실패했습니다.';
