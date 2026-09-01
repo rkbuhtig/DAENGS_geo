@@ -36,8 +36,10 @@ continuous reference도 perfect GPS와 고정 붓으로 만든 평가 기준이�
 - reach 재튜닝: 없음
 - exposure 재튜닝: 없음
 
-센서 profile은 seed까지 포함한 fingerprint를 남기되 JSON에 seed나 latent branch·hold label은
-싣지 않는다. 같은 코드와 profile은 같은 fix를 재생한다.
+센서 profile은 fingerprint와 명시적 replay seed를 함께 남기되 latent branch·hold label은 싣지
+않는다. 난수는 stable walk key와 sample index에 현상 이름을 더한 독립 stream을 쓴다. 따라서
+dropout 강도만 올리면 먼저 빠졌던 fix는 그대로 빠지고, jitter를 켜도 outlier·accuracy 사건
+위치는 바뀌지 않는다.
 
 ## 센서 시나리오
 
@@ -56,10 +58,12 @@ outlier와 낮은 accuracy는 센서 모델이 제거하지 않는다. 제품의
 
 ## 단계별 영수증
 
-- 수집·canonical: fix 보존율, 인정 시간, 거리 비율, accuracy 거부·jump·gap 횟수
-- Cellophane: canonical 인정 시간과 paint 질량 차이, perfect 대비 support IoU·누락·누출
-- Field: 다섯 metric의 pointwise/L1, 50·80·95% 질량 영역 IoU와 경계 거리
-- hard invariant: 유한 수치, Cellophane 질량 보존, 복원 질량 보존, 복원 support 무누출·무누락
+- 수집·canonical: fix 보존율, 인정 시간, 거리 비율, accuracy 거부·jump·gap 횟수와 산책별 분포
+- Cellophane: canonical 인정 시간과 paint 질량 차이, perfect 대비 support IoU·누락·누출의
+  모집단 합집합과 산책별 min·p10·p50·mean·p90·max
+- Field: sensor-only·projection-only·combined 각각의 다섯 metric, 50·80·95% 질량 영역 IoU와
+  경계 거리
+- hard invariant: 산책별 Cellophane·복원 질량 보존과 복원 support 무누출·무누락
 
 soft metric은 관찰값이다. 이번 결과를 보고 사후 합격선을 만들지 않는다.
 
@@ -67,33 +71,43 @@ soft metric은 관찰값이다. 이번 결과를 보고 사후 합격선을 만�
 
 아래 L1과 50% IoU는 `combined_against_perfect`의 `U_time`이다.
 
-| scenario | fix 보존 | 인정 시간 | Cell support IoU | sensor-only L1 | combined L1 | 복원 50% IoU |
+| scenario | fix 보존 | 인정 시간 | sensor L1 | sensor 50% IoU | combined L1 | combined 50% IoU |
 |---|---:|---:|---:|---:|---:|---:|
-| clean control | 1.000 | 1.000 | 1.000 | 0.000 | 0.173 | 0.706 |
-| jitter | 1.000 | 1.000 | 0.829 | 0.124 | 0.187 | 0.689 |
-| dropout | 0.869 | 1.000 | 0.997 | 0.006 | 0.173 | 0.708 |
-| outlier | 1.000 | 0.991 | 1.000 | 0.008 | 0.173 | 0.706 |
-| drift | 1.000 | 1.000 | 0.773 | 0.575 | 0.568 | 0.363 |
-| variable accuracy | 1.000 | 0.845 | 0.998 | 0.061 | 0.187 | 0.649 |
-| combined | 0.924 | 0.901 | 0.812 | 0.411 | 0.410 | 0.495 |
+| clean control | 1.000 | 1.000 | 0.000 | 1.000 | 0.173 | 0.706 |
+| jitter | 1.000 | 1.000 | 0.125 | 0.807 | 0.188 | 0.676 |
+| dropout | 0.880 | 1.000 | 0.006 | 0.990 | 0.173 | 0.705 |
+| outlier | 1.000 | 0.981 | 0.017 | 0.954 | 0.174 | 0.698 |
+| drift | 1.000 | 1.000 | 0.575 | 0.361 | 0.568 | 0.363 |
+| variable accuracy | 1.000 | 0.828 | 0.061 | 0.850 | 0.189 | 0.654 |
+| combined | 0.920 | 0.893 | 0.415 | 0.492 | 0.414 | 0.486 |
 
-outlier profile에서는 36회 jump break가 발생했고, variable accuracy에서는 321개 fix가 낮은
-accuracy로 거부됐다. combined에서는 jump break 38회와 accuracy 거부 166회가 함께 발생했다.
-모든 시나리오에서 hard invariant는 통과했다.
+| scenario | 모집단 Cell IoU | 산책별 최저 Cell IoU | 인정 시간 p10 | jump break | accuracy 거부 |
+|---|---:|---:|---:|---:|---:|
+| clean control | 1.000 | 1.000 | 1.000 | 0 | 0 |
+| jitter | 0.830 | 0.774 | 1.000 | 0 | 0 |
+| dropout | 1.000 | 0.991 | 1.000 | 0 | 0 |
+| outlier | 1.000 | 0.996 | 0.953 | 74 | 0 |
+| drift | 0.773 | 0.662 | 1.000 | 0 | 0 |
+| variable accuracy | 0.998 | 0.984 | 0.749 | 0 | 357 |
+| combined | 0.819 | 0.735 | 0.838 | 29 | 188 |
+
+모든 시나리오의 모든 산책에서 hard invariant는 통과했다. 모집단 합집합만 보면 dropout과
+outlier support IoU가 1에 가깝지만 산책별 영수증에서는 작은 누락과 인정 시간 하락이 드러난다.
 
 ## 해석
 
 ### 1. dropout과 큰 단발 outlier는 현재 canonical 계약이 잘 흡수한다
 
 5초 sampling에서 12% dropout은 대부분 60초 gap 문턱 안에서 앞뒤 fix가 다시 이어져 인정
-시간과 분포가 거의 유지됐다. 260m outlier는 jump break로 끊겨 combined 분포를 거의 바꾸지
+시간과 분포가 거의 유지됐다. 260m outlier는 jump break로 끊겨 combined 분포를 조금만 바꾸고
 않았다. 이것은 모든 dropout·outlier가 안전하다는 뜻이 아니라 이번 강도에서 현재 필터가
 의도대로 작동했다는 뜻이다.
 
 ### 2. accuracy 거부는 위치 누출보다 시간 손실을 만든다
 
 80m accuracy fix 자체는 Cellophane에 칠해지지 않았지만, 거부점 양쪽 segment도 연결하지 않기
-때문에 인정 시간이 84.5%로 줄었다. support 모양은 거의 유지돼도 visit/dwell 강도가 약해질 수
+때문에 인정 시간이 82.8%, 산책별 p10은 74.9%로 줄었다. support 모양은 거의 유지돼도
+visit/dwell 강도가 약해질 수
 있다. UI가 이를 실제 이용 감소로 설명하면 안 된다.
 
 ### 3. drift는 현재 가장 큰 실패 축이다
@@ -128,4 +142,3 @@ uv run python -m scripts.spikes.territory_paint.sensor_robustness_evaluation \
 - 다음 실제 지도 화면은 projection 비교보다 `perfect ↔ noisy` 전환을 우선해야 한다.
 - 실제 기기에서 drift·accuracy 시계열을 수집해 합성 강도가 현실적인지 먼저 보정해야 한다.
 - 통계 화면에는 관측 손실 또는 위치 불확실성을 별도 evidence로 노출할 방법이 필요하다.
-

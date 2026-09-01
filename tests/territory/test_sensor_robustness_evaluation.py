@@ -21,7 +21,7 @@ def payload():
 
 
 def test_evaluator_freezes_projection_contract_on_a_new_sensor_holdout(payload):
-    assert payload["format_version"] == 1
+    assert payload["format_version"] == 2
     assert payload["evaluation_role"] == "paired_sensor_holdout_not_product_threshold"
     assert payload["population"]["split"] == "sensor_holdout"
     assert payload["population"]["sample_count"] == 3
@@ -41,7 +41,8 @@ def test_clean_control_is_identical_until_the_fixed_hex_projection(payload):
     assert clean["collection"]["fix_retention"] == pytest.approx(1.0)
     assert clean["collection"]["accepted_time_retention"] == pytest.approx(1.0)
     assert clean["cellophane"]["support_iou"] == pytest.approx(1.0)
-    for metric in clean["field"]["sensor_only_continuous"].values():
+    assert clean["cellophane"]["per_walk"]["support_iou"]["min"] == pytest.approx(1.0)
+    for metric in clean["field"]["sensor_only_continuous"]["metrics"].values():
         assert metric["mean_absolute_error"] == pytest.approx(0.0)
 
 
@@ -58,14 +59,26 @@ def test_combined_scenario_reports_each_pipeline_stage_and_keeps_hard_invariants
     }
     assert all(combined["hard_invariants"].values())
     assert combined["field"]["combined_against_perfect"]["support"]["leakage_pixels"] == 0
+    assert combined["cellophane"]["per_walk"]["support_iou"]["min"] < 1.0
+    assert (
+        combined["reconstruction_structure"]["per_walk"]["support_leakage_pixels"]["max"]
+        == 0
+    )
+    sensor_regions = combined["field"]["sensor_only_continuous"]["mass_regions"]
+    assert [row["target_mass"] for row in sensor_regions["time_utilization"]] == [
+        0.5,
+        0.8,
+        0.95,
+    ]
 
 
-def test_payload_hides_latent_population_labels_and_sensor_seed(payload):
+def test_payload_hides_latent_population_labels_but_keeps_replay_seed(payload):
     encoded = json.dumps(payload, sort_keys=True)
 
-    for forbidden in ('"seed"', '"branch"', '"hold"', "east_loop", "north_park"):
+    for forbidden in ('"branch"', '"hold"', "east_loop", "north_park"):
         assert forbidden not in encoded
     assert all("fingerprint" in row["profile"] for row in payload["scenarios"])
+    assert all(isinstance(row["profile"]["seed"], int) for row in payload["scenarios"])
 
 
 def test_declared_scenarios_cover_each_sensor_failure_axis():

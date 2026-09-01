@@ -27,8 +27,10 @@ from scripts.sim.walk.population import (
 from scripts.sim.walk.population_truth import build_population_truth
 from scripts.sim.walk.sensor import NoisySensor, PerfectSensor
 from scripts.spikes.territory_paint.conservative_hex_evaluation import (
+    RadiusReconstructionLayers,
     build_radius_reconstruction_layers,
     compare_raster_fields,
+    mass_region_receipts,
     reconstruction_comparison_receipt,
 )
 from scripts.spikes.territory_paint.continuous_hex_comparison import (
@@ -39,7 +41,7 @@ from scripts.spikes.territory_paint.continuous_hex_comparison import (
     rasterize_observation,
 )
 
-SENSOR_ROBUSTNESS_FORMAT_VERSION = 1
+SENSOR_ROBUSTNESS_FORMAT_VERSION = 2
 SENSOR_ROBUSTNESS_POPULATION_SEED = 488_201
 FIXED_RADIUS_U = 8.0
 FIXED_BLEND_REACH_CELLS = 1.75
@@ -76,7 +78,27 @@ def _sensor_profile(sensor: NoisySensor) -> dict[str, object]:
     encoded = json.dumps(full, sort_keys=True, separators=(",", ":")).encode()
     return {
         "fingerprint": hashlib.sha256(encoded).hexdigest()[:16],
+        "seed": full["seed"],
         "parameters": {key: value for key, value in full.items() if key not in {"kind", "seed"}},
+    }
+
+
+def _distribution(values: list[float]) -> dict[str, float]:
+    if not values:
+        return {key: 0.0 for key in ("min", "p10", "p50", "mean", "p90", "max")}
+    ordered = sorted(values)
+
+    def percentile(quantile: float) -> float:
+        index = math.ceil(quantile * len(ordered)) - 1
+        return ordered[max(0, min(index, len(ordered) - 1))]
+
+    return {
+        "min": ordered[0],
+        "p10": percentile(0.10),
+        "p50": percentile(0.50),
+        "mean": math.fsum(ordered) / len(ordered),
+        "p90": percentile(0.90),
+        "max": ordered[-1],
     }
 
 
@@ -98,6 +120,7 @@ def _collection_receipt(
     candidate_segment_s = math.fsum(walk.accepted_segment_s for walk in candidate.walks)
     baseline_distance_m = math.fsum(walk.computed.facts.distance_m for walk in baseline.walks)
     candidate_distance_m = math.fsum(walk.computed.facts.distance_m for walk in candidate.walks)
+    paired = tuple(zip(baseline.walks, candidate.walks, strict=True))
     return {
         "baseline_fix_count": baseline_fixes,
         "candidate_fix_count": candidate_fixes,
@@ -111,6 +134,32 @@ def _collection_receipt(
         "candidate_distance_m": candidate_distance_m,
         "distance_ratio": candidate_distance_m / baseline_distance_m if baseline_distance_m else 1.0,
         "candidate_quality": _quality_totals(candidate),
+        "per_walk": {
+            "fix_retention": _distribution(
+                [
+                    len(right.observed.fixes) / len(left.observed.fixes)
+                    if left.observed.fixes
+                    else 1.0
+                    for left, right in paired
+                ]
+            ),
+            "accepted_time_retention": _distribution(
+                [
+                    right.accepted_segment_s / left.accepted_segment_s
+                    if left.accepted_segment_s
+                    else 1.0
+                    for left, right in paired
+                ]
+            ),
+            "distance_ratio": _distribution(
+                [
+                    right.computed.facts.distance_m / left.computed.facts.distance_m
+                    if left.computed.facts.distance_m
+                    else 1.0
+                    for left, right in paired
+                ]
+            ),
+        },
     }
 
 
@@ -127,6 +176,19 @@ def _cellophane_receipt(
     accepted_s = math.fsum(walk.accepted_segment_s for walk in candidate.walks)
     painted_s = math.fsum(value for sheet in candidate.sheets for value in sheet.occupancy.values())
     hex_area = cell_area_m2(radius_u, origin_lat)
+    support_ious = []
+    leakage_counts = []
+    missing_counts = []
+    mass_errors = []
+    for baseline_walk, candidate_walk in zip(baseline.walks, candidate.walks, strict=True):
+        left = set(baseline_walk.sheet.occupancy)
+        right = set(candidate_walk.sheet.occupancy)
+        paired_union = left | right
+        support_ious.append(len(left & right) / len(paired_union) if paired_union else 1.0)
+        leakage_counts.append(float(len(right - left)))
+        missing_counts.append(float(len(left - right)))
+        candidate_mass = math.fsum(candidate_walk.sheet.occupancy.values())
+        mass_errors.append(abs(candidate_mass - candidate_walk.accepted_segment_s))
     return {
         "accepted_segment_s": accepted_s,
         "painted_s": painted_s,
@@ -138,6 +200,39 @@ def _cellophane_receipt(
         "missing_cells": len(baseline_cells - candidate_cells),
         "leakage_area_m2": len(candidate_cells - baseline_cells) * hex_area,
         "missing_area_m2": len(baseline_cells - candidate_cells) * hex_area,
+        "per_walk": {
+            "support_iou": _distribution(support_ious),
+            "leakage_cells": _distribution(leakage_counts),
+            "missing_cells": _distribution(missing_counts),
+            "mass_absolute_error_s": _distribution(mass_errors),
+        },
+    }
+
+
+def _reconstruction_structure_receipt(
+    layers: RadiusReconstructionLayers,
+) -> dict[str, object]:
+    mass_errors = []
+    leakage_counts = []
+    missing_counts = []
+    for source, raw, reconstructed in zip(
+        layers.source_sheets,
+        layers.raw_sheets,
+        layers.reconstructed_sheets,
+        strict=True,
+    ):
+        source_mass = math.fsum(source.occupancy.values())
+        mass_errors.append(abs(reconstructed.mass_s - source_mass))
+        raw_support = set(raw.occupancy)
+        reconstructed_support = set(reconstructed.occupancy)
+        leakage_counts.append(float(len(reconstructed_support - raw_support)))
+        missing_counts.append(float(len(raw_support - reconstructed_support)))
+    return {
+        "per_walk": {
+            "mass_absolute_error_s": _distribution(mass_errors),
+            "support_leakage_pixels": _distribution(leakage_counts),
+            "support_missing_pixels": _distribution(missing_counts),
+        }
     }
 
 
@@ -175,19 +270,31 @@ def _scenario_receipt(
         origin_lat=raster.origin_lat,
     )
     sensor_only = {
-        metric: compare_raster_fields(baseline_fields[metric], candidate_continuous_fields[metric])
-        for metric in METRICS
+        "metrics": {
+            metric: compare_raster_fields(
+                baseline_fields[metric], candidate_continuous_fields[metric]
+            )
+            for metric in METRICS
+        },
+        "mass_regions": {
+            metric: mass_region_receipts(
+                baseline_fields[metric], candidate_continuous_fields[metric], raster
+            )
+            for metric in ("time_utilization", "walk_utilization")
+        },
     }
     projection_given_sensor = reconstruction_comparison_receipt(
         candidate_continuous_fields, raster, layers
     )
     combined = reconstruction_comparison_receipt(baseline_fields, raster, layers)
+    reconstruction_structure = _reconstruction_structure_receipt(layers)
     row: dict[str, object] = {
         "name": name,
         "profile": _sensor_profile(sensor),
         "run_id": candidate.run_id,
         "collection": collection,
         "cellophane": cellophane,
+        "reconstruction_structure": reconstruction_structure,
         "field": {
             "sensor_only_continuous": sensor_only,
             "projection_given_sensor": projection_given_sensor,
@@ -196,10 +303,18 @@ def _scenario_receipt(
     }
     row["hard_invariants"] = {
         "finite_receipt": _all_finite(row),
-        "cellophane_mass_conserved": cellophane["mass_absolute_error_s"] < 1e-8,
-        "reconstruction_mass_conserved": combined["mass"]["reconstructed_absolute_error_s"] < 1e-8,  # type: ignore[index]
-        "reconstruction_support_leakage_zero": combined["support"]["leakage_pixels"] == 0,  # type: ignore[index]
-        "reconstruction_support_missing_zero": combined["support"]["missing_pixels"] == 0,  # type: ignore[index]
+        "cellophane_mass_conserved_per_walk": (
+            cellophane["per_walk"]["mass_absolute_error_s"]["max"] < 1e-8  # type: ignore[index]
+        ),
+        "reconstruction_mass_conserved_per_walk": (
+            reconstruction_structure["per_walk"]["mass_absolute_error_s"]["max"] < 1e-8  # type: ignore[index]
+        ),
+        "reconstruction_support_leakage_zero_per_walk": (
+            reconstruction_structure["per_walk"]["support_leakage_pixels"]["max"] == 0  # type: ignore[index]
+        ),
+        "reconstruction_support_missing_zero_per_walk": (
+            reconstruction_structure["per_walk"]["support_missing_pixels"]["max"] == 0  # type: ignore[index]
+        ),
     }
     return row
 

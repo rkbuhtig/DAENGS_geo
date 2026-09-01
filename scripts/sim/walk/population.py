@@ -106,16 +106,24 @@ def observe_population_with_sensor(
     for planted in truth.walks:
         session_id = f"cellophane-pop-v{truth.generator_version}-{run_id}-{planted.walk_id}"
         motion = integrate_motion(planted.behavior, planted.route)
-        observer = observe_noisily if isinstance(sensor, NoisySensor) else observe_perfectly
-        observed = observer(
-            motion,
-            sensor,
-            session_id=session_id,
-            dog_id=dog_id,
-            started_at=planted.started_at,
-            origin_lat=origin_lat,
-            origin_lng=origin_lng,
-        )
+        observer_kwargs = {
+            "session_id": session_id,
+            "dog_id": dog_id,
+            "started_at": planted.started_at,
+            "origin_lat": origin_lat,
+            "origin_lng": origin_lng,
+        }
+        if isinstance(sensor, NoisySensor):
+            observed = observe_noisily(
+                motion,
+                sensor,
+                noise_key=(
+                    f"population-v{truth.generator_version}:{truth.seed}:{planted.walk_id}"
+                ),
+                **observer_kwargs,
+            )
+        else:
+            observed = observe_perfectly(motion, sensor, **observer_kwargs)
         computed = compute_facts(
             session_id,
             observed.dog_id,

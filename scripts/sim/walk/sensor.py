@@ -181,8 +181,14 @@ def observe_perfectly(
     )
 
 
-def _sample_rng(sensor: NoisySensor, session_id: str, sample_index: int) -> random.Random:
-    encoded = f"{sensor.seed}:{session_id}:{sample_index}".encode()
+def _axis_rng(
+    sensor: NoisySensor,
+    noise_key: str,
+    sample_index: int,
+    axis: str,
+) -> random.Random:
+    """profile 강도와 무관한 common-random-number stream을 현상별로 만든다."""
+    encoded = f"{sensor.seed}:{noise_key}:{sample_index}:{axis}".encode()
     return random.Random(int.from_bytes(hashlib.sha256(encoded).digest()[:8], "big"))
 
 
@@ -195,6 +201,7 @@ def observe_noisily(
     started_at: datetime,
     origin_lat: float,
     origin_lng: float,
+    noise_key: str | None = None,
 ) -> ObservedWalk:
     """motion truth를 결정론적 dropout·jitter·outlier·drift·accuracy 오염으로 관측한다."""
     if started_at.tzinfo is None or started_at.utcoffset() is None:
@@ -204,27 +211,40 @@ def observe_noisily(
     if any(value >= truth.behavior.length_m for value in sensor.chain_breaks_m):
         raise ValueError("chain break must be inside motion length")
 
+    stable_noise_key = session_id if noise_key is None else noise_key
+    if not stable_noise_key:
+        raise ValueError("noise_key must not be empty")
     samples = tuple(truth.samples(sensor.sample_interval_s))
     fixes = []
     for sample_index, sample in enumerate(samples):
-        rng = _sample_rng(sensor, session_id, sample_index)
         endpoint = sample_index in {0, len(samples) - 1}
-        if not endpoint and rng.random() < sensor.dropout_rate:
+        if (
+            not endpoint
+            and _axis_rng(sensor, stable_noise_key, sample_index, "dropout").random()
+            < sensor.dropout_rate
+        ):
             continue
 
         duration_fraction = sample.elapsed_s / truth.duration_s if truth.duration_s else 0.0
         east_m = sample.east_m + sensor.drift_east_m * duration_fraction
         north_m = sample.north_m + sensor.drift_north_m * duration_fraction
         if sensor.jitter_sigma_m:
-            east_m += rng.gauss(0.0, sensor.jitter_sigma_m)
-            north_m += rng.gauss(0.0, sensor.jitter_sigma_m)
-        if not endpoint and rng.random() < sensor.outlier_rate:
-            angle = rng.uniform(0.0, math.tau)
+            jitter_rng = _axis_rng(sensor, stable_noise_key, sample_index, "jitter")
+            east_m += jitter_rng.gauss(0.0, sensor.jitter_sigma_m)
+            north_m += jitter_rng.gauss(0.0, sensor.jitter_sigma_m)
+        outlier_rng = _axis_rng(sensor, stable_noise_key, sample_index, "outlier")
+        if not endpoint and outlier_rng.random() < sensor.outlier_rate:
+            angle = outlier_rng.uniform(0.0, math.tau)
             east_m += math.cos(angle) * sensor.outlier_distance_m
             north_m += math.sin(angle) * sensor.outlier_distance_m
 
-        accuracy_m = max(0.0, sensor.accuracy_m + rng.gauss(0.0, sensor.accuracy_sigma_m))
-        if not endpoint and rng.random() < sensor.low_accuracy_rate:
+        accuracy_rng = _axis_rng(sensor, stable_noise_key, sample_index, "accuracy_noise")
+        accuracy_m = max(
+            0.0,
+            sensor.accuracy_m + accuracy_rng.gauss(0.0, sensor.accuracy_sigma_m),
+        )
+        low_accuracy_rng = _axis_rng(sensor, stable_noise_key, sample_index, "low_accuracy")
+        if not endpoint and low_accuracy_rng.random() < sensor.low_accuracy_rate:
             accuracy_m = sensor.low_accuracy_m
         chain_index = sum(sample.progress_m > value for value in sensor.chain_breaks_m)
         lat, lng = local_xy_to_latlng(east_m, north_m, origin_lat, origin_lng)
