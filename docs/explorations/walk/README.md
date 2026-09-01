@@ -41,6 +41,11 @@
 기억판**으로 역할이 좁아지고, 미시는 셀로판이 아니라 사건 원장이 담당한다. 아직 결정이 아니므로
 다른 갈래 문서는 이 문서로 자동으로 갱신되지 않는다 — 채택할 때 손댄다.
 
+2026-09-01에 [결정 #74](../../decisions/2026-09-01-spatial-diary.md)가 이 탐색 전체가 아니라
+제품 한 바퀴에 필요한 좁은 부분을 채택했다. Capsule manifest, 원시 MeasurementReceipt,
+Candidate→Offer→Attestation→Pin 경계, Walk/Entry Selector 분리와 자동 Journal projection이 그
+범위다. Place 형성 알고리즘·행동 어휘·나레이션·백업은 여전히 이 갈래의 열린 항목이다.
+
 `session-continuity-and-dwell`은 이 수집/paint 사이의 **제품 의미**를 정리한다. 한 사용자 산책 안에
 여러 client/derived continuity chain이 있을 수 있고, chain 사이 관측 공백은 붓으로 연결하지 않는다.
 또 현재 `occupancy`가 이미 시간 가중 spatial exposure라는 점을 명시하고, 반복 방문(`walks`)·공간
