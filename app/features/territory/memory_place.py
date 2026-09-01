@@ -584,8 +584,7 @@ async def query_memory_place_biography(
         # 사건을 approximate로 남기되, 사건 부재를 `not_observed`로 바꾸는 것만 막는다.
         if capsule.drift_assessment is DriftAssessment.SUSPECTED:
             reasons.append(UnjudgeableReason.SPATIAL_DRIFT_SUSPECTED)
-        elif episode_count == 0 and not negative_spatial_claim.eligible:
-            assert drift_reason is not None
+        elif episode_count == 0 and drift_reason is not None:
             reasons.append(drift_reason)
         observation = (
             PlaceObservation.UNJUDGEABLE
