@@ -22,12 +22,16 @@ circle을 모두 덮는 보수적 circle이다.
 
 ## biography 분모
 
+> `not_observed`의 drift 조건은 [결정 #81](2026-09-01-negative-spatial-claim-eligibility.md)이
+> 대체한다. 현재 정책은 평가 방법이 있는 `not_suspected`만 부정적 공간 주장을 허용한다.
+
 각 선택 산책을 다음 순서로 판정한다.
 
 1. Cellophane으로 장소의 macro exposure를 `exposed / uncertain / not_exposed`로 분리한다.
 2. Manifest가 현재 `low_motion` generation을 보존했는지 확인한다.
-3. drift suspected가 아니며 clear exposure와 capability가 있을 때만 slow observation의
-   `observed / not_observed`를 판정한다.
+3. clear exposure와 capability 아래 실제 slow observation은 approximate `observed`로 읽는다.
+   slow observation의 부재는 drift가 방법과 함께 `not_suspected`로 평가됐을 때만
+   `not_observed`로 읽는다. `suspected`는 양성 관측도 막는다.
 4. 나머지는 이유가 있는 `unjudgeable`로 남긴다.
 
 `not_observed`는 “그 산책에서 이 장소의 현재 관측 규칙이 사건을 찾지 못했다”는 뜻일 뿐이며,
@@ -50,4 +54,3 @@ reading, 정책 지문을 함께 반환한다.
 - 사진·자유작성·수동 Pin 생성
 - 외부 시설 Place와 Memory Place의 연결
 - 통계적 효과 추정과 인과 서술
-

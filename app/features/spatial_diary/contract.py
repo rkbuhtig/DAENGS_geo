@@ -24,6 +24,7 @@ MEMORY_PLACE_MEMBERSHIP_VERSION = 1
 VIEW_VERSION = 1
 JOURNAL_PROJECTION_VERSION = 1
 PUBLISHED_JOURNAL_SNAPSHOT_VERSION = 1
+NEGATIVE_SPATIAL_CLAIM_POLICY_VERSION = 1
 
 EvidenceOrigin = Literal["device", "mock", "mixed", "unknown"]
 EvidenceScalar = str | int | float | bool | None
@@ -58,6 +59,7 @@ class ContextStatus(StrEnum):
 class DriftAssessment(StrEnum):
     NOT_ASSESSED = "not_assessed"
     INSUFFICIENT_EVIDENCE = "insufficient_evidence"
+    NOT_SUSPECTED = "not_suspected"
     SUSPECTED = "suspected"
 
 
@@ -127,6 +129,8 @@ class UnjudgeableReason(StrEnum):
     NOT_EXPOSED = "not_exposed"
     EXPOSURE_UNCERTAIN = "exposure_uncertain"
     CAPABILITY_UNSUPPORTED = "capability_unsupported"
+    SPATIAL_DRIFT_NOT_ASSESSED = "spatial_drift_not_assessed"
+    SPATIAL_DRIFT_INSUFFICIENT_EVIDENCE = "spatial_drift_insufficient_evidence"
     SPATIAL_DRIFT_SUSPECTED = "spatial_drift_suspected"
 
 
@@ -625,6 +629,44 @@ class MemoryPlaceBiographySpec(FrozenContract):
     quality_policy: QualityPolicy
 
 
+class NegativeSpatialClaimAllowance(FrozenContract):
+    """한 산책의 사건 부재를 공간적 `not_observed`로 말할 수 있는 적극적 자격."""
+
+    policy_version: Literal[NEGATIVE_SPATIAL_CLAIM_POLICY_VERSION] = (
+        NEGATIVE_SPATIAL_CLAIM_POLICY_VERSION
+    )
+    eligible: bool
+    macro_exposure: MacroExposure
+    capability: CapabilitySupport
+    drift_assessment: DriftAssessment
+    blocking_reasons: tuple[UnjudgeableReason, ...]
+
+    @model_validator(mode="after")
+    def eligibility_requires_all_negative_evidence(self) -> "NegativeSpatialClaimAllowance":
+        expected_reasons: list[UnjudgeableReason] = []
+        if self.macro_exposure is MacroExposure.NOT_EXPOSED:
+            expected_reasons.append(UnjudgeableReason.NOT_EXPOSED)
+        elif self.macro_exposure is MacroExposure.UNCERTAIN:
+            expected_reasons.append(UnjudgeableReason.EXPOSURE_UNCERTAIN)
+        if self.capability is CapabilitySupport.UNSUPPORTED:
+            expected_reasons.append(UnjudgeableReason.CAPABILITY_UNSUPPORTED)
+        drift_reason = {
+            DriftAssessment.NOT_ASSESSED: UnjudgeableReason.SPATIAL_DRIFT_NOT_ASSESSED,
+            DriftAssessment.INSUFFICIENT_EVIDENCE: (
+                UnjudgeableReason.SPATIAL_DRIFT_INSUFFICIENT_EVIDENCE
+            ),
+            DriftAssessment.NOT_SUSPECTED: None,
+            DriftAssessment.SUSPECTED: UnjudgeableReason.SPATIAL_DRIFT_SUSPECTED,
+        }[self.drift_assessment]
+        if drift_reason is not None:
+            expected_reasons.append(drift_reason)
+        if self.blocking_reasons != tuple(expected_reasons):
+            raise ValueError("negative spatial claim blockers must match its evidence")
+        if self.eligible != (not expected_reasons):
+            raise ValueError("negative spatial claim eligibility requires all evidence gates")
+        return self
+
+
 class MemoryPlaceWalkReading(FrozenContract):
     """한 산책이 한 장소에 대해 말할 수 있는 것과 말할 수 없는 것."""
 
@@ -635,6 +677,7 @@ class MemoryPlaceWalkReading(FrozenContract):
     macro_exposure: MacroExposure
     capability: CapabilitySupport
     observation: PlaceObservation
+    negative_spatial_claim: NegativeSpatialClaimAllowance
     observed_episode_count: int = Field(ge=0)
     member_pin_count: int = Field(ge=0)
     unjudgeable_reasons: tuple[UnjudgeableReason, ...] = ()
@@ -645,6 +688,11 @@ class MemoryPlaceWalkReading(FrozenContract):
     def reading_is_consistent(self) -> "MemoryPlaceWalkReading":
         if len(self.unjudgeable_reasons) != len(set(self.unjudgeable_reasons)):
             raise ValueError("unjudgeable reasons must be unique")
+        if (
+            self.negative_spatial_claim.macro_exposure is not self.macro_exposure
+            or self.negative_spatial_claim.capability is not self.capability
+        ):
+            raise ValueError("negative spatial claim evidence must match the walk reading")
         expected_reasons: set[UnjudgeableReason] = set()
         if self.macro_exposure is MacroExposure.NOT_EXPOSED:
             expected_reasons.add(UnjudgeableReason.NOT_EXPOSED)
@@ -652,7 +700,36 @@ class MemoryPlaceWalkReading(FrozenContract):
             expected_reasons.add(UnjudgeableReason.EXPOSURE_UNCERTAIN)
         if self.capability is CapabilitySupport.UNSUPPORTED:
             expected_reasons.add(UnjudgeableReason.CAPABILITY_UNSUPPORTED)
-        allowed_reasons = expected_reasons | {UnjudgeableReason.SPATIAL_DRIFT_SUSPECTED}
+        if (
+            self.observation is PlaceObservation.NOT_OBSERVED
+            and not self.negative_spatial_claim.eligible
+        ):
+            raise ValueError("not_observed requires negative spatial claim eligibility")
+        drift_reason = {
+            DriftAssessment.NOT_ASSESSED: UnjudgeableReason.SPATIAL_DRIFT_NOT_ASSESSED,
+            DriftAssessment.INSUFFICIENT_EVIDENCE: (
+                UnjudgeableReason.SPATIAL_DRIFT_INSUFFICIENT_EVIDENCE
+            ),
+            DriftAssessment.NOT_SUSPECTED: None,
+            DriftAssessment.SUSPECTED: UnjudgeableReason.SPATIAL_DRIFT_SUSPECTED,
+        }[self.negative_spatial_claim.drift_assessment]
+        drift_reasons = {
+            UnjudgeableReason.SPATIAL_DRIFT_NOT_ASSESSED,
+            UnjudgeableReason.SPATIAL_DRIFT_INSUFFICIENT_EVIDENCE,
+            UnjudgeableReason.SPATIAL_DRIFT_SUSPECTED,
+        }
+        present_drift_reasons = set(self.unjudgeable_reasons) & drift_reasons
+        required_drift_reason = None
+        if (
+            self.negative_spatial_claim.drift_assessment is DriftAssessment.SUSPECTED
+            or self.observed_episode_count == 0
+            and not self.negative_spatial_claim.eligible
+        ):
+            required_drift_reason = drift_reason
+        expected_drift_reasons = {required_drift_reason} if required_drift_reason else set()
+        if present_drift_reasons != expected_drift_reasons:
+            raise ValueError("drift reason must match the negative spatial claim evidence")
+        allowed_reasons = expected_reasons | drift_reasons
         if not set(self.unjudgeable_reasons).issubset(allowed_reasons):
             raise ValueError("unjudgeable reasons must match the reading evidence")
         if self.observation is PlaceObservation.UNJUDGEABLE:

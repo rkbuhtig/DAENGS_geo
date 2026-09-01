@@ -7,6 +7,7 @@ from pydantic import ValidationError
 
 from app.features.spatial_diary.contract import (
     AttestedClaim,
+    CapabilitySupport,
     ClaimAllowance,
     ClaimSupport,
     ContextFacetFilter,
@@ -20,12 +21,16 @@ from app.features.spatial_diary.contract import (
     EventFootprint,
     EvidenceValue,
     GeoPoint,
+    MacroExposure,
     MeasurementReceipt,
     MemoryAction,
+    MemoryPlaceWalkReading,
+    NegativeSpatialClaimAllowance,
     ObservationCapability,
     OfferInteraction,
     OfferInteractionKind,
     PinOrigin,
+    PlaceObservation,
     QualityPolicy,
     ReviewDisposition,
     SpatialDiaryViewReceipt,
@@ -33,6 +38,7 @@ from app.features.spatial_diary.contract import (
     SubjectRole,
     TemporalPrecision,
     TrailContextSnapshot,
+    UnjudgeableReason,
     WalkAttestation,
     WalkCapsuleManifest,
     WalkSelector,
@@ -154,12 +160,19 @@ def test_measurement_receipt_freezes_named_numerators_not_confidence_scores():
     assert "accepted_time_ratio" not in type(receipt).model_fields
     assert "confidence_score" not in type(receipt).model_fields
     assert receipt.drift_assessment is DriftAssessment.NOT_ASSESSED
+    screened = _receipt(
+        drift_assessment=DriftAssessment.NOT_SUSPECTED,
+        drift_assessment_method="fixture_drift_screen_v1",
+    )
+    assert screened.drift_assessment is DriftAssessment.NOT_SUSPECTED
     with pytest.raises(ValidationError, match="accepted fixes"):
         _receipt(accepted_fix_count=101)
     with pytest.raises(ValidationError, match="p50 cannot exceed p90"):
         _receipt(reported_accuracy_p50_m=50, reported_accuracy_p90_m=10)
     with pytest.raises(ValidationError, match="assessment method"):
         _receipt(drift_assessment=DriftAssessment.SUSPECTED)
+    with pytest.raises(ValidationError, match="assessment method"):
+        _receipt(drift_assessment=DriftAssessment.NOT_SUSPECTED)
 
 
 def test_raw_context_and_derived_claim_policy_are_separate_contracts():
@@ -346,3 +359,112 @@ def test_view_receipt_keeps_selected_and_contributing_denominators_visible():
     invalid["context_unknown_count"] = 0
     with pytest.raises(ValidationError, match="cover selected"):
         SpatialDiaryViewReceipt(**invalid)
+
+
+def _place_reading(**overrides) -> MemoryPlaceWalkReading:
+    values = {
+        "session_id": "walk-1",
+        "walked_at": NOW,
+        "precipitation": "dry",
+        "daylight": "day",
+        "macro_exposure": MacroExposure.EXPOSED,
+        "capability": CapabilitySupport.SUPPORTED,
+        "observation": PlaceObservation.OBSERVED,
+        "negative_spatial_claim": NegativeSpatialClaimAllowance(
+            eligible=False,
+            macro_exposure=MacroExposure.EXPOSED,
+            capability=CapabilitySupport.SUPPORTED,
+            drift_assessment=DriftAssessment.NOT_ASSESSED,
+            blocking_reasons=(UnjudgeableReason.SPATIAL_DRIFT_NOT_ASSESSED,),
+        ),
+        "observed_episode_count": 1,
+        "member_pin_count": 1,
+    }
+    values.update(overrides)
+    return MemoryPlaceWalkReading(**values)
+
+
+def test_positive_observation_survives_without_negative_spatial_claim_eligibility():
+    reading = _place_reading()
+    assert reading.observation is PlaceObservation.OBSERVED
+    assert not reading.negative_spatial_claim.eligible
+
+
+def test_not_observed_requires_active_not_suspected_drift_evidence():
+    with pytest.raises(ValidationError, match="not_observed requires"):
+        _place_reading(
+            observation=PlaceObservation.NOT_OBSERVED,
+            observed_episode_count=0,
+        )
+
+    blocked = _place_reading(
+        observation=PlaceObservation.UNJUDGEABLE,
+        observed_episode_count=0,
+        member_pin_count=0,
+        unjudgeable_reasons=(UnjudgeableReason.SPATIAL_DRIFT_NOT_ASSESSED,),
+    )
+    assert blocked.observation is PlaceObservation.UNJUDGEABLE
+
+    eligible = _place_reading(
+        observation=PlaceObservation.NOT_OBSERVED,
+        negative_spatial_claim=NegativeSpatialClaimAllowance(
+            eligible=True,
+            macro_exposure=MacroExposure.EXPOSED,
+            capability=CapabilitySupport.SUPPORTED,
+            drift_assessment=DriftAssessment.NOT_SUSPECTED,
+            blocking_reasons=(),
+        ),
+        observed_episode_count=0,
+        member_pin_count=0,
+    )
+    assert eligible.observation is PlaceObservation.NOT_OBSERVED
+
+
+def test_drift_reason_must_match_the_assessment_exactly():
+    with pytest.raises(ValidationError, match="drift reason must match"):
+        _place_reading(
+            observation=PlaceObservation.UNJUDGEABLE,
+            observed_episode_count=0,
+            member_pin_count=0,
+            unjudgeable_reasons=(
+                UnjudgeableReason.SPATIAL_DRIFT_INSUFFICIENT_EVIDENCE,
+            ),
+        )
+
+    with pytest.raises(ValidationError, match="negative spatial claim eligibility"):
+        NegativeSpatialClaimAllowance(
+            eligible=True,
+            macro_exposure=MacroExposure.EXPOSED,
+            capability=CapabilitySupport.SUPPORTED,
+            drift_assessment=DriftAssessment.NOT_ASSESSED,
+            blocking_reasons=(UnjudgeableReason.SPATIAL_DRIFT_NOT_ASSESSED,),
+        )
+
+    with pytest.raises(ValidationError, match="Input should be 1"):
+        NegativeSpatialClaimAllowance(
+            policy_version=2,
+            eligible=True,
+            macro_exposure=MacroExposure.EXPOSED,
+            capability=CapabilitySupport.SUPPORTED,
+            drift_assessment=DriftAssessment.NOT_SUSPECTED,
+            blocking_reasons=(),
+        )
+
+
+def test_negative_spatial_claim_eligibility_aggregates_every_evidence_gate():
+    allowance = NegativeSpatialClaimAllowance(
+        eligible=False,
+        macro_exposure=MacroExposure.NOT_EXPOSED,
+        capability=CapabilitySupport.SUPPORTED,
+        drift_assessment=DriftAssessment.NOT_SUSPECTED,
+        blocking_reasons=(UnjudgeableReason.NOT_EXPOSED,),
+    )
+    assert not allowance.eligible
+    with pytest.raises(ValidationError, match="blockers must match"):
+        NegativeSpatialClaimAllowance(
+            eligible=True,
+            macro_exposure=MacroExposure.NOT_EXPOSED,
+            capability=CapabilitySupport.SUPPORTED,
+            drift_assessment=DriftAssessment.NOT_SUSPECTED,
+            blocking_reasons=(),
+        )
