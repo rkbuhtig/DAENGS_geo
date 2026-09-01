@@ -50,7 +50,10 @@ def test_intent_lab_shows_model_policy_and_real_search_layers() -> None:
     assert "/dev/place-intent/interact" in HTML
     assert "/dev/place-intent/observations" in HTML
     assert "이 검색 방향을 명시적으로 확인" in HTML
+    assert "현재 검색 수정" in HTML
     assert "처음부터 다시" in HTML
+    assert "revising && payload" in HTML
+    assert "...(payload ?" not in HTML
     assert "Operator observations" in HTML
     assert "response · " in HTML
     assert "proposer " in HTML
