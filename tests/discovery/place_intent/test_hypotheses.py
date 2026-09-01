@@ -116,6 +116,55 @@ def test_buy_and_dog_toy_compose_to_pet_shop_without_claiming_inventory() -> Non
     assert not normalized.unresolved_facets
 
 
+def test_hypothetical_buy_and_dog_toy_do_not_create_a_positive_target() -> None:
+    normalized = _normalize(
+        "강아지 장난감을 산다면",
+        _proposal(
+            IntentRole.HYPOTHETICAL,
+            ObjectIntent(object_id=SearchObjectId.DOG_TOY),
+            "강아지 장난감",
+        ),
+        _proposal(
+            IntentRole.HYPOTHETICAL,
+            ActivityIntent(activity_id=ActivityId.BUY),
+            "산다면",
+        ),
+    )
+
+    assert not normalized.hypotheses
+    assert [item.role for item in normalized.common] == [
+        IntentRole.HYPOTHETICAL,
+        IntentRole.HYPOTHETICAL,
+    ]
+
+
+def test_buying_dog_toy_does_not_widen_an_existing_place_target() -> None:
+    normalized = _normalize(
+        "쇼핑몰에서 강아지 장난감 사고 싶어",
+        _proposal(
+            IntentRole.REQUIRED_TARGET,
+            KindIntent(kind=PlaceKind.SHOPPING),
+            "쇼핑몰",
+        ),
+        _proposal(
+            IntentRole.GOAL,
+            ObjectIntent(object_id=SearchObjectId.DOG_TOY),
+            "강아지 장난감",
+        ),
+        _proposal(
+            IntentRole.GOAL,
+            ActivityIntent(activity_id=ActivityId.BUY),
+            "사고 싶어",
+        ),
+    )
+
+    hypothesis = normalized.hypotheses[0]
+    assert [item.intent for item in hypothesis.targets] == [KindIntent(kind=PlaceKind.SHOPPING)]
+    assert normalized.modifiers[0].modifier_id == "composition.buy_dog_toy"
+    assert normalized.modifiers[0].required is True
+    assert hypothesis.relation_receipts[0].policy_id == ("activity.buy_dog_toy_kept_with_target")
+
+
 @pytest.mark.parametrize(
     "role",
     [
@@ -189,6 +238,27 @@ def test_cheap_stays_unresolved_until_the_cost_dimension_is_selected() -> None:
         "cost.admission",
         "cost.product_price",
     )
+
+
+def test_excluded_cheap_is_not_inverted_into_a_positive_cost_facet() -> None:
+    normalized = _normalize(
+        "싼 곳은 빼고 카페",
+        _proposal(
+            IntentRole.EXCLUDED,
+            SemanticIntent(concept_id="semantic.cheap"),
+            "싼 곳은 빼고",
+        ),
+        _proposal(
+            IntentRole.REQUIRED_TARGET,
+            KindIntent(kind=PlaceKind.CAFE),
+            "카페",
+        ),
+    )
+
+    assert not normalized.unresolved_facets
+    assert [(item.role, item.intent) for item in normalized.common] == [
+        (IntentRole.EXCLUDED, SemanticIntent(concept_id="semantic.cheap"))
+    ]
 
 
 def test_ambiguous_likings_keep_each_search_reading_in_a_separate_set() -> None:

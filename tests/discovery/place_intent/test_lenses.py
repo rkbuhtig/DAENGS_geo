@@ -6,6 +6,7 @@ from app.discovery.place_intent.contract import (
     LLMIntentOutput,
     LLMIntentProposal,
     ProposalDisposition,
+    ProposalReason,
     materialize_llm_output,
 )
 from app.discovery.place_intent.hypotheses import build_search_hypotheses
@@ -122,6 +123,33 @@ def test_buying_dog_toy_exposes_pet_shop_without_inventory_overclaim() -> None:
     assert "판매·재고는 보장하지 않습니다" in lens.support_note
 
 
+def test_buying_dog_toy_keeps_an_existing_target_and_required_purchase_signal() -> None:
+    lenses = _compile(
+        "쇼핑몰에서 강아지 장난감 사고 싶어",
+        _proposal(
+            IntentRole.REQUIRED_TARGET,
+            KindIntent(kind=PlaceKind.SHOPPING),
+            "쇼핑몰",
+        ),
+        _proposal(
+            IntentRole.GOAL,
+            ObjectIntent(object_id=SearchObjectId.DOG_TOY),
+            "강아지 장난감",
+        ),
+        _proposal(
+            IntentRole.GOAL,
+            ActivityIntent(activity_id=ActivityId.BUY),
+            "사고 싶어",
+        ),
+    )
+
+    assert [item.display_label for item in lenses.target_lenses] == ["#쇼핑"]
+    assert lenses.target_lenses[0].confirmable_targets == (KindIntent(kind=PlaceKind.SHOPPING),)
+    assert "판매·재고는 보장하지 않습니다" in lenses.target_lenses[0].support_note
+    assert lenses.signal_lenses[0].display_label == "#강아지 장난감 구매"
+    assert lenses.signal_lenses[0].required is True
+
+
 def test_quiet_fallbacks_are_executable_but_disclose_missing_ranking() -> None:
     lenses = _compile(
         "조용한 곳",
@@ -223,3 +251,87 @@ def test_common_hard_condition_blocks_every_expanded_play_lens() -> None:
         for item in lenses.target_lenses
     )
     assert not lenses.executable_targets
+
+
+def test_fallback_lenses_only_receive_signals_from_their_interpretation() -> None:
+    ids = _ids()
+    utterance = "조용하거나 싼 곳"
+    grounded = materialize_llm_output(
+        utterance,
+        LLMIntentOutput(
+            disposition=ProposalDisposition.AMBIGUOUS,
+            interpretations=(
+                IntentInterpretation(
+                    proposals=(
+                        _proposal(
+                            IntentRole.REQUIRED_CONDITION,
+                            SemanticIntent(concept_id="semantic.quiet"),
+                            "조용",
+                        ),
+                    )
+                ),
+                IntentInterpretation(
+                    proposals=(
+                        _proposal(
+                            IntentRole.REQUIRED_CONDITION,
+                            SemanticIntent(concept_id="semantic.cheap"),
+                            "싼",
+                        ),
+                    )
+                ),
+            ),
+            reason=ProposalReason.MULTIPLE_PLAUSIBLE_READINGS,
+        ),
+        id_factory=lambda: next(ids),
+    )
+    normalized = build_search_hypotheses(grounded)
+    suggestions = compile_intent_suggestions(
+        grounded,
+        spatial=_SPATIAL,
+        limit_per_kind=3,
+    )
+
+    lenses = compile_search_lenses(
+        normalized,
+        suggestions,
+        spatial=_SPATIAL,
+        limit_per_kind=3,
+    )
+
+    assert len(lenses.target_lenses) == 3
+    assert all(item.availability is LensAvailability.EXECUTABLE for item in lenses.target_lenses)
+    assert all(not item.unresolved_facet_ids for item in lenses.target_lenses)
+    assert all(item.modifier_ids == ("semantic.quiet",) for item in lenses.target_lenses)
+
+
+def test_signal_lens_preserves_required_modifier_strength() -> None:
+    required = _compile(
+        "조용한 카페",
+        _proposal(
+            IntentRole.REQUIRED_TARGET,
+            KindIntent(kind=PlaceKind.CAFE),
+            "카페",
+        ),
+        _proposal(
+            IntentRole.REQUIRED_CONDITION,
+            SemanticIntent(concept_id="semantic.quiet"),
+            "조용한",
+        ),
+    )
+    optional = _compile(
+        "조용하면 좋은 카페",
+        _proposal(
+            IntentRole.REQUIRED_TARGET,
+            KindIntent(kind=PlaceKind.CAFE),
+            "카페",
+        ),
+        _proposal(
+            IntentRole.PREFERENCE,
+            SemanticIntent(concept_id="semantic.quiet"),
+            "조용하면 좋은",
+        ),
+    )
+
+    assert required.signal_lenses[0].required is True
+    assert optional.signal_lenses[0].required is False
+    assert "필수로 요청한" in required.signal_lenses[0].support_note

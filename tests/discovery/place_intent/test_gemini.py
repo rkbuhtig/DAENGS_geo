@@ -37,6 +37,7 @@ async def test_gemini_interactions_request_is_stateless_and_structured() -> None
         assert payload["input"] == "어디 갈까"
         assert payload["store"] is False
         assert "반려견 동반 장소 검색" in payload["system_instruction"]
+        assert "buy와 dog_toy는 둘 다 hypothetical" in payload["system_instruction"]
         output_format = payload["response_format"]
         assert output_format["type"] == "text"
         assert output_format["mime_type"] == "application/json"

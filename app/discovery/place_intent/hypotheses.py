@@ -133,6 +133,12 @@ _BLOCKING_ROLES = {
     IntentRole.REQUIRED_CONDITION,
     IntentRole.EXCLUDED,
 }
+_POSITIVE_COMPOSITION_ROLES = {
+    IntentRole.GOAL,
+    IntentRole.REQUIRED_TARGET,
+    IntentRole.REQUIRED_CONDITION,
+    IntentRole.PREFERENCE,
+}
 
 
 def _derived_target(
@@ -231,7 +237,7 @@ def _build_set(
         for item in observations
         if isinstance(item.intent, SemanticIntent)
         and item.intent.concept_id == _CHEAP_CONCEPT
-        and item.role is not IntentRole.NEGATED
+        and item.role not in {IntentRole.NEGATED, IntentRole.EXCLUDED}
     )
     if cheap:
         consumed_ids.update(item.observation_id for item in cheap)
@@ -250,23 +256,28 @@ def _build_set(
         for item in observations
         if isinstance(item.intent, ActivityIntent)
         and item.intent.activity_id is ActivityId.BUY
-        and item.role not in {IntentRole.NEGATED, IntentRole.EXCLUDED}
+        and item.role in _POSITIVE_COMPOSITION_ROLES
     )
     dog_toys = tuple(
         item
         for item in observations
         if isinstance(item.intent, ObjectIntent)
         and item.intent.object_id is SearchObjectId.DOG_TOY
-        and item.role not in {IntentRole.NEGATED, IntentRole.EXCLUDED}
+        and item.role in _POSITIVE_COMPOSITION_ROLES
     )
     composition_receipts: list[NormalizationReceipt] = []
     if buys and dog_toys:
         composition_inputs = (*buys, *dog_toys)
         consumed_ids.update(item.observation_id for item in composition_inputs)
-        if not any(
-            isinstance(item.intent, KindIntent) and item.intent.kind is PlaceKind.PET_SHOP
-            for item in targets
-        ):
+        pet_shop_target = next(
+            (
+                item
+                for item in targets
+                if isinstance(item.intent, KindIntent) and item.intent.kind is PlaceKind.PET_SHOP
+            ),
+            None,
+        )
+        if pet_shop_target is None and not targets:
             targets.append(
                 _derived_target(
                     interpretation_index,
@@ -274,18 +285,31 @@ def _build_set(
                     KindIntent(kind=PlaceKind.PET_SHOP),
                 )
             )
-        pet_shop_target = next(
-            item
-            for item in targets
-            if isinstance(item.intent, KindIntent) and item.intent.kind is PlaceKind.PET_SHOP
-        )
-        composition_receipts.append(
-            _receipt(
-                "activity.buy_dog_toy_implies_pet_shop",
-                composition_inputs,
-                pet_shop_target.observation_id,
+            pet_shop_target = targets[-1]
+        if pet_shop_target is not None:
+            composition_receipts.append(
+                _receipt(
+                    "activity.buy_dog_toy_implies_pet_shop",
+                    composition_inputs,
+                    pet_shop_target.observation_id,
+                )
             )
-        )
+        else:
+            modifiers.append(
+                SearchModifier(
+                    modifier_id="composition.buy_dog_toy",
+                    execution=ModifierExecution.RANK_ONLY_UNAVAILABLE,
+                    basis_observation_ids=tuple(item.observation_id for item in composition_inputs),
+                    required=any(item.role in _BLOCKING_ROLES for item in composition_inputs),
+                )
+            )
+            composition_receipts.append(
+                _receipt(
+                    "activity.buy_dog_toy_kept_with_target",
+                    composition_inputs,
+                    *(item.observation_id for item in targets),
+                )
+            )
 
     narrowed_targets, narrowing_receipts = _narrow_targets(targets)
     relation_receipts = (*composition_receipts, *narrowing_receipts)

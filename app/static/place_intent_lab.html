@@ -394,7 +394,11 @@ function renderSignals(lenses) {
     const box = document.createElement('div'); box.className = 'box';
     const head = document.createElement('div'); head.className = 'interpretation-head';
     const name = document.createElement('b'); name.textContent = signal.display_label;
-    head.append(name, badge(signal.availability, 'warn'));
+    head.append(
+      name,
+      badge(signal.availability, 'warn'),
+      badge(signal.required ? 'required' : 'optional', signal.required ? 'warn' : 'good'),
+    );
     const note = document.createElement('p'); note.textContent = signal.support_note;
     box.append(head, note);
     if (signal.options.length) {

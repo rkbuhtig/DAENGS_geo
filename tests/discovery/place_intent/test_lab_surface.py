@@ -21,6 +21,7 @@ def test_intent_lab_shows_model_policy_and_real_search_layers() -> None:
     assert "place.name" in HTML
     assert "preview_per_lens" in HTML
     assert "data.trace.lenses.target_lenses" in HTML
+    assert "signal.required ? 'required' : 'optional'" in HTML
     assert "실행 가능한 lens가 없어 지도에 표시할 장소가 없습니다." in HTML
 
 

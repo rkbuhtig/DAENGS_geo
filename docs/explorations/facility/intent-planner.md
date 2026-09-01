@@ -222,6 +222,8 @@ pet_shop + shopping purpose
 activity.buy + object.dog_toy
 → pet_shop 검색 가설
 → 장난감 재고가 있다는 보장은 만들지 않음
+→ 이미 장소 target이 있으면 그 target을 pet_shop으로 넓히지 않고 구매 목적 modifier로 보존
+→ hypothetical / analogy / relational 역할에서는 positive target을 만들지 않음
 
 activity.play
 → dedicated play / outdoor play / stay together의 독립 가설
@@ -233,6 +235,7 @@ semantic.quiet
 semantic.cheap
 → travel distance / pet fee / admission / product price 중
   비용 차원을 고르기 전까지 unresolved
+→ excluded / negated 역할은 positive 비용 facet으로 뒤집지 않음
 ```
 
 공통 필수조건은 각 branch 안에 복제 저장하지 않고 `common`에 한 번 보존한다. 후속 executor는
@@ -261,6 +264,10 @@ TargetSearchLens
 └─ unsupported_signals     planner issue와 미지원 modifier 영수증
 ```
 
+`SearchSignalLens.required`는 같은 modifier라도 필수 요구와 선택적 선호를 구분한다. 이를
+`deferred`라고 표시하는 것은 현재 executor가 없다는 뜻이지, 필수 요구를 선택적 선호로 낮춘다는
+뜻이 아니다.
+
 가설 target과 `common`은 반드시 `SearchHypothesisSet.planner_observations()`로 조립한 뒤
 `compile_intent_plan()`을 통과한다. 공통 hard condition이 막은 lens는 결과를 검색하지 않고
 `blocked`로 남는다. target plan이 준비됐더라도 필수 cost facet이 풀리지 않았으면
@@ -269,6 +276,9 @@ TargetSearchLens
 `semantic.quiet`는 조금 다르다. 조용함이 적용됐다고 말하지 않고 `deferred` modifier와 명시적인
 support note를 붙인 채 제품 fallback lens의 소량 결과를 먼저 보여준다. 이 결과는 조용함 순위가
 아니며, 화면에도 그 사실을 그대로 쓴다.
+
+fallback lens도 interpretation 경계를 넘지 않는다. 후보 key에 대응하는 hypothesis set의 modifier와
+facet만 연결하며, 다른 대안 해석의 필수조건 때문에 현재 후보를 막거나 설명을 바꾸지 않는다.
 
 개발 lab은 executable lens마다 PostGIS 검색을 실행하되 한 lens 전체에서 2~4곳만 round-robin으로
 남긴다. 종류가 두 개인 purpose도 한 선반을 독점하지 않으며, lens끼리 점수 하나로 섞지 않는다.
