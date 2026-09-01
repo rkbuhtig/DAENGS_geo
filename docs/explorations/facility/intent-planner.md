@@ -312,7 +312,8 @@ single-use이며 이 상태 저장은 dev lab 프로세스 안에만 존재한�
 
 개발 lab은 자동 선택과 실제 사용자 행동을 구분한다. 첫 lens를 화면에 그리는 것은 이벤트가 아니고,
 사용자가 다른 lens 탭을 누른 때만 `lens_selected`다. `처음부터 다시`를 누르면 `search_reset`이며,
-페이지 이탈이나 무응답을 취소로 추정하지 않는다. 발화를 고쳐 다시 제출한 검색은 새 attempt로 만들고
+페이지 이탈이나 무응답을 취소로 추정하지 않는다. 일반 `새 검색`은 화면에 이전 결과가 남아 있어도
+독립 attempt다. 사용자가 발화를 고친 뒤 `현재 검색 수정`을 명시적으로 눌렀을 때만 새 attempt를
 `previous_attempt_id`와 `search_revised`로 앞 시도에 연결한다.
 
 blocking `cost.dimension` 중 현재 실행 가능한 선택은 `cost.travel_distance` 하나다. 사용자가
