@@ -15,7 +15,13 @@ from app.features.territory.paint import NARROW_STEP, Cellophane, paint_sheet, p
 from app.features.walk.facts import ComputedFacts, compute_facts
 from scripts.sim.walk.kinematics import integrate_motion
 from scripts.sim.walk.population_truth import PopulationTruth
-from scripts.sim.walk.sensor import ObservedWalk, PerfectSensor, observe_perfectly
+from scripts.sim.walk.sensor import (
+    NoisySensor,
+    ObservedWalk,
+    PerfectSensor,
+    observe_noisily,
+    observe_perfectly,
+)
 
 DEFAULT_POPULATION_ORIGIN = (37.4979, 127.0276)
 
@@ -65,6 +71,24 @@ def observe_population(
 ) -> PopulationObservation:
     """truth를 생성 입력으로만 사용하고 결과에서는 evaluator-only label을 제거한다."""
     sensor = PerfectSensor(sample_interval_s=sample_interval_s, accuracy_m=3.0)
+    return observe_population_with_sensor(
+        truth,
+        sensor=sensor,
+        radius_u=radius_u,
+        origin_lat=origin_lat,
+        origin_lng=origin_lng,
+    )
+
+
+def observe_population_with_sensor(
+    truth: PopulationTruth,
+    *,
+    sensor: PerfectSensor | NoisySensor,
+    radius_u: float = 8.0,
+    origin_lat: float = DEFAULT_POPULATION_ORIGIN[0],
+    origin_lng: float = DEFAULT_POPULATION_ORIGIN[1],
+) -> PopulationObservation:
+    """같은 latent population을 명시한 센서로 관측해 paired evaluator 입력을 만든다."""
     paint = paint_spec(radius_u, NARROW_STEP)
     dog_id = "simulated-population-dog"
     signature = {
@@ -82,7 +106,8 @@ def observe_population(
     for planted in truth.walks:
         session_id = f"cellophane-pop-v{truth.generator_version}-{run_id}-{planted.walk_id}"
         motion = integrate_motion(planted.behavior, planted.route)
-        observed = observe_perfectly(
+        observer = observe_noisily if isinstance(sensor, NoisySensor) else observe_perfectly
+        observed = observer(
             motion,
             sensor,
             session_id=session_id,

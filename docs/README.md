@@ -72,6 +72,7 @@ backlog.md           갈래에 안 붙는 미결
 - [Cellophane GeoJSON](contracts/cellophane-geojson.md) — chain별 선·서버 육각형·Paint v2 질량 진단
 - [연속 원 field와 Hex 비교](research/2026-08-31-continuous-hex-comparison.md) — 30회 산책의 4·8·12u 왜곡·질량 영역·수집 간격 측정
 - [Hex Cellophane의 보수적 연속 Field 복원](research/2026-09-01-conservative-hex-reconstruction.md) — 저장 계약을 바꾸지 않는 A/B/C 복원·누출·양방향 질량 비교
+- [GPS 오염에서 Cellophane과 복원 Field](research/2026-09-01-sensor-robustness.md) — dropout·outlier·drift·accuracy를 수집→canonical→Cellophane→Field 단계별로 분리한 paired 평가
 
 ## 조사
 
