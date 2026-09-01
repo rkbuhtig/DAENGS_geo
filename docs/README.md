@@ -64,6 +64,7 @@ backlog.md           갈래에 안 붙는 미결
 - [결정 #69 — 원좌표 purge 뒤 남기는 공간 형태](decisions/2026-08-26-walk-permanent-spatial-form.md) — 집계 셀 맵 하나. 궤적은 안 남긴다. #57 의 네 번째 층이고 민감도는 장 수가 만든다
 - [결정 #71 — 병원은 Place로 찾되 UI에서는 바로 진입](decisions/2026-08-27-hospital-place-entry.md) — 병원 바로가기와 전용 action은 유지하고 검색 identity·순위는 canonical Place로 통일
 - [결정 #74 — Capsule에서 공간 일기로](decisions/2026-09-01-spatial-diary.md) — 산책 증거를 봉인하고 실제 Offer·증언·Pin을 분리해 조건별 공간 일기로 다시 읽는다
+- [결정 #75 — Capsule finalize](decisions/2026-09-01-walk-capsule-finalize.md) — 8u Cellophane·원시 영수증·문맥·manifest를 한 트랜잭션으로 봉인한 뒤 raw fix를 지운다
 
 ## 계약
 - [반려견 프로필](contracts/dog-profile.md) — 외부에서 받는 형태 + 가상 페르소나 8마리 (축: 지도 위 난점)

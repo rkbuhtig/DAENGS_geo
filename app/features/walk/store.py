@@ -1,8 +1,8 @@
 """산책 세션 저장. 원칙 하나: **fix 는 파생 사실이 확정될 때까지만 있다.**
 
-finish가 SEALED → DERIVED → PURGED를 같은 트랜잭션에서 통과한다. 공간 정지 이벤트를
-포함한 파생 사실이 먼저고 삭제가 마지막이다. 궤적 영구 보관은 프라이버시 정책이
-서기 전까지 하지 않는다 (008_walk_collection_hardening.sql).
+finish가 SEALED → DERIVED → PURGED를 같은 트랜잭션에서 통과한다. 파생 사실과 Walk
+Capsule을 먼저 봉인하고 원좌표 삭제가 마지막이다. 궤적 자체는 영구 보관하지 않는다
+(008_walk_collection_hardening.sql, Decision #75).
 """
 
 import json
@@ -12,6 +12,13 @@ from dataclasses import dataclass
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.features.spatial_diary.contract import (
+    MeasurementReceipt,
+    ObservationCapability,
+    TrailContextSnapshot,
+    WalkCapsuleManifest,
+)
+from app.features.walk.capsule import CapsuleArtifacts
 from app.features.walk.curve import CURVE_VERSION, CurveBucket
 from app.features.walk.encounter import FacilityCandidate
 from app.features.walk.facts import FixQuality
@@ -27,6 +34,7 @@ from app.features.walk.observation import (
     MicroObservation,
     MovingSpeedProfile,
 )
+from app.features.walk.paint import Cellophane
 
 
 class WalkSessionNotFoundError(Exception):
@@ -229,8 +237,12 @@ async def finalize(
     curve: list[CurveBucket] | None = None,
     observations: list[MicroObservation] = (),
     speed_profile: MovingSpeedProfile | None = None,
+    *,
+    capsule: CapsuleArtifacts,
 ) -> None:
-    """SEALED → DERIVED → PURGED. 파생 사실을 쓴 뒤에만 원좌표를 지운다."""
+    """SEALED → DERIVED → CAPSULE MANIFEST → PURGED를 한 트랜잭션에서 수행한다."""
+    if capsule.manifest.session_id != facts.session_id:
+        raise ValueError("capsule and walk facts must belong to one session")
     await db.execute(text("""
         UPDATE walk_session SET state = 'sealed', ended_at = :ended_at, updated_at = now()
         WHERE id = :id
@@ -301,6 +313,9 @@ async def finalize(
                     :stop_overlap_10m, :stop_overlap_15m, :stop_overlap_20m, :stop_s_10m,
                     :accuracy_p50_m)
         """), [e.model_dump() for e in encounters])
+    # manifest는 payload bundle이 아니라 아래 자식들이 모두 쓰였다는 마지막 seal이다.
+    # 이 함수가 예외로 끝나면 호출자가 commit하지 못하므로 raw fix 삭제까지 전부 rollback된다.
+    await _write_capsule(db, capsule)
     await db.execute(text("""
         UPDATE walk_session SET state = 'derived', updated_at = now() WHERE id = :id
     """), {"id": facts.session_id})
@@ -309,6 +324,178 @@ async def finalize(
     await db.execute(text("""
         UPDATE walk_session SET state = 'purged', updated_at = now() WHERE id = :id
     """), {"id": facts.session_id})
+
+
+async def _write_capsule(db: AsyncSession, capsule: CapsuleArtifacts) -> None:
+    sheet = capsule.cellophane
+    await db.execute(text("""
+        INSERT INTO walk_cellophane_sheet
+            (session_id, paint_version, grid_version, radius_u, profile_name,
+             profile_fp, sample_step_m, paint_fp)
+        VALUES (:session_id, :paint_version, :grid_version, :radius_u, :profile_name,
+                :profile_fp, :sample_step_m, :paint_fp)
+    """), {
+        "session_id": sheet.walk_id,
+        "paint_version": sheet.paint_version,
+        "grid_version": sheet.grid_version,
+        "radius_u": sheet.radius_u,
+        "profile_name": sheet.profile,
+        "profile_fp": sheet.profile_fp,
+        "sample_step_m": sheet.sample_step_m,
+        "paint_fp": sheet.paint_fp,
+    })
+    if sheet.occupancy:
+        await db.execute(text("""
+            INSERT INTO walk_cellophane_cell (session_id, q, r, occupancy_s, peak)
+            VALUES (:session_id, :q, :r, :occupancy_s, :peak)
+        """), [
+            {
+                "session_id": sheet.walk_id,
+                "q": q,
+                "r": r,
+                "occupancy_s": occupancy_s,
+                "peak": sheet.peak[(q, r)],
+            }
+            for (q, r), occupancy_s in sorted(sheet.occupancy.items())
+        ])
+
+    receipt = capsule.measurement_receipt.model_dump()
+    await db.execute(text("""
+        INSERT INTO walk_measurement_receipt
+            (session_id, receipt_version, evidence_origin,
+             received_fix_count, accepted_fix_count,
+             rejected_low_accuracy_count, rejected_out_of_order_count,
+             rejected_before_start_count, rejected_after_end_count,
+             unknown_accuracy_count, jump_break_count, gap_break_count,
+             explicit_break_count, dropped_at_capacity_count, mock_fix_count,
+             session_wall_time_s, canonical_segment_time_s, gap_elapsed_s,
+             reported_accuracy_count, reported_accuracy_p50_m, reported_accuracy_p90_m,
+             accepted_accuracy_count, accepted_accuracy_p50_m, accepted_accuracy_p90_m,
+             drift_assessment, drift_assessment_method)
+        VALUES
+            (:session_id, :receipt_version, :evidence_origin,
+             :received_fix_count, :accepted_fix_count,
+             :rejected_low_accuracy_count, :rejected_out_of_order_count,
+             :rejected_before_start_count, :rejected_after_end_count,
+             :unknown_accuracy_count, :jump_break_count, :gap_break_count,
+             :explicit_break_count, :dropped_at_capacity_count, :mock_fix_count,
+             :session_wall_time_s, :canonical_segment_time_s, :gap_elapsed_s,
+             :reported_accuracy_count, :reported_accuracy_p50_m, :reported_accuracy_p90_m,
+             :accepted_accuracy_count, :accepted_accuracy_p50_m, :accepted_accuracy_p90_m,
+             :drift_assessment, :drift_assessment_method)
+    """), receipt)
+
+    context = capsule.trail_context.model_dump()
+    await db.execute(text("""
+        INSERT INTO walk_trail_context
+            (session_id, context_version, status, walked_at, source_observed_at, captured_at,
+             provider, precipitation_mm, temperature_c, humidity_pct, sun_elevation_deg,
+             failure_reason)
+        VALUES
+            (:session_id, :context_version, :status, :walked_at, :source_observed_at, :captured_at,
+             :provider, :precipitation_mm, :temperature_c, :humidity_pct, :sun_elevation_deg,
+             :failure_reason)
+    """), context)
+
+    await _write_capsule_manifest(db, capsule.manifest)
+
+
+async def _write_capsule_manifest(
+    db: AsyncSession, manifest: WalkCapsuleManifest
+) -> None:
+    """필수 자식이 모두 성공한 뒤 호출되는 마지막 seal 지점."""
+
+    await db.execute(text("""
+        INSERT INTO walk_capsule_manifest
+            (session_id, capsule_version, dog_id, walk_record_version,
+             walk_calculation_version, capabilities, sealed_at)
+        VALUES
+            (:session_id, :capsule_version, :dog_id, :walk_record_version,
+             :walk_calculation_version, CAST(:capabilities AS jsonb), :sealed_at)
+    """), {
+        **manifest.model_dump(exclude={"capabilities"}),
+        "capabilities": json.dumps(
+            [capability.model_dump() for capability in manifest.capabilities]
+        ),
+    })
+
+
+async def get_capsule_manifest(
+    db: AsyncSession, session_id: str
+) -> WalkCapsuleManifest | None:
+    row = (await db.execute(text("""
+        SELECT session_id, capsule_version, dog_id, walk_record_version,
+               walk_calculation_version, capabilities, sealed_at
+        FROM walk_capsule_manifest WHERE session_id = :id
+    """), {"id": session_id})).one_or_none()
+    if row is None:
+        return None
+    data = dict(row._mapping)
+    data["capabilities"] = tuple(
+        ObservationCapability(**item) for item in data["capabilities"]
+    )
+    return WalkCapsuleManifest(**data)
+
+
+async def get_measurement_receipt(
+    db: AsyncSession, session_id: str
+) -> MeasurementReceipt | None:
+    row = (await db.execute(text("""
+        SELECT session_id, receipt_version, evidence_origin,
+               received_fix_count, accepted_fix_count,
+               rejected_low_accuracy_count, rejected_out_of_order_count,
+               rejected_before_start_count, rejected_after_end_count,
+               unknown_accuracy_count, jump_break_count, gap_break_count,
+               explicit_break_count, dropped_at_capacity_count, mock_fix_count,
+               session_wall_time_s, canonical_segment_time_s, gap_elapsed_s,
+               reported_accuracy_count, reported_accuracy_p50_m, reported_accuracy_p90_m,
+               accepted_accuracy_count, accepted_accuracy_p50_m, accepted_accuracy_p90_m,
+               drift_assessment, drift_assessment_method
+        FROM walk_measurement_receipt WHERE session_id = :id
+    """), {"id": session_id})).one_or_none()
+    return MeasurementReceipt(**dict(row._mapping)) if row is not None else None
+
+
+async def get_trail_context(
+    db: AsyncSession, session_id: str
+) -> TrailContextSnapshot | None:
+    row = (await db.execute(text("""
+        SELECT session_id, context_version, status, walked_at, source_observed_at, captured_at,
+               provider, precipitation_mm, temperature_c, humidity_pct, sun_elevation_deg,
+               failure_reason
+        FROM walk_trail_context WHERE session_id = :id
+    """), {"id": session_id})).one_or_none()
+    return TrailContextSnapshot(**dict(row._mapping)) if row is not None else None
+
+
+async def get_cellophane(db: AsyncSession, session_id: str) -> Cellophane | None:
+    row = (await db.execute(text("""
+        SELECT sheet.session_id, session.started_at, sheet.paint_version,
+               sheet.grid_version, sheet.radius_u, sheet.profile_name,
+               sheet.profile_fp, sheet.sample_step_m, sheet.paint_fp
+        FROM walk_cellophane_sheet sheet
+        JOIN walk_session session ON session.id = sheet.session_id
+        WHERE sheet.session_id = :id
+    """), {"id": session_id})).one_or_none()
+    if row is None:
+        return None
+    cells = (await db.execute(text("""
+        SELECT q, r, occupancy_s, peak
+        FROM walk_cellophane_cell WHERE session_id = :id ORDER BY q, r
+    """), {"id": session_id})).all()
+    return Cellophane(
+        walk_id=row.session_id,
+        at=row.started_at,
+        radius_u=float(row.radius_u),
+        profile=row.profile_name,
+        occupancy={(cell.q, cell.r): float(cell.occupancy_s) for cell in cells},
+        peak={(cell.q, cell.r): float(cell.peak) for cell in cells},
+        paint_version=row.paint_version,
+        grid_version=row.grid_version,
+        profile_fp=row.profile_fp,
+        sample_step_m=float(row.sample_step_m),
+        paint_fp=row.paint_fp,
+    )
 
 
 async def get_facts(db: AsyncSession, session_id: str) -> tuple[WalkFacts, dict] | None:

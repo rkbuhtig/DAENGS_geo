@@ -95,8 +95,10 @@ def test_walk_package_has_no_judgment_modules():
     # curve: 진행 구간별 이동·정지 시간. 숫자만 내고 "지쳤다" 같은 해석은 소비자 몫이다.
     # observation: 정지 **판정 이전**의 후보 구간. 문턱을 다시 고를 재료를 남길 뿐,
     #   "체류였나" 는 안 묻는다 — 판정이 늘어난 것이 아니라 판정이 미뤄진 것이다.
+    # capsule·paint: raw fix purge 전에 불변 공간 사실을 동결한다. 사용자 의미·평가·문장은
+    #   만들지 않고 downstream spatial_diary/territory가 읽을 재료만 생산한다 (결정 #75).
     assert names <= {"api", "facts", "store", "encounter", "curve",
-                     "observation"}, f"예상 밖 모듈: {names}"
+                     "observation", "capsule", "paint"}, f"예상 밖 모듈: {names}"
 
 
 # ------------------------------------------------------------------ 계약 검증

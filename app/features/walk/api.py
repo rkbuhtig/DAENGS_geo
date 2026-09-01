@@ -18,6 +18,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_session
 from app.features.walk import store
+from app.features.walk.capsule import (
+    TrailContextProvider,
+    UnknownTrailContextProvider,
+    build_capsule_artifacts,
+    capture_trail_context,
+    trail_context_request,
+    utc_now,
+)
 from app.features.walk.curve import compute_curve
 from app.features.walk.encounter import compute_encounters
 from app.features.walk.facts import compute_facts
@@ -31,6 +39,13 @@ from app.features.walk.models import (
 from app.features.walk.observation import extract_observations, moving_speed_profile
 
 router = APIRouter(prefix="/walk", tags=["walk"])
+_UNKNOWN_TRAIL_CONTEXT = UnknownTrailContextProvider()
+
+
+def get_trail_context_provider() -> TrailContextProvider:
+    """제품 조립 전 기본은 unknown. 실제 provider는 앱 dependency override로 한 곳에서 붙인다."""
+
+    return _UNKNOWN_TRAIL_CONTEXT
 
 
 class StartIn(BaseModel):
@@ -132,7 +147,10 @@ async def upload_fixes(
 
 @router.post("/sessions/{session_id}/finish", response_model=FinishOut)
 async def finish_session(
-    session_id: str, body: FinishIn, db: Annotated[AsyncSession, Depends(get_session)]
+    session_id: str,
+    body: FinishIn,
+    db: Annotated[AsyncSession, Depends(get_session)],
+    context_provider: Annotated[TrailContextProvider, Depends(get_trail_context_provider)],
 ) -> FinishOut:
     s = await store.lock_session(db, session_id)
     if s is None:
@@ -158,9 +176,13 @@ async def finish_session(
     # 미시 관측도 같은 이유로 지금이다. 정지 판정(events)보다 후하게 잡은 후보 구간이라,
     # 문턱을 다시 고를 때 재계산할 재료가 여기 남는다 (observation.py).
     observations = extract_observations(s.id, computed.segments, computed.gaps)
+    context_request = trail_context_request(computed)
+    context = await capture_trail_context(context_provider, context_request, utc_now())
+    capsule = build_capsule_artifacts(computed, fixes, context, utc_now())
     await store.finalize(
         db, computed.facts, computed.quality, computed.events, encounters, curve,
         observations, moving_speed_profile(computed.segments),
+        capsule=capsule,
     )
     await db.commit()
     return FinishOut(facts=computed.facts, quality=computed.quality.to_dict(),

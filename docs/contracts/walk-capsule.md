@@ -38,6 +38,11 @@ Observation capabilities
 필수 자식 저장과 manifest 생성, raw fix purge는 후속 저장 구현에서 하나의 멱등 트랜잭션이 된다.
 manifest가 있으면 같은 finish 요청은 파생을 다시 계산하지 않고 봉인된 결과를 반환해야 한다.
 
+첫 저장 구현은 [결정 #75](../decisions/2026-09-01-walk-capsule-finalize.md)에 따라
+`paint-v2 · hex-v1 · 8u · NARROW_STEP · 1.5m sample step`을 사용한다. 셀 payload는
+`walk_cellophane_cell` 행으로 분리하고, receipt·context·manifest와 함께 session cascade를 탄다.
+manifest가 마지막에 성공한 뒤에만 raw fix를 purge한다.
+
 ## 시간 영수증
 
 v1은 다음 시간을 분리한다.
@@ -77,6 +82,10 @@ raw context atoms
 `unknown`은 성공적인 빈 값이다. `failed`는 시도 실패라 failure reason을 가진다. 둘 다 dry나
 clear로 해석하지 않는다. Event Context는 Capsule 필수 자식이 아니며 Pin 승격 뒤 append-only
 snapshot으로 붙는다.
+
+현재 기본 provider는 `unknown`을 반환한다. 실제 provider 예외와 다른 session의 응답은
+`failed + provider_error:<ExceptionType>`으로 정규화하며 외부 예외 원문은 저장하지 않는다.
+문맥 실패는 Capsule seal과 purge를 막지 않는다.
 
 ## Capability
 

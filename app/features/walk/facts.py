@@ -92,6 +92,9 @@ class ComputedFacts:
     events: list[MotionEventOccurrence] = field(default_factory=list)
     segments: list[Segment] = field(default_factory=list)
     gaps: list[GapSpan] = field(default_factory=list)
+    # 영구 저장하지 않는 finalize 중간값. MeasurementReceipt의 accepted accuracy 분포를
+    # 원좌표 purge 전에 계산하려면 "수용된 fix" 집합을 다시 추측하지 않고 그대로 넘겨야 한다.
+    accepted_fixes: list[WalkFix] = field(default_factory=list)
 
 
 def haversine_m(a: WalkFix, b: WalkFix) -> float:
@@ -127,6 +130,7 @@ def compute_facts(
     events: list[MotionEventOccurrence] = []
     segments: list[Segment] = []
     gaps: list[GapSpan] = []
+    accepted_fixes: list[WalkFix] = []
     chain_index = 0
 
     def break_chain() -> None:
@@ -183,6 +187,7 @@ def compute_facts(
             prev = None                  # 거부 지점 양쪽을 가상의 직선으로 잇지 않는다
             continue
         q.accepted += 1
+        accepted_fixes.append(cur)
         if prev is None:
             prev = cur
             continue
@@ -254,5 +259,11 @@ def compute_facts(
         avg_speed_mps=round(moving_distance / moving_s, 3) if moving_s > 0 else None,
         fix_count=q.accepted,
     )
-    return ComputedFacts(facts=facts, quality=q, events=events, segments=segments,
-                         gaps=gaps)
+    return ComputedFacts(
+        facts=facts,
+        quality=q,
+        events=events,
+        segments=segments,
+        gaps=gaps,
+        accepted_fixes=accepted_fixes,
+    )

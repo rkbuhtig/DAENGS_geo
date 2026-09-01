@@ -17,6 +17,7 @@ from app.features.walk.observation import (
     moving_speed_profile,
 )
 from tests.conftest import WALK_T0, db_session, walk_fix
+from tests.walk.capsule_helpers import capsule_for
 
 SID = "test:walk:observation"
 
@@ -48,6 +49,7 @@ async def test_observations_outlive_the_purge():
             await store.finalize(
                 db, computed.facts, computed.quality, computed.events, (), None,
                 observations, profile,
+                capsule=capsule_for(computed, loaded),
             )
             await db.commit()
 
@@ -98,6 +100,7 @@ async def test_deleting_a_session_takes_its_observations():
                 db, computed.facts, computed.quality, computed.events, (), None,
                 extract_observations(SID, computed.segments, computed.gaps),
                 moving_speed_profile(computed.segments),
+                capsule=capsule_for(computed, loaded),
             )
             await db.commit()
             assert await store.get_observations(db, SID)
