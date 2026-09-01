@@ -46,6 +46,10 @@ class SpatialDiaryEpisodeConflictError(RuntimeError):
     pass
 
 
+class SpatialDiaryEpisodeConcurrentWriteError(SpatialDiaryEpisodeConflictError):
+    """새 snapshot에서 한 번 재시도하면 멱등 여부를 판별할 수 있는 쓰기 경쟁."""
+
+
 class SpatialDiaryEpisodeIntegrityError(RuntimeError):
     pass
 
@@ -519,6 +523,7 @@ def _attestation_from_row(row) -> WalkAttestation:
         session_id=row.session_id,
         elicitation_mode=row.elicitation_mode,
         offer_id=row.offer_id,
+        pin_id=row.pin_id,
         review_disposition=row.review_disposition,
         claims=tuple(AttestedClaim(**item) for item in row.claims),
         memory_action=row.memory_action,
@@ -833,6 +838,7 @@ async def correct_pin_attestation(
         session_id=pin.session_id,
         elicitation_mode=ElicitationMode.PIN_CORRECTION,
         offer_id=None,
+        pin_id=pin_id,
         review_disposition=review_disposition,
         claims=claims,
         memory_action=MemoryAction.SAVE,
@@ -851,12 +857,12 @@ async def correct_pin_attestation(
         ON CONFLICT DO NOTHING
         RETURNING attestation_id
     """), {
-        **correction.model_dump(exclude={"claims"}),
+        **correction.model_dump(exclude={"claims", "pin_id"}),
         "claims": json.dumps([claim.model_dump(mode="json") for claim in claims]),
         "pin_id": pin_id,
     })
     if inserted.scalar_one_or_none() is None:
-        raise SpatialDiaryEpisodeConflictError("correction changed concurrently")
+        raise SpatialDiaryEpisodeConcurrentWriteError("correction changed concurrently")
     return correction
 
 
@@ -886,7 +892,8 @@ async def load_pin_entries(
                attestation.offer_id, attestation.elicitation_mode,
                attestation.review_disposition, attestation.claims,
                attestation.memory_action, attestation.attested_at,
-               attestation.supersedes_attestation_id
+               attestation.supersedes_attestation_id,
+               attestation.pin_id AS attestation_pin_id
         FROM spatial_diary_episode_pin pin
         JOIN LATERAL (
             WITH RECURSIVE chain AS (
@@ -929,6 +936,7 @@ async def load_pin_entries(
             session_id=row.session_id,
             elicitation_mode=row.elicitation_mode,
             offer_id=row.offer_id,
+            pin_id=row.attestation_pin_id,
             review_disposition=row.review_disposition,
             claims=tuple(AttestedClaim(**item) for item in row.claims),
             memory_action=row.memory_action,

@@ -53,8 +53,9 @@ def upgrade() -> None:
         sa.text(
             "(elicitation_mode = 'pin_correction') = "
             "(supersedes_attestation_id IS NOT NULL) "
+            "AND (elicitation_mode = 'pin_correction') = (pin_id IS NOT NULL) "
             "AND (elicitation_mode <> 'pin_correction' OR "
-            "(pin_id IS NOT NULL AND offer_id IS NULL AND memory_action = 'save'))"
+            "(offer_id IS NULL AND memory_action = 'save'))"
         ),
     )
     op.create_unique_constraint(

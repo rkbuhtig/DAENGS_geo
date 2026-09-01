@@ -4,6 +4,7 @@ from typing import Annotated, Literal, NoReturn
 
 from fastapi import APIRouter, Depends, HTTPException, Path
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_session
@@ -30,6 +31,7 @@ from app.features.spatial_diary.episode import (
     CANDIDATE_POLICY_VERSION,
     AttestationResult,
     OfferReviewState,
+    SpatialDiaryEpisodeConcurrentWriteError,
     SpatialDiaryEpisodeConflictError,
     SpatialDiaryEpisodeIntegrityError,
     SpatialDiaryEpisodeNotFoundError,
@@ -217,6 +219,13 @@ def _raise_episode_http(exc: Exception) -> NoReturn:
     if isinstance(exc, SpatialDiaryTransactionError):
         raise HTTPException(500, "spatial diary snapshot could not be opened") from exc
     raise exc
+
+
+def _is_serialization_failure(exc: DBAPIError) -> bool:
+    return (
+        getattr(exc.orig, "sqlstate", None) == "40001"
+        or getattr(exc.orig, "pgcode", None) == "40001"
+    )
 
 
 async def _authorize_capsule(
@@ -488,20 +497,32 @@ async def put_pin_attestation_correction(
     db: Annotated[AsyncSession, Depends(get_session)],
     principal: Annotated[SpatialDiaryPrincipal, Depends(get_spatial_diary_principal)],
 ) -> WalkAttestation:
-    await _authorize_pin(db, principal, pin_id)
-    try:
-        correction = await correct_pin_attestation(
-            db,
-            pin_id=pin_id,
-            attestation_id=attestation_id,
-            supersedes_attestation_id=body.supersedes_attestation_id,
-            review_disposition=body.review_disposition,
-            claims=body.claims,
-        )
-        await db.commit()
-        return correction
-    except _EPISODE_ERRORS as exc:
-        _raise_episode_http(exc)
+    for attempt in range(2):
+        try:
+            await _authorize_pin(db, principal, pin_id)
+            correction = await correct_pin_attestation(
+                db,
+                pin_id=pin_id,
+                attestation_id=attestation_id,
+                supersedes_attestation_id=body.supersedes_attestation_id,
+                review_disposition=body.review_disposition,
+                claims=body.claims,
+            )
+            await db.commit()
+            return correction
+        except SpatialDiaryEpisodeConcurrentWriteError as exc:
+            await db.rollback()
+            if attempt == 0:
+                continue
+            _raise_episode_http(exc)
+        except DBAPIError as exc:
+            await db.rollback()
+            if attempt == 0 and _is_serialization_failure(exc):
+                continue
+            raise
+        except _EPISODE_ERRORS as exc:
+            _raise_episode_http(exc)
+    raise AssertionError("pin correction retry loop must return or raise")
 
 
 @router.get(

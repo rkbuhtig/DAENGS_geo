@@ -426,6 +426,7 @@ class WalkAttestation(FrozenContract):
     session_id: str = Field(min_length=1, max_length=128)
     elicitation_mode: ElicitationMode
     offer_id: str | None = Field(default=None, min_length=1, max_length=128)
+    pin_id: str | None = Field(default=None, min_length=1, max_length=128)
     review_disposition: ReviewDisposition
     claims: tuple[AttestedClaim, ...] = ()
     memory_action: MemoryAction
@@ -442,6 +443,8 @@ class WalkAttestation(FrozenContract):
         correction = self.elicitation_mode is ElicitationMode.PIN_CORRECTION
         if correction != (self.supersedes_attestation_id is not None):
             raise ValueError("only pin corrections supersede an attestation")
+        if correction != (self.pin_id is not None):
+            raise ValueError("only pin corrections reference their stable pin")
         if correction and self.memory_action is not MemoryAction.SAVE:
             raise ValueError("pin correction keeps the existing memory saved")
         if self.review_disposition is ReviewDisposition.CONFIRMED and not self.claims:
@@ -815,11 +818,11 @@ class MemoryPlaceTimelineEntry(FrozenContract):
     def pin_and_attestation_match(self) -> "MemoryPlaceTimelineEntry":
         if self.pin.session_id != self.attestation.session_id:
             raise ValueError("timeline pin and attestation must belong to the same walk")
-        if (
-            self.pin.created_by_attestation_id != self.attestation.attestation_id
-            and self.attestation.elicitation_mode is not ElicitationMode.PIN_CORRECTION
-        ):
-            raise ValueError("timeline must use the creating or an effective correction attestation")
+        if self.attestation.elicitation_mode is ElicitationMode.PIN_CORRECTION:
+            if self.attestation.pin_id != self.pin.pin_id:
+                raise ValueError("timeline correction must belong to its pin")
+        elif self.pin.created_by_attestation_id != self.attestation.attestation_id:
+            raise ValueError("timeline must use the pin's creating attestation")
         return self
 
 
@@ -914,11 +917,11 @@ class WalkJournalEntry(FrozenContract):
     def entry_matches_source(self) -> "WalkJournalEntry":
         if self.pin.session_id != self.attestation.session_id:
             raise ValueError("journal pin and attestation must belong to one walk")
-        if (
-            self.pin.created_by_attestation_id != self.attestation.attestation_id
-            and self.attestation.elicitation_mode is not ElicitationMode.PIN_CORRECTION
-        ):
-            raise ValueError("journal must use the creating or an effective correction attestation")
+        if self.attestation.elicitation_mode is ElicitationMode.PIN_CORRECTION:
+            if self.attestation.pin_id != self.pin.pin_id:
+                raise ValueError("journal correction must belong to its pin")
+        elif self.pin.created_by_attestation_id != self.attestation.attestation_id:
+            raise ValueError("journal must use the pin's creating attestation")
         return self
 
 

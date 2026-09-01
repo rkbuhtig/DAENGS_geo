@@ -1,5 +1,6 @@
 """low-motion Candidate가 실제 제시·증언·Pin·지도 overlay로 이어지는 PR4 수직 테스트."""
 
+import asyncio
 from datetime import timedelta
 
 import pytest
@@ -364,6 +365,7 @@ async def test_pin_attestation_correction_preserves_history_and_updates_read_mod
             assert same == correction
             assert correction.elicitation_mode is ElicitationMode.PIN_CORRECTION
             assert correction.offer_id is None
+            assert correction.pin_id == "pin-correction"
             await db.rollback()
 
             history = await list_pin_attestations(db, "pin-correction")
@@ -461,6 +463,96 @@ async def test_pin_attestation_correction_preserves_history_and_updates_read_mod
             assert remaining == ["attestation-correction-origin"]
         finally:
             await _cleanup(db)
+
+
+async def test_concurrent_identical_pin_corrections_are_idempotent():
+    async with db_session() as setup:
+        await _cleanup(setup)
+        await _seal_walk(setup)
+        candidate = (await list_episode_candidates(setup, SESSION_ID))[0].candidate
+        offer = await put_episode_offer(
+            setup,
+            offer_id="offer-concurrent-correction",
+            session_id=SESSION_ID,
+            source_observation_id=candidate.source_observation_ids[0],
+            candidate_policy_version=1,
+        )
+        initial = await attest_episode_offer(
+            setup,
+            offer_id=offer.offer_id,
+            attestation_id="attestation-concurrent-origin",
+            review_disposition=ReviewDisposition.CONFIRMED,
+            claims=(
+                AttestedClaim(
+                    subject_role=SubjectRole.DOG,
+                    meaning_code="exploration",
+                    vocabulary_version=1,
+                ),
+            ),
+            memory_action=MemoryAction.SAVE,
+            pin_id="pin-concurrent-correction",
+        )
+        await setup.commit()
+
+    try:
+        body = PutPinAttestationCorrectionIn(
+            supersedes_attestation_id=initial.attestation.attestation_id,
+            review_disposition=ReviewDisposition.CONFIRMED,
+            claims=(
+                AttestedClaim(
+                    subject_role=SubjectRole.OWNER,
+                    meaning_code="owner_pause",
+                    vocabulary_version=1,
+                ),
+            ),
+        )
+        async with (
+            db_session() as blocker,
+            db_session() as first,
+            db_session() as second,
+        ):
+            await blocker.execute(text("""
+                SELECT pin_id
+                FROM spatial_diary_episode_pin
+                WHERE pin_id = 'pin-concurrent-correction'
+                FOR UPDATE
+            """))
+            first_request = asyncio.create_task(
+                put_pin_attestation_correction(
+                    "pin-concurrent-correction",
+                    "attestation-concurrent-correction",
+                    body,
+                    first,
+                    PRINCIPAL,
+                )
+            )
+            second_request = asyncio.create_task(
+                put_pin_attestation_correction(
+                    "pin-concurrent-correction",
+                    "attestation-concurrent-correction",
+                    body,
+                    second,
+                    PRINCIPAL,
+                )
+            )
+            await asyncio.sleep(0.1)
+            await blocker.commit()
+            first_result, second_result = await asyncio.gather(
+                first_request,
+                second_request,
+            )
+
+        assert first_result == second_result
+        assert first_result.pin_id == "pin-concurrent-correction"
+        async with db_session() as verify:
+            history = await list_pin_attestations(verify, "pin-concurrent-correction")
+            assert tuple(item.attestation_id for item in history) == (
+                "attestation-concurrent-origin",
+                "attestation-concurrent-correction",
+            )
+    finally:
+        async with db_session() as cleanup:
+            await _cleanup(cleanup)
 
 
 async def test_dismissed_offer_has_no_attestation_and_session_delete_cascades_memory():
@@ -670,7 +762,7 @@ async def test_published_journal_snapshot_is_private_immutable_and_cascades_with
                 source_observation_id=candidate.source_observation_ids[0],
                 candidate_policy_version=1,
             )
-            await attest_episode_offer(
+            initial = await attest_episode_offer(
                 db,
                 offer_id=offer.offer_id,
                 attestation_id="attestation-published-journal",
@@ -714,6 +806,26 @@ async def test_published_journal_snapshot_is_private_immutable_and_cascades_with
             assert same == snapshot
             assert await get_published_journal_snapshot(db, snapshot.snapshot_id) == snapshot
             assert await list_published_journal_snapshots(db, SESSION_ID) == (snapshot,)
+            await db.rollback()
+
+            correction = await correct_pin_attestation(
+                db,
+                pin_id="pin-published-journal",
+                attestation_id="attestation-published-journal-correction",
+                supersedes_attestation_id=initial.attestation.attestation_id,
+                review_disposition=ReviewDisposition.CONFIRMED,
+                claims=(
+                    AttestedClaim(
+                        subject_role=SubjectRole.OWNER,
+                        meaning_code="owner_pause",
+                        vocabulary_version=1,
+                    ),
+                ),
+            )
+            await db.commit()
+            current_journal = await query_walk_journal(db, SESSION_ID)
+            assert current_journal.entries[0].attestation == correction
+            assert await get_published_journal_snapshot(db, snapshot.snapshot_id) == snapshot
             await db.rollback()
 
             with pytest.raises(

@@ -46,7 +46,8 @@ Projection과 자동 문장은 저장하지 않는다. 같은 원판도 narratio
 
 Episode Pin에 append-only Attestation correction이 있으면 Entry와 narration은 현재 correction
 head를 사용한다. Pin의 `created_by_attestation_id`와 최초 Offer 응답은 바뀌지 않으며 전체 정정
-이력은 [별도 계약](pin-attestation-correction.md)으로 읽는다.
+이력은 [별도 계약](pin-attestation-correction.md)으로 읽는다. 이것은 매번 재생성하는 Projection의
+규칙이며, 이미 사용자가 확정한 `PublishedJournalSnapshot`을 소급해서 다시 쓰는 규칙이 아니다.
 
 조회는 인증 principal이 소유한 Capsule만 한 repeatable-read snapshot에서 조립한다. 봉인 manifest가
 있는데 WalkFacts 또는 TrailContext가 없으면 빈 일기를 만들지 않고 무결성 오류로 실패한다. v0는

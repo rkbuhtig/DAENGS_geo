@@ -27,13 +27,17 @@ Offer
 
 한 correction은 현재 head만 supersede할 수 있다. caller가 예상 head를 요청에 넣고 서버는 Pin을
 잠근다. DB는 `supersedes_attestation_id`를 unique로 만들어 한 head에서 두 갈래가 생기지 않게
-한다. caller-provided correction ID의 동일 요청은 멱등이고 다른 내용은 conflict다.
+한다. correction 자체도 `pin_id`를 보존하며 Entry 계약이 실제 Pin과의 일치를 검증한다.
+caller-provided correction ID의 동일 요청은 동시 도착까지 한 번의 fresh transaction 재검증으로
+멱등이고 다른 내용은 conflict다.
 
 ## 서로 다른 읽기
 
 Offer review는 실제 최초 답변을 계속 반환한다. 현재 사용자 의미가 필요한 Pin overlay,
 WalkJournalProjection, Memory Place timeline·claim count는 creating Attestation에서 시작한 chain의
 현재 head를 읽는다. 전체 history endpoint는 중간 correction을 포함한 모든 행을 순서대로 돌려준다.
+현재 의미를 쓰는 이 규칙은 재생성 가능한 읽기 모델에만 적용한다. 사용자가 이미 확정한
+`PublishedJournalSnapshot`의 표현은 correction으로 소급 변경하지 않는다.
 
 이 분리는 다음 authority를 보존한다.
 
