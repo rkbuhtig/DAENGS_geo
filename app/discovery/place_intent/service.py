@@ -5,14 +5,28 @@ from collections.abc import Callable
 from app.discovery.place_intent.contract import (
     IntentEvidenceError,
     IntentProposer,
+    LLMIntentOutput,
+    MaterializedIntentOutput,
     materialize_llm_output,
 )
 from app.discovery.place_intent.suggestions import (
     IntentSuggestionOutcome,
     compile_intent_suggestions,
 )
-from app.place.planning.contract import PlaceSearchConditions, PlaceSpatialConstraint
+from app.place.planning.contract import (
+    PlaceSearchConditions,
+    PlaceSpatialConstraint,
+    PlanningModel,
+)
 from app.place.planning.intents import PlannerIssue, PlannerStatus
+
+
+class PlaceIntentSuggestionTrace(PlanningModel):
+    """검증 화면이 모델 출력·grounding·정책 결과를 한 요청에서 대조하는 내부 trace."""
+
+    raw: LLMIntentOutput
+    grounded: MaterializedIntentOutput | None
+    outcome: IntentSuggestionOutcome
 
 
 class PlaceIntentSuggestionService:
@@ -33,6 +47,23 @@ class PlaceIntentSuggestionService:
         limit_per_kind: int,
         conditions: PlaceSearchConditions | None = None,
     ) -> IntentSuggestionOutcome:
+        return (
+            await self.inspect(
+                utterance,
+                spatial=spatial,
+                limit_per_kind=limit_per_kind,
+                conditions=conditions,
+            )
+        ).outcome
+
+    async def inspect(
+        self,
+        utterance: str,
+        *,
+        spatial: PlaceSpatialConstraint,
+        limit_per_kind: int,
+        conditions: PlaceSearchConditions | None = None,
+    ) -> PlaceIntentSuggestionTrace:
         raw = await self._proposer.propose(utterance)
         try:
             if self._observation_id_factory is None:
@@ -44,19 +75,27 @@ class PlaceIntentSuggestionService:
                     id_factory=self._observation_id_factory,
                 )
         except IntentEvidenceError:
-            return IntentSuggestionOutcome(
-                status=PlannerStatus.NEEDS_CLARIFICATION,
-                source_disposition=raw.disposition,
-                issues=(
-                    PlannerIssue(
-                        code="intent_evidence_invalid",
-                        detail="intent proposal evidence could not be grounded in the utterance",
+            return PlaceIntentSuggestionTrace(
+                raw=raw,
+                grounded=None,
+                outcome=IntentSuggestionOutcome(
+                    status=PlannerStatus.NEEDS_CLARIFICATION,
+                    source_disposition=raw.disposition,
+                    issues=(
+                        PlannerIssue(
+                            code="intent_evidence_invalid",
+                            detail="intent proposal evidence could not be grounded in the utterance",
+                        ),
                     ),
                 ),
             )
-        return compile_intent_suggestions(
-            grounded,
-            spatial=spatial,
-            limit_per_kind=limit_per_kind,
-            conditions=conditions,
+        return PlaceIntentSuggestionTrace(
+            raw=raw,
+            grounded=grounded,
+            outcome=compile_intent_suggestions(
+                grounded,
+                spatial=spatial,
+                limit_per_kind=limit_per_kind,
+                conditions=conditions,
+            ),
         )

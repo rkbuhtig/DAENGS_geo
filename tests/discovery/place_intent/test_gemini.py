@@ -1,0 +1,144 @@
+import json
+
+import httpx
+import pytest
+
+from app.discovery.place_intent.contract import ProposalDisposition
+from app.discovery.place_intent.gemini import (
+    GeminiIntentProposer,
+    GeminiIntentProposerResponseError,
+)
+
+
+def _completed(output: dict) -> dict:
+    return {
+        "status": "completed",
+        "steps": [
+            {
+                "type": "model_output",
+                "content": [{"type": "text", "text": json.dumps(output)}],
+            }
+        ],
+    }
+
+
+@pytest.mark.asyncio
+async def test_gemini_interactions_request_is_stateless_and_structured() -> None:
+    async def handle(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/v1beta/interactions"
+        assert "key" not in request.url.params
+        assert request.headers["x-goog-api-key"] == "test-key"
+        payload = json.loads(request.content)
+        assert payload["model"] == "gemini-3.1-flash-lite"
+        assert payload["input"] == "어디 갈까"
+        assert payload["store"] is False
+        assert "반려견 동반 장소 검색" in payload["system_instruction"]
+        output_format = payload["response_format"]
+        assert output_format["type"] == "text"
+        assert output_format["mime_type"] == "application/json"
+        schema = output_format["schema"]
+        proposal = schema["properties"]["interpretations"]["items"]["properties"][
+            "proposals"
+        ]["items"]
+        assert "intent_type" in proposal["properties"]
+        assert "intent" not in proposal["properties"]
+        serialized_schema = json.dumps(output_format["schema"])
+        assert "$ref" not in serialized_schema
+        assert "$defs" not in serialized_schema
+        assert "pattern" not in serialized_schema
+        assert "maxItems" not in serialized_schema
+        return httpx.Response(
+            200,
+            json=_completed(
+                {
+                    "disposition": "abstained",
+                    "interpretations": [],
+                    "reason": "insufficient_target",
+                }
+            ),
+        )
+
+    proposer = GeminiIntentProposer(
+        "test-key",
+        "gemini-3.1-flash-lite",
+        transport=httpx.MockTransport(handle),
+    )
+
+    output = await proposer.propose("어디 갈까")
+
+    assert output.disposition is ProposalDisposition.ABSTAINED
+
+
+@pytest.mark.asyncio
+async def test_gemini_flat_adapter_output_becomes_typed_intent() -> None:
+    async def handle(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json=_completed(
+                {
+                    "disposition": "proposed",
+                    "interpretations": [
+                        {
+                            "proposals": [
+                                {
+                                    "role": "required_target",
+                                    "intent_type": "purpose",
+                                    "purpose_id": "dining",
+                                    "quote": "밥 먹을 곳",
+                                    "start": 0,
+                                }
+                            ]
+                        }
+                    ],
+                }
+            ),
+        )
+
+    proposer = GeminiIntentProposer(
+        "test-key",
+        "model",
+        transport=httpx.MockTransport(handle),
+    )
+
+    output = await proposer.propose("밥 먹을 곳")
+
+    proposal = output.interpretations[0].proposals[0]
+    assert proposal.intent.intent_type == "purpose"
+    assert proposal.intent.purpose_id.value == "dining"
+    assert proposal.evidence.start is None and proposal.evidence.end is None
+
+
+@pytest.mark.asyncio
+async def test_gemini_rejects_incomplete_or_invalid_interactions() -> None:
+    async def incomplete(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"status": "incomplete", "steps": []})
+
+    proposer = GeminiIntentProposer(
+        "test-key",
+        "model",
+        transport=httpx.MockTransport(incomplete),
+    )
+    with pytest.raises(GeminiIntentProposerResponseError, match="did not complete"):
+        await proposer.propose("카페")
+
+    async def invalid(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "status": "completed",
+                "steps": [
+                    {
+                        "type": "model_output",
+                        "content": [{"type": "text", "text": "not-json"}],
+                    }
+                ],
+            },
+        )
+
+    proposer = GeminiIntentProposer(
+        "test-key",
+        "model",
+        transport=httpx.MockTransport(invalid),
+    )
+    with pytest.raises(GeminiIntentProposerResponseError, match="invalid intent payload"):
+        await proposer.propose("카페")

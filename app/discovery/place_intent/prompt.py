@@ -3,7 +3,11 @@
 import json
 from typing import Any
 
-from app.discovery.place_intent.contract import LLMIntentOutput
+from app.discovery.place_intent.contract import (
+    LLMIntentOutput,
+    ProposalDisposition,
+    ProposalReason,
+)
 from app.place.planning.contract import CapabilityId, PlaceKind
 from app.place.planning.intents import IntentRole
 from app.place.planning.purpose import PURPOSE_CATALOG
@@ -66,3 +70,65 @@ def strict_output_schema() -> dict[str, Any]:
 
     visit(schema)
     return schema
+
+
+def gemini_output_schema() -> dict[str, Any]:
+    """Flash-Lite가 안정적으로 받는 평면 adapter schema.
+
+    중첩 discriminated union은 Gemini가 schema complexity 오류로 거절할 수 있다. provider
+    응답만 평면화하고, 서버가 이를 원래 typed Pydantic 계약으로 다시 조립해 검증한다.
+    """
+
+    proposal = {
+        "type": "object",
+        "properties": {
+            "role": {"type": "string", "enum": [role.value for role in IntentRole]},
+            "intent_type": {
+                "type": "string",
+                "enum": ["kind", "purpose", "boolean_capability", "semantic"],
+            },
+            "kind": {"type": "string", "enum": [kind.value for kind in PlaceKind]},
+            "purpose_id": {
+                "type": "string",
+                "enum": [spec.purpose_id.value for spec in PURPOSE_CATALOG],
+            },
+            "capability_id": {
+                "type": "string",
+                "enum": [CapabilityId.OPERATIONS_PARKING.value],
+            },
+            "value": {"type": "boolean"},
+            "concept_id": {"type": "string"},
+            "quote": {"type": "string"},
+            "start": {"type": "integer", "minimum": 0},
+            "end": {"type": "integer", "minimum": 0},
+        },
+        "required": ["role", "intent_type", "quote"],
+    }
+    return {
+        "type": "object",
+        "properties": {
+            "disposition": {
+                "type": "string",
+                "enum": [value.value for value in ProposalDisposition],
+            },
+            "interpretations": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "proposals": {
+                            "type": "array",
+                            "minItems": 1,
+                            "items": proposal,
+                        }
+                    },
+                    "required": ["proposals"],
+                },
+            },
+            "reason": {
+                "type": "string",
+                "enum": [value.value for value in ProposalReason],
+            },
+        },
+        "required": ["disposition", "interpretations"],
+    }

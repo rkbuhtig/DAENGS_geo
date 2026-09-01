@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DAENGS · Gemini Place Intent Lab</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <style>
+    :root {
+      --ink:#172019; --muted:#68736a; --line:#dce4dd; --paper:#fbfdfb;
+      --green:#1d6b42; --green-soft:#e4f3e9; --amber:#a55a00; --red:#ae2f2f;
+      --shadow:0 14px 38px rgba(22,44,29,.12);
+    }
+    * { box-sizing:border-box }
+    html, body { height:100%; margin:0 }
+    body { background:#eef3ef; color:var(--ink); font:14px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif }
+    button, input, select, textarea { font:inherit }
+    .shell { height:100%; display:grid; grid-template-columns:minmax(390px, 46vw) 1fr; gap:1px; background:var(--line) }
+    .panel { min-width:0; overflow:auto; background:var(--paper); padding:20px }
+    .map-wrap { position:relative; min-width:0 }
+    #map { position:absolute; inset:0 }
+    h1 { margin:0; font-size:21px; letter-spacing:-.5px }
+    h2 { margin:22px 0 8px; font-size:13px; letter-spacing:.02em; text-transform:uppercase; color:var(--muted) }
+    p { margin:5px 0 }
+    .eyebrow { color:var(--green); font-weight:750; font-size:11px; letter-spacing:.12em; text-transform:uppercase }
+    .lede { color:var(--muted); margin:4px 0 16px }
+    .query { display:grid; gap:9px; padding:14px; border:1px solid var(--line); border-radius:14px; background:#fff; box-shadow:var(--shadow) }
+    textarea { width:100%; min-height:74px; resize:vertical; border:1px solid #bfcac1; border-radius:9px; padding:10px 11px; color:var(--ink) }
+    textarea:focus, select:focus, input:focus { outline:3px solid rgba(29,107,66,.16); border-color:var(--green) }
+    .fields { display:grid; grid-template-columns:1.3fr .8fr .7fr; gap:7px }
+    label { display:grid; gap:3px; color:var(--muted); font-size:11px }
+    select, input { min-width:0; width:100%; border:1px solid #c8d2ca; border-radius:8px; padding:7px 8px; background:#fff; color:var(--ink) }
+    .actions { display:flex; align-items:center; gap:8px }
+    .run { border:0; border-radius:9px; padding:9px 14px; background:var(--green); color:white; font-weight:750; cursor:pointer }
+    .run:disabled { opacity:.55; cursor:wait }
+    .examples { display:flex; flex-wrap:wrap; gap:5px }
+    .example, .candidate-tab { border:1px solid var(--line); border-radius:999px; background:#fff; color:#3d4940; padding:5px 8px; cursor:pointer; font-size:11px }
+    .candidate-tab[aria-selected="true"] { color:#fff; background:var(--green); border-color:var(--green) }
+    .status { min-height:21px; margin-top:8px; color:var(--muted); font-size:12px }
+    .status.error { color:var(--red) }
+    .badge { display:inline-flex; align-items:center; border-radius:999px; padding:2px 7px; font-size:10px; font-weight:750; background:#edf1ee; color:#536057 }
+    .badge.good { background:var(--green-soft); color:var(--green) }
+    .badge.warn { background:#fff0da; color:var(--amber) }
+    .interpretation, .box { border:1px solid var(--line); border-radius:11px; background:#fff; padding:10px; margin-top:7px }
+    .interpretation-head { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:6px }
+    .proposal { display:grid; grid-template-columns:auto 1fr; gap:6px; padding:5px 0; border-top:1px dashed #e4e9e5 }
+    .proposal:first-of-type { border-top:0 }
+    .proposal-main { min-width:0 }
+    .proposal-main b { display:block; overflow-wrap:anywhere }
+    .quote { color:var(--muted); font-size:11px }
+    .candidate-tabs { display:flex; flex-wrap:wrap; gap:6px }
+    .summary-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin:8px 0 }
+    .metric { border-radius:9px; background:#f1f5f2; padding:7px }
+    .metric b { display:block; font-size:17px }
+    .metric span { color:var(--muted); font-size:10px }
+    .gate { display:grid; grid-template-columns:1fr auto; gap:4px 8px; padding:7px 0; border-top:1px solid #edf0ed }
+    .gate:first-child { border-top:0 }
+    .gate small { grid-column:1 / 3; color:var(--muted) }
+    .results { display:grid; gap:6px; margin-top:8px }
+    .place { border:1px solid var(--line); border-radius:9px; padding:8px; background:#fff; cursor:pointer; text-align:left; width:100%; color:inherit }
+    .place:hover { border-color:#8ba795; background:#f7fbf8 }
+    .place b { display:block }
+    .place small { color:var(--muted) }
+    .rejected { color:var(--red); border-color:#efd1d1; background:#fffafa }
+    pre { margin:7px 0 0; max-height:180px; overflow:auto; white-space:pre-wrap; overflow-wrap:anywhere; background:#172019; color:#dfe9e1; border-radius:9px; padding:9px; font:11px/1.45 ui-monospace,SFMono-Regular,Consolas,monospace }
+    .map-note { position:absolute; z-index:600; left:12px; bottom:12px; max-width:300px; padding:9px 11px; border-radius:10px; background:rgba(255,255,255,.94); box-shadow:var(--shadow); color:var(--muted); font-size:11px }
+    .dot-marker { width:17px; height:17px; border:3px solid #fff; border-radius:50%; background:var(--green); box-shadow:0 2px 8px rgba(0,0,0,.35) }
+    @media (max-width:800px) {
+      .shell { grid-template-columns:1fr; grid-template-rows:auto 55vh; height:auto; min-height:100% }
+      .panel { overflow:visible }
+      .map-wrap { min-height:55vh }
+    }
+  </style>
+</head>
+<body>
+<main class="shell">
+  <section class="panel">
+    <div class="eyebrow">Live vertical slice</div>
+    <h1>Gemini가 고른 검색을 실제 DB에서 본다</h1>
+    <p class="lede">발화 → typed intent → planner 후보 → PostGIS 결과를 한 화면에서 대조한다.</p>
+
+    <form class="query" id="query-form">
+      <label>자연어 검색
+        <textarea id="utterance">강아지랑 조용하고 주차되면 좋은 나들이 장소</textarea>
+      </label>
+      <div class="fields">
+        <label>위치
+          <select id="where">
+            <option value="37.7492,127.3629" selected>가평·청평</option>
+            <option value="37.5563,126.9236">홍대</option>
+            <option value="37.4979,127.0276">강남역</option>
+            <option value="33.4996,126.5312">제주시</option>
+          </select>
+        </label>
+        <label>반경
+          <select id="radius">
+            <option value="3000">3 km</option>
+            <option value="10000" selected>10 km</option>
+            <option value="20000">20 km</option>
+          </select>
+        </label>
+        <label>종류별
+          <select id="limit">
+            <option value="10">10개</option>
+            <option value="20" selected>20개</option>
+            <option value="50">50개</option>
+          </select>
+        </label>
+      </div>
+      <div class="actions">
+        <button class="run" id="run" type="submit">Gemini로 검색</button>
+        <span class="badge" id="model">gemini-3.1-flash-lite</span>
+      </div>
+      <div class="examples" aria-label="예시 검색">
+        <button class="example" type="button">카페 같은 분위기의 장소</button>
+        <button class="example" type="button">강아지랑 밥 먹을 곳</button>
+        <button class="example" type="button">카페 말고 산책할 곳</button>
+        <button class="example" type="button">병원 갈 정도는 아니고 잠깐 쉴 곳</button>
+      </div>
+    </form>
+    <div class="status" id="status">검색을 실행하면 모델 해석과 실제 장소가 여기에 표시됩니다.</div>
+
+    <section id="analysis" hidden>
+      <h2>1 · Model interpretation</h2>
+      <div id="disposition"></div>
+      <div id="interpretations"></div>
+
+      <h2>2 · Planner candidates</h2>
+      <div class="candidate-tabs" id="candidate-tabs"></div>
+      <div id="candidate-detail"></div>
+
+      <h2>3 · Rejected / issues</h2>
+      <div id="rejected"></div>
+
+      <details>
+        <summary class="lede" style="cursor:pointer;margin-top:16px">전체 응답 JSON</summary>
+        <pre id="raw-json"></pre>
+      </details>
+    </section>
+  </section>
+  <section class="map-wrap">
+    <div id="map"></div>
+    <div class="map-note" id="map-note">후보를 선택하면 해당 plan의 실제 장소만 지도에 표시합니다.</div>
+  </section>
+</main>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const map = L.map('map', {zoomControl:true}).setView([37.7492, 127.3629], 12);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom:19, attribution:'&copy; OpenStreetMap contributors'
+}).addTo(map);
+const resultLayer = L.layerGroup().addTo(map);
+let radiusLayer = null;
+let payload = null;
+let selectedKey = null;
+
+function badge(text, tone='') {
+  const span = document.createElement('span');
+  span.className = 'badge ' + tone;
+  span.textContent = text;
+  return span;
+}
+
+function intentLabel(intent) {
+  if (intent.intent_type === 'purpose') return 'purpose · ' + intent.purpose_id;
+  if (intent.intent_type === 'kind') return 'kind · ' + intent.kind;
+  if (intent.intent_type === 'boolean_capability') {
+    return intent.capability_id + ' · ' + String(intent.value);
+  }
+  return intent.concept_id || intent.intent_type;
+}
+
+function renderInterpretations(trace) {
+  const root = $('interpretations');
+  root.replaceChildren();
+  trace.raw.interpretations.forEach((interpretation, index) => {
+    const card = document.createElement('article');
+    card.className = 'interpretation';
+    const head = document.createElement('div');
+    head.className = 'interpretation-head';
+    const title = document.createElement('b');
+    title.textContent = '해석 ' + (index + 1);
+    head.append(title, badge(interpretation.proposals.length + ' observations'));
+    card.append(head);
+    interpretation.proposals.forEach(proposal => {
+      const row = document.createElement('div');
+      row.className = 'proposal';
+      row.append(badge(proposal.role, proposal.role.startsWith('required') ? 'good' : 'warn'));
+      const main = document.createElement('div');
+      main.className = 'proposal-main';
+      const name = document.createElement('b');
+      name.textContent = intentLabel(proposal.intent);
+      const quote = document.createElement('div');
+      quote.className = 'quote';
+      quote.textContent = '근거: “' + proposal.evidence.quote + '”';
+      main.append(name, quote);
+      row.append(main);
+      card.append(row);
+    });
+    root.append(card);
+  });
+  if (!trace.raw.interpretations.length) {
+    const box = document.createElement('div');
+    box.className = 'box';
+    box.textContent = '모델이 해석 후보를 만들지 않았습니다: ' + (trace.raw.reason || 'reason 없음');
+    root.append(box);
+  }
+}
+
+function executionFor(key) {
+  return payload.executions.find(item => item.candidate_key === key);
+}
+
+function candidateFor(key) {
+  return payload.trace.outcome.suggestions.find(item => item.candidate_key === key);
+}
+
+function resultCount(execution) {
+  return execution.search.groups.reduce((sum, group) => sum + group.results.length, 0);
+}
+
+function renderCandidateTabs() {
+  const root = $('candidate-tabs');
+  root.replaceChildren();
+  payload.executions.forEach((execution, index) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'candidate-tab';
+    button.dataset.key = execution.candidate_key;
+    button.setAttribute('aria-selected', String(execution.candidate_key === selectedKey));
+    button.textContent = (index + 1) + ' · ' + execution.candidate_key + ' · ' + resultCount(execution) + '곳';
+    button.addEventListener('click', () => selectCandidate(execution.candidate_key));
+    root.append(button);
+  });
+  if (!payload.executions.length) {
+    const empty = document.createElement('div');
+    empty.className = 'box';
+    empty.textContent = '실행 가능한 후보가 없습니다.';
+    root.append(empty);
+  }
+}
+
+function renderCandidateDetail(execution) {
+  const root = $('candidate-detail');
+  root.replaceChildren();
+  if (!execution) return;
+  const candidate = candidateFor(execution.candidate_key);
+  const plan = candidate.result.plan;
+  const preview = execution.preview;
+  const finalGate = preview.gates.length ? preview.gates[preview.gates.length - 1] : null;
+
+  const summary = document.createElement('div');
+  summary.className = 'summary-grid';
+  [
+    ['공간 후보', preview.initial_candidates],
+    ['gate 이후', finalGate ? finalGate.remaining : preview.initial_candidates],
+    ['반환 장소', resultCount(execution)],
+  ].forEach(([label, value]) => {
+    const metric = document.createElement('div'); metric.className = 'metric';
+    const strong = document.createElement('b'); strong.textContent = value;
+    const caption = document.createElement('span'); caption.textContent = label;
+    metric.append(strong, caption); summary.append(metric);
+  });
+  root.append(summary);
+
+  const planBox = document.createElement('div');
+  planBox.className = 'box';
+  const planTitle = document.createElement('div');
+  planTitle.className = 'interpretation-head';
+  const planName = document.createElement('b'); planName.textContent = '실행 plan';
+  planTitle.append(planName, badge(candidate.basis)); planBox.append(planTitle);
+  plan.gates.forEach(gate => {
+    const row = document.createElement('div'); row.className = 'gate';
+    const name = document.createElement('b'); name.textContent = gate.capability_id;
+    const state = badge(gate.origin + (gate.locked ? ' · locked' : ' · relaxable'), gate.locked ? 'warn' : 'good');
+    const detail = document.createElement('small');
+    detail.textContent = gate.mode + ' / ' + gate.operator + ' / ' + JSON.stringify(gate.value);
+    row.append(name, state, detail); planBox.append(row);
+  });
+  root.append(planBox);
+
+  const previewBox = document.createElement('div'); previewBox.className = 'box';
+  const previewTitle = document.createElement('b'); previewTitle.textContent = 'gate preview'; previewBox.append(previewTitle);
+  preview.gates.forEach(gate => {
+    const row = document.createElement('div'); row.className = 'gate';
+    const name = document.createElement('b'); name.textContent = gate.capability_id;
+    const remaining = badge(gate.remaining + ' remaining', gate.remaining ? 'good' : 'warn');
+    const detail = document.createElement('small');
+    detail.textContent = '입력 ' + gate.input_candidates + ' · known match ' + gate.known_match +
+      ' · mismatch ' + gate.known_mismatch + ' · unknown ' + gate.unknown;
+    row.append(name, remaining, detail); previewBox.append(row);
+  });
+  root.append(previewBox);
+
+  const groups = document.createElement('div'); groups.className = 'results';
+  execution.search.groups.forEach(group => group.results.forEach(hit => {
+    const place = hit.place;
+    const button = document.createElement('button'); button.type = 'button'; button.className = 'place';
+    const name = document.createElement('b'); name.textContent = place.name;
+    const meta = document.createElement('small');
+    meta.textContent = group.kind + ' · ' + place.distance_m + 'm · ' + place.key.source;
+    button.append(name, meta);
+    button.addEventListener('click', () => map.setView([place.lat, place.lng], 16));
+    groups.append(button);
+  }));
+  root.append(groups);
+}
+
+function markerIcon() {
+  return L.divIcon({className:'', html:'<div class="dot-marker"></div>', iconSize:[17,17], iconAnchor:[8,8]});
+}
+
+function renderMap(execution) {
+  resultLayer.clearLayers();
+  if (radiusLayer) radiusLayer.remove();
+  const [lat, lng] = $('where').value.split(',').map(Number);
+  const radius = Number($('radius').value);
+  radiusLayer = L.circle([lat, lng], {radius, color:'#1d6b42', weight:1, fillOpacity:.04}).addTo(map);
+  const bounds = [[lat, lng]];
+  if (execution) {
+    execution.search.groups.forEach(group => group.results.forEach(hit => {
+      const place = hit.place;
+      const marker = L.marker([place.lat, place.lng], {icon:markerIcon()}).addTo(resultLayer);
+      const popup = document.createElement('div');
+      const name = document.createElement('b'); name.textContent = place.name;
+      const meta = document.createElement('div'); meta.textContent = group.kind + ' · ' + place.distance_m + 'm';
+      popup.append(name, meta); marker.bindPopup(popup); bounds.push([place.lat, place.lng]);
+    }));
+    $('map-note').textContent = execution.candidate_key + ' · 실제 장소 ' + resultCount(execution) + '곳';
+  }
+  if (bounds.length > 1) map.fitBounds(bounds, {padding:[35,35], maxZoom:14});
+  else map.setView([lat, lng], radius <= 3000 ? 14 : 12);
+}
+
+function selectCandidate(key) {
+  selectedKey = key;
+  renderCandidateTabs();
+  const execution = executionFor(key);
+  renderCandidateDetail(execution);
+  renderMap(execution);
+}
+
+function issueText(candidate) {
+  const result = candidate.result;
+  return [...(result.not_applied || []), ...(result.unsupported || []), ...(result.clarifications || [])]
+    .map(item => item.code + ': ' + item.detail).join(' / ') || result.status;
+}
+
+function renderRejected(outcome) {
+  const root = $('rejected'); root.replaceChildren();
+  outcome.rejected.forEach(candidate => {
+    const box = document.createElement('div'); box.className = 'box rejected';
+    const name = document.createElement('b'); name.textContent = candidate.candidate_key;
+    const detail = document.createElement('p'); detail.textContent = issueText(candidate);
+    box.append(name, detail); root.append(box);
+  });
+  outcome.issues.forEach(issue => {
+    const box = document.createElement('div'); box.className = 'box rejected';
+    const name = document.createElement('b'); name.textContent = issue.code;
+    const detail = document.createElement('p'); detail.textContent = issue.detail;
+    box.append(name, detail); root.append(box);
+  });
+  if (!outcome.rejected.length && !outcome.issues.length) {
+    const box = document.createElement('div'); box.className = 'box'; box.textContent = '거절되거나 숨겨진 후보가 없습니다.'; root.append(box);
+  }
+}
+
+function render(data) {
+  payload = data;
+  $('analysis').hidden = false;
+  $('model').textContent = data.model;
+  const outcome = data.trace.outcome;
+  const disposition = $('disposition'); disposition.replaceChildren();
+  disposition.append(
+    badge('model · ' + data.trace.raw.disposition, data.trace.raw.disposition === 'proposed' ? 'good' : 'warn'),
+    document.createTextNode(' '),
+    badge('planner · ' + outcome.status, outcome.status === 'ready' ? 'good' : 'warn'),
+    document.createTextNode(' '),
+    badge('resolution · ' + (outcome.resolution || 'none')),
+  );
+  renderInterpretations(data.trace);
+  renderRejected(outcome);
+  $('raw-json').textContent = JSON.stringify(data, null, 2);
+  selectedKey = data.executions.length ? data.executions[0].candidate_key : null;
+  renderCandidateTabs();
+  renderCandidateDetail(selectedKey ? executionFor(selectedKey) : null);
+  renderMap(selectedKey ? executionFor(selectedKey) : null);
+}
+
+$('query-form').addEventListener('submit', async event => {
+  event.preventDefault();
+  const button = $('run'); button.disabled = true;
+  $('status').className = 'status'; $('status').textContent = 'Gemini 해석과 실제 DB 검색을 실행 중…';
+  const [lat, lng] = $('where').value.split(',').map(Number);
+  try {
+    const response = await fetch('/dev/place-intent/search', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        utterance:$('utterance').value, lat, lng,
+        radius_m:Number($('radius').value), limit_per_kind:Number($('limit').value),
+      }),
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(typeof error.detail === 'string' ? error.detail : '검색 실패 (' + response.status + ')');
+    }
+    const data = await response.json(); render(data);
+    $('status').textContent = '완료 · 모델 후보 ' + data.trace.raw.interpretations.length +
+      '개 · 실행 후보 ' + data.executions.length + '개';
+  } catch (error) {
+    $('status').className = 'status error'; $('status').textContent = error.message || '검색에 실패했습니다.';
+  } finally { button.disabled = false; }
+});
+
+document.querySelectorAll('.example').forEach(button => {
+  button.addEventListener('click', () => { $('utterance').value = button.textContent; $('utterance').focus(); });
+});
+$('where').addEventListener('change', () => renderMap(selectedKey && payload ? executionFor(selectedKey) : null));
+$('radius').addEventListener('change', () => renderMap(selectedKey && payload ? executionFor(selectedKey) : null));
+</script>
+</body>
+</html>

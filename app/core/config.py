@@ -21,9 +21,11 @@ class Settings(BaseSettings):
     route_top_n: int = 5              # 실측 호출은 상위 N개만, 나머지 휴리스틱
 
     # LLM — utterance 있을 때만 호출. fake = 규칙 기반
-    llm_provider: Literal["fake", "openai"] = "fake"
+    llm_provider: Literal["fake", "openai", "gemini"] = "fake"
     openai_api_key: str = ""
     openai_model: str = "gpt-4o-mini"
+    gemini_api_key: str = ""
+    gemini_model: str = "gemini-3.1-flash-lite"
 
     # 실제 외부 호출은 기본 거부. dev는 같은 Usage Gate 안에서 작은 프로세스별 한도만 허용한다.
     usage_policy: Literal["deny-all", "dev"] = "deny-all"
