@@ -40,13 +40,22 @@ Cellophane 셀 중심이 장소 circle 안에 있으면 `exposed`, 셀 중심은
 
 - macro exposure가 `exposed`
 - Capsule이 현재 `low_motion` generation을 보존
-- MeasurementReceipt의 drift가 `suspected`가 아님
+- MeasurementReceipt가 평가 방법과 함께 `drift_assessment=not_suspected`를 보존
 - 장소 footprint와 겹치는 slow observation이 없음
 
 나머지는 `unjudgeable`이며 이유를 함께 반환한다. 따라서 장소를 지나지 않은 산책, 셀 경계만
-스친 산책, 과거 generation이라 관측 능력이 없는 산책, drift 의심 산책을 “행동하지 않았다”의
-분모에 넣지 않는다. 응답은 selected/exposure/capability/judgeable/observed/not-observed를 모두
-원시 count로 보존하고 비율 하나로 합치지 않는다.
+스친 산책, 과거 generation이라 관측 능력이 없는 산책, drift를 평가하지 않았거나 근거가
+부족하거나 의심되는 산책을 “행동하지 않았다”의 분모에 넣지 않는다. 각 reading은
+`negative_spatial_claim`의 독립 정책 버전·최종 자격·macro exposure·capability·drift 상태와
+모든 `blocking_reasons`를 반환한다. 따라서 `eligible=true`는 drift gate만 아니라 부정 주장에
+필요한 세 gate가 모두 통과했다는 뜻이다. 차단된 주장은 실제 상태와 일치하는
+`spatial_drift_*` 이유를 남긴다. 응답은
+selected/exposure/capability/judgeable/observed/not-observed를 모두 원시 count로 보존하고 비율
+하나로 합치지 않는다.
+
+양성 관측은 비대칭이다. 실제 slow observation이 있으면 `not_assessed` 또는
+`insufficient_evidence`에서도 approximate `observed`로 남길 수 있다. `suspected`는 양성·부정
+공간 관측 모두를 `unjudgeable`로 만든다. 상세 근거는 [결정 #81](../decisions/2026-09-01-negative-spatial-claim-eligibility.md)에 있다.
 
 Timeline은 선택된 Walk cohort 안의 membership Pin과 그 Pin을 만든 Attestation을 시간순으로
 돌려준다. 그래서 marker를 누르면 원래 review disposition과 사용자 claim을 다시 읽을 수 있다.

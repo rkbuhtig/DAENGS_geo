@@ -11,6 +11,7 @@ from sqlalchemy import bindparam, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.features.spatial_diary.contract import (
+    NEGATIVE_SPATIAL_CLAIM_POLICY_VERSION,
     CapabilitySupport,
     ContextFacetFilter,
     DriftAssessment,
@@ -28,6 +29,7 @@ from app.features.spatial_diary.contract import (
     MemoryPlaceMembershipOrigin,
     MemoryPlaceTimelineEntry,
     MemoryPlaceWalkReading,
+    NegativeSpatialClaimAllowance,
     PlaceObservation,
     PrecipitationBiographyComparison,
     SpatialDiaryViewSpec,
@@ -54,7 +56,7 @@ from app.geo.cells import cell_size_m, hex_center_latlng
 
 GROUPING_POLICY_VERSION = 1
 EXPOSURE_POLICY_VERSION = 1
-OBSERVATION_POLICY_VERSION = 1
+OBSERVATION_POLICY_VERSION = 2
 MIN_PLACE_SUPPORT_WALKS = 2
 MAX_SEED_PINS = 100
 MAX_MEMORY_PLACES = 2_000
@@ -62,6 +64,15 @@ MAX_PLACE_MEMBERSHIPS = 2_000
 MAX_RAW_OBSERVATIONS = 50_000
 MIN_EVENT_RADIUS_M = 5.0
 EARTH_R_M = 6_371_000.0
+
+_DRIFT_UNJUDGEABLE_REASON = {
+    DriftAssessment.NOT_ASSESSED: UnjudgeableReason.SPATIAL_DRIFT_NOT_ASSESSED,
+    DriftAssessment.INSUFFICIENT_EVIDENCE: (
+        UnjudgeableReason.SPATIAL_DRIFT_INSUFFICIENT_EVIDENCE
+    ),
+    DriftAssessment.NOT_SUSPECTED: None,
+    DriftAssessment.SUSPECTED: UnjudgeableReason.SPATIAL_DRIFT_SUSPECTED,
+}
 
 
 class MemoryPlaceNotFoundError(LookupError):
@@ -556,9 +567,25 @@ async def query_memory_place_biography(
             reasons.append(UnjudgeableReason.EXPOSURE_UNCERTAIN)
         if capability is CapabilitySupport.UNSUPPORTED:
             reasons.append(UnjudgeableReason.CAPABILITY_UNSUPPORTED)
+        episode_count = observed_counts.get(capsule.session_id, 0)
+        drift_reason = _DRIFT_UNJUDGEABLE_REASON[capsule.drift_assessment]
+        negative_blockers = [*reasons]
+        if drift_reason is not None:
+            negative_blockers.append(drift_reason)
+        negative_spatial_claim = NegativeSpatialClaimAllowance(
+            policy_version=NEGATIVE_SPATIAL_CLAIM_POLICY_VERSION,
+            eligible=not negative_blockers,
+            macro_exposure=exposure,
+            capability=capability,
+            drift_assessment=capsule.drift_assessment,
+            blocking_reasons=tuple(negative_blockers),
+        )
+        # suspected drift는 좌표가 있는 긍정 관측도 막는다. 그 밖의 미평가 상태는 관측된
+        # 사건을 approximate로 남기되, 사건 부재를 `not_observed`로 바꾸는 것만 막는다.
         if capsule.drift_assessment is DriftAssessment.SUSPECTED:
             reasons.append(UnjudgeableReason.SPATIAL_DRIFT_SUSPECTED)
-        episode_count = observed_counts.get(capsule.session_id, 0)
+        elif episode_count == 0 and drift_reason is not None:
+            reasons.append(drift_reason)
         observation = (
             PlaceObservation.UNJUDGEABLE
             if reasons
@@ -576,6 +603,7 @@ async def query_memory_place_biography(
                 macro_exposure=exposure,
                 capability=capability,
                 observation=observation,
+                negative_spatial_claim=negative_spatial_claim,
                 observed_episode_count=episode_count,
                 member_pin_count=pin_counts[capsule.session_id],
                 unjudgeable_reasons=tuple(reasons),

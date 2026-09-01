@@ -230,6 +230,9 @@ Memory Place는 서로 다른 산책의 사건과 노출 분모를 가진 도메
 
 ## capability와 부재의 계약
 
+> [결정 #81](2026-09-01-negative-spatial-claim-eligibility.md)은 아래 부재 조건에
+> `drift_assessment=not_suspected`와 평가 방법이라는 적극적 자격을 추가한다.
+
 과거 Capsule에 어떤 observation generation이 없으면 그 행동이 없었다고 말할 수 없다.
 
 ```text
@@ -238,7 +241,8 @@ capability  supported | unsupported
 observation observed | not_observed | unjudgeable
 ```
 
-`exposed + supported + not_observed`일 때만 해당 capability 범위 안의 부재를 말할 수 있다.
+`exposed + supported + negative spatial claim eligible + not_observed`일 때만 해당 capability 범위
+안의 부재를 말할 수 있다.
 `unsupported`와 `unjudgeable`은 음성 예제가 아니다.
 
 ## 삭제와 개인정보
