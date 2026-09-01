@@ -36,6 +36,7 @@
     .examples { display:flex; flex-wrap:wrap; gap:5px }
     .example, .candidate-tab { border:1px solid var(--line); border-radius:999px; background:#fff; color:#3d4940; padding:5px 8px; cursor:pointer; font-size:11px }
     .candidate-tab[aria-selected="true"] { color:#fff; background:var(--green); border-color:var(--green) }
+    .candidate-tab:disabled { cursor:not-allowed; opacity:.58 }
     .status { min-height:21px; margin-top:8px; color:var(--muted); font-size:12px }
     .status.error { color:var(--red) }
     .badge { display:inline-flex; align-items:center; border-radius:999px; padding:2px 7px; font-size:10px; font-weight:750; background:#edf1ee; color:#536057 }
@@ -61,6 +62,8 @@
     .place:hover { border-color:#8ba795; background:#f7fbf8 }
     .place b { display:block }
     .place small { color:var(--muted) }
+    .signal-options { display:flex; flex-wrap:wrap; gap:5px; margin-top:7px }
+    .signal-option { border:1px solid var(--line); border-radius:999px; padding:4px 8px; background:#f6f8f6; color:var(--muted); font-size:11px }
     .rejected { color:var(--red); border-color:#efd1d1; background:#fffafa }
     pre { margin:7px 0 0; max-height:180px; overflow:auto; white-space:pre-wrap; overflow-wrap:anywhere; background:#172019; color:#dfe9e1; border-radius:9px; padding:9px; font:11px/1.45 ui-monospace,SFMono-Regular,Consolas,monospace }
     .map-note { position:absolute; z-index:600; left:12px; bottom:12px; max-width:300px; padding:9px 11px; border-radius:10px; background:rgba(255,255,255,.94); box-shadow:var(--shadow); color:var(--muted); font-size:11px }
@@ -76,8 +79,8 @@
 <main class="shell">
   <section class="panel">
     <div class="eyebrow">Live vertical slice</div>
-    <h1>Gemini가 고른 검색을 실제 DB에서 본다</h1>
-    <p class="lede">발화 → typed intent → planner 후보 → PostGIS 결과를 한 화면에서 대조한다.</p>
+    <h1>AI의 여러 검색 방향을 실제 DB에서 본다</h1>
+    <p class="lede">하나로 억지 확정하지 않고, 독립 lens별 소량 결과와 아직 적용하지 못한 신호를 함께 본다.</p>
 
     <form class="query" id="query-form">
       <label>자연어 검색
@@ -86,8 +89,8 @@
       <div class="fields">
         <label>위치
           <select id="where">
-            <option value="37.7492,127.3629" selected>가평·청평</option>
-            <option value="37.5563,126.9236">홍대</option>
+            <option value="37.7492,127.3629">가평·청평</option>
+            <option value="37.5563,126.9236" selected>홍대</option>
             <option value="37.4979,127.0276">강남역</option>
             <option value="33.4996,126.5312">제주시</option>
           </select>
@@ -99,11 +102,11 @@
             <option value="20000">20 km</option>
           </select>
         </label>
-        <label>종류별
+        <label>lens 미리보기
           <select id="limit">
-            <option value="10">10개</option>
-            <option value="20" selected>20개</option>
-            <option value="50">50개</option>
+            <option value="2">2곳</option>
+            <option value="3" selected>3곳</option>
+            <option value="4">4곳</option>
           </select>
         </label>
       </div>
@@ -112,10 +115,11 @@
         <span class="badge" id="model">gemini-3.1-flash-lite</span>
       </div>
       <div class="examples" aria-label="예시 검색">
-        <button class="example" type="button">카페 같은 분위기의 장소</button>
-        <button class="example" type="button">강아지랑 밥 먹을 곳</button>
-        <button class="example" type="button">카페 말고 산책할 곳</button>
-        <button class="example" type="button">병원 갈 정도는 아니고 잠깐 쉴 곳</button>
+        <button class="example" type="button">강아지랑 놀고 싶음</button>
+        <button class="example" type="button">강아지 장난감 사고 싶어</button>
+        <button class="example" type="button">강아지가 좋아하는거 있는곳</button>
+        <button class="example" type="button">조용한 곳</button>
+        <button class="example" type="button">싸게 갈 수 있는 곳</button>
       </div>
     </form>
     <div class="status" id="status">검색을 실행하면 모델 해석과 실제 장소가 여기에 표시됩니다.</div>
@@ -125,11 +129,14 @@
       <div id="disposition"></div>
       <div id="interpretations"></div>
 
-      <h2>2 · Planner candidates</h2>
+      <h2>2 · Preserved signals</h2>
+      <div id="signals"></div>
+
+      <h2>3 · Search lenses</h2>
       <div class="candidate-tabs" id="candidate-tabs"></div>
       <div id="candidate-detail"></div>
 
-      <h2>3 · Rejected / issues</h2>
+      <h2>4 · Policy trace / rejected</h2>
       <div id="rejected"></div>
 
       <details>
@@ -147,7 +154,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const $ = id => document.getElementById(id);
-const map = L.map('map', {zoomControl:true}).setView([37.7492, 127.3629], 12);
+const map = L.map('map', {zoomControl:true}).setView([37.5563, 126.9236], 13);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom:19, attribution:'&copy; OpenStreetMap contributors'
 }).addTo(map);
@@ -219,11 +226,11 @@ function renderInterpretations(trace) {
 }
 
 function executionFor(key) {
-  return payload.executions.find(item => item.candidate_key === key);
+  return payload.executions.find(item => item.lens_id === key);
 }
 
-function candidateFor(key) {
-  return payload.trace.outcome.suggestions.find(item => item.candidate_key === key);
+function lensFor(key) {
+  return (payload.trace.lenses?.target_lenses || []).find(item => item.lens_id === key);
 }
 
 function resultCount(execution) {
@@ -233,29 +240,49 @@ function resultCount(execution) {
 function renderCandidateTabs() {
   const root = $('candidate-tabs');
   root.replaceChildren();
-  payload.executions.forEach((execution, index) => {
+  const lenses = payload.trace.lenses?.target_lenses || [];
+  lenses.forEach(lens => {
+    const execution = executionFor(lens.lens_id);
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'candidate-tab';
-    button.dataset.key = execution.candidate_key;
-    button.setAttribute('aria-selected', String(execution.candidate_key === selectedKey));
-    button.textContent = (index + 1) + ' · ' + execution.candidate_key + ' · ' + resultCount(execution) + '곳';
-    button.addEventListener('click', () => selectCandidate(execution.candidate_key));
+    button.dataset.key = lens.lens_id;
+    button.setAttribute('aria-selected', String(lens.lens_id === selectedKey));
+    button.disabled = !execution;
+    button.title = lens.support_note;
+    button.textContent = lens.display_label + ' · ' +
+      (execution ? resultCount(execution) + '곳' : lens.availability);
+    if (execution) button.addEventListener('click', () => selectCandidate(lens.lens_id));
     root.append(button);
   });
-  if (!payload.executions.length) {
+  if (!lenses.length) {
     const empty = document.createElement('div');
     empty.className = 'box';
-    empty.textContent = '실행 가능한 후보가 없습니다.';
+    empty.textContent = '표시할 target lens가 없습니다.';
     root.append(empty);
   }
 }
 
-function renderCandidateDetail(execution) {
+function renderCandidateDetail(lens) {
   const root = $('candidate-detail');
   root.replaceChildren();
-  if (!execution) return;
-  const candidate = candidateFor(execution.candidate_key);
+  if (!lens) return;
+  const execution = executionFor(lens.lens_id);
+  const intro = document.createElement('div');
+  intro.className = 'box';
+  const introHead = document.createElement('div'); introHead.className = 'interpretation-head';
+  const introTitle = document.createElement('b'); introTitle.textContent = lens.display_label;
+  introHead.append(introTitle, badge(lens.mapping_scope + ' · ' + lens.availability,
+    lens.availability === 'executable' ? 'good' : 'warn'));
+  const introNote = document.createElement('p'); introNote.textContent = lens.support_note;
+  intro.append(introHead, introNote); root.append(intro);
+  if (!execution) {
+    const blocked = document.createElement('div'); blocked.className = 'box rejected';
+    blocked.textContent = lens.unsupported_signals.join(' / ') || '이 lens는 아직 실행할 수 없습니다.';
+    root.append(blocked);
+    return;
+  }
+  const candidate = lens.candidate;
   const plan = candidate.result.plan;
   const preview = execution.preview;
   const finalGate = preview.gates.length ? preview.gates[preview.gates.length - 1] : null;
@@ -337,7 +364,11 @@ function renderMap(execution) {
       const meta = document.createElement('div'); meta.textContent = group.kind + ' · ' + place.distance_m + 'm';
       popup.append(name, meta); marker.bindPopup(popup); bounds.push([place.lat, place.lng]);
     }));
-    $('map-note').textContent = execution.candidate_key + ' · 실제 장소 ' + resultCount(execution) + '곳';
+    const lens = lensFor(execution.lens_id);
+    $('map-note').textContent = (lens ? lens.display_label : execution.lens_id) +
+      ' · 미리보기 ' + resultCount(execution) + '곳';
+  } else {
+    $('map-note').textContent = '실행 가능한 lens가 없어 지도에 표시할 장소가 없습니다.';
   }
   if (bounds.length > 1) map.fitBounds(bounds, {padding:[35,35], maxZoom:14});
   else map.setView([lat, lng], radius <= 3000 ? 14 : 12);
@@ -347,7 +378,7 @@ function selectCandidate(key) {
   selectedKey = key;
   renderCandidateTabs();
   const execution = executionFor(key);
-  renderCandidateDetail(execution);
+  renderCandidateDetail(lensFor(key));
   renderMap(execution);
 }
 
@@ -355,6 +386,32 @@ function issueText(candidate) {
   const result = candidate.result;
   return [...(result.not_applied || []), ...(result.unsupported || []), ...(result.clarifications || [])]
     .map(item => item.code + ': ' + item.detail).join(' / ') || result.status;
+}
+
+function renderSignals(lenses) {
+  const root = $('signals'); root.replaceChildren();
+  (lenses?.signal_lenses || []).forEach(signal => {
+    const box = document.createElement('div'); box.className = 'box';
+    const head = document.createElement('div'); head.className = 'interpretation-head';
+    const name = document.createElement('b'); name.textContent = signal.display_label;
+    head.append(name, badge(signal.availability, 'warn'));
+    const note = document.createElement('p'); note.textContent = signal.support_note;
+    box.append(head, note);
+    if (signal.options.length) {
+      const options = document.createElement('div'); options.className = 'signal-options';
+      signal.options.forEach(option => {
+        const chip = document.createElement('span'); chip.className = 'signal-option';
+        chip.textContent = option.display_label + ' · ' + option.availability;
+        chip.title = option.support_note; options.append(chip);
+      });
+      box.append(options);
+    }
+    root.append(box);
+  });
+  if (!(lenses?.signal_lenses || []).length) {
+    const empty = document.createElement('div'); empty.className = 'box';
+    empty.textContent = '별도로 보존된 modifier나 unresolved facet이 없습니다.'; root.append(empty);
+  }
 }
 
 function renderRejected(outcome) {
@@ -382,6 +439,9 @@ function render(data) {
   $('model').textContent = data.model;
   const outcome = data.trace.outcome;
   const raw = data.trace.raw;
+  const lenses = data.trace.lenses;
+  const executableCount = (lenses?.target_lenses || [])
+    .filter(item => item.availability === 'executable').length;
   const modelState = raw ? raw.disposition : 'invalid_output';
   const disposition = $('disposition'); disposition.replaceChildren();
   disposition.append(
@@ -389,14 +449,15 @@ function render(data) {
     document.createTextNode(' '),
     badge('planner · ' + outcome.status, outcome.status === 'ready' ? 'good' : 'warn'),
     document.createTextNode(' '),
-    badge('resolution · ' + (outcome.resolution || 'none')),
+    badge('lens · ' + (executableCount ? 'ready ' + executableCount : 'none'), executableCount ? 'good' : 'warn'),
   );
   renderInterpretations(data.trace);
+  renderSignals(lenses);
   renderRejected(outcome);
   $('raw-json').textContent = JSON.stringify(data, null, 2);
-  selectedKey = data.executions.length ? data.executions[0].candidate_key : null;
+  selectedKey = data.executions.length ? data.executions[0].lens_id : null;
   renderCandidateTabs();
-  renderCandidateDetail(selectedKey ? executionFor(selectedKey) : null);
+  renderCandidateDetail(selectedKey ? lensFor(selectedKey) : null);
   renderMap(selectedKey ? executionFor(selectedKey) : null);
 }
 
@@ -410,7 +471,7 @@ $('query-form').addEventListener('submit', async event => {
       method:'POST', headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
         utterance:$('utterance').value, lat, lng,
-        radius_m:Number($('radius').value), limit_per_kind:Number($('limit').value),
+        radius_m:Number($('radius').value), preview_per_lens:Number($('limit').value),
       }),
     });
     if (!response.ok) {
@@ -419,8 +480,9 @@ $('query-form').addEventListener('submit', async event => {
     }
     const data = await response.json(); render(data);
     const modelCandidateCount = data.trace.raw ? data.trace.raw.interpretations.length : 0;
-    $('status').textContent = '완료 · 모델 후보 ' + modelCandidateCount +
-      '개 · 실행 후보 ' + data.executions.length + '개';
+    const targetCount = data.trace.lenses ? data.trace.lenses.target_lenses.length : 0;
+    $('status').textContent = '완료 · 모델 해석 ' + modelCandidateCount +
+      '개 · 탐색 lens ' + targetCount + '개 · 실행 lens ' + data.executions.length + '개';
   } catch (error) {
     $('status').className = 'status error'; $('status').textContent = error.message || '검색에 실패했습니다.';
   } finally { button.disabled = false; }

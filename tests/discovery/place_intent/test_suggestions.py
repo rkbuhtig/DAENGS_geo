@@ -469,6 +469,9 @@ async def test_service_inspection_preserves_raw_and_grounded_layers() -> None:
     assert trace.normalized.hypothesis_sets[0].hypotheses[0].hypothesis_key == (
         "interpretation:1:target"
     )
+    assert trace.lenses is not None
+    assert trace.lenses.target_lenses[0].display_label == "#식사·카페"
+    assert trace.lenses.target_lenses[0].availability.value == "executable"
     assert trace.grounded.interpretations[0].observations[0].source.value == "llm_proposal"
     assert trace.outcome.status is PlannerStatus.READY
 
@@ -514,6 +517,7 @@ async def test_service_turns_invalid_provider_output_into_typed_clarification() 
     assert trace.raw is None
     assert trace.grounded is None
     assert trace.normalized is None
+    assert trace.lenses is None
     assert trace.outcome.status is PlannerStatus.NEEDS_CLARIFICATION
     assert trace.outcome.source_disposition is None
     assert not trace.outcome.suggestions
