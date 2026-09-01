@@ -3,7 +3,10 @@ import json
 import httpx
 import pytest
 
-from app.discovery.place_intent.contract import ProposalDisposition
+from app.discovery.place_intent.contract import (
+    IntentProposerInvalidOutputError,
+    ProposalDisposition,
+)
 from app.discovery.place_intent.openai import (
     IntentProposerResponseError,
     MeteredIntentProposer,
@@ -107,6 +110,19 @@ async def test_openai_adapter_rejects_refusal_or_invalid_payload() -> None:
 
     proposer = OpenAIIntentProposer("key", "model", transport=httpx.MockTransport(refusal))
     with pytest.raises(IntentProposerResponseError, match="refused"):
+        await proposer.propose("카페")
+
+    def invalid(_: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "status": "completed",
+                "output_text": "not-json",
+            },
+        )
+
+    proposer = OpenAIIntentProposer("key", "model", transport=httpx.MockTransport(invalid))
+    with pytest.raises(IntentProposerInvalidOutputError, match="invalid intent payload"):
         await proposer.propose("카페")
 
 

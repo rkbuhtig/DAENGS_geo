@@ -60,7 +60,8 @@ class IntentPlanCandidate(PlanningModel):
 class IntentSuggestionOutcome(PlanningModel):
     status: PlannerStatus
     resolution: SuggestionResolution | None = None
-    source_disposition: ProposalDisposition
+    # 제공사 출력 자체가 유효하지 않으면 신뢰할 disposition도 없다.
+    source_disposition: ProposalDisposition | None
     suggestions: tuple[IntentPlanCandidate, ...] = ()
     rejected: tuple[IntentPlanCandidate, ...] = ()
     issues: tuple[PlannerIssue, ...] = ()
@@ -74,8 +75,18 @@ class IntentSuggestionOutcome(PlanningModel):
             raise ValueError("suggestions must carry ready planner results")
         if any(item.result.status is PlannerStatus.READY for item in self.rejected):
             raise ValueError("rejected candidates cannot carry ready planner results")
+        if self.source_disposition is None and not any(
+            issue.code == "intent_proposer_invalid_output" for issue in self.issues
+        ):
+            raise ValueError(
+                "missing source disposition requires an invalid proposer output issue"
+            )
         if self.status is PlannerStatus.READY:
-            if not self.suggestions or self.resolution is None:
+            if (
+                not self.suggestions
+                or self.resolution is None
+                or self.source_disposition is None
+            ):
                 raise ValueError("ready suggestion outcome requires suggestions and resolution")
             if self.issues:
                 raise ValueError("ready suggestion outcome cannot carry global issues")
