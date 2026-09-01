@@ -75,7 +75,12 @@ class OpenAIIntentProposer:
                 json=payload,
             )
             response.raise_for_status()
-        body = response.json()
+        try:
+            body = response.json()
+        except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+            raise IntentProposerResponseError(
+                "OpenAI response body is not valid JSON"
+            ) from exc
         if not isinstance(body, dict):
             raise IntentProposerResponseError("OpenAI response must be an object")
         if body.get("status") not in {None, "completed"}:

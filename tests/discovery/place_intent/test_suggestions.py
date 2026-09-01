@@ -520,10 +520,25 @@ async def test_service_turns_invalid_provider_output_into_typed_clarification() 
 def test_missing_source_disposition_requires_explicit_invalid_output_issue() -> None:
     with pytest.raises(
         ValueError,
-        match="missing source disposition requires an invalid proposer output issue",
+        match="missing source disposition requires an empty invalid-output clarification",
     ):
         IntentSuggestionOutcome(
             status=PlannerStatus.NEEDS_CLARIFICATION,
             source_disposition=None,
             issues=(PlannerIssue(code="other_failure", detail="not the provider boundary"),),
+        )
+
+    with pytest.raises(
+        ValueError,
+        match="missing source disposition requires an empty invalid-output clarification",
+    ):
+        IntentSuggestionOutcome(
+            status=PlannerStatus.UNSUPPORTED,
+            source_disposition=None,
+            issues=(
+                PlannerIssue(
+                    code="intent_proposer_invalid_output",
+                    detail="right issue code cannot excuse a contradictory status",
+                ),
+            ),
         )

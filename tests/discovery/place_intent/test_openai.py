@@ -126,6 +126,20 @@ async def test_openai_adapter_rejects_refusal_or_invalid_payload() -> None:
         await proposer.propose("카페")
 
 
+async def test_openai_rejects_non_json_success_response_as_provider_failure() -> None:
+    def invalid_body(_: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, text="not-json")
+
+    proposer = OpenAIIntentProposer(
+        "key",
+        "model",
+        transport=httpx.MockTransport(invalid_body),
+    )
+
+    with pytest.raises(IntentProposerResponseError, match="not valid JSON"):
+        await proposer.propose("카페")
+
+
 async def test_usage_denial_happens_before_network_call() -> None:
     calls = 0
 

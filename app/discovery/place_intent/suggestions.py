@@ -75,12 +75,19 @@ class IntentSuggestionOutcome(PlanningModel):
             raise ValueError("suggestions must carry ready planner results")
         if any(item.result.status is PlannerStatus.READY for item in self.rejected):
             raise ValueError("rejected candidates cannot carry ready planner results")
-        if self.source_disposition is None and not any(
-            issue.code == "intent_proposer_invalid_output" for issue in self.issues
-        ):
-            raise ValueError(
-                "missing source disposition requires an invalid proposer output issue"
+        if self.source_disposition is None:
+            valid_invalid_output = (
+                self.status is PlannerStatus.NEEDS_CLARIFICATION
+                and self.resolution is None
+                and not self.suggestions
+                and not self.rejected
+                and len(self.issues) == 1
+                and self.issues[0].code == "intent_proposer_invalid_output"
             )
+            if not valid_invalid_output:
+                raise ValueError(
+                    "missing source disposition requires an empty invalid-output clarification"
+                )
         if self.status is PlannerStatus.READY:
             if (
                 not self.suggestions

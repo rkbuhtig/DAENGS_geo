@@ -186,6 +186,21 @@ async def test_gemini_rejects_incomplete_or_invalid_interactions() -> None:
 
 
 @pytest.mark.asyncio
+async def test_gemini_rejects_non_json_success_response_as_provider_failure() -> None:
+    async def invalid_body(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, text="not-json")
+
+    proposer = GeminiIntentProposer(
+        "test-key",
+        "model",
+        transport=httpx.MockTransport(invalid_body),
+    )
+
+    with pytest.raises(GeminiIntentProposerResponseError, match="not valid JSON"):
+        await proposer.propose("카페")
+
+
+@pytest.mark.asyncio
 async def test_gemini_does_not_salvage_invalid_proposed_output() -> None:
     async def invalid(_request: httpx.Request) -> httpx.Response:
         return httpx.Response(
