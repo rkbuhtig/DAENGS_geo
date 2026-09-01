@@ -81,7 +81,9 @@ Candidate policy 세대 하나에서는 source observation 하나당 immutable O
 
 v0의 사용자 interaction은 `viewed|dismissed`다. `expired`는 계약과 DB에는 있지만 시스템 작업이
 아직 없으므로 공개 입력으로 받지 않는다. dismissed/expired Offer에는 Attestation을 붙일 수
-없다. 무응답에는 Attestation이 없고, 사용자가 `uncertain`을 제출한 경우에만 증언이 생긴다.
+없다. interaction 종류 하나는 Offer당 한 번만 기록해 caller가 새 ID를 만들어 같은 상태를
+무제한 누적할 수 없게 한다. 무응답에는 Attestation이 없고, 사용자가 `uncertain`을 제출한
+경우에만 증언이 생긴다.
 
 Attestation은 `review_disposition`, versioned `claims(subject_role, meaning_code)`,
 `memory_action`을 분리한다. `save`에는 caller가 제공한 `pin_id` 하나가 필요하고, `dismiss`에는
@@ -104,7 +106,7 @@ Entry Selector를 적용한다.
 ```text
 EntrySelector.subject_roles  claims 중 하나와 일치
 EntrySelector.meaning_codes  claims 중 하나와 일치
-두 축을 함께 쓰면 AND
+두 축을 함께 쓰면 같은 claim 안에서 AND
 ```
 
 Entry filter가 있는 산책만 Cellophane cohort에 남기는 것은 금지한다. 응답의 `pins`에는 안정 Pin,

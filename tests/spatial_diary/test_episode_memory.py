@@ -190,9 +190,26 @@ async def test_offer_attestation_pin_and_entry_selector_complete_one_product_loo
             assert same_viewed == viewed
             await db.commit()
 
+            with pytest.raises(
+                SpatialDiaryEpisodeConflictError,
+                match="already has a viewed interaction",
+            ):
+                await put_offer_interaction(
+                    db,
+                    offer_id=offer.offer_id,
+                    interaction_id="interaction-episode-viewed-again",
+                    kind=OfferInteractionKind.VIEWED,
+                )
+            await db.rollback()
+
             claim = AttestedClaim(
                 subject_role=SubjectRole.DOG,
                 meaning_code="exploration",
+                vocabulary_version=1,
+            )
+            owner_claim = AttestedClaim(
+                subject_role=SubjectRole.OWNER,
+                meaning_code="owner_pause",
                 vocabulary_version=1,
             )
             saved = await attest_episode_offer(
@@ -200,7 +217,7 @@ async def test_offer_attestation_pin_and_entry_selector_complete_one_product_loo
                 offer_id=offer.offer_id,
                 attestation_id="attestation-episode-1",
                 review_disposition=ReviewDisposition.CONFIRMED,
-                claims=(claim,),
+                claims=(claim, owner_claim),
                 memory_action=MemoryAction.SAVE,
                 pin_id="pin-episode-1",
                 attested_at=WALK_T0 + timedelta(minutes=6),
@@ -210,7 +227,7 @@ async def test_offer_attestation_pin_and_entry_selector_complete_one_product_loo
                 offer_id=offer.offer_id,
                 attestation_id="attestation-episode-1",
                 review_disposition=ReviewDisposition.CONFIRMED,
-                claims=(claim,),
+                claims=(claim, owner_claim),
                 memory_action=MemoryAction.SAVE,
                 pin_id="pin-episode-1",
             )
@@ -250,6 +267,21 @@ async def test_offer_attestation_pin_and_entry_selector_complete_one_product_loo
             )
             assert other.receipt.pin_count == 0
             assert other.pins == ()
+            await db.rollback()
+
+            owner_pause = await query_spatial_diary_view(
+                db,
+                _view_spec(meanings=("owner_pause",), roles=(SubjectRole.OWNER,)),
+            )
+            assert owner_pause.receipt.pin_count == 1
+            await db.rollback()
+
+            crossed_claims = await query_spatial_diary_view(
+                db,
+                _view_spec(meanings=("owner_pause",), roles=(SubjectRole.DOG,)),
+            )
+            assert crossed_claims.receipt.pin_count == 0
+            assert crossed_claims.pins == ()
         finally:
             await _cleanup(db)
 

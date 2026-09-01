@@ -88,6 +88,11 @@ def upgrade() -> None:
         sa.Column("kind", sa.Text(), nullable=False),
         sa.Column("actor", sa.Text(), nullable=False),
         sa.Column("occurred_at", sa.DateTime(timezone=True), nullable=False),
+        sa.UniqueConstraint(
+            "offer_id",
+            "kind",
+            name="spatial_diary_interaction_offer_kind_unique",
+        ),
         sa.CheckConstraint(
             "interaction_version > 0",
             name="spatial_diary_interaction_version_positive",
@@ -135,6 +140,10 @@ def upgrade() -> None:
                 "spatial_diary_walk_attestation.attestation_id",
                 ondelete="SET NULL",
             ),
+        ),
+        sa.UniqueConstraint(
+            "offer_id",
+            name="spatial_diary_attestation_offer_unique",
         ),
         sa.CheckConstraint(
             "attestation_version > 0",

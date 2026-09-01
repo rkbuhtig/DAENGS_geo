@@ -463,6 +463,16 @@ async def put_offer_interaction(
     """), {"offer_id": offer_id})).one_or_none()
     if attestation is not None:
         raise SpatialDiaryEpisodeConflictError("offer already has an attestation")
+    same_kind = (await db.execute(text("""
+        SELECT interaction_id
+        FROM spatial_diary_offer_interaction
+        WHERE offer_id = :offer_id AND kind = :kind
+        LIMIT 1
+    """), {"offer_id": offer_id, "kind": kind.value})).one_or_none()
+    if same_kind is not None:
+        raise SpatialDiaryEpisodeConflictError(
+            f"offer already has a {kind.value} interaction"
+        )
 
     interaction = OfferInteraction(
         interaction_id=interaction_id,
@@ -754,8 +764,10 @@ async def load_pin_entries(
 
 
 def pin_entry_matches(entry: PinEntry, roles: tuple[SubjectRole, ...], meanings: tuple[str, ...]) -> bool:
-    claim_roles = {claim.subject_role for claim in entry.attestation.claims}
-    claim_meanings = {claim.meaning_code for claim in entry.attestation.claims}
-    return (not roles or bool(claim_roles.intersection(roles))) and (
-        not meanings or bool(claim_meanings.intersection(meanings))
+    if not roles and not meanings:
+        return True
+    return any(
+        (not roles or claim.subject_role in roles)
+        and (not meanings or claim.meaning_code in meanings)
+        for claim in entry.attestation.claims
     )
