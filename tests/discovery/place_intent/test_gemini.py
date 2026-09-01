@@ -7,6 +7,7 @@ from app.discovery.place_intent.contract import (
     IntentProposerInvalidOutputError,
     ProposalDisposition,
     ProposalReason,
+    SearchModeId,
 )
 from app.discovery.place_intent.gemini import (
     GeminiIntentProposer,
@@ -42,9 +43,15 @@ async def test_gemini_interactions_request_is_stateless_and_structured() -> None
         assert output_format["type"] == "text"
         assert output_format["mime_type"] == "application/json"
         schema = output_format["schema"]
-        proposal = schema["properties"]["interpretations"]["items"]["properties"]["proposals"][
-            "items"
+        interpretation = schema["properties"]["interpretations"]["items"]
+        proposal = interpretation["properties"]["proposals"]["items"]
+        assert interpretation["properties"]["search_mode"]["enum"] == [
+            "directed_search",
+            "open_discovery",
         ]
+        assert interpretation["properties"]["proposals"]["minItems"] == 0
+        assert schema["properties"]["reason"]["enum"][0] == "none"
+        assert "reason" in schema["required"]
         assert "intent_type" in proposal["properties"]
         assert set(proposal["properties"]["intent_type"]["enum"]) == {
             "kind",
@@ -92,8 +99,10 @@ async def test_gemini_flat_adapter_output_becomes_typed_intent() -> None:
             json=_completed(
                 {
                     "disposition": "proposed",
+                    "reason": "none",
                     "interpretations": [
                         {
+                            "search_mode": "directed_search",
                             "proposals": [
                                 {
                                     "role": "required_target",
@@ -118,9 +127,40 @@ async def test_gemini_flat_adapter_output_becomes_typed_intent() -> None:
     output = await proposer.propose("밥 먹을 곳")
 
     proposal = output.interpretations[0].proposals[0]
+    assert output.interpretations[0].search_directive.mode is SearchModeId.DIRECTED_SEARCH
     assert proposal.intent.intent_type == "purpose"
     assert proposal.intent.purpose_id.value == "dining"
     assert proposal.evidence.start is None and proposal.evidence.end is None
+
+
+@pytest.mark.asyncio
+async def test_gemini_flat_adapter_accepts_groundable_mode_only_open_discovery() -> None:
+    async def handle(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json=_completed(
+                {
+                    "disposition": "proposed",
+                    "reason": "none",
+                    "interpretations": [
+                        {
+                            "search_mode": "open_discovery",
+                            "search_mode_quote": "네가 추천해봐",
+                            "proposals": [],
+                        }
+                    ],
+                }
+            ),
+        )
+
+    proposer = GeminiIntentProposer("test-key", "model", transport=httpx.MockTransport(handle))
+
+    output = await proposer.propose("오늘 심심한데 네가 추천해봐")
+
+    interpretation = output.interpretations[0]
+    assert interpretation.search_directive.mode is SearchModeId.OPEN_DISCOVERY
+    assert interpretation.search_directive.evidence.quote == "네가 추천해봐"
+    assert interpretation.proposals == ()
 
 
 @pytest.mark.asyncio
@@ -133,6 +173,7 @@ async def test_gemini_abstention_discards_schema_forced_incomplete_proposals() -
                     "disposition": "abstained",
                     "interpretations": [
                         {
+                            "search_mode": "directed_search",
                             "proposals": [
                                 {
                                     "role": "hypothetical",
@@ -157,6 +198,29 @@ async def test_gemini_abstention_discards_schema_forced_incomplete_proposals() -
 
     assert output.disposition is ProposalDisposition.ABSTAINED
     assert output.reason is ProposalReason.INSUFFICIENT_TARGET
+    assert output.interpretations == ()
+
+
+@pytest.mark.asyncio
+async def test_gemini_preserves_unspecified_abstention_without_guessing_a_reason() -> None:
+    async def handle(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json=_completed(
+                {
+                    "disposition": "abstained",
+                    "interpretations": [],
+                    "reason": "none",
+                }
+            ),
+        )
+
+    proposer = GeminiIntentProposer("test-key", "model", transport=httpx.MockTransport(handle))
+
+    output = await proposer.propose("안녕")
+
+    assert output.disposition is ProposalDisposition.ABSTAINED
+    assert output.reason is ProposalReason.UNSPECIFIED
     assert output.interpretations == ()
 
 
@@ -219,6 +283,7 @@ async def test_gemini_does_not_salvage_invalid_proposed_output() -> None:
             json=_completed(
                 {
                     "disposition": "proposed",
+                    "reason": "none",
                     "interpretations": [
                         {
                             "proposals": [

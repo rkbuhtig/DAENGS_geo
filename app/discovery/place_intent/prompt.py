@@ -7,6 +7,7 @@ from app.discovery.place_intent.contract import (
     LLMIntentOutput,
     ProposalDisposition,
     ProposalReason,
+    SearchModeId,
 )
 from app.place.planning.contract import CapabilityId, PlaceKind
 from app.place.planning.intents import ActivityId, IntentRole, SearchObjectId
@@ -26,6 +27,10 @@ def proposer_instructions() -> str:
         (
             "너는 반려견 동반 장소 검색의 자연어 의미 제안기다.",
             "검색을 실행하거나 장소 사실을 만들지 말고, 사용자 원문에 드러난 intent만 제안하라.",
+            "search_directive는 장소 의미가 아니라 검색 대상을 누가 정하는지 나타낸다. 명시된 목적을 찾으면 directed_search를 쓴다.",
+            '사용자가 "추천해줘", "아무거나", "네가 골라줘", "뭐 하지"처럼 선택을 위임한 긍정적 원문 근거가 있을 때만 open_discovery를 쓴다.',
+            "open_discovery는 위임 근거를 evidence에 복사해야 하며 required_target을 함께 출력하지 않는다. 주차·조용함·활동 같은 명시 조건은 proposal로 계속 보존한다.",
+            "대상이 부족하다는 이유만으로 open_discovery를 만들지 마라. 선택 위임도 목적도 없는 인사·무관 발화는 abstained다.",
             "required_target은 사용자가 실제로 찾는 장소에만 쓴다. 단어가 등장했다는 이유만으로 target으로 만들지 마라.",
             "goal은 사용자가 실제로 하려는 활동이나 그 활동의 객체에만 쓴다. activity와 object를 required_target이나 required_condition에 넣지 마라.",
             "analogy=비유·유사성, excluded=제외 요구, negated=부정된 언급, hypothetical=가정·망설임, relational=숙소 안 카페처럼 다른 대상과의 관계다.",
@@ -41,6 +46,8 @@ def proposer_instructions() -> str:
             '예: "병원 갈 정도는 아니야"의 hospital은 negated이다.',
             '예: "숙소에 카페가 있으면"의 lodging은 required_target이고 cafe는 relational이다.',
             '예: "강아지 장난감을 산다면"의 buy와 dog_toy는 둘 다 hypothetical이며 장소 target은 없다.',
+            '예: "오늘 심심한데 네가 추천해봐"는 open_discovery이고 근거는 "네가 추천해봐"다.',
+            '예: "조용한 카페 추천해줘"는 cafe 목적이 명시됐으므로 directed_search이며 quiet와 cafe를 보존한다.',
             "canonical kinds: "
             + json.dumps([kind.value for kind in PlaceKind], ensure_ascii=False),
             "purpose catalog: " + json.dumps(purposes, ensure_ascii=False),
@@ -141,19 +148,26 @@ def gemini_output_schema() -> dict[str, Any]:
                 "items": {
                     "type": "object",
                     "properties": {
+                        "search_mode": {
+                            "type": "string",
+                            "enum": [mode.value for mode in SearchModeId],
+                        },
+                        "search_mode_quote": {"type": "string"},
+                        "search_mode_start": {"type": "integer", "minimum": 0},
+                        "search_mode_end": {"type": "integer", "minimum": 0},
                         "proposals": {
                             "type": "array",
-                            "minItems": 1,
+                            "minItems": 0,
                             "items": proposal,
                         }
                     },
-                    "required": ["proposals"],
+                    "required": ["search_mode", "proposals"],
                 },
             },
             "reason": {
                 "type": "string",
-                "enum": [value.value for value in ProposalReason],
+                "enum": ["none", *(value.value for value in ProposalReason)],
             },
         },
-        "required": ["disposition", "interpretations"],
+        "required": ["disposition", "interpretations", "reason"],
     }

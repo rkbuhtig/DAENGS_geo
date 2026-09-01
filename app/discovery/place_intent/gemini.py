@@ -14,6 +14,7 @@ from app.discovery.place_intent.contract import (
     IntentProposerInvalidOutputError,
     LLMIntentOutput,
     ProposalDisposition,
+    ProposalReason,
 )
 from app.discovery.place_intent.metering import MeteredIntentProposer
 from app.discovery.place_intent.prompt import gemini_output_schema, proposer_instructions
@@ -53,7 +54,10 @@ class GeminiIntentProposer:
             "system_instruction": proposer_instructions()
             + "\nGemini adapter 출력에서는 intent를 평면 필드로 쓴다. intent_type에 맞는 "
             "kind, purpose_id, capability_id와 value, concept_id, activity_id, object_id 중 하나만 채워라. "
-            "evidence는 quote와 확신할 때만 start/end로 출력하라.",
+            "evidence는 quote와 확신할 때만 start/end로 출력하라. 각 interpretation에 search_mode를 출력하고, "
+            "open_discovery일 때만 search_mode_quote와 선택적인 search_mode_start/end를 출력하라. "
+            "proposed이면 reason은 none, abstained이면 실제 abstention reason을 출력하라. "
+            "세부 사유를 고를 수 없으면 abstained와 unspecified를 출력하라.",
             "store": False,
             "response_format": {
                 "type": "text",
@@ -137,6 +141,15 @@ def _adapter_output(output_text: str) -> LLMIntentOutput:
     if not isinstance(raw, dict):
         raise TypeError("Gemini adapter output must be an object")
     _reject_unknown_fields(raw, {"disposition", "interpretations", "reason"})
+    if "reason" not in raw:
+        raise ValueError("Gemini adapter output requires a reason sentinel")
+    reason = raw.get("reason")
+    if reason == "none":
+        reason = (
+            ProposalReason.UNSPECIFIED.value
+            if raw.get("disposition") == ProposalDisposition.ABSTAINED.value
+            else None
+        )
     if raw.get("disposition") == ProposalDisposition.ABSTAINED.value:
         # Flash-Lite의 평면 schema는 disposition에 따라 interpretations를 비우는 조건부
         # 제약을 표현하지 못한다. abstained는 어떤 proposal도 실행하지 않는 선언이므로,
@@ -145,14 +158,38 @@ def _adapter_output(output_text: str) -> LLMIntentOutput:
             {
                 "disposition": raw.get("disposition"),
                 "interpretations": [],
-                "reason": raw.get("reason"),
+                "reason": reason,
             }
         )
     interpretations = []
     for interpretation in raw.get("interpretations", []):
         if not isinstance(interpretation, dict):
             raise TypeError("Gemini interpretation must be an object")
-        _reject_unknown_fields(interpretation, {"proposals"})
+        _reject_unknown_fields(
+            interpretation,
+            {
+                "search_mode",
+                "search_mode_quote",
+                "search_mode_start",
+                "search_mode_end",
+                "proposals",
+            },
+        )
+        directive_start = interpretation.get("search_mode_start")
+        directive_end = interpretation.get("search_mode_end")
+        if (directive_start is None) != (directive_end is None):
+            directive_start = None
+            directive_end = None
+        directive_quote = interpretation.get("search_mode_quote")
+        directive_evidence = (
+            {
+                "quote": directive_quote,
+                "start": directive_start,
+                "end": directive_end,
+            }
+            if directive_quote is not None
+            else None
+        )
         proposals = []
         for proposal in interpretation.get("proposals", []):
             if not isinstance(proposal, dict):
@@ -223,12 +260,20 @@ def _adapter_output(output_text: str) -> LLMIntentOutput:
                     },
                 }
             )
-        interpretations.append({"proposals": proposals})
+        interpretations.append(
+            {
+                "search_directive": {
+                    "mode": interpretation.get("search_mode"),
+                    "evidence": directive_evidence,
+                },
+                "proposals": proposals,
+            }
+        )
     return LLMIntentOutput.model_validate(
         {
             "disposition": raw.get("disposition"),
             "interpretations": interpretations,
-            "reason": raw.get("reason"),
+            "reason": reason,
         }
     )
 

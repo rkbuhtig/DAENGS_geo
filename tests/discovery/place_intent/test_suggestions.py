@@ -8,8 +8,10 @@ from app.discovery.place_intent.contract import (
     IntentProposerInvalidOutputError,
     LLMIntentOutput,
     LLMIntentProposal,
+    LLMSearchDirective,
     ProposalDisposition,
     ProposalReason,
+    SearchModeId,
     materialize_llm_output,
 )
 from app.discovery.place_intent.service import PlaceIntentSuggestionService
@@ -78,6 +80,73 @@ def _compile(output):
         spatial=_SPATIAL,
         limit_per_kind=20,
     )
+
+
+def test_open_discovery_does_not_leak_into_planner_before_product_policy_exists() -> None:
+    output = materialize_llm_output(
+        "오늘 심심한데 네가 추천해봐",
+        LLMIntentOutput(
+            disposition=ProposalDisposition.PROPOSED,
+            interpretations=(
+                IntentInterpretation(
+                    search_directive=LLMSearchDirective(
+                        mode=SearchModeId.OPEN_DISCOVERY,
+                        evidence=EvidenceQuote(
+                            quote="네가 추천해봐",
+                            start=None,
+                            end=None,
+                        ),
+                    ),
+                    proposals=(),
+                ),
+            ),
+            reason=None,
+        ),
+    )
+
+    outcome = _compile(output)
+
+    assert outcome.status is PlannerStatus.NEEDS_CLARIFICATION
+    assert outcome.suggestions == ()
+    assert [issue.code for issue in outcome.issues] == [
+        "open_discovery_policy_unavailable"
+    ]
+
+
+async def test_service_preserves_grounded_open_discovery_as_a_non_planner_directive() -> None:
+    raw = LLMIntentOutput(
+        disposition=ProposalDisposition.PROPOSED,
+        interpretations=(
+            IntentInterpretation(
+                search_directive=LLMSearchDirective(
+                    mode=SearchModeId.OPEN_DISCOVERY,
+                    evidence=EvidenceQuote(
+                        quote="네가 추천해봐",
+                        start=None,
+                        end=None,
+                    ),
+                ),
+                proposals=(),
+            ),
+        ),
+        reason=None,
+    )
+    service = PlaceIntentSuggestionService(_StaticProposer(raw))
+
+    trace = await service.inspect(
+        "오늘 심심한데 네가 추천해봐",
+        spatial=_SPATIAL,
+        limit_per_kind=20,
+    )
+
+    assert trace.grounded is not None
+    assert trace.normalized is not None
+    assert trace.normalized.hypothesis_sets[0].search_directive.mode is (
+        SearchModeId.OPEN_DISCOVERY
+    )
+    assert trace.normalized.hypothesis_sets[0].common == ()
+    assert trace.outcome.issues[0].code == "open_discovery_policy_unavailable"
+    assert trace.lenses is not None and trace.lenses.target_lenses == ()
 
 
 def test_single_literal_interpretation_becomes_one_inferred_unlocked_plan() -> None:

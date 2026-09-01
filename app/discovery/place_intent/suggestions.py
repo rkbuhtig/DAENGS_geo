@@ -9,6 +9,7 @@ from app.discovery.place_intent.contract import (
     MaterializedIntentOutput,
     ProposalDisposition,
     ProposalReason,
+    SearchModeId,
 )
 from app.place.planning.contract import (
     PlaceKind,
@@ -288,6 +289,20 @@ def compile_intent_suggestions(
 
     if output.disposition is ProposalDisposition.ABSTAINED:
         return _abstention_outcome(output)
+    if any(
+        interpretation.search_directive.mode is SearchModeId.OPEN_DISCOVERY
+        for interpretation in output.interpretations
+    ):
+        return IntentSuggestionOutcome(
+            status=PlannerStatus.NEEDS_CLARIFICATION,
+            source_disposition=output.disposition,
+            issues=(
+                PlannerIssue(
+                    code="open_discovery_policy_unavailable",
+                    detail="open discovery was grounded but no product exploration policy ran",
+                ),
+            ),
+        )
 
     candidates: list[IntentPlanCandidate] = []
     for index, interpretation in enumerate(output.interpretations, start=1):

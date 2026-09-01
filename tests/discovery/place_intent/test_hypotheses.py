@@ -7,8 +7,10 @@ from app.discovery.place_intent.contract import (
     IntentInterpretation,
     LLMIntentOutput,
     LLMIntentProposal,
+    LLMSearchDirective,
     ProposalDisposition,
     ProposalReason,
+    SearchModeId,
     materialize_llm_output,
 )
 from app.discovery.place_intent.hypotheses import (
@@ -90,6 +92,35 @@ def test_specific_pet_shop_target_removes_redundant_shopping_purpose() -> None:
         "source-2",
         "source-1",
     )
+
+
+def test_open_discovery_directive_survives_normalization_without_becoming_common_intent() -> None:
+    grounded = materialize_llm_output(
+        "오늘 심심한데 네가 추천해봐",
+        LLMIntentOutput(
+            disposition=ProposalDisposition.PROPOSED,
+            interpretations=(
+                IntentInterpretation(
+                    search_directive=LLMSearchDirective(
+                        mode=SearchModeId.OPEN_DISCOVERY,
+                        evidence=EvidenceQuote(
+                            quote="네가 추천해봐",
+                            start=None,
+                            end=None,
+                        ),
+                    ),
+                    proposals=(),
+                ),
+            ),
+            reason=None,
+        ),
+    )
+
+    hypothesis_set = build_search_hypotheses(grounded).hypothesis_sets[0]
+
+    assert hypothesis_set.search_directive.mode is SearchModeId.OPEN_DISCOVERY
+    assert hypothesis_set.common == ()
+    assert hypothesis_set.hypotheses == ()
 
 
 def test_buy_and_dog_toy_compose_to_pet_shop_without_claiming_inventory() -> None:

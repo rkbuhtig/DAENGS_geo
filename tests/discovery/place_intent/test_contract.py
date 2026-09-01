@@ -9,9 +9,11 @@ from app.discovery.place_intent.contract import (
     IntentInterpretation,
     LLMIntentOutput,
     LLMIntentProposal,
+    LLMSearchDirective,
     MaterializedIntentOutput,
     ProposalDisposition,
     ProposalReason,
+    SearchModeId,
     materialize_llm_output,
 )
 from app.place.planning.contract import PlaceKind
@@ -76,6 +78,92 @@ def test_server_grounds_quote_and_assigns_id_and_source() -> None:
     assert item.observation.observation_id == "server-1"
     assert item.observation.source is IntentSource.LLM_PROPOSAL
     assert item.observation.evidence == "카페"
+
+
+def test_open_discovery_is_grounded_without_becoming_a_planner_observation() -> None:
+    output = LLMIntentOutput(
+        disposition=ProposalDisposition.PROPOSED,
+        interpretations=(
+            IntentInterpretation(
+                search_directive=LLMSearchDirective(
+                    mode=SearchModeId.OPEN_DISCOVERY,
+                    evidence=EvidenceQuote(
+                        quote="네가 추천해봐",
+                        start=None,
+                        end=None,
+                    ),
+                ),
+                proposals=(),
+            ),
+        ),
+        reason=None,
+    )
+
+    materialized = materialize_llm_output(
+        "오늘 심심한데 네가 추천해봐",
+        output,
+        id_factory=lambda: pytest.fail("search directives must not receive observation ids"),
+    )
+
+    interpretation = materialized.interpretations[0]
+    assert interpretation.observations == ()
+    assert interpretation.search_directive.mode is SearchModeId.OPEN_DISCOVERY
+    assert interpretation.search_directive.evidence_span.model_dump() == {
+        "start": 8,
+        "end": 15,
+        "text": "네가 추천해봐",
+    }
+
+
+def test_search_mode_contract_requires_positive_delegation_evidence() -> None:
+    with pytest.raises(ValidationError, match="requires delegation evidence"):
+        LLMSearchDirective(mode=SearchModeId.OPEN_DISCOVERY)
+    with pytest.raises(ValidationError, match="directed search requires"):
+        IntentInterpretation(proposals=())
+    with pytest.raises(ValidationError, match="cannot carry an explicit required target"):
+        IntentInterpretation(
+            search_directive=LLMSearchDirective(
+                mode=SearchModeId.OPEN_DISCOVERY,
+                evidence=EvidenceQuote(quote="추천해줘", start=None, end=None),
+            ),
+            proposals=(_kind_proposal("카페"),),
+        )
+
+    open_interpretation = IntentInterpretation(
+        search_directive=LLMSearchDirective(
+            mode=SearchModeId.OPEN_DISCOVERY,
+            evidence=EvidenceQuote(quote="추천해줘", start=None, end=None),
+        ),
+        proposals=(),
+    )
+    with pytest.raises(ValidationError, match="positively proposed"):
+        LLMIntentOutput(
+            disposition=ProposalDisposition.AMBIGUOUS,
+            interpretations=(
+                open_interpretation,
+                IntentInterpretation(proposals=(_kind_proposal("카페"),)),
+            ),
+            reason=ProposalReason.MULTIPLE_PLAUSIBLE_READINGS,
+        )
+
+
+def test_open_discovery_evidence_is_rejected_atomically_when_not_in_utterance() -> None:
+    output = LLMIntentOutput(
+        disposition=ProposalDisposition.PROPOSED,
+        interpretations=(
+            IntentInterpretation(
+                search_directive=LLMSearchDirective(
+                    mode=SearchModeId.OPEN_DISCOVERY,
+                    evidence=EvidenceQuote(quote="네가 골라줘", start=None, end=None),
+                ),
+                proposals=(),
+            ),
+        ),
+        reason=None,
+    )
+
+    with pytest.raises(IntentEvidenceError, match="not present"):
+        materialize_llm_output("오늘 심심해", output)
 
 
 def test_offsets_select_exact_original_substring() -> None:
