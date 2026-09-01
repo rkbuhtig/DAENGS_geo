@@ -12,6 +12,7 @@ from app.api import anchor, places_v2, static_map
 from app.core.config import settings
 from app.core.db import get_session
 from app.features.journey import api as journey
+from app.features.spatial_diary import api as spatial_diary_episode
 from app.features.territory import api as spatial_diary
 from app.features.walk import api as walk
 from app.usage.composition import route_capability_problems
@@ -27,6 +28,7 @@ app.include_router(places_v2.router)
 app.include_router(walk.router)
 app.include_router(journey.router)
 app.include_router(spatial_diary.router)
+app.include_router(spatial_diary_episode.router)
 app.include_router(static_map.router)
 app.include_router(anchor.router)
 
