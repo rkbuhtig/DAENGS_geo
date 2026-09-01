@@ -117,7 +117,8 @@
         </label>
       </div>
       <div class="actions">
-        <button class="run" id="run" type="submit">Gemini로 검색</button>
+        <button class="run" id="run" type="submit">새 검색</button>
+        <button class="secondary" id="revise" type="submit" disabled>현재 검색 수정</button>
         <button class="secondary" id="reset" type="button" disabled>처음부터 다시</button>
         <span class="badge" id="model">gemini-3.1-flash-lite</span>
       </div>
@@ -576,6 +577,7 @@ function renderRejected(outcome) {
 function render(data) {
   payload = data;
   confirmations.clear();
+  $('revise').disabled = false;
   $('reset').disabled = false;
   $('analysis').hidden = false;
   $('model').textContent = data.model;
@@ -642,8 +644,13 @@ async function loadObservations() {
 
 $('query-form').addEventListener('submit', async event => {
   event.preventDefault();
-  const button = $('run'); button.disabled = true;
-  $('status').className = 'status'; $('status').textContent = 'Gemini 해석과 실제 DB 검색을 실행 중…';
+  const revising = event.submitter && event.submitter.id === 'revise';
+  const runButton = $('run'); const reviseButton = $('revise');
+  runButton.disabled = true; reviseButton.disabled = true;
+  $('status').className = 'status';
+  $('status').textContent = revising
+    ? '현재 검색에 연결된 수정안을 실행 중…'
+    : '새 Gemini 해석과 실제 DB 검색을 실행 중…';
   const [lat, lng] = $('where').value.split(',').map(Number);
   try {
     const response = await fetch('/dev/place-intent/search', {
@@ -651,7 +658,7 @@ $('query-form').addEventListener('submit', async event => {
       body:JSON.stringify({
         utterance:$('utterance').value, lat, lng,
         radius_m:Number($('radius').value), preview_per_lens:Number($('limit').value),
-        ...(payload ? {
+        ...(revising && payload ? {
           previous_search_id:payload.search_id,
           interaction_token:payload.interaction_token,
         } : {}),
@@ -669,14 +676,17 @@ $('query-form').addEventListener('submit', async event => {
     await loadObservations();
   } catch (error) {
     $('status').className = 'status error'; $('status').textContent = error.message || '검색에 실패했습니다.';
-  } finally { button.disabled = false; }
+  } finally {
+    runButton.disabled = false;
+    reviseButton.disabled = !payload;
+  }
 });
 
 $('reset').addEventListener('click', async () => {
   try {
     await observeInteraction('search_reset');
     payload = null; selectedKey = null; confirmations.clear();
-    $('analysis').hidden = true; $('reset').disabled = true;
+    $('analysis').hidden = true; $('revise').disabled = true; $('reset').disabled = true;
     renderMap(null);
     $('status').className = 'status'; $('status').textContent = '검색을 초기화했습니다. 새 문장으로 다시 시작할 수 있습니다.';
   } catch (error) {
