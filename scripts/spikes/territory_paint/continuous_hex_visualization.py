@@ -1,11 +1,10 @@
-"""연속 원 reference와 Hex Cellophane을 실제 지도에서 비교할 상세 payload를 만든다.
+"""연속 reference / raw Hex / 보수적 복원 Field의 실제 지도 payload를 만든다.
 
     uv run python -m scripts.spikes.territory_paint.continuous_hex_visualization \
         --out continuous-hex-visualization.json
 
-요약 수치는 ``continuous_hex_comparison``과 같은 계산 경로를 쓴다. 이 파일은 그 위에 연속
-raster pixel 값, 서버에서 계산한 Hex polygon, 50·80·95% 경계만 더한다. 브라우저는 통계를
-재계산하거나 육각형을 재구성하지 않는다.
+브라우저는 통계를 재계산하거나 육각형·복원장을 재구성하지 않는다. 서버에서 계산한 A/B/C 값,
+50·80·95% 경계와 고정 exposure 계약만 읽어 실제 지도에 표시한다.
 """
 
 from __future__ import annotations
@@ -17,9 +16,14 @@ from pathlib import Path
 
 from app.features.territory.paint import NARROW_STEP, paint_spec
 from app.features.territory.spatial_stats import highest_mass_regions
-from app.geo.cells import Cell, hex_boundary_latlng
+from app.geo.cells import Cell, cell_area_m2, hex_boundary_latlng, metres_per_unit
 from scripts.sim.walk.population import DEFAULT_POPULATION_ORIGIN, observe_population
 from scripts.sim.walk.population_truth import build_population_truth
+from scripts.spikes.territory_paint.conservative_hex_evaluation import (
+    RECONSTRUCTION_HOLDOUT_SEED,
+    build_radius_reconstruction_layers,
+    reconstruction_comparison_receipt,
+)
 from scripts.spikes.territory_paint.continuous_hex_comparison import (
     DEFAULT_PIXEL_M,
     DEFAULT_RADIUS_UNITS,
@@ -29,14 +33,12 @@ from scripts.spikes.territory_paint.continuous_hex_comparison import (
     RasterSpec,
     hex_metric_fields,
     highest_pixel_mass_regions,
-    radius_comparison,
     raster_metric_fields,
     rasterize_observation,
-    repaint_observation,
 )
 from scripts.spikes.territory_paint.population_distribution import region_boundary_edges
 
-VISUALIZATION_FORMAT_VERSION = 1
+VISUALIZATION_FORMAT_VERSION = 3
 METRIC_LABELS = {
     "total_time": "총 관측 시간",
     "visit_rate": "산책당 방문률",
@@ -44,6 +46,37 @@ METRIC_LABELS = {
     "time_utilization": "전체 시간 이용분포",
     "walk_utilization": "산책 동등 이용분포",
 }
+# 30회 holdout fixture의 A/B/C 양수 면적밀도 p85 부근을 사람이 읽기 쉬운 값으로 동결했다.
+# 화면별 max로 다시 맞추지 않는다. 실제 센서 실험 전에는 제품 상수가 아닌 viewer-v3 계약이다.
+EXPOSURE_SPECS = {
+    "total_time": {
+        "basis": "area_density",
+        "scale": 0.4,
+        "scale_unit": "s/m²",
+    },
+    "visit_rate": {
+        "basis": "value",
+        "scale": 0.5,
+        "scale_unit": "ratio",
+    },
+    "conditional_dwell": {
+        "basis": "area_density",
+        "scale": 0.04,
+        "scale_unit": "s/visited_walk/m²",
+    },
+    "time_utilization": {
+        "basis": "area_density",
+        "scale": 0.00002,
+        "scale_unit": "share/m²",
+    },
+    "walk_utilization": {
+        "basis": "area_density",
+        "scale": 0.00002,
+        "scale_unit": "share/m²",
+    },
+}
+EXPOSURE_CURVE = "one_minus_exp"
+EXPOSURE_MAX_ALPHA = 0.82
 
 
 def _point_key(point: tuple[float, float]) -> tuple[float, float]:
@@ -154,7 +187,7 @@ def _raster_payload(
 def _hex_payload(
     radius_u: float,
     fields,
-    summary: dict[str, object],
+    raster: RasterSpec,
 ) -> dict[str, object]:
     cells: set[Cell] = set(fields["total_time"].values)
     paint = paint_spec(radius_u, NARROW_STEP)
@@ -182,8 +215,8 @@ def _hex_payload(
     }
     return {
         "radius_u": radius_u,
-        "ground_radius_m_at_origin": summary["ground_radius_m_at_origin"],
-        "cell_area_m2_at_origin": summary["cell_area_m2_at_origin"],
+        "ground_radius_m_at_origin": radius_u * metres_per_unit(raster.origin_lat),
+        "cell_area_m2_at_origin": cell_area_m2(radius_u, raster.origin_lat),
         "paint_fp": paint.fingerprint,
         "cells": rows,
         "metrics": {
@@ -195,12 +228,6 @@ def _hex_payload(
             for metric in METRICS
         },
         "regions": regions,
-        "comparison": {
-            "mass": summary["mass"],
-            "support": summary["support"],
-            "metrics": summary["metrics"],
-            "mass_regions": summary["mass_regions"],
-        },
     }
 
 
@@ -208,8 +235,9 @@ def build_visualization_payload(
     *,
     pixel_m: float = DEFAULT_PIXEL_M,
     radius_units: tuple[float, ...] = DEFAULT_RADIUS_UNITS,
+    blend_reach_cells: float = 1.75,
 ) -> dict[str, object]:
-    truth = build_population_truth()
+    truth = build_population_truth(seed=RECONSTRUCTION_HOLDOUT_SEED)
     observation = observe_population(truth, sample_interval_s=5.0)
     raster = RasterSpec(pixel_m=pixel_m)
     reference_sheets = rasterize_observation(observation, raster)
@@ -222,23 +250,33 @@ def build_visualization_payload(
         (reference["bbox"][2], reference["bbox"][3]),  # type: ignore[index]
     ]
     for radius_u in radius_units:
-        sheets = repaint_observation(observation, radius_u)
-        fields = hex_metric_fields(sheets, radius_u)
-        summary = radius_comparison(
+        reconstruction = build_radius_reconstruction_layers(
             observation,
-            reference_sheets,
-            reference_fields,
             radius_u,
             raster,
-            sheets=sheets,
-            fields=fields,
+            blend_reach_cells=blend_reach_cells,
         )
-        row = _hex_payload(radius_u, fields, summary)
+        sheets = reconstruction.source_sheets
+        fields = hex_metric_fields(sheets, radius_u)
+        row = _hex_payload(radius_u, fields, raster)
+        row["reconstructed"] = _raster_payload(reconstruction.reconstructed_fields, raster)
+        row["comparison"] = reconstruction_comparison_receipt(
+            reference_fields,
+            raster,
+            reconstruction,
+        )
         radii.append(row)
         all_points.extend(
             point
             for cell in row["cells"]  # type: ignore[union-attr]
             for point in cell["boundary"]  # type: ignore[index]
+        )
+        reconstructed_bbox = row["reconstructed"]["bbox"]  # type: ignore[index]
+        all_points.extend(
+            (
+                (reconstructed_bbox[0], reconstructed_bbox[1]),
+                (reconstructed_bbox[2], reconstructed_bbox[3]),
+            )
         )
 
     latitudes = [point[0] for point in all_points]
@@ -248,10 +286,22 @@ def build_visualization_payload(
         "coordinate_order": "lat,lng",
         "home": list(DEFAULT_POPULATION_ORIGIN),
         "bbox": [min(latitudes), min(longitudes), max(latitudes), max(longitudes)],
+        "roles": {
+            "reference": "perfect_sensor_continuous_evaluation_reference_not_truth",
+            "raw_hex": "permanent_cellophane_debug_view",
+            "reconstructed": "ephemeral_display_only_not_statistics_source",
+        },
         "population": {
+            "split": "holdout",
             "generator_version": observation.generator_version,
             "run_id": observation.run_id,
             "sample_count": len(observation.walks),
+        },
+        "exposure": {
+            "curve": EXPOSURE_CURVE,
+            "max_alpha": EXPOSURE_MAX_ALPHA,
+            "revision": "viewer-v3-2026-09-01-fixed-p85",
+            "metrics": EXPOSURE_SPECS,
         },
         "reference": reference,
         "radii": radii,
@@ -264,9 +314,13 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", type=Path, default=Path("continuous-hex-visualization.json"))
     parser.add_argument("--pixel-m", type=float, default=DEFAULT_PIXEL_M)
+    parser.add_argument("--blend-reach-cells", type=float, default=1.75)
     args = parser.parse_args(argv)
 
-    payload = build_visualization_payload(pixel_m=args.pixel_m)
+    payload = build_visualization_payload(
+        pixel_m=args.pixel_m,
+        blend_reach_cells=args.blend_reach_cells,
+    )
     args.out.write_text(
         json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n",
         encoding="utf-8",
@@ -274,7 +328,7 @@ def main(argv: list[str] | None = None) -> int:
     print(
         f"{args.out}: {payload['population']['sample_count']} walks · "  # type: ignore[index]
         f"{len(payload['reference']['pixels'])} raster pixels · "  # type: ignore[index,arg-type]
-        f"{len(payload['radii'])} Hex radii"  # type: ignore[arg-type]
+        f"{len(payload['radii'])} Hex + reconstructed radii"  # type: ignore[arg-type]
     )
     return 0
 

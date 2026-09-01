@@ -17,10 +17,11 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
-from app.features.territory.paint import NARROW_STEP, paint_sheet
+from app.features.territory.paint import NARROW_STEP, Cellophane, paint_sheet
 from scripts.sim.walk.population import observe_population
 from scripts.sim.walk.population_truth import DEFAULT_POPULATION_SEED, build_population_truth
 from scripts.spikes.territory_paint.conservative_hex_reconstruction import (
+    ReconstructedRasterSheet,
     ReconstructionSpec,
     reconstruct_cellophane,
     reconstruct_cellophanes,
@@ -51,6 +52,19 @@ class _PixelKdNode:
     axis: int
     left: _PixelKdNode | None
     right: _PixelKdNode | None
+
+
+@dataclass(frozen=True)
+class RadiusReconstructionLayers:
+    """한 radius의 B raw piecewise와 C local blend를 한 번만 계산한 묶음."""
+
+    radius_u: float
+    blend_reach_cells: float
+    source_sheets: tuple[Cellophane, ...]
+    raw_sheets: tuple[ReconstructedRasterSheet, ...]
+    reconstructed_sheets: tuple[ReconstructedRasterSheet, ...]
+    raw_fields: dict[str, RasterMetricField]
+    reconstructed_fields: dict[str, RasterMetricField]
 
 
 def _percentile(values: list[float], quantile: float) -> float:
@@ -232,14 +246,13 @@ def _mass_region_receipts(
     return rows
 
 
-def radius_reconstruction_comparison(
+def build_radius_reconstruction_layers(
     observation,
-    reference_fields: dict[str, RasterMetricField],
     radius_u: float,
     raster: RasterSpec,
     *,
     blend_reach_cells: float = 1.75,
-) -> dict[str, object]:
+) -> RadiusReconstructionLayers:
     sheets = repaint_observation(observation, radius_u)
     raw_sheets = reconstruct_cellophanes(
         sheets, raster, ReconstructionSpec(radius_u, "piecewise")
@@ -251,6 +264,28 @@ def radius_reconstruction_comparison(
     )
     raw_fields = raster_metric_fields(raw_sheets)  # type: ignore[arg-type]
     reconstructed_fields = raster_metric_fields(reconstructed_sheets)  # type: ignore[arg-type]
+    return RadiusReconstructionLayers(
+        radius_u=radius_u,
+        blend_reach_cells=blend_reach_cells,
+        source_sheets=sheets,
+        raw_sheets=raw_sheets,
+        reconstructed_sheets=reconstructed_sheets,
+        raw_fields=raw_fields,
+        reconstructed_fields=reconstructed_fields,
+    )
+
+
+def reconstruction_comparison_receipt(
+    reference_fields: dict[str, RasterMetricField],
+    raster: RasterSpec,
+    layers: RadiusReconstructionLayers,
+) -> dict[str, object]:
+    radius_u = layers.radius_u
+    sheets = layers.source_sheets
+    raw_sheets = layers.raw_sheets
+    reconstructed_sheets = layers.reconstructed_sheets
+    raw_fields = layers.raw_fields
+    reconstructed_fields = layers.reconstructed_fields
     raw_support = set(raw_fields["total_time"].values)
     reconstructed_support = set(reconstructed_fields["total_time"].values)
     source_mass = math.fsum(sheet.occupancy[cell] for sheet in sheets for cell in sheet.occupancy)
@@ -260,7 +295,7 @@ def radius_reconstruction_comparison(
         "radius_u": radius_u,
         "reconstruction": {
             "method": "local_blend",
-            "blend_reach_cells": blend_reach_cells,
+            "blend_reach_cells": layers.blend_reach_cells,
             "support_policy": "occupied_hex_union_per_connected_component",
         },
         "source_cell_count": sum(len(sheet.occupancy) for sheet in sheets),
@@ -312,6 +347,23 @@ def radius_reconstruction_comparison(
             },
         },
     }
+
+
+def radius_reconstruction_comparison(
+    observation,
+    reference_fields: dict[str, RasterMetricField],
+    radius_u: float,
+    raster: RasterSpec,
+    *,
+    blend_reach_cells: float = 1.75,
+) -> dict[str, object]:
+    layers = build_radius_reconstruction_layers(
+        observation,
+        radius_u,
+        raster,
+        blend_reach_cells=blend_reach_cells,
+    )
+    return reconstruction_comparison_receipt(reference_fields, raster, layers)
 
 
 def _reconstructed_gap_probe(raster: RasterSpec, radius_units: tuple[float, ...]) -> list[dict[str, object]]:
