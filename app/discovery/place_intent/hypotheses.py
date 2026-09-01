@@ -353,7 +353,6 @@ def _build_set(
 
     directive = search_directive or GroundedSearchDirective()
     if directive.mode is SearchModeId.OPEN_DISCOVERY and not hypotheses:
-        basis_ids = tuple(item.observation_id for item in observations)
         for branch in OPEN_DISCOVERY_POLICY.branches:
             hypothesis_key = f"{set_key}:open-discovery:{branch.branch_id}"
             hypotheses.append(
@@ -367,7 +366,7 @@ def _build_set(
                             PurposeIntent(purpose_id=branch.purpose_id),
                         ),
                     ),
-                    basis_observation_ids=basis_ids,
+                    basis_observation_ids=(),
                     policy_id=OPEN_DISCOVERY_POLICY.policy_id,
                     policy_version=OPEN_DISCOVERY_POLICY.version,
                     policy_branch_id=branch.branch_id,

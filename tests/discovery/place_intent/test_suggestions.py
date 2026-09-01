@@ -23,12 +23,16 @@ from app.discovery.place_intent.suggestions import (
 )
 from app.place.planning.contract import CapabilityId, GateOrigin, PlaceKind
 from app.place.planning.intents import (
+    ActivityId,
+    ActivityIntent,
     BooleanCapabilityIntent,
     IntentRole,
     KindIntent,
+    ObjectIntent,
     PlannerIssue,
     PlannerStatus,
     PurposeIntent,
+    SearchObjectId,
     SemanticIntent,
 )
 from app.place.planning.purpose import PurposeId
@@ -171,6 +175,59 @@ async def test_service_keeps_directive_separate_while_exposing_product_lenses() 
         item.mapping_scope.value == "open_discovery"
         for item in trace.lenses.target_lenses
     )
+
+
+def test_open_discovery_keeps_an_existing_composed_target_executable() -> None:
+    ids = _ids()
+    output = materialize_llm_output(
+        "강아지 장난감 사고 싶어 네가 추천해줘",
+        LLMIntentOutput(
+            disposition=ProposalDisposition.PROPOSED,
+            interpretations=(
+                IntentInterpretation(
+                    search_directive=LLMSearchDirective(
+                        mode=SearchModeId.OPEN_DISCOVERY,
+                        evidence=EvidenceQuote(
+                            quote="네가 추천해줘",
+                            start=None,
+                            end=None,
+                        ),
+                    ),
+                    proposals=(
+                        _proposal(
+                            IntentRole.GOAL,
+                            ObjectIntent(object_id=SearchObjectId.DOG_TOY),
+                            "강아지 장난감",
+                        ),
+                        _proposal(
+                            IntentRole.GOAL,
+                            ActivityIntent(activity_id=ActivityId.BUY),
+                            "사고 싶어",
+                        ),
+                    ),
+                ),
+            ),
+            reason=None,
+        ),
+        id_factory=lambda: next(ids),
+    )
+
+    outcome = _compile(output)
+
+    assert outcome.status is PlannerStatus.READY
+    assert outcome.resolution is SuggestionResolution.EXPLORATORY
+    assert len(outcome.suggestions) == 1
+    candidate = outcome.suggestions[0]
+    assert candidate.basis is SuggestionBasis.HYPOTHESIS
+    assert candidate.basis_observation_ids == ("llm-test-2", "llm-test-1")
+    assert candidate.basis_policy_id is None
+    assert candidate.result.plan is not None
+    purpose = next(
+        gate
+        for gate in candidate.result.plan.gates
+        if gate.capability_id is CapabilityId.PURPOSE_KIND
+    )
+    assert purpose.value == (PlaceKind.PET_SHOP,)
 
 
 def test_single_literal_interpretation_becomes_one_inferred_unlocked_plan() -> None:

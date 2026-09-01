@@ -320,7 +320,11 @@ def _open_discovery_outcome(
     candidates = tuple(
         IntentPlanCandidate(
             candidate_key=hypothesis.hypothesis_key,
-            basis=SuggestionBasis.OPEN_DISCOVERY,
+            basis=(
+                SuggestionBasis.OPEN_DISCOVERY
+                if hypothesis.mapping_scope is HypothesisMappingScope.PRODUCT_POLICY
+                else SuggestionBasis.HYPOTHESIS
+            ),
             basis_observation_ids=hypothesis.basis_observation_ids,
             basis_policy_id=hypothesis.policy_id,
             basis_policy_version=hypothesis.policy_version,
@@ -335,7 +339,6 @@ def _open_discovery_outcome(
         for hypothesis_set in normalized.hypothesis_sets
         if hypothesis_set.search_directive.mode is SearchModeId.OPEN_DISCOVERY
         for hypothesis in hypothesis_set.hypotheses
-        if hypothesis.mapping_scope is HypothesisMappingScope.PRODUCT_POLICY
     )
     if not candidates:
         return IntentSuggestionOutcome(
