@@ -549,6 +549,7 @@ async def test_concurrent_identical_pin_corrections_are_idempotent():
         assert first_result == second_result
         assert first_result.pin_id == "pin-concurrent-correction"
         async with db_session() as verify:
+            await verify.rollback()
             history = await list_pin_attestations(verify, "pin-concurrent-correction")
             assert tuple(item.attestation_id for item in history) == (
                 "attestation-concurrent-origin",
