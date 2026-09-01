@@ -211,6 +211,28 @@ def test_allowlisted_soft_semantic_gets_default_leisure_groups_and_keeps_prefere
     assert outcome.rejected[0].result.unsupported[0].code == "unsupported_semantic_intent"
 
 
+def test_cheap_without_a_target_offers_broad_groups_for_later_facet_selection() -> None:
+    output = _materialize(
+        "싸게 갈 수 있는 곳",
+        (
+            _proposal(
+                IntentRole.REQUIRED_CONDITION,
+                SemanticIntent(concept_id="semantic.cheap"),
+                "싸게",
+            ),
+        ),
+    )
+
+    outcome = _compile(output)
+
+    assert outcome.resolution is SuggestionResolution.EXPLORATORY
+    assert [item.candidate_key for item in outcome.suggestions] == [
+        "interpretation:1:fallback:purpose:dining",
+        "interpretation:1:fallback:purpose:outing",
+        "interpretation:1:fallback:purpose:culture",
+    ]
+
+
 def test_ambiguous_fallbacks_keep_each_interpretations_preferences_and_evidence() -> None:
     output = _materialize(
         "카페 같은 곳에 주차되면 좋고 아니면 나들이 갈까",

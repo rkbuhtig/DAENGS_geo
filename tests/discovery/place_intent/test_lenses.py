@@ -1,5 +1,7 @@
 from collections.abc import Iterator
 
+import pytest
+
 from app.discovery.place_intent.contract import (
     EvidenceQuote,
     IntentInterpretation,
@@ -17,6 +19,7 @@ from app.discovery.place_intent.lenses import (
     LensType,
     compile_search_lenses,
 )
+from app.discovery.place_intent.refinement import resolve_search_facet
 from app.discovery.place_intent.suggestions import compile_intent_suggestions
 from app.place.planning.contract import CapabilityId, PlaceKind
 from app.place.planning.intents import (
@@ -188,7 +191,12 @@ def test_cheap_becomes_a_non_executing_cost_question_with_honest_options() -> No
         ),
     )
 
-    assert not lenses.target_lenses
+    assert len(lenses.target_lenses) == 3
+    assert all(
+        item.availability is LensAvailability.NEEDS_SELECTION
+        for item in lenses.target_lenses
+    )
+    assert not lenses.executable_targets
     signal = lenses.signal_lenses[0]
     assert signal.lens_type is LensType.UNRESOLVED
     assert signal.availability is LensAvailability.NEEDS_SELECTION
@@ -224,6 +232,61 @@ def test_blocking_cost_facet_prevents_an_otherwise_ready_target_from_execution()
     assert lens.availability is LensAvailability.NEEDS_SELECTION
     assert lens.unresolved_facet_ids == ("cost.dimension",)
     assert not lenses.executable_targets
+
+    refined = resolve_search_facet(
+        lenses,
+        signal_lens_id=lenses.signal_lenses[0].lens_id,
+        option_id="cost.travel_distance",
+    )
+
+    assert refined.target_lenses[0].availability is LensAvailability.EXECUTABLE
+    assert not refined.target_lenses[0].unresolved_facet_ids
+    assert refined.signal_lenses[0].availability is LensAvailability.RESOLVED
+    assert refined.signal_lenses[0].selected_option_id == "cost.travel_distance"
+    assert "실제 가격이 아니라" in refined.target_lenses[0].support_note
+
+
+def test_unavailable_cost_facet_cannot_open_a_target_lens() -> None:
+    lenses = _compile(
+        "싼 카페",
+        _proposal(IntentRole.REQUIRED_TARGET, KindIntent(kind=PlaceKind.CAFE), "카페"),
+        _proposal(
+            IntentRole.REQUIRED_CONDITION,
+            SemanticIntent(concept_id="semantic.cheap"),
+            "싼",
+        ),
+    )
+
+    with pytest.raises(ValueError, match="not executable"):
+        resolve_search_facet(
+            lenses,
+            signal_lens_id=lenses.signal_lenses[0].lens_id,
+            option_id="cost.product_price",
+        )
+
+
+def test_optional_cost_facet_can_be_resolved_without_blocking_existing_targets() -> None:
+    lenses = _compile(
+        "싸면 좋은 곳",
+        _proposal(
+            IntentRole.PREFERENCE,
+            SemanticIntent(concept_id="semantic.cheap"),
+            "싸면 좋은 곳",
+        ),
+    )
+    assert lenses.executable_targets
+
+    refined = resolve_search_facet(
+        lenses,
+        signal_lens_id=lenses.signal_lenses[0].lens_id,
+        option_id="cost.travel_distance",
+    )
+
+    assert [item.lens_id for item in refined.executable_targets] == [
+        item.lens_id for item in lenses.executable_targets
+    ]
+    assert refined.signal_lenses[0].availability is LensAvailability.RESOLVED
+    assert all("실제 가격이 아니라" in item.support_note for item in refined.target_lenses)
 
 
 def test_common_hard_condition_blocks_every_expanded_play_lens() -> None:
@@ -298,10 +361,26 @@ def test_fallback_lenses_only_receive_signals_from_their_interpretation() -> Non
         limit_per_kind=3,
     )
 
-    assert len(lenses.target_lenses) == 3
-    assert all(item.availability is LensAvailability.EXECUTABLE for item in lenses.target_lenses)
-    assert all(not item.unresolved_facet_ids for item in lenses.target_lenses)
-    assert all(item.modifier_ids == ("semantic.quiet",) for item in lenses.target_lenses)
+    assert len(lenses.target_lenses) == 6
+    quiet, cheap = lenses.target_lenses[:3], lenses.target_lenses[3:]
+    assert all(item.availability is LensAvailability.EXECUTABLE for item in quiet)
+    assert all(not item.unresolved_facet_ids for item in quiet)
+    assert all(item.modifier_ids == ("semantic.quiet",) for item in quiet)
+    assert all(item.availability is LensAvailability.NEEDS_SELECTION for item in cheap)
+    assert all(item.unresolved_facet_ids == ("cost.dimension",) for item in cheap)
+
+    cost_signal = next(
+        item
+        for item in lenses.signal_lenses
+        if item.lens_id.startswith("signal:interpretation:2:facet:")
+    )
+    refined = resolve_search_facet(
+        lenses,
+        signal_lens_id=cost_signal.lens_id,
+        option_id="cost.travel_distance",
+    )
+    assert all("실제 가격이 아니라" not in item.support_note for item in refined.target_lenses[:3])
+    assert all("실제 가격이 아니라" in item.support_note for item in refined.target_lenses[3:])
 
 
 def test_signal_lens_preserves_required_modifier_strength() -> None:

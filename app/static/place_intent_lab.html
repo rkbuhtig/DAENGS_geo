@@ -33,6 +33,8 @@
     .actions { display:flex; align-items:center; gap:8px }
     .run { border:0; border-radius:9px; padding:9px 14px; background:var(--green); color:white; font-weight:750; cursor:pointer }
     .run:disabled { opacity:.55; cursor:wait }
+    .secondary { border:1px solid var(--line); border-radius:9px; padding:8px 11px; background:#fff; color:var(--muted); cursor:pointer }
+    .secondary:disabled { opacity:.45; cursor:not-allowed }
     .examples { display:flex; flex-wrap:wrap; gap:5px }
     .example, .candidate-tab { border:1px solid var(--line); border-radius:999px; background:#fff; color:#3d4940; padding:5px 8px; cursor:pointer; font-size:11px }
     .candidate-tab[aria-selected="true"] { color:#fff; background:var(--green); border-color:var(--green) }
@@ -64,6 +66,10 @@
     .place small { color:var(--muted) }
     .signal-options { display:flex; flex-wrap:wrap; gap:5px; margin-top:7px }
     .signal-option { border:1px solid var(--line); border-radius:999px; padding:4px 8px; background:#f6f8f6; color:var(--muted); font-size:11px }
+    button.signal-option { cursor:pointer }
+    .signal-option.selected { border-color:var(--green); background:var(--green-soft); color:var(--green); font-weight:750 }
+    .observation { display:grid; grid-template-columns:1fr auto; gap:3px 8px }
+    .observation small { grid-column:1 / 3; color:var(--muted) }
     .rejected { color:var(--red); border-color:#efd1d1; background:#fffafa }
     pre { margin:7px 0 0; max-height:180px; overflow:auto; white-space:pre-wrap; overflow-wrap:anywhere; background:#172019; color:#dfe9e1; border-radius:9px; padding:9px; font:11px/1.45 ui-monospace,SFMono-Regular,Consolas,monospace }
     .map-note { position:absolute; z-index:600; left:12px; bottom:12px; max-width:300px; padding:9px 11px; border-radius:10px; background:rgba(255,255,255,.94); box-shadow:var(--shadow); color:var(--muted); font-size:11px }
@@ -112,6 +118,7 @@
       </div>
       <div class="actions">
         <button class="run" id="run" type="submit">Gemini로 검색</button>
+        <button class="secondary" id="reset" type="button" disabled>처음부터 다시</button>
         <span class="badge" id="model">gemini-3.1-flash-lite</span>
       </div>
       <div class="examples" aria-label="예시 검색">
@@ -143,6 +150,15 @@
         <summary class="lede" style="cursor:pointer;margin-top:16px">전체 응답 JSON</summary>
         <pre id="raw-json"></pre>
       </details>
+    </section>
+
+    <section>
+      <h2>Operator observations</h2>
+      <div class="actions">
+        <button class="secondary" id="refresh-observations" type="button">실패 기록 새로고침</button>
+        <span class="lede">개발 검증용 원문과 실패 분류</span>
+      </div>
+      <div id="observations"></div>
     </section>
   </section>
   <section class="map-wrap">
@@ -253,7 +269,7 @@ function renderCandidateTabs() {
     button.title = lens.support_note;
     button.textContent = lens.display_label + ' · ' +
       (execution ? resultCount(execution) + '곳' : lens.availability);
-    if (execution) button.addEventListener('click', () => selectCandidate(lens.lens_id));
+    if (execution) button.addEventListener('click', () => selectCandidate(lens.lens_id, true));
     root.append(button);
   });
   if (!lenses.length) {
@@ -419,12 +435,34 @@ function renderMap(execution) {
   else map.setView([lat, lng], radius <= 3000 ? 14 : 12);
 }
 
-function selectCandidate(key) {
+async function observeInteraction(action, lensId=null) {
+  if (!payload) return;
+  const body = {
+    search_id:payload.search_id,
+    interaction_token:payload.interaction_token,
+    action,
+  };
+  if (lensId) body.lens_id = lensId;
+  const response = await fetch('/dev/place-intent/interact', {
+    method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body),
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(typeof error.detail === 'string' ? error.detail : '행동 기록 실패 (' + response.status + ')');
+  }
+}
+
+function selectCandidate(key, recordSelection=false) {
   selectedKey = key;
   renderCandidateTabs();
   const execution = executionFor(key);
   renderCandidateDetail(lensFor(key));
   renderMap(execution);
+  if (recordSelection) {
+    observeInteraction('lens_selected', key).catch(error => {
+      $('status').className = 'status error'; $('status').textContent = error.message;
+    });
+  }
 }
 
 function issueText(candidate) {
@@ -444,14 +482,26 @@ function renderSignals(lenses) {
       badge(signal.availability, 'warn'),
       badge(signal.required ? 'required' : 'optional', signal.required ? 'warn' : 'good'),
     );
-    const note = document.createElement('p'); note.textContent = signal.support_note;
+    const selectedOption = signal.options.find(option => option.option_id === signal.selected_option_id);
+    const note = document.createElement('p');
+    note.textContent = selectedOption
+      ? '선택한 기준: ' + selectedOption.display_label + '. ' + selectedOption.support_note
+      : signal.support_note;
     box.append(head, note);
     if (signal.options.length) {
       const options = document.createElement('div'); options.className = 'signal-options';
       signal.options.forEach(option => {
-        const chip = document.createElement('span'); chip.className = 'signal-option';
-        chip.textContent = option.display_label + ' · ' + option.availability;
-        chip.title = option.support_note; options.append(chip);
+        const selected = signal.selected_option_id === option.option_id;
+        const chip = document.createElement(option.availability === 'proxy' ? 'button' : 'span');
+        if (chip.tagName === 'BUTTON') chip.type = 'button';
+        chip.className = 'signal-option' + (selected ? ' selected' : '');
+        chip.textContent = option.display_label + ' · ' + (selected ? 'selected' : option.availability);
+        chip.title = option.support_note;
+        if (chip.tagName === 'BUTTON') {
+          chip.disabled = selected;
+          chip.addEventListener('click', () => refineFacet(signal.lens_id, option.option_id, chip));
+        }
+        options.append(chip);
       });
       box.append(options);
     }
@@ -460,6 +510,33 @@ function renderSignals(lenses) {
   if (!(lenses?.signal_lenses || []).length) {
     const empty = document.createElement('div'); empty.className = 'box';
     empty.textContent = '별도로 보존된 modifier나 unresolved facet이 없습니다.'; root.append(empty);
+  }
+}
+
+async function refineFacet(signalLensId, optionId, button) {
+  if (!payload) return;
+  button.disabled = true;
+  $('status').className = 'status'; $('status').textContent = '선택한 기준으로 실제 DB 검색을 다시 실행 중…';
+  try {
+    const response = await fetch('/dev/place-intent/refine', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        search_id:payload.search_id,
+        interaction_token:payload.interaction_token,
+        signal_lens_id:signalLensId,
+        option_id:optionId,
+      }),
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(typeof error.detail === 'string' ? error.detail : '기준 적용 실패 (' + response.status + ')');
+    }
+    const data = await response.json(); render(data);
+    $('status').textContent = '수정 완료 · 선택한 기준으로 ' + data.executions.length + '개 lens를 다시 검색했습니다.';
+    await loadObservations();
+  } catch (error) {
+    $('status').className = 'status error'; $('status').textContent = error.message || '기준 적용에 실패했습니다.';
+    button.disabled = false;
   }
 }
 
@@ -485,6 +562,7 @@ function renderRejected(outcome) {
 function render(data) {
   payload = data;
   confirmations.clear();
+  $('reset').disabled = false;
   $('analysis').hidden = false;
   $('model').textContent = data.model;
   const outcome = data.trace.outcome;
@@ -511,6 +589,34 @@ function render(data) {
   renderMap(selectedKey ? executionFor(selectedKey) : null);
 }
 
+async function loadObservations() {
+  const root = $('observations');
+  try {
+    const response = await fetch('/dev/place-intent/observations?failures_only=true&limit=20');
+    if (!response.ok) throw new Error('실패 기록 조회 불가 (' + response.status + ')');
+    const data = await response.json(); root.replaceChildren();
+    data.attempts.forEach(attempt => {
+      const box = document.createElement('div'); box.className = 'box observation';
+      const utterance = document.createElement('b'); utterance.textContent = '“' + attempt.utterance + '”';
+      const state = badge(attempt.failure_code || attempt.status, 'warn');
+      const detail = document.createElement('small');
+      detail.textContent = new Date(attempt.created_at).toLocaleString() +
+        ' · 해석 ' + attempt.interpretation_count +
+        ' · lens ' + attempt.executable_lens_count + '/' + attempt.target_lens_count +
+        ' · 결과 ' + attempt.result_count;
+      box.append(utterance, state, detail); root.append(box);
+    });
+    if (!data.attempts.length) {
+      const empty = document.createElement('div'); empty.className = 'box';
+      empty.textContent = '기록된 실패 검색이 없습니다.'; root.append(empty);
+    }
+  } catch (error) {
+    root.replaceChildren();
+    const box = document.createElement('div'); box.className = 'box rejected';
+    box.textContent = error.message || '실패 기록을 불러오지 못했습니다.'; root.append(box);
+  }
+}
+
 $('query-form').addEventListener('submit', async event => {
   event.preventDefault();
   const button = $('run'); button.disabled = true;
@@ -522,6 +628,10 @@ $('query-form').addEventListener('submit', async event => {
       body:JSON.stringify({
         utterance:$('utterance').value, lat, lng,
         radius_m:Number($('radius').value), preview_per_lens:Number($('limit').value),
+        ...(payload ? {
+          previous_search_id:payload.search_id,
+          interaction_token:payload.interaction_token,
+        } : {}),
       }),
     });
     if (!response.ok) {
@@ -533,16 +643,32 @@ $('query-form').addEventListener('submit', async event => {
     const targetCount = data.trace.lenses ? data.trace.lenses.target_lenses.length : 0;
     $('status').textContent = '완료 · 모델 해석 ' + modelCandidateCount +
       '개 · 탐색 lens ' + targetCount + '개 · 실행 lens ' + data.executions.length + '개';
+    await loadObservations();
   } catch (error) {
     $('status').className = 'status error'; $('status').textContent = error.message || '검색에 실패했습니다.';
   } finally { button.disabled = false; }
 });
+
+$('reset').addEventListener('click', async () => {
+  try {
+    await observeInteraction('search_reset');
+    payload = null; selectedKey = null; confirmations.clear();
+    $('analysis').hidden = true; $('reset').disabled = true;
+    renderMap(null);
+    $('status').className = 'status'; $('status').textContent = '검색을 초기화했습니다. 새 문장으로 다시 시작할 수 있습니다.';
+  } catch (error) {
+    $('status').className = 'status error'; $('status').textContent = error.message || '초기화 기록에 실패했습니다.';
+  }
+});
+
+$('refresh-observations').addEventListener('click', loadObservations);
 
 document.querySelectorAll('.example').forEach(button => {
   button.addEventListener('click', () => { $('utterance').value = button.textContent; $('utterance').focus(); });
 });
 $('where').addEventListener('change', () => renderMap(selectedKey && payload ? executionFor(selectedKey) : null));
 $('radius').addEventListener('change', () => renderMap(selectedKey && payload ? executionFor(selectedKey) : null));
+loadObservations();
 </script>
 </body>
 </html>

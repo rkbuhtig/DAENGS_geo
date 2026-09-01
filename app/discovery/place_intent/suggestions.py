@@ -127,6 +127,9 @@ _LEISURE_SEMANTIC_FALLBACKS = {
     "semantic.comfort",
     "semantic.cozy",
     "semantic.quiet",
+    # 비용 축을 먼저 고르게 하므로 이 fallback 자체는 실행되지 않는다. 선택 뒤에도 목적이
+    # 비어 있을 때 사용자가 좁힐 제품 관리 방향만 보존한다.
+    "semantic.cheap",
 }
 _DEFAULT_LEISURE_TARGETS: tuple[PurposeIntent, ...] = (
     PurposeIntent(purpose_id=PurposeId.DINING),

@@ -4,16 +4,21 @@ import sys
 from pathlib import Path
 from types import SimpleNamespace
 from typing import cast
+from uuid import uuid4
 
 import pytest
 from pydantic import ValidationError
 
 from app.discovery.place_intent.lab import (
+    CandidateExecution,
     PlaceIntentConfirmationRequest,
+    _attempt_outcome,
     _ConfirmationStore,
+    _InteractionStore,
     _limit_search_preview,
 )
 from app.discovery.place_intent.lenses import TargetSearchLens
+from app.discovery.place_intent.observability import AttemptStatus
 from app.place.planning.contract import PlaceKind
 from app.place.search import PlaceSearchGroup, PlaceSearchResponse
 
@@ -33,7 +38,12 @@ def test_intent_lab_shows_model_policy_and_real_search_layers() -> None:
     assert "data.trace.lenses.target_lenses" in HTML
     assert "signal.required ? 'required' : 'optional'" in HTML
     assert "/dev/place-intent/confirm" in HTML
+    assert "/dev/place-intent/refine" in HTML
+    assert "/dev/place-intent/interact" in HTML
+    assert "/dev/place-intent/observations" in HTML
     assert "이 검색 방향을 명시적으로 확인" in HTML
+    assert "처음부터 다시" in HTML
+    assert "Operator observations" in HTML
     assert "탭이나 장소 마커를 누르는 것은 확인이 아닙니다." in HTML
     assert "실행 가능한 lens가 없어 지도에 표시할 장소가 없습니다." in HTML
 
@@ -66,6 +76,36 @@ def test_intent_lab_limits_each_lens_preview_across_groups() -> None:
     assert [group.truncated for group in limited.groups] == [False, True]
 
 
+def test_attempt_failure_distinguishes_spatial_empty_from_gate_elimination() -> None:
+    trace = cast(object, SimpleNamespace(raw=object()))
+    spatial_empty = cast(
+        CandidateExecution,
+        SimpleNamespace(
+            search=SimpleNamespace(groups=[]),
+            preview=SimpleNamespace(initial_candidates=0, gates=()),
+        ),
+    )
+    gate_empty = cast(
+        CandidateExecution,
+        SimpleNamespace(
+            search=SimpleNamespace(groups=[]),
+            preview=SimpleNamespace(
+                initial_candidates=8,
+                gates=(SimpleNamespace(remaining=0),),
+            ),
+        ),
+    )
+
+    assert _attempt_outcome(trace, (spatial_empty,)) == (
+        AttemptStatus.NEEDS_CLARIFICATION,
+        "spatial_candidates_empty",
+    )
+    assert _attempt_outcome(trace, (gate_empty,)) == (
+        AttemptStatus.NEEDS_CLARIFICATION,
+        "gate_eliminated_all",
+    )
+
+
 def test_confirmation_offer_is_lens_bound_expiring_and_single_use() -> None:
     now = [10.0]
     tokens = iter(("a" * 24, "b" * 24))
@@ -76,19 +116,51 @@ def test_confirmation_offer_is_lens_bound_expiring_and_single_use() -> None:
         token_factory=lambda: next(tokens),
     )
     lens = cast(TargetSearchLens, SimpleNamespace(lens_id="lens:one"))
+    search_id = uuid4()
 
-    token = store.issue(lens)
+    token = store.issue(lens, search_id)
 
     with pytest.raises(ValueError, match="does not match"):
         store.consume(token, "lens:other")
-    assert store.consume(token, "lens:one") is lens
+    pending = store.consume(token, "lens:one")
+    assert pending.lens is lens
+    assert pending.search_id == search_id
     with pytest.raises(KeyError, match="missing or expired"):
         store.consume(token, "lens:one")
 
-    expired = store.issue(lens)
+    expired = store.issue(lens, search_id)
     now[0] = 16.0
     with pytest.raises(KeyError, match="missing or expired"):
         store.consume(expired, "lens:one")
+
+
+def test_interaction_offer_is_search_bound_and_reusable_until_expiry() -> None:
+    now = [10.0]
+    store = _InteractionStore(
+        ttl_s=5,
+        max_entries=2,
+        clock=lambda: now[0],
+        token_factory=lambda: "a" * 24,
+    )
+    search_id = uuid4()
+    trace = cast(object, SimpleNamespace())
+    token = store.issue(
+        search_id=search_id,
+        utterance="조용한 곳",
+        trace=trace,
+        preview_per_lens=3,
+        lat=37.5,
+        lng=126.9,
+        radius_m=3000,
+    )
+
+    assert store.get(token, search_id).utterance == "조용한 곳"
+    assert store.get(token, search_id).search_id == search_id
+    with pytest.raises(ValueError, match="does not match"):
+        store.get(token, uuid4())
+    now[0] = 16.0
+    with pytest.raises(KeyError, match="missing or expired"):
+        store.get(token, search_id)
 
 
 def test_confirmation_request_cannot_supply_or_forge_target_intents() -> None:
@@ -150,6 +222,9 @@ def test_intent_lab_routes_are_behind_dev_console_gate() -> None:
         "/place-intent-lab",
         "/dev/place-intent/search",
         "/dev/place-intent/confirm",
+        "/dev/place-intent/refine",
+        "/dev/place-intent/interact",
+        "/dev/place-intent/observations",
     }
     assert paths.isdisjoint(_paths_with_dev_console(False))
     assert paths <= _paths_with_dev_console(True)
