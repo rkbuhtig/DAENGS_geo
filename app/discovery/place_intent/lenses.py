@@ -76,6 +76,7 @@ class SearchSignalLens(PlanningModel):
     display_label: str = Field(min_length=1, max_length=80)
     lens_type: LensType
     availability: LensAvailability
+    required: bool
     support_note: str = Field(min_length=1, max_length=300)
     basis_observation_ids: tuple[str, ...] = Field(min_length=1, max_length=60)
     options: tuple[SearchFacetOption, ...] = Field(max_length=10)
@@ -238,6 +239,11 @@ def _hypothesis_note(hypothesis: SearchHypothesis) -> str:
         and hypothesis.mapping_scope is HypothesisMappingScope.COMPOSED
     ):
         return "반려동물용품점 분류와 직접 연결했지만 강아지 장난감의 현재 판매·재고는 보장하지 않습니다."
+    if any(
+        item.policy_id == "activity.buy_dog_toy_kept_with_target"
+        for item in hypothesis.relation_receipts
+    ):
+        return "요청한 장소 분류만 검색하며 강아지 장난감의 현재 판매·재고는 보장하지 않습니다."
     return "사용자 발화와 현재 canonical 장소 분류를 직접 연결한 탐색 방향입니다."
 
 
@@ -372,10 +378,30 @@ def _fallback_lens(
     )
 
 
+def _fallback_hypothesis_set(
+    candidate: IntentPlanCandidate,
+    sets_by_key: dict[str, SearchHypothesisSet],
+) -> SearchHypothesisSet:
+    set_key, separator, _ = candidate.candidate_key.partition(":fallback:")
+    if not separator or set_key not in sets_by_key:
+        raise ValueError("fallback candidate must belong to a normalized hypothesis set")
+    return sets_by_key[set_key]
+
+
 def _modifier_signal(modifier: SearchModifier, set_key: str) -> SearchSignalLens:
     if modifier.modifier_id == "semantic.quiet":
         label = "#조용한 분위기"
-        note = "사용자 선호는 보존했지만 조용함을 판정할 장소 evidence와 ranker가 아직 없습니다."
+        note = (
+            "사용자가 필수로 요청한 조용함을 보존했지만 판정할 장소 evidence와 ranker가 아직 없습니다."
+            if modifier.required
+            else "사용자 선호는 보존했지만 조용함을 판정할 장소 evidence와 ranker가 아직 없습니다."
+        )
+    elif modifier.modifier_id == "activity.play":
+        label = "#함께 놀기"
+        note = "사용자가 하려는 활동으로 보존했지만 놀이 적합성을 판정할 장소 evidence가 아직 없습니다."
+    elif modifier.modifier_id == "composition.buy_dog_toy":
+        label = "#강아지 장난감 구매"
+        note = "구매 목적을 보존했지만 장소별 상품 판매·재고 데이터가 아직 없습니다."
     else:
         label = f"#{modifier.modifier_id}"
         note = "사용자 선호를 보존했지만 현재 검색에 적용할 수 없습니다."
@@ -384,6 +410,7 @@ def _modifier_signal(modifier: SearchModifier, set_key: str) -> SearchSignalLens
         display_label=label,
         lens_type=LensType.MODIFIER,
         availability=LensAvailability.DEFERRED,
+        required=modifier.required,
         support_note=note,
         basis_observation_ids=modifier.basis_observation_ids,
         options=(),
@@ -397,6 +424,7 @@ def _facet_signal(facet: UnresolvedFacet, set_key: str) -> SearchSignalLens:
         display_label=label,
         lens_type=LensType.UNRESOLVED,
         availability=LensAvailability.NEEDS_SELECTION,
+        required=facet.blocking,
         support_note="어떤 비용을 뜻하는지 선택하기 전에는 가격 조건을 적용하지 않습니다.",
         basis_observation_ids=facet.basis_observation_ids,
         options=tuple(_FACET_OPTIONS[item] for item in facet.options),
@@ -424,23 +452,22 @@ def compile_search_lenses(
         for hypothesis_set in normalized.hypothesis_sets
         for hypothesis in hypothesis_set.hypotheses
     )
-    all_modifiers = tuple(
-        item for hypothesis_set in normalized.hypothesis_sets for item in hypothesis_set.modifiers
-    )
-    all_facets = tuple(
-        item
-        for hypothesis_set in normalized.hypothesis_sets
-        for item in hypothesis_set.unresolved_facets
-    )
     if not targets:
-        targets = tuple(
-            _fallback_lens(
-                candidate,
-                modifiers=all_modifiers,
-                facets=all_facets,
+        sets_by_key = {
+            hypothesis_set.hypothesis_set_key: hypothesis_set
+            for hypothesis_set in normalized.hypothesis_sets
+        }
+        fallback_lenses = []
+        for candidate in suggestion_outcome.suggestions:
+            hypothesis_set = _fallback_hypothesis_set(candidate, sets_by_key)
+            fallback_lenses.append(
+                _fallback_lens(
+                    candidate,
+                    modifiers=hypothesis_set.modifiers,
+                    facets=hypothesis_set.unresolved_facets,
+                )
             )
-            for candidate in suggestion_outcome.suggestions
-        )
+        targets = tuple(fallback_lenses)
     signals = tuple(
         signal
         for hypothesis_set in normalized.hypothesis_sets
