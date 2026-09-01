@@ -9,7 +9,11 @@ from typing import Self
 
 from pydantic import Field, model_validator
 
-from app.discovery.place_intent.contract import MaterializedIntentOutput, ProposalDisposition
+from app.discovery.place_intent.contract import (
+    GroundedSearchDirective,
+    MaterializedIntentOutput,
+    ProposalDisposition,
+)
 from app.place.planning.contract import PlaceKind, PlanningModel
 from app.place.planning.intents import (
     ActivityId,
@@ -87,6 +91,7 @@ class SearchHypothesisSet(PlanningModel):
         max_length=100,
         pattern=r"^[a-z0-9_.:-]+$",
     )
+    search_directive: GroundedSearchDirective = Field(default_factory=GroundedSearchDirective)
     common: tuple[IntentObservation, ...] = Field(max_length=20)
     hypotheses: tuple[SearchHypothesis, ...] = Field(max_length=5)
     modifiers: tuple[SearchModifier, ...] = Field(max_length=10)
@@ -205,6 +210,7 @@ def _build_set(
     observations: tuple[IntentObservation, ...],
     *,
     interpretation_index: int,
+    search_directive: GroundedSearchDirective | None = None,
 ) -> SearchHypothesisSet:
     set_key = f"interpretation:{interpretation_index}"
     targets = [item for item in observations if _is_target(item)]
@@ -398,6 +404,7 @@ def _build_set(
     common = tuple(item for item in observations if item.observation_id not in consumed_ids)
     return SearchHypothesisSet(
         hypothesis_set_key=set_key,
+        search_directive=search_directive or GroundedSearchDirective(),
         common=common,
         hypotheses=tuple(hypotheses),
         modifiers=tuple(modifiers),
@@ -420,6 +427,7 @@ def build_search_hypotheses(output: MaterializedIntentOutput) -> NormalizedInten
             _build_set(
                 interpretation.observations,
                 interpretation_index=index,
+                search_directive=interpretation.search_directive,
             )
             for index, interpretation in enumerate(output.interpretations, start=1)
         ),

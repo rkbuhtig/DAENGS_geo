@@ -216,8 +216,22 @@ function renderInterpretations(trace) {
     head.className = 'interpretation-head';
     const title = document.createElement('b');
     title.textContent = '해석 ' + (index + 1);
-    head.append(title, badge(interpretation.proposals.length + ' observations'));
+    const directive = interpretation.search_directive;
+    head.append(
+      title,
+      badge('mode · ' + directive.mode, directive.mode === 'open_discovery' ? 'warn' : 'good'),
+      badge(interpretation.proposals.length + ' observations'),
+    );
     card.append(head);
+    if (directive.evidence) {
+      const row = document.createElement('div'); row.className = 'proposal';
+      row.append(badge('delegated choice', 'warn'));
+      const main = document.createElement('div'); main.className = 'proposal-main';
+      const name = document.createElement('b'); name.textContent = '검색 대상 선택 위임';
+      const quote = document.createElement('div'); quote.className = 'quote';
+      quote.textContent = '근거: “' + directive.evidence.quote + '”';
+      main.append(name, quote); row.append(main); card.append(row);
+    }
     interpretation.proposals.forEach(proposal => {
       const row = document.createElement('div');
       row.className = 'proposal';

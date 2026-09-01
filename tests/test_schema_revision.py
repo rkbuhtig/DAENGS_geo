@@ -43,7 +43,7 @@ def test_database_stopped_at_009_stamps_there_and_upgrades_the_rest():
     # 리뷰에서 지적된 바로 그 케이스: 이것들이 upgrade 로 실제 적용돼야 한다.
     assert [m.revision for m in detection.missing] == [
         "0010", "0011", "0012", "0013", "0014", "0015", "0016", "0017", "0018",
-        "0019", "0020", "0021", "0022", "0023", "0024", "0025", "0026",
+        "0019", "0020", "0021", "0022", "0023", "0024", "0025", "0026", "0027",
     ]
 
 
@@ -63,6 +63,7 @@ def test_database_missing_only_anchor_is_consistent():
         "0024_spatial_diary_memory_place.py",
         "0025_place_intent_lab_observation.py",
         "0026_place_intent_outcome_metadata.py",
+        "0027_place_intent_reason_unspecified.py",
     ]
 
 
@@ -77,7 +78,7 @@ def test_a_hole_in_the_chain_refuses_to_stamp():
     # 0016 은 데이터 전용이라 존재 여부를 물을 수 없다 — 여기 안 나온다.
     assert [m.revision for m in detection.out_of_order] == [
         "0009", "0010", "0011", "0012", "0013", "0014", "0015", "0017", "0018",
-        "0019", "0020", "0021", "0022", "0023", "0024", "0025", "0026",
+        "0019", "0020", "0021", "0022", "0023", "0024", "0025", "0026", "0027",
     ]
 
 

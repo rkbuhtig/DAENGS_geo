@@ -27,10 +27,18 @@ class ProposalDisposition(StrEnum):
 
 
 class ProposalReason(StrEnum):
+    UNSPECIFIED = "unspecified"
     INSUFFICIENT_TARGET = "insufficient_target"
     MULTIPLE_PLAUSIBLE_READINGS = "multiple_plausible_readings"
     UNSUPPORTED_LANGUAGE = "unsupported_language"
     UNSAFE_TO_GUESS = "unsafe_to_guess"
+
+
+class SearchModeId(StrEnum):
+    """무엇을 찾는지가 아니라 검색 대상을 누가 정하는지 나타낸다."""
+
+    DIRECTED_SEARCH = "directed_search"
+    OPEN_DISCOVERY = "open_discovery"
 
 
 def _validate_disposition_shape(
@@ -69,6 +77,21 @@ class EvidenceQuote(PlanningModel):
         return self
 
 
+class LLMSearchDirective(PlanningModel):
+    """planner intent와 분리된 사용자-모델 간 검색 진행 방식."""
+
+    mode: SearchModeId = SearchModeId.DIRECTED_SEARCH
+    evidence: EvidenceQuote | None = None
+
+    @model_validator(mode="after")
+    def delegation_requires_evidence(self) -> Self:
+        if self.mode is SearchModeId.OPEN_DISCOVERY and self.evidence is None:
+            raise ValueError("open discovery requires delegation evidence")
+        if self.mode is SearchModeId.DIRECTED_SEARCH and self.evidence is not None:
+            raise ValueError("directed search cannot carry delegation evidence")
+        return self
+
+
 class LLMIntentProposal(PlanningModel):
     """모델이 제안할 수 있는 전부. audit id와 authority 필드는 존재하지 않는다."""
 
@@ -80,7 +103,18 @@ class LLMIntentProposal(PlanningModel):
 class IntentInterpretation(PlanningModel):
     """한 문장에 대한 하나의 일관된 해석. 대안은 별도 interpretation으로 둔다."""
 
-    proposals: tuple[LLMIntentProposal, ...] = Field(min_length=1, max_length=20)
+    search_directive: LLMSearchDirective = Field(default_factory=LLMSearchDirective)
+    proposals: tuple[LLMIntentProposal, ...] = Field(max_length=20)
+
+    @model_validator(mode="after")
+    def mode_matches_proposals(self) -> Self:
+        if self.search_directive.mode is SearchModeId.DIRECTED_SEARCH and not self.proposals:
+            raise ValueError("directed search requires at least one intent proposal")
+        if self.search_directive.mode is SearchModeId.OPEN_DISCOVERY and any(
+            item.role is IntentRole.REQUIRED_TARGET for item in self.proposals
+        ):
+            raise ValueError("open discovery cannot carry an explicit required target")
+        return self
 
 
 class LLMIntentOutput(PlanningModel):
@@ -95,6 +129,11 @@ class LLMIntentOutput(PlanningModel):
             len(self.interpretations),
             self.reason,
         )
+        if self.disposition is not ProposalDisposition.PROPOSED and any(
+            item.search_directive.mode is SearchModeId.OPEN_DISCOVERY
+            for item in self.interpretations
+        ):
+            raise ValueError("open discovery requires one positively proposed interpretation")
         return self
 
 
@@ -106,13 +145,39 @@ class EvidenceSpan(PlanningModel):
     text: str = Field(min_length=1, max_length=500)
 
 
+class GroundedSearchDirective(PlanningModel):
+    """선택 위임 근거가 서버에서 원문에 고정된 검색 모드."""
+
+    mode: SearchModeId = SearchModeId.DIRECTED_SEARCH
+    evidence_span: EvidenceSpan | None = None
+
+    @model_validator(mode="after")
+    def delegation_requires_evidence(self) -> Self:
+        if self.mode is SearchModeId.OPEN_DISCOVERY and self.evidence_span is None:
+            raise ValueError("grounded open discovery requires delegation evidence")
+        if self.mode is SearchModeId.DIRECTED_SEARCH and self.evidence_span is not None:
+            raise ValueError("grounded directed search cannot carry delegation evidence")
+        return self
+
+
 class GroundedIntentObservation(PlanningModel):
     observation: IntentObservation
     evidence_span: EvidenceSpan
 
 
 class MaterializedInterpretation(PlanningModel):
-    items: tuple[GroundedIntentObservation, ...] = Field(min_length=1, max_length=20)
+    search_directive: GroundedSearchDirective = Field(default_factory=GroundedSearchDirective)
+    items: tuple[GroundedIntentObservation, ...] = Field(max_length=20)
+
+    @model_validator(mode="after")
+    def mode_matches_observations(self) -> Self:
+        if self.search_directive.mode is SearchModeId.DIRECTED_SEARCH and not self.items:
+            raise ValueError("directed search requires at least one grounded observation")
+        if self.search_directive.mode is SearchModeId.OPEN_DISCOVERY and any(
+            item.observation.role is IntentRole.REQUIRED_TARGET for item in self.items
+        ):
+            raise ValueError("open discovery cannot carry an explicit required target")
+        return self
 
     @property
     def observations(self) -> tuple[IntentObservation, ...]:
@@ -131,6 +196,11 @@ class MaterializedIntentOutput(PlanningModel):
             len(self.interpretations),
             self.reason,
         )
+        if self.disposition is not ProposalDisposition.PROPOSED and any(
+            item.search_directive.mode is SearchModeId.OPEN_DISCOVERY
+            for item in self.interpretations
+        ):
+            raise ValueError("grounded open discovery requires one proposed interpretation")
         return self
 
 
@@ -189,6 +259,12 @@ def materialize_llm_output(
     used_ids: set[str] = set()
     interpretations: list[MaterializedInterpretation] = []
     for interpretation in output.interpretations:
+        directive_evidence = interpretation.search_directive.evidence
+        directive_span = (
+            _ground_quote(utterance, directive_evidence)
+            if directive_evidence is not None
+            else None
+        )
         items: list[GroundedIntentObservation] = []
         for raw in interpretation.proposals:
             span = _ground_quote(utterance, raw.evidence)
@@ -211,7 +287,15 @@ def materialize_llm_output(
                     evidence_span=span,
                 )
             )
-        interpretations.append(MaterializedInterpretation(items=tuple(items)))
+        interpretations.append(
+            MaterializedInterpretation(
+                search_directive=GroundedSearchDirective(
+                    mode=interpretation.search_directive.mode,
+                    evidence_span=directive_span,
+                ),
+                items=tuple(items),
+            )
+        )
     return MaterializedIntentOutput(
         disposition=output.disposition,
         interpretations=tuple(interpretations),

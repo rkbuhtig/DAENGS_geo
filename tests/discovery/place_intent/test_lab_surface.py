@@ -35,6 +35,8 @@ def test_intent_lab_shows_model_policy_and_real_search_layers() -> None:
     assert "AI의 여러 검색 방향을 실제 DB에서 본다" in HTML
     assert "/dev/place-intent/search" in HTML
     assert "Model interpretation" in HTML
+    assert "mode · " in HTML
+    assert "검색 대상 선택 위임" in HTML
     assert "Preserved signals" in HTML
     assert "Search lenses" in HTML
     assert "gate preview" in HTML

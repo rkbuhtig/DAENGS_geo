@@ -100,6 +100,12 @@ LEGACY_MARKERS: tuple[LegacyMarker, ...] = (
         "place_intent_lab_attempt",
         "response_mode",
     ),
+    LegacyMarker(
+        "0027",
+        "0027_place_intent_reason_unspecified.py",
+        "place_intent_lab_attempt",
+        constraint="place_intent_lab_attempt_reason_known_v2",
+    ),
 )
 
 HEAD = LEGACY_MARKERS[-1].revision

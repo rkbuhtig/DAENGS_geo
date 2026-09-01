@@ -31,7 +31,7 @@ async def test_failed_attempt_and_explicit_action_are_queryable() -> None:
                     status=AttemptStatus.NEEDS_CLARIFICATION,
                     failure_code="facet_selection_required",
                     proposer_disposition=ProposalDisposition.ABSTAINED,
-                    proposer_reason=ProposalReason.INSUFFICIENT_TARGET,
+                    proposer_reason=ProposalReason.UNSPECIFIED,
                     response_mode=SearchResponseMode.CLARIFICATION,
                     interpretation_count=1,
                     target_lens_count=2,
@@ -53,7 +53,7 @@ async def test_failed_attempt_and_explicit_action_are_queryable() -> None:
             assert row.utterance == "테스트 실패 검색"
             assert row.failure_code == "facet_selection_required"
             assert row.proposer_disposition is ProposalDisposition.ABSTAINED
-            assert row.proposer_reason is ProposalReason.INSUFFICIENT_TARGET
+            assert row.proposer_reason is ProposalReason.UNSPECIFIED
             assert row.response_mode is SearchResponseMode.CLARIFICATION
             assert row.fallback_policy_id is None
             assert row.fallback_policy_version is None
