@@ -26,6 +26,9 @@ from app.place.planning.contract import (
     PlanningModel,
 )
 from app.place.planning.intents import (
+    BooleanCapabilityIntent,
+    IntentObservation,
+    IntentRole,
     KindIntent,
     PlannerRequest,
     PlannerStatus,
@@ -107,6 +110,11 @@ class TargetSearchLens(PlanningModel):
     modifier_ids: tuple[str, ...] = Field(max_length=10)
     unresolved_facet_ids: tuple[str, ...] = Field(max_length=10)
     unsupported_signals: tuple[str, ...] = Field(max_length=30)
+    confirmation_context: tuple[IntentObservation, ...] = Field(
+        default=(),
+        max_length=20,
+        exclude=True,
+    )
 
     @model_validator(mode="after")
     def availability_matches_candidate(self) -> Self:
@@ -328,6 +336,7 @@ def _hypothesis_lens(
             item.facet_id for item in hypothesis_set.unresolved_facets if item.blocking
         ),
         unsupported_signals=_unsupported_signals(candidate, hypothesis_set.modifiers),
+        confirmation_context=hypothesis_set.common,
     )
 
 
@@ -354,6 +363,7 @@ def _fallback_lens(
     *,
     modifiers: tuple[SearchModifier, ...],
     facets: tuple[UnresolvedFacet, ...],
+    confirmation_context: tuple[IntentObservation, ...],
 ) -> TargetSearchLens:
     targets = _fallback_targets(candidate)
     label = _target_label(targets)
@@ -375,6 +385,7 @@ def _fallback_lens(
         modifier_ids=tuple(item.modifier_id for item in modifiers),
         unresolved_facet_ids=tuple(item.facet_id for item in facets if item.blocking),
         unsupported_signals=_unsupported_signals(candidate, modifiers),
+        confirmation_context=confirmation_context,
     )
 
 
@@ -386,6 +397,19 @@ def _fallback_hypothesis_set(
     if not separator or set_key not in sets_by_key:
         raise ValueError("fallback candidate must belong to a normalized hypothesis set")
     return sets_by_key[set_key]
+
+
+def _fallback_confirmation_context(
+    hypothesis_set: SearchHypothesisSet,
+) -> tuple[IntentObservation, ...]:
+    """Product fallback planner가 실제로 보존한 preference만 확인 뒤 재조립한다."""
+
+    return tuple(
+        observation
+        for observation in hypothesis_set.common
+        if isinstance(observation.intent, BooleanCapabilityIntent)
+        and observation.role is IntentRole.PREFERENCE
+    )
 
 
 def _modifier_signal(modifier: SearchModifier, set_key: str) -> SearchSignalLens:
@@ -465,6 +489,7 @@ def compile_search_lenses(
                     candidate,
                     modifiers=hypothesis_set.modifiers,
                     facets=hypothesis_set.unresolved_facets,
+                    confirmation_context=_fallback_confirmation_context(hypothesis_set),
                 )
             )
         targets = tuple(fallback_lenses)

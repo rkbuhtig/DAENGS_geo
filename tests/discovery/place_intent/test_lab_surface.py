@@ -2,8 +2,18 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+from types import SimpleNamespace
+from typing import cast
 
-from app.discovery.place_intent.lab import _limit_search_preview
+import pytest
+from pydantic import ValidationError
+
+from app.discovery.place_intent.lab import (
+    PlaceIntentConfirmationRequest,
+    _ConfirmationStore,
+    _limit_search_preview,
+)
+from app.discovery.place_intent.lenses import TargetSearchLens
 from app.place.planning.contract import PlaceKind
 from app.place.search import PlaceSearchGroup, PlaceSearchResponse
 
@@ -22,6 +32,9 @@ def test_intent_lab_shows_model_policy_and_real_search_layers() -> None:
     assert "preview_per_lens" in HTML
     assert "data.trace.lenses.target_lenses" in HTML
     assert "signal.required ? 'required' : 'optional'" in HTML
+    assert "/dev/place-intent/confirm" in HTML
+    assert "이 검색 방향을 명시적으로 확인" in HTML
+    assert "탭이나 장소 마커를 누르는 것은 확인이 아닙니다." in HTML
     assert "실행 가능한 lens가 없어 지도에 표시할 장소가 없습니다." in HTML
 
 
@@ -51,6 +64,42 @@ def test_intent_lab_limits_each_lens_preview_across_groups() -> None:
         ["restaurant-1"],
     ]
     assert [group.truncated for group in limited.groups] == [False, True]
+
+
+def test_confirmation_offer_is_lens_bound_expiring_and_single_use() -> None:
+    now = [10.0]
+    tokens = iter(("a" * 24, "b" * 24))
+    store = _ConfirmationStore(
+        ttl_s=5,
+        max_entries=2,
+        clock=lambda: now[0],
+        token_factory=lambda: next(tokens),
+    )
+    lens = cast(TargetSearchLens, SimpleNamespace(lens_id="lens:one"))
+
+    token = store.issue(lens)
+
+    with pytest.raises(ValueError, match="does not match"):
+        store.consume(token, "lens:other")
+    assert store.consume(token, "lens:one") is lens
+    with pytest.raises(KeyError, match="missing or expired"):
+        store.consume(token, "lens:one")
+
+    expired = store.issue(lens)
+    now[0] = 16.0
+    with pytest.raises(KeyError, match="missing or expired"):
+        store.consume(expired, "lens:one")
+
+
+def test_confirmation_request_cannot_supply_or_forge_target_intents() -> None:
+    with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
+        PlaceIntentConfirmationRequest.model_validate(
+            {
+                "lens_id": "lens:one",
+                "confirmation_token": "a" * 24,
+                "confirmable_targets": [{"intent_type": "kind", "kind": "hospital"}],
+            }
+        )
 
 
 def test_intent_lab_renders_provider_text_without_html_injection() -> None:
@@ -97,6 +146,10 @@ print("\\n".join(sorted(collect_paths(app.routes))))
 
 
 def test_intent_lab_routes_are_behind_dev_console_gate() -> None:
-    paths = {"/place-intent-lab", "/dev/place-intent/search"}
+    paths = {
+        "/place-intent-lab",
+        "/dev/place-intent/search",
+        "/dev/place-intent/confirm",
+    }
     assert paths.isdisjoint(_paths_with_dev_console(False))
     assert paths <= _paths_with_dev_console(True)
