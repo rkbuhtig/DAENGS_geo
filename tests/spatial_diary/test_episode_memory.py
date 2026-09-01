@@ -511,6 +511,10 @@ async def test_concurrent_identical_pin_corrections_are_idempotent():
             db_session() as first,
             db_session() as second,
         ):
+            # db_session의 연결 확인 SELECT가 연 transaction을 닫아 endpoint가
+            # 자기 repeatable-read snapshot을 fresh하게 열도록 한다.
+            await first.rollback()
+            await second.rollback()
             await blocker.execute(text("""
                 SELECT pin_id
                 FROM spatial_diary_episode_pin
