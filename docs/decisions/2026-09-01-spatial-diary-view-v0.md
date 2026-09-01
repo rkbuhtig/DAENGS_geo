@@ -34,6 +34,10 @@ Receipt
 `EntrySelector`는 비어 있어야 하고 `pin_count=0`이다. 지원하지 않는 entry filter나 metric을
 무시하지 않고 422로 거부한다. PR4에서 Candidate·Attestation·Pin과 overlay를 연다.
 
+이 endpoint는 인증 계층이 주입한 principal의 `dog_ids`에 요청 `dog_id`가 있을 때만 읽는다.
+레포 안의 fake OwnerProfile은 인증 근거로 쓰지 않는다. 실제 인증 dependency가 조립되지 않은
+배포에서는 503으로 닫고, 다른 견주의 `dog_id`는 존재 여부를 드러내지 않도록 404로 답한다.
+
 ## Context facet policy v1
 
 Capsule에 저장된 원천값은 바꾸지 않는다. 다음 분류는 현재 읽기 정책이고 selector 지문에 정책
@@ -52,6 +56,11 @@ sun_elevation_deg < 0         night
 snapshot status가 `unknown` 또는 `failed`면 두 축 모두 `unknown`이다. `partial`은 값이 있는
 축만 분류하고 나머지 축은 `unknown`이다. 같은 축의 여러 값은 OR, 서로 다른 축과 기간은 AND다.
 날짜는 `Asia/Seoul` 달력으로 해석한다. 이 정책은 `context_policy_version=1`이다.
+
+영수증의 context known/unknown은 snapshot status의 별명이 아니다. 필터가 사용한 context 축이
+모두 실제 값으로 분류됐을 때만 known이다. context 필터가 없다면 현재 지원하는 강수·낮밤 두
+축이 모두 있어야 known이다. 따라서 강수값 없이 태양고도만 있는 `partial` Capsule을
+`precipitation=unknown`으로 조회하면 selected이면서 context unknown이다.
 
 실제 TrailContext provider는 아직 조립되지 않았으므로 현재 생성되는 Capsule은 기본적으로
 `unknown`이다. v0가 unknown 필터와 무필터 cohort를 먼저 정확히 지원하는 이유다. 과거를 현재
@@ -88,6 +97,27 @@ polygon·smoothing은 이 원 field를 소비하는 표현 책임이다.
 manifest가 있는데 Cellophane 또는 TrailContext 자식이 없거나 paint 지문이 맞지 않으면 빈
 지도로 숨기지 않고 서버 무결성 오류로 닫는다. 이 read path를 위한 새 영구 테이블이나 지도
 snapshot은 만들지 않는다.
+
+## 읽기 스냅샷과 운영 상한
+
+Capsule 색인과 Cellophane cell은 한 PostgreSQL `REPEATABLE READ` transaction snapshot에서
+읽는다. 두 SELECT 사이에 finalize나 삭제가 일어나도 한 번의 응답이 서로 다른 DB 시점을 섞지
+않는다. 이미 다른 statement를 수행한 transaction에 query를 끼워 넣지 않는다.
+
+v0의 동기 응답은 다음 상한을 넘으면 413으로 거부한다. 숫자는 제품 의미가 아니라 단일 요청의
+메모리·응답 크기를 제한하는 운영 계약이다.
+
+```text
+양끝 포함 기간                 최대 366일
+필터 판정 전 Capsule index     최대 2,000개
+선택 Capsule                  최대 400개
+읽어 오는 Cellophane cell     최대 100,000개
+응답 Field cell               최대 50,000개
+```
+
+기간의 한쪽 또는 양쪽을 생략할 수는 있지만 index와 선택 Capsule 상한은 그대로 적용된다. 날짜
+조건은 DB query에 적용한 뒤 context facet을 판정한다. 더 큰 회고는 기간·context filter를 좁히거나
+후속 비동기/타일 집계 경로로 분리한다.
 
 ## 이 결정이 정하지 않는 것
 

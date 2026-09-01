@@ -4,6 +4,7 @@ import math
 from datetime import UTC, date, datetime, timedelta
 
 import pytest
+from fastapi import HTTPException
 from sqlalchemy import text
 
 from app.features.spatial_diary.contract import (
@@ -16,13 +17,21 @@ from app.features.spatial_diary.contract import (
     TrailContextSnapshot,
     WalkSelector,
 )
-from app.features.territory.api import query_view, view_out
+from app.features.territory import spatial_diary as spatial_diary_module
+from app.features.territory.api import (
+    SpatialDiaryPrincipal,
+    get_spatial_diary_principal,
+    query_view,
+    view_out,
+)
 from app.features.territory.paint import BrushProfile, paint_spec
 from app.features.territory.spatial_diary import (
     DIARY_CALENDAR_TIMEZONE,
     RAIN_THRESHOLD_MM,
     IncompleteCapsuleError,
     MixedPaintGenerationError,
+    SpatialDiaryTransactionError,
+    SpatialDiaryViewTooLargeError,
     UnsupportedSpatialDiaryViewError,
     context_facets,
     query_spatial_diary_view,
@@ -40,6 +49,7 @@ from tests.conftest import db_session, walk_fix
 DOG_ID = "dog-spatial-diary"
 SID_PREFIX = "test:diary:"
 T0 = datetime(2026, 9, 1, 9, tzinfo=UTC)
+PRINCIPAL = SpatialDiaryPrincipal(owner_id="owner-diary", dog_ids=frozenset({DOG_ID}))
 
 
 def _spec(
@@ -254,9 +264,10 @@ async def test_unknown_is_an_explicit_filter_value_and_walk_utilization_is_norma
             await _seal_walk(db, "known", T0, precipitation_mm=0, sun_elevation_deg=5)
             await _seal_walk(
                 db,
-                "unknown",
+                "partial-missing-precipitation",
                 T0 + timedelta(days=1),
-                status=ContextStatus.UNKNOWN,
+                sun_elevation_deg=5,
+                status=ContextStatus.PARTIAL,
             )
             await db.commit()
 
@@ -276,6 +287,95 @@ async def test_unknown_is_an_explicit_filter_value_and_walk_utilization_is_norma
             assert result.receipt.context_unknown_count == 1
             assert result.field.normalization == "equal_contributing_walks"
             assert math.fsum(result.field.values.values()) == pytest.approx(1.0)
+        finally:
+            await _cleanup(db)
+
+
+async def test_view_query_uses_one_repeatable_read_snapshot_during_concurrent_delete(
+    monkeypatch,
+):
+    async with db_session() as db:
+        await _cleanup(db)
+        try:
+            session_id = await _seal_walk(
+                db,
+                "snapshot",
+                T0,
+                precipitation_mm=0,
+                sun_elevation_deg=5,
+            )
+            await db.commit()
+            original_load_sheets = spatial_diary_module._load_sheets
+
+            async def delete_then_load(snapshot_db, selected):
+                async with db_session() as deleting_db:
+                    await deleting_db.execute(
+                        text("DELETE FROM walk_session WHERE id = :session_id"),
+                        {"session_id": session_id},
+                    )
+                    await deleting_db.commit()
+                return await original_load_sheets(snapshot_db, selected)
+
+            monkeypatch.setattr(spatial_diary_module, "_load_sheets", delete_then_load)
+
+            result = await query_spatial_diary_view(db, _spec())
+
+            assert result.receipt.selected_capsules == 1
+            assert result.receipt.contributing_capsules == 1
+            assert result.field.values
+        finally:
+            await db.rollback()
+            await _cleanup(db)
+
+
+async def test_view_query_requires_a_fresh_or_its_own_snapshot_transaction():
+    async with db_session() as db:
+        await db.execute(text("SELECT 1"))
+
+        with pytest.raises(SpatialDiaryTransactionError, match="fresh session transaction"):
+            await query_spatial_diary_view(db, _spec())
+
+        await db.rollback()
+
+
+async def test_view_query_rejects_unbounded_work(monkeypatch):
+    async with db_session() as db:
+        await _cleanup(db)
+        try:
+            with pytest.raises(SpatialDiaryViewTooLargeError, match="기간은 최대"):
+                await query_spatial_diary_view(
+                    db,
+                    _spec(since=date(2025, 1, 1), until=date(2026, 1, 2)),
+                )
+
+            await _seal_walk(db, "bounded-one", T0, precipitation_mm=0, sun_elevation_deg=5)
+            await _seal_walk(
+                db,
+                "bounded-two",
+                T0 + timedelta(days=1),
+                precipitation_mm=0,
+                sun_elevation_deg=5,
+            )
+            await db.commit()
+
+            monkeypatch.setattr(spatial_diary_module, "MAX_INDEX_ROWS", 1)
+            with pytest.raises(SpatialDiaryViewTooLargeError, match="후보 Capsule index"):
+                await query_spatial_diary_view(db, _spec())
+
+            monkeypatch.setattr(spatial_diary_module, "MAX_INDEX_ROWS", 2_000)
+            monkeypatch.setattr(spatial_diary_module, "MAX_SELECTED_CAPSULES", 1)
+            with pytest.raises(SpatialDiaryViewTooLargeError, match="선택 Capsule"):
+                await query_spatial_diary_view(db, _spec())
+
+            monkeypatch.setattr(spatial_diary_module, "MAX_SELECTED_CAPSULES", 400)
+            monkeypatch.setattr(spatial_diary_module, "MAX_RAW_CELL_ROWS", 1)
+            with pytest.raises(SpatialDiaryViewTooLargeError, match="원시 cell"):
+                await query_spatial_diary_view(db, _spec())
+
+            monkeypatch.setattr(spatial_diary_module, "MAX_RAW_CELL_ROWS", 100_000)
+            monkeypatch.setattr(spatial_diary_module, "MAX_RESULT_CELLS", 1)
+            with pytest.raises(SpatialDiaryViewTooLargeError, match="결과 cell"):
+                await query_spatial_diary_view(db, _spec())
         finally:
             await _cleanup(db)
 
@@ -393,7 +493,7 @@ async def test_http_surface_returns_sorted_cells_projection_and_receipt():
             await _seal_walk(db, "api", T0, precipitation_mm=0, sun_elevation_deg=5)
             await db.commit()
 
-            response = await query_view(_spec(), db)
+            response = await query_view(_spec(), db, PRINCIPAL)
             direct = view_out(await query_spatial_diary_view(db, _spec()))
 
             assert response.spec == _spec()
@@ -406,3 +506,20 @@ async def test_http_surface_returns_sorted_cells_projection_and_receipt():
             assert response.field.cells == direct.field.cells
         finally:
             await _cleanup(db)
+
+
+async def test_http_surface_is_fail_closed_and_hides_unowned_dogs():
+    with pytest.raises(HTTPException) as unavailable:
+        get_spatial_diary_principal()
+    assert unavailable.value.status_code == 503
+
+    async with db_session() as db:
+        outsider = SpatialDiaryPrincipal(
+            owner_id="owner-outsider",
+            dog_ids=frozenset({"another-dog"}),
+        )
+
+        with pytest.raises(HTTPException) as hidden:
+            await query_view(_spec(), db, outsider)
+
+        assert hidden.value.status_code == 404

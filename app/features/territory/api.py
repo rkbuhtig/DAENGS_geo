@@ -1,5 +1,6 @@
 """Spatial Diary의 첫 읽기 표면. v0는 Capsule 배경 field만 반환한다. Decision: #76."""
 
+from dataclasses import dataclass
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -15,12 +16,28 @@ from app.features.spatial_diary.contract import (
 from app.features.territory.spatial_diary import (
     IncompleteCapsuleError,
     MixedPaintGenerationError,
+    SpatialDiaryTransactionError,
     SpatialDiaryViewResult,
+    SpatialDiaryViewTooLargeError,
     UnsupportedSpatialDiaryViewError,
     query_spatial_diary_view,
 )
 
 router = APIRouter(prefix="/spatial-diary", tags=["spatial-diary"])
+
+
+@dataclass(frozen=True)
+class SpatialDiaryPrincipal:
+    """인증 계층이 주입하는 최소 권한 문맥. Profile source를 인증에 재사용하지 않는다."""
+
+    owner_id: str
+    dog_ids: frozenset[str]
+
+
+def get_spatial_diary_principal() -> SpatialDiaryPrincipal:
+    """앱 조립부가 실제 인증 dependency로 override하기 전에는 공개 조회를 닫는다."""
+
+    raise HTTPException(503, "spatial diary authorization is not configured")
 
 
 class ProjectionOut(BaseModel):
@@ -102,12 +119,19 @@ def view_out(result: SpatialDiaryViewResult) -> SpatialDiaryViewOut:
 async def query_view(
     body: SpatialDiaryViewSpec,
     db: Annotated[AsyncSession, Depends(get_session)],
+    principal: Annotated[SpatialDiaryPrincipal, Depends(get_spatial_diary_principal)],
 ) -> SpatialDiaryViewOut:
+    if body.walk_selector.dog_id not in principal.dog_ids:
+        raise HTTPException(404, "spatial diary view not found")
     try:
         return view_out(await query_spatial_diary_view(db, body))
     except UnsupportedSpatialDiaryViewError as exc:
         raise HTTPException(422, str(exc)) from exc
     except MixedPaintGenerationError as exc:
         raise HTTPException(409, str(exc)) from exc
+    except SpatialDiaryViewTooLargeError as exc:
+        raise HTTPException(413, str(exc)) from exc
     except IncompleteCapsuleError as exc:
         raise HTTPException(500, "sealed capsule is incomplete") from exc
+    except SpatialDiaryTransactionError as exc:
+        raise HTTPException(500, "spatial diary snapshot could not be opened") from exc

@@ -33,6 +33,11 @@ CLAIM_POLICY_VERSION = 1
 QUALITY_POLICY_NAME = "diary_v1"
 DIARY_CALENDAR_TIMEZONE = "Asia/Seoul"
 RAIN_THRESHOLD_MM = 0.1
+MAX_VIEW_RANGE_DAYS = 366
+MAX_INDEX_ROWS = 2_000
+MAX_SELECTED_CAPSULES = 400
+MAX_RAW_CELL_ROWS = 100_000
+MAX_RESULT_CELLS = 50_000
 
 SUPPORTED_METRICS = frozenset({"visit_rate", "walk_utilization"})
 FACET_VALUES = {
@@ -42,6 +47,7 @@ FACET_VALUES = {
 
 _DIARY_ZONE = ZoneInfo(DIARY_CALENDAR_TIMEZONE)
 _CURRENT_PAINT_SPEC = paint_spec(CAPSULE_RADIUS_U, CAPSULE_PROFILE)
+_SNAPSHOT_TRANSACTION_KEY = "spatial_diary_snapshot_transaction"
 
 
 class UnsupportedSpatialDiaryViewError(ValueError):
@@ -53,6 +59,14 @@ class MixedPaintGenerationError(ValueError):
 
 
 class IncompleteCapsuleError(RuntimeError):
+    pass
+
+
+class SpatialDiaryViewTooLargeError(ValueError):
+    pass
+
+
+class SpatialDiaryTransactionError(RuntimeError):
     pass
 
 
@@ -124,6 +138,14 @@ def _validate_spec(spec: SpatialDiaryViewSpec) -> None:
         raise UnsupportedSpatialDiaryViewError(
             f"SpatialDiaryView v0 quality policy는 {QUALITY_POLICY_NAME} v{QUALITY_POLICY_VERSION}이다"
         )
+    since = spec.walk_selector.since
+    until = spec.walk_selector.until
+    if since is not None and until is not None:
+        inclusive_days = (until - since).days + 1
+        if inclusive_days > MAX_VIEW_RANGE_DAYS:
+            raise SpatialDiaryViewTooLargeError(
+                f"SpatialDiaryView v0 기간은 최대 {MAX_VIEW_RANGE_DAYS}일이다"
+            )
     for facet in spec.walk_selector.context_facets:
         allowed = FACET_VALUES.get(facet.axis)
         if allowed is None:
@@ -151,8 +173,27 @@ def _matches(selector: WalkSelector, capsule: CapsuleIndex) -> bool:
     return all(derived[facet.axis] in facet.values for facet in selector.context_facets)
 
 
-def _context_is_known(snapshot: TrailContextSnapshot) -> bool:
-    return snapshot.status in {ContextStatus.CAPTURED, ContextStatus.PARTIAL}
+def _context_is_known(snapshot: TrailContextSnapshot, selector: WalkSelector) -> bool:
+    """선택에 사용한 축, 또는 무필터라면 모든 지원 축의 값이 있어야 known이다."""
+
+    required_axes = {facet.axis for facet in selector.context_facets} or set(FACET_VALUES)
+    derived = context_facets(snapshot)
+    return all(derived[axis] != "unknown" for axis in required_axes)
+
+
+async def _ensure_repeatable_read_snapshot(db: AsyncSession) -> None:
+    """색인과 셀 payload가 같은 PostgreSQL MVCC snapshot을 보도록 한다."""
+
+    transaction = db.sync_session.get_transaction()
+    if transaction is not None:
+        if db.info.get(_SNAPSHOT_TRANSACTION_KEY) is transaction:
+            return
+        raise SpatialDiaryTransactionError(
+            "SpatialDiaryView query requires a fresh session transaction"
+        )
+
+    await db.execute(text("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ"))
+    db.info[_SNAPSHOT_TRANSACTION_KEY] = db.sync_session.get_transaction()
 
 
 def _index_from_row(row) -> CapsuleIndex:
@@ -194,8 +235,38 @@ def _index_from_row(row) -> CapsuleIndex:
     )
 
 
-async def _load_capsule_index(db: AsyncSession, dog_id: str) -> list[CapsuleIndex]:
-    rows = (await db.execute(text("""
+async def _count_capsules(db: AsyncSession, dog_id: str) -> int:
+    return int((await db.execute(text("""
+        SELECT count(*)
+        FROM walk_capsule_manifest
+        WHERE dog_id = :dog_id
+    """), {"dog_id": dog_id})).scalar_one())
+
+
+async def _load_capsule_index(
+    db: AsyncSession,
+    selector: WalkSelector,
+) -> list[CapsuleIndex]:
+    date_predicates = []
+    parameters: dict[str, object] = {
+        "dog_id": selector.dog_id,
+        "row_limit": MAX_INDEX_ROWS + 1,
+    }
+    if selector.since is not None:
+        date_predicates.append(
+            "(session.started_at AT TIME ZONE :calendar_timezone)::date >= :since"
+        )
+        parameters["since"] = selector.since
+    if selector.until is not None:
+        date_predicates.append(
+            "(session.started_at AT TIME ZONE :calendar_timezone)::date <= :until"
+        )
+        parameters["until"] = selector.until
+    if date_predicates:
+        parameters["calendar_timezone"] = DIARY_CALENDAR_TIMEZONE
+    date_clause = "".join(f" AND {predicate}" for predicate in date_predicates)
+
+    rows = (await db.execute(text(f"""
         SELECT manifest.session_id, session.started_at,
                sheet.paint_version, sheet.grid_version, sheet.radius_u,
                sheet.profile_name, sheet.profile_fp, sheet.sample_step_m, sheet.paint_fp,
@@ -208,8 +279,15 @@ async def _load_capsule_index(db: AsyncSession, dog_id: str) -> list[CapsuleInde
         LEFT JOIN walk_cellophane_sheet sheet ON sheet.session_id = manifest.session_id
         LEFT JOIN walk_trail_context context ON context.session_id = manifest.session_id
         WHERE manifest.dog_id = :dog_id
+        {date_clause}
         ORDER BY session.started_at, manifest.session_id
-    """), {"dog_id": dog_id})).all()
+        LIMIT :row_limit
+    """), parameters)).all()
+    if len(rows) > MAX_INDEX_ROWS:
+        raise SpatialDiaryViewTooLargeError(
+            f"SpatialDiaryView v0 후보 Capsule index는 최대 {MAX_INDEX_ROWS}개다; "
+            "기간을 좁혀야 한다"
+        )
     return [_index_from_row(row) for row in rows]
 
 
@@ -224,11 +302,19 @@ async def _load_sheets(
         FROM walk_cellophane_cell
         WHERE session_id IN :session_ids
         ORDER BY session_id, q, r
+        LIMIT :row_limit
     """).bindparams(bindparam("session_ids", expanding=True))
     rows = (await db.execute(
         statement,
-        {"session_ids": [capsule.session_id for capsule in selected]},
+        {
+            "session_ids": [capsule.session_id for capsule in selected],
+            "row_limit": MAX_RAW_CELL_ROWS + 1,
+        },
     )).all()
+    if len(rows) > MAX_RAW_CELL_ROWS:
+        raise SpatialDiaryViewTooLargeError(
+            f"SpatialDiaryView v0 원시 cell은 최대 {MAX_RAW_CELL_ROWS}개다"
+        )
     cells: dict[str, list] = {capsule.session_id: [] for capsule in selected}
     for row in rows:
         cells[row.session_id].append(row)
@@ -270,10 +356,18 @@ async def query_spatial_diary_view(
     """Spec 하나를 Capsule cohort·공간 field·재현 영수증으로 조립한다."""
 
     _validate_spec(spec)
-    all_capsules = await _load_capsule_index(db, spec.walk_selector.dog_id)
+    await _ensure_repeatable_read_snapshot(db)
+    as_of = view_as_of or datetime.now(UTC)
+    total_capsules = await _count_capsules(db, spec.walk_selector.dog_id)
+    candidate_capsules = await _load_capsule_index(db, spec.walk_selector)
     selected = [
-        capsule for capsule in all_capsules if _matches(spec.walk_selector, capsule)
+        capsule for capsule in candidate_capsules if _matches(spec.walk_selector, capsule)
     ]
+    if len(selected) > MAX_SELECTED_CAPSULES:
+        raise SpatialDiaryViewTooLargeError(
+            f"SpatialDiaryView v0 선택 Capsule은 최대 {MAX_SELECTED_CAPSULES}개다; "
+            "기간 또는 context filter를 좁혀야 한다"
+        )
     generations = {capsule.paint_spec.fingerprint for capsule in selected}
     if len(generations) > 1:
         raise MixedPaintGenerationError(
@@ -282,12 +376,18 @@ async def query_spatial_diary_view(
     selected_paint = selected[0].paint_spec if selected else _CURRENT_PAINT_SPEC
     sheets = await _load_sheets(db, selected)
     field = spatial_field(sheets, _view_layer_spec(spec.field_metric, selected_paint))
+    if len(field.values) > MAX_RESULT_CELLS:
+        raise SpatialDiaryViewTooLargeError(
+            f"SpatialDiaryView v0 결과 cell은 최대 {MAX_RESULT_CELLS}개다"
+        )
 
-    known = sum(_context_is_known(capsule.context) for capsule in selected)
+    known = sum(
+        _context_is_known(capsule.context, spec.walk_selector) for capsule in selected
+    )
     receipt = SpatialDiaryViewReceipt(
         selector_fingerprint=selector_fingerprint(spec),
-        view_as_of=view_as_of or datetime.now(UTC),
-        total_capsules=len(all_capsules),
+        view_as_of=as_of,
+        total_capsules=total_capsules,
         selected_capsules=len(selected),
         contributing_capsules=field.contributing,
         context_known_count=known,
