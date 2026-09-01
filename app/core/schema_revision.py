@@ -88,6 +88,11 @@ LEGACY_MARKERS: tuple[LegacyMarker, ...] = (
         "0023_spatial_diary_episode_pin.py",
         "spatial_diary_episode_pin",
     ),
+    LegacyMarker(
+        "0024",
+        "0024_spatial_diary_memory_place.py",
+        "spatial_diary_memory_place",
+    ),
 )
 
 HEAD = LEGACY_MARKERS[-1].revision
