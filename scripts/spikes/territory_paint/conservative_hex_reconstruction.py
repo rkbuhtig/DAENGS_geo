@@ -51,7 +51,12 @@ class ReconstructionSpec:
 
 @dataclass(frozen=True)
 class ReconstructedRasterSheet:
-    """한 Cellophane을 공통 raster로 옮긴 결과와 검산 영수증."""
+    """한 Cellophane을 공통 raster로 옮긴 결과와 검산 영수증.
+
+    ``peak``는 범용 raster reader와 형태를 맞추기 위한 빈 표면일 뿐이다. local blend가 만든
+    거리 가중치를 원래 Cellophane의 판정 evidence로 오해하지 않도록 양수 ``min_peak`` 조회는
+    명시적으로 지원하지 않는다.
+    """
 
     walk_id: str
     occupancy: dict[Pixel, float]
@@ -63,6 +68,7 @@ class ReconstructedRasterSheet:
     support_evaluations: int
     weight_evaluations: int
     method: ReconstructionMethod
+    supports_peak_threshold: bool = False
 
     @property
     def mass_s(self) -> float:
@@ -210,12 +216,9 @@ def reconstruct_cellophane(
 
         weight_sum = math.fsum(weight for _, weight in weighted)
         amount = sheet.occupancy[cell]
-        cell_peak = sheet.peak.get(cell, 0.0)
         for pixel, weight in weighted:
             share = weight / weight_sum
             occupancy[pixel] = occupancy.get(pixel, 0.0) + amount * share
-            # peak는 합산하지 않는다. 렌더/검산용으로 가장 강한 source evidence만 남긴다.
-            peak[pixel] = max(peak.get(pixel, 0.0), cell_peak * min(1.0, weight))
 
     result = ReconstructedRasterSheet(
         walk_id=sheet.walk_id,

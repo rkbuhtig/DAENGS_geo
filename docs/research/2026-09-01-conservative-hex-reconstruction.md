@@ -46,9 +46,11 @@ smoothstep kernel로 나눈다. 각 source cell의 pixel weight를 다시 합 1�
 보존한다. 대상 pixel은 원래 점유 Hex들의 합집합으로 제한하므로 빈 셀이나 다른 공간 섬으로
 값이 새지 않는다.
 
-기본 reach `1.75 cell`은 제품 상수가 아니라 이 실험의 명시적 파라미터다. raw 기준선은 같은
-support 안에서 source cell 질량을 그 셀의 pixel에 균등 분배한다. 둘 다 셀 경계에 걸친 pixel
-면적 근사 차이를 없애기 위해 source cell마다 질량을 재정규화한다.
+기본 reach `1.75 cell`은 제품 상수가 아니라 calibration 모집단에서 고른 이 실험의 명시적
+파라미터다. 최종 수치는 다른 seed의 holdout 모집단에서 낸다. evaluator는 calibration seed를
+최종 평가 입력으로 다시 쓰면 실패한다. raw 기준선은 같은 support 안에서 source cell 질량을
+그 셀의 pixel에 균등 분배한다. 둘 다 셀 경계에 걸친 pixel 면적 근사 차이를 없애기 위해 source
+cell마다 질량을 재정규화한다.
 
 ## 평가 지표
 
@@ -66,7 +68,7 @@ support 안에서 source cell 질량을 그 셀의 pixel에 균등 분배한다.
 `visit_rate`와 `conditional_dwell`은 총질량 보존 대상이 아니므로 common raster에서 pointwise
 MAE와 최대 오차를 낸다. `total_time`, `U_time`, `U_walk`만 질량 계열로 비교한다.
 
-## 2026-09-01 결과
+## 2026-09-01 calibration 결과
 
 같은 perfect-sensor 30회 산책과 4m evaluator raster를 사용했다. 표의 L1과 50% IoU는
 `U_time` 결과다.
@@ -82,9 +84,8 @@ pixel 중심에서 Hex cell density를 읽어 적분했고, 여기서는 source 
 pixel에 합 1로 재분배했다. C의 개선량은 이 문서 안의 같은 보수적 rasterization을 거친 B와만
 비교한다.
 
-8u는 잠정 목표였던 `normalized L1 <= 0.18`, `50% area IoU >= 0.70`을 통과했다. 질량 손실,
-support 누출, support 연결요소 변화도 없었다. 따라서 raw Hex의 계단 모양만 보고 영구 Trail이
-필요하다고 결론 내릴 근거는 더 약해졌다.
+이 모집단에서 8u는 잠정 목표였던 `normalized L1 <= 0.18`, `50% area IoU >= 0.70`을
+통과했다. 다만 reach 선택에도 이 모집단을 썼으므로 이 표만으로 통과를 확정하지 않는다.
 
 양방향 cross-mass는 완전히 같은 방향으로 움직이지 않았다. 8u 50% 영역에서 reference 질량의
 candidate 영역 내 포착량은 `0.473 → 0.512`로 늘었지만, candidate 질량의 reference 영역 내
@@ -112,6 +113,21 @@ candidate 영역 내 포착량은 `0.473 → 0.512`로 늘었지만, candidate �
 reach가 커질수록 reference 질량을 더 많이 덮지만 분포 모양과 50% 경계는 다시 무뎌진다.
 1.75 cell은 이 fixture의 L1과 영역 IoU가 함께 가장 좋았던 값이다. 실제 센서 변형에서도 같은
 순위인지 확인하기 전에는 제품 상수로 승격하지 않는다.
+
+## 분리된 holdout 결과
+
+reach 선택에 쓰지 않은 다른 모집단 seed에서 `1.75 cell`을 그대로 평가했다.
+
+| Hex radius | raw L1 | 복원 L1 | raw 50% IoU | 복원 50% IoU | leakage | 복원 질량 오차 |
+|---:|---:|---:|---:|---:|---:|---:|
+| 4u | 0.316 | **0.078** | 0.586 | **0.849** | 0 px | 0 s |
+| 8u | 0.271 | **0.173** | 0.578 | **0.707** | 0 px | 0 s |
+| 12u | 0.353 | **0.260** | 0.521 | **0.603** | 0 px | < 4e-12 s |
+
+8u는 holdout에서도 `normalized L1 <= 0.18`, `50% area IoU >= 0.70`을 통과했다. 질량
+손실, support 누출, support 연결요소 변화도 없었다. 따라서 raw Hex의 계단 모양만 보고 영구
+Trail이 필요하다고 결론 내릴 근거는 더 약해졌다. 다만 경로군 구성 자체는 같고 날짜·행동
+변형만 분리한 첫 holdout이므로, 다음 단계의 센서 변형과 새 경로군 검증을 대신하지 않는다.
 
 ## 재현
 

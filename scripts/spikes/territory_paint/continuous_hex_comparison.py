@@ -229,6 +229,10 @@ def raster_metric_fields(
     """기존 spatial_stats와 같은 다섯 정의를 raster sheet에 적용한다."""
     if not math.isfinite(min_peak) or not 0 <= min_peak <= 1:
         raise ValueError("min_peak는 0 이상 1 이하의 유한한 값이어야 한다")
+    if min_peak > 0 and any(
+        not getattr(sheet, "supports_peak_threshold", True) for sheet in sheets
+    ):
+        raise ValueError("표시용 복원 raster는 min_peak=0만 지원한다")
     total_time: dict[Pixel, float] = {}
     visits: dict[Pixel, float] = {}
     walk_shares: dict[Pixel, float] = {}

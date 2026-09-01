@@ -10,6 +10,8 @@ from app.features.territory.paint import NARROW_STEP, paint_sheet
 from app.features.walk.facts import Segment
 from app.features.walk.models import WalkFix
 from scripts.spikes.territory_paint.conservative_hex_evaluation import (
+    RECONSTRUCTION_CALIBRATION_SEED,
+    _directed_boundary_distances,
     build_reconstruction_evaluation_payload,
 )
 from scripts.spikes.territory_paint.conservative_hex_reconstruction import (
@@ -129,6 +131,28 @@ def test_metric_semantics_are_recomputed_after_per_walk_reconstruction():
     assert all(value >= 0.0 for value in fields["conditional_dwell"].values.values())
 
 
+def test_display_reconstruction_rejects_positive_peak_threshold():
+    raster = RasterSpec(pixel_m=2.0, origin_lat=LAT, origin_lng=LNG)
+    reconstructed = reconstruct_cellophane(
+        _sheet("walk-1", [_segment(0.0, 20.0, 0.0)]),
+        raster,
+        ReconstructionSpec(8.0, "local_blend"),
+    )
+
+    with pytest.raises(ValueError, match="min_peak=0"):
+        raster_metric_fields((reconstructed,), min_peak=0.1)  # type: ignore[arg-type]
+
+
+def test_boundary_distance_index_matches_exact_pixel_geometry():
+    source = {(0, 0), (1, 0), (2, 0), (2, 1)}
+    target = {(7, -3), (7, -2), (8, -2), (-4, 5)}
+    expected = [min(math.dist(left, right) for right in target) * 4.0 for left in source]
+
+    assert sorted(_directed_boundary_distances(source, target, 4.0)) == pytest.approx(
+        sorted(expected)
+    )
+
+
 def test_population_evaluation_compares_a_b_c_without_storage_or_truth_claims(
     evaluation_payload,
 ):
@@ -136,6 +160,7 @@ def test_population_evaluation_compares_a_b_c_without_storage_or_truth_claims(
     encoded = json.dumps(evaluation_payload, sort_keys=True)
 
     assert evaluation_payload["population"]["sample_count"] == 30
+    assert evaluation_payload["population"]["split"] == "holdout"
     assert "not_truth" in evaluation_payload["reference_role"]
     assert "not_storage" in evaluation_payload["reconstruction_role"]
     assert row["mass"]["raw_absolute_error_s"] < 1e-8
@@ -146,6 +171,13 @@ def test_population_evaluation_compares_a_b_c_without_storage_or_truth_claims(
     assert set(row["raw_piecewise"]["metrics"]) == set(row["reconstructed"]["metrics"])
     assert all(not probe["bridged"] for probe in evaluation_payload["disconnected_chain_gap_probe"])
     assert '"truth"' not in encoded
+
+
+def test_calibration_population_cannot_be_reused_as_holdout():
+    with pytest.raises(ValueError, match="calibration population"):
+        build_reconstruction_evaluation_payload(
+            radius_units=(8.0,), evaluation_seed=RECONSTRUCTION_CALIBRATION_SEED
+        )
 
 
 @pytest.mark.parametrize(

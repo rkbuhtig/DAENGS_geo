@@ -14,11 +14,12 @@ import json
 import math
 import sys
 import time
+from dataclasses import dataclass
 from pathlib import Path
 
 from app.features.territory.paint import NARROW_STEP, paint_sheet
 from scripts.sim.walk.population import observe_population
-from scripts.sim.walk.population_truth import build_population_truth
+from scripts.sim.walk.population_truth import DEFAULT_POPULATION_SEED, build_population_truth
 from scripts.spikes.territory_paint.conservative_hex_reconstruction import (
     ReconstructionSpec,
     reconstruct_cellophane,
@@ -40,6 +41,16 @@ from scripts.spikes.territory_paint.continuous_hex_comparison import (
 
 RECONSTRUCTION_EVALUATION_FORMAT_VERSION = 1
 MASS_METRICS = {"total_time", "time_utilization", "walk_utilization"}
+RECONSTRUCTION_CALIBRATION_SEED = DEFAULT_POPULATION_SEED
+RECONSTRUCTION_HOLDOUT_SEED = 915_731
+
+
+@dataclass(frozen=True)
+class _PixelKdNode:
+    point: Pixel
+    axis: int
+    left: _PixelKdNode | None
+    right: _PixelKdNode | None
 
 
 def _percentile(values: list[float], quantile: float) -> float:
@@ -59,6 +70,38 @@ def _boundary(pixels: set[Pixel]) -> set[Pixel]:
     }
 
 
+def _pixel_kd_tree(points: tuple[Pixel, ...], depth: int = 0) -> _PixelKdNode | None:
+    if not points:
+        return None
+    axis = depth % 2
+    ordered = sorted(points, key=lambda point: (point[axis], point[1 - axis]))
+    middle = len(ordered) // 2
+    return _PixelKdNode(
+        point=ordered[middle],
+        axis=axis,
+        left=_pixel_kd_tree(tuple(ordered[:middle]), depth + 1),
+        right=_pixel_kd_tree(tuple(ordered[middle + 1 :]), depth + 1),
+    )
+
+
+def _nearest_pixel_distance_squared(
+    node: _PixelKdNode | None,
+    query: Pixel,
+    best: float = math.inf,
+) -> float:
+    if node is None:
+        return best
+    dx = query[0] - node.point[0]
+    dy = query[1] - node.point[1]
+    best = min(best, dx * dx + dy * dy)
+    delta = query[node.axis] - node.point[node.axis]
+    near, far = (node.left, node.right) if delta < 0 else (node.right, node.left)
+    best = _nearest_pixel_distance_squared(near, query, best)
+    if delta * delta <= best:
+        best = _nearest_pixel_distance_squared(far, query, best)
+    return best
+
+
 def _directed_boundary_distances(
     source: set[Pixel], target: set[Pixel], pixel_m: float
 ) -> list[float]:
@@ -66,10 +109,10 @@ def _directed_boundary_distances(
     target_boundary = _boundary(target)
     if not source_boundary or not target_boundary:
         return [] if source_boundary == target_boundary else [math.inf]
+    target_index = _pixel_kd_tree(tuple(target_boundary))
     return [
-        min(math.hypot(left[0] - right[0], left[1] - right[1]) for right in target_boundary)
-        * pixel_m
-        for left in source_boundary
+        math.sqrt(_nearest_pixel_distance_squared(target_index, point)) * pixel_m
+        for point in source_boundary
     ]
 
 
@@ -300,10 +343,15 @@ def build_reconstruction_evaluation_payload(
     pixel_m: float = DEFAULT_PIXEL_M,
     radius_units: tuple[float, ...] = DEFAULT_RADIUS_UNITS,
     blend_reach_cells: float = 1.75,
+    evaluation_seed: int = RECONSTRUCTION_HOLDOUT_SEED,
 ) -> dict[str, object]:
     if not radius_units or any(not math.isfinite(value) or value <= 0 for value in radius_units):
         raise ValueError("radius_units는 비어 있지 않은 양수 목록이어야 한다")
-    observation = observe_population(build_population_truth(), sample_interval_s=5.0)
+    if evaluation_seed == RECONSTRUCTION_CALIBRATION_SEED:
+        raise ValueError("reach를 고른 calibration population은 최종 평가에 재사용할 수 없다")
+    observation = observe_population(
+        build_population_truth(seed=evaluation_seed), sample_interval_s=5.0
+    )
     raster = RasterSpec(pixel_m=pixel_m)
     reference_fields = raster_metric_fields(rasterize_observation(observation, raster))
     return {
@@ -311,6 +359,7 @@ def build_reconstruction_evaluation_payload(
         "reference_role": "perfect_sensor_continuous_brush_evaluation_reference_not_truth",
         "reconstruction_role": "ephemeral_display_candidate_not_storage_or_statistics_source",
         "population": {
+            "split": "holdout",
             "generator_version": observation.generator_version,
             "run_id": observation.run_id,
             "sample_count": len(observation.walks),
@@ -337,11 +386,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out", type=Path, default=Path("conservative-hex-evaluation.json"))
     parser.add_argument("--pixel-m", type=float, default=DEFAULT_PIXEL_M)
     parser.add_argument("--blend-reach-cells", type=float, default=1.75)
+    parser.add_argument("--evaluation-seed", type=int, default=RECONSTRUCTION_HOLDOUT_SEED)
     args = parser.parse_args(argv)
     started = time.perf_counter()
     payload = build_reconstruction_evaluation_payload(
         pixel_m=args.pixel_m,
         blend_reach_cells=args.blend_reach_cells,
+        evaluation_seed=args.evaluation_seed,
     )
     args.out.write_text(
         json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n",
