@@ -19,6 +19,8 @@ OFFER_VERSION = 1
 INTERACTION_VERSION = 1
 ATTESTATION_VERSION = 1
 PIN_VERSION = 1
+MEMORY_PLACE_VERSION = 1
+MEMORY_PLACE_MEMBERSHIP_VERSION = 1
 VIEW_VERSION = 1
 
 EvidenceOrigin = Literal["device", "mock", "mixed", "unknown"]
@@ -95,6 +97,35 @@ class PinOrigin(StrEnum):
     IN_WALK_BOOKMARK = "in_walk_bookmark"
     POST_WALK_MANUAL = "post_walk_manual"
     PHOTO_ASSOCIATED = "photo_associated"
+
+
+class MemoryPlaceMembershipOrigin(StrEnum):
+    SEED = "seed"
+    USER_LINKED = "user_linked"
+
+
+class MacroExposure(StrEnum):
+    EXPOSED = "exposed"
+    NOT_EXPOSED = "not_exposed"
+    UNCERTAIN = "uncertain"
+
+
+class CapabilitySupport(StrEnum):
+    SUPPORTED = "supported"
+    UNSUPPORTED = "unsupported"
+
+
+class PlaceObservation(StrEnum):
+    OBSERVED = "observed"
+    NOT_OBSERVED = "not_observed"
+    UNJUDGEABLE = "unjudgeable"
+
+
+class UnjudgeableReason(StrEnum):
+    NOT_EXPOSED = "not_exposed"
+    EXPOSURE_UNCERTAIN = "exposure_uncertain"
+    CAPABILITY_UNSUPPORTED = "capability_unsupported"
+    SPATIAL_DRIFT_SUSPECTED = "spatial_drift_suspected"
 
 
 class TemporalPrecision(StrEnum):
@@ -452,6 +483,34 @@ class EpisodePin(FrozenContract):
         return self
 
 
+class MemoryPlace(FrozenContract):
+    """필터와 무관하게 남는 장소 identity. footprint는 생성 당시의 v1 snapshot이다."""
+
+    place_version: Literal[MEMORY_PLACE_VERSION] = MEMORY_PLACE_VERSION
+    place_id: str = Field(min_length=1, max_length=128)
+    dog_id: str = Field(min_length=1, max_length=128)
+    label: str | None = Field(default=None, min_length=1, max_length=80)
+    footprint: EventFootprint
+    grouping_policy_version: int = Field(ge=1)
+    seed_fingerprint: str = Field(min_length=8, max_length=128)
+    created_at: datetime
+
+    _tz = field_validator("created_at")(_timezone_required)
+
+
+class MemoryPlaceMembership(FrozenContract):
+    """Episode Pin과 Memory Place의 명시적 연결. 화면 marker cluster와 다르다."""
+
+    membership_version: Literal[MEMORY_PLACE_MEMBERSHIP_VERSION] = MEMORY_PLACE_MEMBERSHIP_VERSION
+    place_id: str = Field(min_length=1, max_length=128)
+    pin_id: str = Field(min_length=1, max_length=128)
+    session_id: str = Field(min_length=1, max_length=128)
+    origin: MemoryPlaceMembershipOrigin
+    linked_at: datetime
+
+    _tz = field_validator("linked_at")(_timezone_required)
+
+
 class ClaimAllowance(FrozenContract):
     """영수증에서 현재 정책으로 계산한 문장 상한. Capsule 사실이 아니다."""
 
@@ -553,4 +612,174 @@ class SpatialDiaryViewReceipt(FrozenContract):
             raise ValueError("contributing capsules cannot exceed selected capsules")
         if self.context_known_count + self.context_unknown_count != self.selected_capsules:
             raise ValueError("known and unknown context counts must cover selected capsules")
+        return self
+
+
+class MemoryPlaceBiographySpec(FrozenContract):
+    """장소 biography의 산책 분모와 timeline Pin 조건."""
+
+    walk_selector: WalkSelector
+    entry_selector: EntrySelector = EntrySelector()
+    quality_policy: QualityPolicy
+
+
+class MemoryPlaceWalkReading(FrozenContract):
+    """한 산책이 한 장소에 대해 말할 수 있는 것과 말할 수 없는 것."""
+
+    session_id: str = Field(min_length=1, max_length=128)
+    walked_at: datetime
+    precipitation: Literal["rain", "dry", "unknown"]
+    daylight: Literal["day", "night", "unknown"]
+    macro_exposure: MacroExposure
+    capability: CapabilitySupport
+    observation: PlaceObservation
+    observed_episode_count: int = Field(ge=0)
+    member_pin_count: int = Field(ge=0)
+    unjudgeable_reasons: tuple[UnjudgeableReason, ...] = ()
+
+    _tz = field_validator("walked_at")(_timezone_required)
+
+    @model_validator(mode="after")
+    def reading_is_consistent(self) -> "MemoryPlaceWalkReading":
+        if len(self.unjudgeable_reasons) != len(set(self.unjudgeable_reasons)):
+            raise ValueError("unjudgeable reasons must be unique")
+        expected_reasons: set[UnjudgeableReason] = set()
+        if self.macro_exposure is MacroExposure.NOT_EXPOSED:
+            expected_reasons.add(UnjudgeableReason.NOT_EXPOSED)
+        elif self.macro_exposure is MacroExposure.UNCERTAIN:
+            expected_reasons.add(UnjudgeableReason.EXPOSURE_UNCERTAIN)
+        if self.capability is CapabilitySupport.UNSUPPORTED:
+            expected_reasons.add(UnjudgeableReason.CAPABILITY_UNSUPPORTED)
+        allowed_reasons = expected_reasons | {UnjudgeableReason.SPATIAL_DRIFT_SUSPECTED}
+        if not set(self.unjudgeable_reasons).issubset(allowed_reasons):
+            raise ValueError("unjudgeable reasons must match the reading evidence")
+        if self.observation is PlaceObservation.UNJUDGEABLE:
+            if not self.unjudgeable_reasons:
+                raise ValueError("unjudgeable observation requires at least one reason")
+        elif self.unjudgeable_reasons:
+            raise ValueError("judgeable observation cannot carry unjudgeable reasons")
+        if not expected_reasons.issubset(self.unjudgeable_reasons):
+            raise ValueError("exposure and capability failures must remain visible as reasons")
+        if self.observation is PlaceObservation.OBSERVED and self.observed_episode_count == 0:
+            raise ValueError("observed status requires an observed episode")
+        if self.observation is PlaceObservation.NOT_OBSERVED and self.observed_episode_count:
+            raise ValueError("not_observed status cannot carry an observed episode")
+        return self
+
+
+class MemoryPlaceClaimCount(FrozenContract):
+    subject_role: SubjectRole
+    meaning_code: str = Field(min_length=1, max_length=64, pattern=r"^[a-z][a-z0-9_]*$")
+    vocabulary_version: int = Field(ge=1)
+    pin_count: int = Field(ge=1)
+
+
+class MemoryPlaceCohortSummary(FrozenContract):
+    selected_walks: int = Field(ge=0)
+    exposed_walks: int = Field(ge=0)
+    not_exposed_walks: int = Field(ge=0)
+    uncertain_exposure_walks: int = Field(ge=0)
+    capability_supported_walks: int = Field(ge=0)
+    capability_unsupported_walks: int = Field(ge=0)
+    judgeable_walks: int = Field(ge=0)
+    observed_walks: int = Field(ge=0)
+    not_observed_walks: int = Field(ge=0)
+    unjudgeable_walks: int = Field(ge=0)
+    member_pin_count: int = Field(ge=0)
+    distinct_member_walks: int = Field(ge=0)
+
+    @model_validator(mode="after")
+    def counts_partition_the_cohort(self) -> "MemoryPlaceCohortSummary":
+        if (
+            self.exposed_walks + self.not_exposed_walks + self.uncertain_exposure_walks
+            != self.selected_walks
+        ):
+            raise ValueError("exposure counts must partition selected walks")
+        if (
+            self.capability_supported_walks + self.capability_unsupported_walks
+            != self.selected_walks
+        ):
+            raise ValueError("capability counts must partition selected walks")
+        if self.judgeable_walks + self.unjudgeable_walks != self.selected_walks:
+            raise ValueError("judgeability counts must partition selected walks")
+        if self.observed_walks + self.not_observed_walks != self.judgeable_walks:
+            raise ValueError("observation counts must partition judgeable walks")
+        if self.distinct_member_walks > self.selected_walks:
+            raise ValueError("member walk support cannot exceed selected walks")
+        return self
+
+
+class MemoryPlaceBiographyReceipt(FrozenContract):
+    selector_fingerprint: str = Field(min_length=8, max_length=128)
+    view_as_of: datetime
+    total_capsules: int = Field(ge=0)
+    exposure_policy_version: int = Field(ge=1)
+    observation_policy_version: int = Field(ge=1)
+    context_policy_version: int = Field(ge=1)
+    quality_policy_version: int = Field(ge=1)
+    paint_fp: str = Field(min_length=1, max_length=128)
+
+    _tz = field_validator("view_as_of")(_timezone_required)
+
+
+class MemoryPlaceTimelineEntry(FrozenContract):
+    pin: EpisodePin
+    attestation: WalkAttestation
+
+    @model_validator(mode="after")
+    def pin_and_attestation_match(self) -> "MemoryPlaceTimelineEntry":
+        if self.pin.session_id != self.attestation.session_id:
+            raise ValueError("timeline pin and attestation must belong to the same walk")
+        if self.pin.created_by_attestation_id != self.attestation.attestation_id:
+            raise ValueError("timeline pin must reference its attestation")
+        return self
+
+
+class MemoryPlaceBiography(FrozenContract):
+    place: MemoryPlace
+    spec: MemoryPlaceBiographySpec
+    summary: MemoryPlaceCohortSummary
+    readings: tuple[MemoryPlaceWalkReading, ...]
+    timeline: tuple[MemoryPlaceTimelineEntry, ...]
+    claim_counts: tuple[MemoryPlaceClaimCount, ...]
+    receipt: MemoryPlaceBiographyReceipt
+
+    @model_validator(mode="after")
+    def biography_matches_place_and_cohort(self) -> "MemoryPlaceBiography":
+        if self.place.dog_id != self.spec.walk_selector.dog_id:
+            raise ValueError("place and walk selector must belong to the same dog")
+        if len(self.readings) != self.summary.selected_walks:
+            raise ValueError("one walk reading is required for every selected walk")
+        return self
+
+
+class PrecipitationBiographyComparison(FrozenContract):
+    """같은 장소의 두 관찰 cohort. 인과 효과를 주장하지 않는다."""
+
+    comparison_kind: Literal["observational"] = "observational"
+    axis: Literal["precipitation"] = "precipitation"
+    rain: MemoryPlaceBiography
+    dry: MemoryPlaceBiography
+    excluded_unknown_context_walks: int = Field(ge=0)
+
+    @model_validator(mode="after")
+    def cohorts_share_one_place_and_snapshot(self) -> "PrecipitationBiographyComparison":
+        if self.rain.place.place_id != self.dry.place.place_id:
+            raise ValueError("comparison cohorts must describe the same Memory Place")
+        if self.rain.receipt.view_as_of != self.dry.receipt.view_as_of:
+            raise ValueError("comparison cohorts must share one snapshot time")
+        rain_values = {
+            value
+            for facet in self.rain.spec.walk_selector.context_facets
+            if facet.axis == "precipitation"
+            for value in facet.values
+        }
+        dry_values = {
+            value
+            for facet in self.dry.spec.walk_selector.context_facets
+            if facet.axis == "precipitation"
+            for value in facet.values
+        }
+        if rain_values != {"rain"} or dry_values != {"dry"}:
+            raise ValueError("comparison cohorts must be rain and dry respectively")
         return self
