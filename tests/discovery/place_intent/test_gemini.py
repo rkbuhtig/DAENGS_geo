@@ -41,10 +41,20 @@ async def test_gemini_interactions_request_is_stateless_and_structured() -> None
         assert output_format["type"] == "text"
         assert output_format["mime_type"] == "application/json"
         schema = output_format["schema"]
-        proposal = schema["properties"]["interpretations"]["items"]["properties"][
-            "proposals"
-        ]["items"]
+        proposal = schema["properties"]["interpretations"]["items"]["properties"]["proposals"][
+            "items"
+        ]
         assert "intent_type" in proposal["properties"]
+        assert set(proposal["properties"]["intent_type"]["enum"]) == {
+            "kind",
+            "purpose",
+            "boolean_capability",
+            "semantic",
+            "activity",
+            "object",
+        }
+        assert proposal["properties"]["activity_id"]["enum"] == ["play", "buy"]
+        assert proposal["properties"]["object_id"]["enum"] == ["dog_toy"]
         assert "intent" not in proposal["properties"]
         serialized_schema = json.dumps(output_format["schema"])
         assert "$ref" not in serialized_schema

@@ -52,7 +52,7 @@ class GeminiIntentProposer:
             "input": utterance,
             "system_instruction": proposer_instructions()
             + "\nGemini adapter 출력에서는 intent를 평면 필드로 쓴다. intent_type에 맞는 "
-            "kind, purpose_id, capability_id와 value, concept_id 중 하나만 채워라. "
+            "kind, purpose_id, capability_id와 value, concept_id, activity_id, object_id 중 하나만 채워라. "
             "evidence는 quote와 확신할 때만 start/end로 출력하라.",
             "store": False,
             "response_format": {
@@ -167,6 +167,8 @@ def _adapter_output(output_text: str) -> LLMIntentOutput:
                     "capability_id",
                     "value",
                     "concept_id",
+                    "activity_id",
+                    "object_id",
                     "quote",
                     "start",
                     "end",
@@ -190,6 +192,16 @@ def _adapter_output(output_text: str) -> LLMIntentOutput:
                 intent = {
                     "intent_type": intent_type,
                     "concept_id": proposal.get("concept_id"),
+                }
+            elif intent_type == "activity":
+                intent = {
+                    "intent_type": intent_type,
+                    "activity_id": proposal.get("activity_id"),
+                }
+            elif intent_type == "object":
+                intent = {
+                    "intent_type": intent_type,
+                    "object_id": proposal.get("object_id"),
                 }
             else:
                 raise ValueError(f"unknown Gemini intent type: {intent_type}")

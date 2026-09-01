@@ -250,8 +250,7 @@ def test_ambiguous_fallbacks_keep_each_interpretations_preferences_and_evidence(
     assert outing.basis_observation_ids == ("llm-test-3",)
     assert cafe.result.plan is not None and outing.result.plan is not None
     assert any(
-        gate.capability_id is CapabilityId.OPERATIONS_PARKING
-        for gate in cafe.result.plan.gates
+        gate.capability_id is CapabilityId.OPERATIONS_PARKING for gate in cafe.result.plan.gates
     )
     assert all(
         gate.capability_id is not CapabilityId.OPERATIONS_PARKING
@@ -466,6 +465,10 @@ async def test_service_inspection_preserves_raw_and_grounded_layers() -> None:
 
     assert trace.raw is raw
     assert trace.grounded is not None
+    assert trace.normalized is not None
+    assert trace.normalized.hypothesis_sets[0].hypotheses[0].hypothesis_key == (
+        "interpretation:1:target"
+    )
     assert trace.grounded.interpretations[0].observations[0].source.value == "llm_proposal"
     assert trace.outcome.status is PlannerStatus.READY
 
@@ -510,6 +513,7 @@ async def test_service_turns_invalid_provider_output_into_typed_clarification() 
 
     assert trace.raw is None
     assert trace.grounded is None
+    assert trace.normalized is None
     assert trace.outcome.status is PlannerStatus.NEEDS_CLARIFICATION
     assert trace.outcome.source_disposition is None
     assert not trace.outcome.suggestions

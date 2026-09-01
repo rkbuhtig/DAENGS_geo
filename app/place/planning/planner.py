@@ -9,12 +9,14 @@ from app.place.planning.contract import (
     PlaceKind,
 )
 from app.place.planning.intents import (
+    ActivityIntent,
     AppliedIntent,
     BooleanCapabilityIntent,
     IntentObservation,
     IntentRole,
     IntentSource,
     KindIntent,
+    ObjectIntent,
     PlannerIssue,
     PlannerRequest,
     PlannerResult,
@@ -108,6 +110,22 @@ def compile_intent_plan(request: PlannerRequest) -> PlannerResult:
 
     for observation in request.observations:
         intent = observation.intent
+        if isinstance(intent, (ActivityIntent, ObjectIntent)):
+            unsupported.append(
+                _issue(
+                    observation,
+                    "unresolved_compositional_intent",
+                    f"{intent.intent_type} requires hypothesis normalization before planning",
+                    blocking=observation.role
+                    in {
+                        IntentRole.GOAL,
+                        IntentRole.REQUIRED_TARGET,
+                        IntentRole.REQUIRED_CONDITION,
+                        IntentRole.EXCLUDED,
+                    },
+                )
+            )
+            continue
         if isinstance(intent, SemanticIntent):
             unsupported.append(
                 _issue(
@@ -116,6 +134,7 @@ def compile_intent_plan(request: PlannerRequest) -> PlannerResult:
                     f"no executable capability for {intent.concept_id}",
                     blocking=observation.role
                     in {
+                        IntentRole.GOAL,
                         IntentRole.REQUIRED_TARGET,
                         IntentRole.REQUIRED_CONDITION,
                         IntentRole.EXCLUDED,
@@ -139,6 +158,7 @@ def compile_intent_plan(request: PlannerRequest) -> PlannerResult:
                         "parking currently supports only value=true preference",
                         blocking=observation.role
                         in {
+                            IntentRole.GOAL,
                             IntentRole.REQUIRED_TARGET,
                             IntentRole.REQUIRED_CONDITION,
                             IntentRole.EXCLUDED,

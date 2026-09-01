@@ -10,6 +10,10 @@ from app.discovery.place_intent.contract import (
     MaterializedIntentOutput,
     materialize_llm_output,
 )
+from app.discovery.place_intent.hypotheses import (
+    NormalizedIntentOutput,
+    build_search_hypotheses,
+)
 from app.discovery.place_intent.suggestions import (
     IntentSuggestionOutcome,
     compile_intent_suggestions,
@@ -27,6 +31,7 @@ class PlaceIntentSuggestionTrace(PlanningModel):
 
     raw: LLMIntentOutput | None
     grounded: MaterializedIntentOutput | None
+    normalized: NormalizedIntentOutput | None
     outcome: IntentSuggestionOutcome
 
 
@@ -71,6 +76,7 @@ class PlaceIntentSuggestionService:
             return PlaceIntentSuggestionTrace(
                 raw=None,
                 grounded=None,
+                normalized=None,
                 outcome=IntentSuggestionOutcome(
                     status=PlannerStatus.NEEDS_CLARIFICATION,
                     source_disposition=None,
@@ -95,6 +101,7 @@ class PlaceIntentSuggestionService:
             return PlaceIntentSuggestionTrace(
                 raw=raw,
                 grounded=None,
+                normalized=None,
                 outcome=IntentSuggestionOutcome(
                     status=PlannerStatus.NEEDS_CLARIFICATION,
                     source_disposition=raw.disposition,
@@ -106,9 +113,11 @@ class PlaceIntentSuggestionService:
                     ),
                 ),
             )
+        normalized = build_search_hypotheses(grounded)
         return PlaceIntentSuggestionTrace(
             raw=raw,
             grounded=grounded,
+            normalized=normalized,
             outcome=compile_intent_suggestions(
                 grounded,
                 spatial=spatial,

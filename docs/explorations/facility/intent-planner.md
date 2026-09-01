@@ -42,6 +42,7 @@ observation으로 받는다. 공통 role은 다음과 같다.
 
 | role | 의미 | 자동 gate 승격 |
 |---|---|---|
+| `goal` | 사용자가 하려는 활동 또는 그 객체 | 정규화 전에는 금지 |
 | `required_target` | 직접 찾는 장소 대상 | 권한·executor가 있을 때만 |
 | `required_condition` | 반드시 충족할 사실 조건 | filter executor가 있을 때만 |
 | `preference` | 있으면 좋은 조건 | prefer executor가 있을 때만 |
@@ -197,8 +198,54 @@ hospital / pharmacy / healthcare의 soft 언급
 모델 evidence가 원문에 고정되지 않을 때도 service는 plan을 만들지 않고
 `intent_evidence_invalid` clarification으로 닫는다.
 
+## interpretation normalization과 검색 가설
+
+LLM interpretation 하나에 들어온 의미를 평평한 태그 AND로 컴파일하지 않는다.
+`build_search_hypotheses()`가 evidence grounding 뒤, planner 앞에서 제품 catalog에 선언된 관계만
+적용해 다음 계약으로 정규화한다.
+
+```text
+SearchHypothesisSet
+├─ common[]              모든 대안에 유지할 조건·제외·선호
+├─ hypotheses[]          서로 독립적인 target 가설
+├─ modifiers[]           실행 전까지 보존할 rank-only 신호
+├─ unresolved_facets[]   사용자 선택이 더 필요한 차원
+└─ relation_receipts[]   적용한 고정 정책과 입력 observation id
+```
+
+현재 catalog는 의도 판단과 데이터 보장을 구분하기 위한 최소 관계만 갖는다.
+
+```text
+pet_shop + shopping purpose
+→ 더 구체적인 pet_shop target만 유지
+
+activity.buy + object.dog_toy
+→ pet_shop 검색 가설
+→ 장난감 재고가 있다는 보장은 만들지 않음
+
+activity.play
+→ dedicated play / outdoor play / stay together의 독립 가설
+→ 사용자가 어느 하나를 원한다고 확정하지 않음
+
+semantic.quiet
+→ rank_only_unavailable modifier
+
+semantic.cheap
+→ travel distance / pet fee / admission / product price 중
+  비용 차원을 고르기 전까지 unresolved
+```
+
+공통 필수조건은 각 branch 안에 복제 저장하지 않고 `common`에 한 번 보존한다. 후속 executor는
+`planner_observations()`를 통해서만 target과 common을 조립한다. 따라서 `play + 주차 필수`가
+세 가지 play 가설로 나뉘어도 현재 미지원인 hard parking은 세 가설을 모두 막는다.
+
+`PlaceIntentSuggestionTrace.normalized`에서 이 내부 계약을 관찰할 수 있지만, 이번 단계는
+`/v2/places/search`나 실제 ranker를 바꾸지 않는다. 가설별 사용자 표시·소량 실행은 다음 단계의
+책임이다.
+
 ## 후속 순서
 
-다음 단계는 제안 결과를 사용자가 선택·수정했을 때 해당 interpretation을 `user_confirmed`로 다시
-관찰해 explicit lock으로 승격하는 경계다. 자연어 exact-command regex, 자동 완화, 신규 capability는
-여전히 이 갈래에 포함하지 않는다.
+다음 단계는 `SearchHypothesis`를 사용자용 lens label·지원 수준·미리보기 결과로 표현하고,
+공통 조건을 유지한 채 branch별 소량 검색을 실행하는 경계다. 그 뒤 사용자가 lens를 선택·수정했을
+때 해당 target을 `user_confirmed`로 다시 관찰해 explicit lock으로 승격한다. 자연어 exact-command
+regex, 자동 완화, 신규 capability는 여전히 이 갈래에 포함하지 않는다.
