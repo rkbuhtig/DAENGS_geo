@@ -37,6 +37,10 @@ async def bind_usage_request_scope(request, call_next):
 
 
 if settings.dev_console:
+    from app.discovery.place_intent.lab import router as place_intent_lab_router
+
+    app.include_router(place_intent_lab_router)
+
     _ANCHORS = Path(__file__).parent / "static" / "anchors.html"
     _CELLOPHANE = Path(__file__).parent / "static" / "cellophane.html"
     _CELLOPHANE_DISTRIBUTION = Path(__file__).parent / "static" / "cellophane_distribution.html"

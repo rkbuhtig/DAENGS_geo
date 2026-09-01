@@ -429,6 +429,39 @@ async def test_service_runs_proposer_grounding_and_suggestion_policy_end_to_end(
     assert outcome.suggestions[0].basis_observation_ids == ("server-observation",)
 
 
+async def test_service_inspection_preserves_raw_and_grounded_layers() -> None:
+    raw = LLMIntentOutput(
+        disposition=ProposalDisposition.PROPOSED,
+        interpretations=(
+            IntentInterpretation(
+                proposals=(
+                    _proposal(
+                        IntentRole.REQUIRED_TARGET,
+                        PurposeIntent(purpose_id=PurposeId.DINING),
+                        "식사할 곳",
+                    ),
+                )
+            ),
+        ),
+        reason=None,
+    )
+    service = PlaceIntentSuggestionService(
+        _StaticProposer(raw),
+        observation_id_factory=lambda: "server-observation",
+    )
+
+    trace = await service.inspect(
+        "식사할 곳",
+        spatial=_SPATIAL,
+        limit_per_kind=20,
+    )
+
+    assert trace.raw is raw
+    assert trace.grounded is not None
+    assert trace.grounded.interpretations[0].observations[0].source.value == "llm_proposal"
+    assert trace.outcome.status is PlannerStatus.READY
+
+
 async def test_service_turns_ungrounded_model_evidence_into_safe_clarification() -> None:
     raw = LLMIntentOutput(
         disposition=ProposalDisposition.PROPOSED,
