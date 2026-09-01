@@ -120,7 +120,68 @@ def test_open_discovery_directive_survives_normalization_without_becoming_common
 
     assert hypothesis_set.search_directive.mode is SearchModeId.OPEN_DISCOVERY
     assert hypothesis_set.common == ()
-    assert hypothesis_set.hypotheses == ()
+    assert [item.mapping_scope for item in hypothesis_set.hypotheses] == [
+        HypothesisMappingScope.PRODUCT_POLICY,
+    ] * 3
+    assert [item.targets[0].intent for item in hypothesis_set.hypotheses] == [
+        PurposeIntent(purpose_id=PurposeId.DINING),
+        PurposeIntent(purpose_id=PurposeId.OUTING),
+        PurposeIntent(purpose_id=PurposeId.CULTURE),
+    ]
+    assert all(
+        item.targets[0].source is IntentSource.RULE_INFERENCE
+        for item in hypothesis_set.hypotheses
+    )
+    assert all(item.basis_observation_ids == () for item in hypothesis_set.hypotheses)
+    assert all(item.policy_id == "place.open_discovery" for item in hypothesis_set.hypotheses)
+    assert all(item.policy_version == "v1" for item in hypothesis_set.hypotheses)
+    assert all(
+        hypothesis_set.planner_observations(item) == item.targets
+        for item in hypothesis_set.hypotheses
+    )
+
+
+def test_open_discovery_policy_provenance_does_not_claim_common_conditions() -> None:
+    ids = _ids()
+    grounded = materialize_llm_output(
+        "주차되면 좋고 네가 추천해봐",
+        LLMIntentOutput(
+            disposition=ProposalDisposition.PROPOSED,
+            interpretations=(
+                IntentInterpretation(
+                    search_directive=LLMSearchDirective(
+                        mode=SearchModeId.OPEN_DISCOVERY,
+                        evidence=EvidenceQuote(
+                            quote="네가 추천해봐",
+                            start=None,
+                            end=None,
+                        ),
+                    ),
+                    proposals=(
+                        _proposal(
+                            IntentRole.PREFERENCE,
+                            BooleanCapabilityIntent(
+                                capability_id=CapabilityId.OPERATIONS_PARKING,
+                                value=True,
+                            ),
+                            "주차되면 좋고",
+                        ),
+                    ),
+                ),
+            ),
+            reason=None,
+        ),
+        id_factory=lambda: next(ids),
+    )
+
+    hypothesis_set = build_search_hypotheses(grounded).hypothesis_sets[0]
+
+    assert [item.observation_id for item in hypothesis_set.common] == ["source-1"]
+    assert all(item.basis_observation_ids == () for item in hypothesis_set.hypotheses)
+    assert all(
+        hypothesis_set.planner_observations(item) == (*item.targets, *hypothesis_set.common)
+        for item in hypothesis_set.hypotheses
+    )
 
 
 def test_buy_and_dog_toy_compose_to_pet_shop_without_claiming_inventory() -> None:

@@ -13,6 +13,7 @@ from app.discovery.place_intent.hypotheses import (
     SearchModifier,
     UnresolvedFacet,
 )
+from app.discovery.place_intent.open_discovery import open_discovery_branch
 from app.discovery.place_intent.suggestions import (
     IntentPlanCandidate,
     IntentSuggestionOutcome,
@@ -53,6 +54,7 @@ class LensMappingScope(StrEnum):
     DIRECT = "direct"
     BROAD = "broad"
     PRODUCT_FALLBACK = "product_fallback"
+    OPEN_DISCOVERY = "open_discovery"
 
 
 class LensAvailability(StrEnum):
@@ -250,6 +252,8 @@ def _target_label(targets: tuple[ConfirmableTarget, ...]) -> str:
 
 
 def _hypothesis_label(hypothesis: SearchHypothesis) -> str:
+    if hypothesis.policy_branch_id is not None:
+        return open_discovery_branch(hypothesis.policy_branch_id).display_label
     for suffix, label in _PLAY_LABELS.items():
         if hypothesis.hypothesis_key.endswith(suffix):
             return label
@@ -257,6 +261,8 @@ def _hypothesis_label(hypothesis: SearchHypothesis) -> str:
 
 
 def _hypothesis_note(hypothesis: SearchHypothesis) -> str:
+    if hypothesis.policy_branch_id is not None:
+        return open_discovery_branch(hypothesis.policy_branch_id).support_note
     for suffix, note in _PLAY_NOTES.items():
         if hypothesis.hypothesis_key.endswith(suffix):
             return note
@@ -309,8 +315,15 @@ def _compile_hypothesis(
 ) -> IntentPlanCandidate:
     return IntentPlanCandidate(
         candidate_key=hypothesis.hypothesis_key,
-        basis=SuggestionBasis.HYPOTHESIS,
+        basis=(
+            SuggestionBasis.OPEN_DISCOVERY
+            if hypothesis.mapping_scope is HypothesisMappingScope.PRODUCT_POLICY
+            else SuggestionBasis.HYPOTHESIS
+        ),
         basis_observation_ids=hypothesis.basis_observation_ids,
+        basis_policy_id=hypothesis.policy_id,
+        basis_policy_version=hypothesis.policy_version,
+        basis_policy_branch_id=hypothesis.policy_branch_id,
         result=compile_intent_plan(
             PlannerRequest(
                 spatial=spatial,
@@ -344,9 +357,13 @@ def _hypothesis_lens(
         display_label=f"#{label}",
         target_summary=label,
         mapping_scope=(
-            LensMappingScope.BROAD
-            if hypothesis.mapping_scope is HypothesisMappingScope.EXPANDED
-            else LensMappingScope.DIRECT
+            LensMappingScope.OPEN_DISCOVERY
+            if hypothesis.mapping_scope is HypothesisMappingScope.PRODUCT_POLICY
+            else (
+                LensMappingScope.BROAD
+                if hypothesis.mapping_scope is HypothesisMappingScope.EXPANDED
+                else LensMappingScope.DIRECT
+            )
         ),
         availability=_availability(candidate, hypothesis_set.unresolved_facets),
         support_note=_hypothesis_note(hypothesis),

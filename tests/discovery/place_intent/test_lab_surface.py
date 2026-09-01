@@ -16,6 +16,7 @@ from app.discovery.place_intent.lab import (
     _attempt_outcome,
     _attempt_snapshot,
     _ConfirmationStore,
+    _fallback_policy,
     _InteractionStore,
     _limit_search_preview,
     _response_mode,
@@ -168,6 +169,32 @@ def test_completed_exploratory_search_has_distinct_response_mode() -> None:
     )
 
     assert _response_mode(trace, AttemptStatus.COMPLETED) is SearchResponseMode.EXPLORATORY_RESULTS
+
+
+def test_observation_reads_the_policy_that_actually_created_target_lenses() -> None:
+    trace = cast(
+        object,
+        SimpleNamespace(
+            lenses=SimpleNamespace(
+                target_lenses=(
+                    SimpleNamespace(
+                        candidate=SimpleNamespace(
+                            basis_policy_id="place.open_discovery",
+                            basis_policy_version="v1",
+                        )
+                    ),
+                    SimpleNamespace(
+                        candidate=SimpleNamespace(
+                            basis_policy_id="place.open_discovery",
+                            basis_policy_version="v1",
+                        )
+                    ),
+                )
+            )
+        ),
+    )
+
+    assert _fallback_policy(trace) == ("place.open_discovery", "v1")
 
 
 def test_confirmation_offer_is_lens_bound_expiring_and_single_use() -> None:

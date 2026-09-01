@@ -364,6 +364,22 @@ def _response_mode(
     return SearchResponseMode.DIRECT_RESULTS
 
 
+def _fallback_policy(trace: PlaceIntentSuggestionTrace) -> tuple[str, str] | None:
+    lenses = trace.lenses.target_lenses if trace.lenses is not None else ()
+    policies = {
+        (candidate.basis_policy_id, candidate.basis_policy_version)
+        for candidate in (lens.candidate for lens in lenses)
+        if candidate.basis_policy_id is not None
+        and candidate.basis_policy_version is not None
+    }
+    if not policies:
+        return None
+    if len(policies) != 1:
+        raise ValueError("one search response cannot mix fallback policy versions")
+    policy_id, version = next(iter(policies))
+    return policy_id, version
+
+
 def _attempt_snapshot(
     trace: PlaceIntentSuggestionTrace,
     executions: tuple[CandidateExecution, ...],
@@ -466,6 +482,9 @@ async def _observe_trace(
 ) -> None:
     attempt_status, failure_code = _attempt_outcome(trace, executions)
     response_mode = _response_mode(trace, attempt_status)
+    fallback_policy = _fallback_policy(trace)
+    fallback_policy_id = fallback_policy[0] if fallback_policy is not None else None
+    fallback_policy_version = fallback_policy[1] if fallback_policy is not None else None
     lenses = trace.lenses.target_lenses if trace.lenses is not None else ()
     recorded = await safely_record_attempt(
         db,
@@ -482,6 +501,8 @@ async def _observe_trace(
             proposer_disposition=trace.raw.disposition if trace.raw is not None else None,
             proposer_reason=trace.raw.reason if trace.raw is not None else None,
             response_mode=response_mode,
+            fallback_policy_id=fallback_policy_id,
+            fallback_policy_version=fallback_policy_version,
             interpretation_count=len(trace.raw.interpretations) if trace.raw is not None else 0,
             target_lens_count=len(lenses),
             executable_lens_count=len(executions),
@@ -491,6 +512,8 @@ async def _observe_trace(
                 executions,
                 response_mode=response_mode,
                 failure_code=failure_code,
+                fallback_policy_id=fallback_policy_id,
+                fallback_policy_version=fallback_policy_version,
             ),
         ),
     )
@@ -506,6 +529,8 @@ async def _observe_trace(
             details={
                 "failure_code": failure_code,
                 "response_mode": response_mode.value,
+                "fallback_policy_id": fallback_policy_id,
+                "fallback_policy_version": fallback_policy_version,
             },
         )
 

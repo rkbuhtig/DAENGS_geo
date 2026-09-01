@@ -13,7 +13,9 @@ from app.discovery.place_intent.contract import (
     GroundedSearchDirective,
     MaterializedIntentOutput,
     ProposalDisposition,
+    SearchModeId,
 )
+from app.discovery.place_intent.open_discovery import OPEN_DISCOVERY_POLICY
 from app.place.planning.contract import PlaceKind, PlanningModel
 from app.place.planning.intents import (
     ActivityId,
@@ -36,6 +38,7 @@ class HypothesisMappingScope(StrEnum):
     DIRECT = "direct"
     COMPOSED = "composed"
     EXPANDED = "expanded"
+    PRODUCT_POLICY = "product_policy"
 
 
 class ModifierExecution(StrEnum):
@@ -72,11 +75,21 @@ class SearchHypothesis(PlanningModel):
     )
     mapping_scope: HypothesisMappingScope
     targets: tuple[IntentObservation, ...] = Field(min_length=1, max_length=6)
-    basis_observation_ids: tuple[str, ...] = Field(min_length=1, max_length=20)
+    basis_observation_ids: tuple[str, ...] = Field(max_length=20)
+    policy_id: str | None = Field(None, max_length=120, pattern=r"^[a-z0-9_.:-]+$")
+    policy_version: str | None = Field(None, max_length=40, pattern=r"^[a-z0-9_.:-]+$")
+    policy_branch_id: str | None = Field(None, max_length=80, pattern=r"^[a-z0-9-]+$")
     relation_receipts: tuple[NormalizationReceipt, ...] = ()
 
     @model_validator(mode="after")
     def targets_are_executable_place_targets(self) -> Self:
+        policy_fields = (self.policy_id, self.policy_version, self.policy_branch_id)
+        if any(value is None for value in policy_fields) != all(
+            value is None for value in policy_fields
+        ):
+            raise ValueError("hypothesis policy provenance must be supplied together")
+        if not self.basis_observation_ids and self.policy_id is None:
+            raise ValueError("hypothesis requires observation or product policy provenance")
         for target in self.targets:
             if target.role is not IntentRole.REQUIRED_TARGET or not isinstance(
                 target.intent, (KindIntent, PurposeIntent)
@@ -338,6 +351,28 @@ def _build_set(
             )
         )
 
+    directive = search_directive or GroundedSearchDirective()
+    if directive.mode is SearchModeId.OPEN_DISCOVERY and not hypotheses:
+        for branch in OPEN_DISCOVERY_POLICY.branches:
+            hypothesis_key = f"{set_key}:open-discovery:{branch.branch_id}"
+            hypotheses.append(
+                SearchHypothesis(
+                    hypothesis_key=hypothesis_key,
+                    mapping_scope=HypothesisMappingScope.PRODUCT_POLICY,
+                    targets=(
+                        _derived_target(
+                            interpretation_index,
+                            f"open-discovery-{branch.branch_id}",
+                            PurposeIntent(purpose_id=branch.purpose_id),
+                        ),
+                    ),
+                    basis_observation_ids=(),
+                    policy_id=OPEN_DISCOVERY_POLICY.policy_id,
+                    policy_version=OPEN_DISCOVERY_POLICY.version,
+                    policy_branch_id=branch.branch_id,
+                )
+            )
+
     plays = tuple(
         item
         for item in observations
@@ -404,7 +439,7 @@ def _build_set(
     common = tuple(item for item in observations if item.observation_id not in consumed_ids)
     return SearchHypothesisSet(
         hypothesis_set_key=set_key,
-        search_directive=search_directive or GroundedSearchDirective(),
+        search_directive=directive,
         common=common,
         hypotheses=tuple(hypotheses),
         modifiers=tuple(modifiers),
