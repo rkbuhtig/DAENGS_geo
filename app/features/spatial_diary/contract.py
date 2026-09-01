@@ -22,6 +22,7 @@ PIN_VERSION = 1
 MEMORY_PLACE_VERSION = 1
 MEMORY_PLACE_MEMBERSHIP_VERSION = 1
 VIEW_VERSION = 1
+JOURNAL_PROJECTION_VERSION = 1
 
 EvidenceOrigin = Literal["device", "mock", "mixed", "unknown"]
 EvidenceScalar = str | int | float | bool | None
@@ -782,4 +783,85 @@ class PrecipitationBiographyComparison(FrozenContract):
         }
         if rain_values != {"rain"} or dry_values != {"dry"}:
             raise ValueError("comparison cohorts must be rain and dry respectively")
+        return self
+
+
+class WalkJournalFacts(FrozenContract):
+    """한 산책의 시간 투영에 필요한, 기존 WalkFacts의 좁은 읽기 형태."""
+
+    started_at: datetime
+    ended_at: datetime
+    duration_s: int = Field(ge=0)
+    moving_distance_m: int = Field(ge=0)
+    moving_s: int = Field(ge=0)
+    stop_count: int = Field(ge=0)
+    stop_s: int = Field(ge=0)
+
+    _tz = field_validator("started_at", "ended_at")(_timezone_required)
+
+    @model_validator(mode="after")
+    def facts_are_consistent(self) -> "WalkJournalFacts":
+        if self.ended_at < self.started_at:
+            raise ValueError("journal facts cannot end before they start")
+        if self.moving_s + self.stop_s > self.duration_s:
+            raise ValueError("journal moving and stop time cannot exceed duration")
+        return self
+
+
+class WalkJournalContextFacets(FrozenContract):
+    """TrailContext 원자를 현재 context policy로 읽은 일기용 분류."""
+
+    precipitation: Literal["rain", "dry", "unknown"]
+    daylight: Literal["day", "night", "unknown"]
+    policy_version: int = Field(ge=1)
+
+
+class WalkJournalEntry(FrozenContract):
+    """Pin과 증언을 잃지 않은 채 현재 정책으로 만든 한 문장."""
+
+    pin: EpisodePin
+    attestation: WalkAttestation
+    narration: str = Field(min_length=1, max_length=500)
+
+    @model_validator(mode="after")
+    def entry_matches_source(self) -> "WalkJournalEntry":
+        if self.pin.session_id != self.attestation.session_id:
+            raise ValueError("journal pin and attestation must belong to one walk")
+        if self.pin.created_by_attestation_id != self.attestation.attestation_id:
+            raise ValueError("journal pin must reference its attestation")
+        return self
+
+
+class WalkJournalReceipt(FrozenContract):
+    projection_version: Literal[JOURNAL_PROJECTION_VERSION] = JOURNAL_PROJECTION_VERSION
+    narration_policy_version: int = Field(ge=1)
+    context_policy_version: int = Field(ge=1)
+    capsule_version: int = Field(ge=1)
+    generated_at: datetime
+    pin_count: int = Field(ge=0)
+
+    _tz = field_validator("generated_at")(_timezone_required)
+
+
+class WalkJournalProjection(FrozenContract):
+    """영구 Journal 원본 없이 Capsule·Context·Pin을 다시 읽은 한 산책의 일기."""
+
+    session_id: str = Field(min_length=1, max_length=128)
+    dog_id: str = Field(min_length=1, max_length=128)
+    facts: WalkJournalFacts
+    context: TrailContextSnapshot
+    context_facets: WalkJournalContextFacets
+    title: str = Field(min_length=1, max_length=200)
+    summary: str = Field(min_length=1, max_length=1_000)
+    entries: tuple[WalkJournalEntry, ...]
+    receipt: WalkJournalReceipt
+
+    @model_validator(mode="after")
+    def projection_matches_sources(self) -> "WalkJournalProjection":
+        if self.context.session_id != self.session_id:
+            raise ValueError("journal context must belong to its walk")
+        if any(entry.pin.session_id != self.session_id for entry in self.entries):
+            raise ValueError("journal entries must belong to its walk")
+        if self.receipt.pin_count != len(self.entries):
+            raise ValueError("journal receipt pin count must match entries")
         return self

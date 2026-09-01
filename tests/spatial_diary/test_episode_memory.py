@@ -7,7 +7,7 @@ from fastapi import HTTPException
 from sqlalchemy import text
 
 from app.features.spatial_diary.access import SpatialDiaryPrincipal
-from app.features.spatial_diary.api import read_candidates
+from app.features.spatial_diary.api import read_candidates, read_walk_journal
 from app.features.spatial_diary.contract import (
     AttestedClaim,
     ClaimSupport,
@@ -22,12 +22,14 @@ from app.features.spatial_diary.contract import (
 )
 from app.features.spatial_diary.episode import (
     SpatialDiaryEpisodeConflictError,
+    SpatialDiaryEpisodeIntegrityError,
     attest_episode_offer,
     list_episode_candidates,
     list_offer_review_states,
     put_episode_offer,
     put_offer_interaction,
 )
+from app.features.spatial_diary.journal import query_walk_journal
 from app.features.territory.spatial_diary import query_spatial_diary_view
 from app.features.walk import store
 from app.features.walk.facts import compute_facts
@@ -366,6 +368,116 @@ async def test_candidate_api_hides_an_unowned_capsule():
 
             visible = await read_candidates(SESSION_ID, db, PRINCIPAL)
             assert len(visible.candidates) == 3
+        finally:
+            await _cleanup(db)
+
+
+async def test_walk_journal_projection_replays_context_facts_and_saved_pins():
+    async with db_session() as db:
+        await _cleanup(db)
+        try:
+            await _seal_walk(db)
+            generated_at = WALK_T0 + timedelta(days=1)
+            unknown = await query_walk_journal(
+                db,
+                SESSION_ID,
+                generated_at=generated_at,
+            )
+            assert unknown.context_facets.precipitation == "unknown"
+            assert unknown.context_facets.daylight == "unknown"
+            assert "비가 " not in unknown.summary
+            assert "낮 산책" not in unknown.summary
+            assert "밤 산책" not in unknown.summary
+            await db.rollback()
+
+            await db.execute(text("""
+                UPDATE walk_trail_context
+                SET status = 'captured', provider = 'fixture-weather',
+                    source_observed_at = walked_at,
+                    precipitation_mm = 1.2, sun_elevation_deg = 12
+                WHERE session_id = :session_id
+            """), {"session_id": SESSION_ID})
+            await db.commit()
+
+            empty = await query_walk_journal(
+                db,
+                SESSION_ID,
+                generated_at=generated_at,
+            )
+            assert empty.title == "2026년 8월 24일 산책 일기"
+            assert empty.context_facets.precipitation == "rain"
+            assert empty.context_facets.daylight == "day"
+            assert empty.entries == ()
+            assert empty.receipt.pin_count == 0
+            assert "기억으로 남긴 장면은 아직 없어요" in empty.summary
+            await db.rollback()
+
+            candidate = (await list_episode_candidates(db, SESSION_ID))[0].candidate
+            offer = await put_episode_offer(
+                db,
+                offer_id="offer-journal-1",
+                session_id=SESSION_ID,
+                source_observation_id=candidate.source_observation_ids[0],
+                candidate_policy_version=1,
+                offered_at=candidate.event_at + timedelta(minutes=1),
+            )
+            await attest_episode_offer(
+                db,
+                offer_id=offer.offer_id,
+                attestation_id="attestation-journal-1",
+                review_disposition=ReviewDisposition.CONFIRMED,
+                claims=(
+                    AttestedClaim(
+                        subject_role=SubjectRole.DOG,
+                        meaning_code="exploration",
+                        vocabulary_version=1,
+                    ),
+                ),
+                memory_action=MemoryAction.SAVE,
+                pin_id="pin-journal-1",
+                attested_at=candidate.event_at + timedelta(minutes=2),
+            )
+            await db.commit()
+
+            journal = await query_walk_journal(
+                db,
+                SESSION_ID,
+                generated_at=generated_at,
+            )
+            assert journal.receipt.generated_at == generated_at
+            assert journal.receipt.narration_policy_version == 1
+            assert journal.receipt.pin_count == 1
+            assert journal.entries[0].attestation.claims[0].meaning_code == "exploration"
+            assert journal.entries[0].narration == (
+                "16시 02분쯤, 사용자가 강아지에 관한 장면으로 확인해 기억에 남겼어요."
+            )
+            assert "비 오는 날로 분류된 낮 산책" in journal.summary
+            assert "기억으로 남긴 장면은 1개예요" in journal.summary
+            await db.rollback()
+
+            visible = await read_walk_journal(SESSION_ID, db, PRINCIPAL)
+            assert visible.session_id == SESSION_ID
+            await db.rollback()
+
+            outsider = SpatialDiaryPrincipal(
+                owner_id="owner-outsider",
+                dog_ids=frozenset({"another-dog"}),
+            )
+            with pytest.raises(HTTPException) as hidden:
+                await read_walk_journal(SESSION_ID, db, outsider)
+            assert hidden.value.status_code == 404
+            await db.rollback()
+
+            await db.execute(
+                text("DELETE FROM walk_trail_context WHERE session_id = :session_id"),
+                {"session_id": SESSION_ID},
+            )
+            await db.commit()
+            with pytest.raises(
+                SpatialDiaryEpisodeIntegrityError,
+                match="missing journal material",
+            ):
+                await query_walk_journal(db, SESSION_ID)
         finally:
             await _cleanup(db)
 

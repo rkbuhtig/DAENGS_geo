@@ -720,10 +720,14 @@ async def load_pin_entries(
     db: AsyncSession,
     session_ids: list[str],
     pin_ids: set[str] | None = None,
+    limit: int | None = None,
 ) -> list[PinEntry]:
     if not session_ids or pin_ids == set():
         return []
+    if limit is not None and limit < 1:
+        raise ValueError("pin entry limit must be positive")
     pin_clause = " AND pin.pin_id IN :pin_ids" if pin_ids is not None else ""
+    limit_clause = " LIMIT :limit" if limit is not None else ""
     statement = text(f"""
         SELECT pin.pin_id, pin.pin_version, pin.session_id, pin.origin,
                pin.source_offer_id, pin.created_by_attestation_id,
@@ -745,11 +749,14 @@ async def load_pin_entries(
         WHERE pin.session_id IN :session_ids
         {pin_clause}
         ORDER BY pin.event_at NULLS LAST, pin.pin_id
+        {limit_clause}
     """).bindparams(bindparam("session_ids", expanding=True))
     parameters: dict[str, object] = {"session_ids": session_ids}
     if pin_ids is not None:
         statement = statement.bindparams(bindparam("pin_ids", expanding=True))
         parameters["pin_ids"] = sorted(pin_ids)
+    if limit is not None:
+        parameters["limit"] = limit
     rows = (await db.execute(statement, parameters)).all()
     entries = []
     for row in rows:
