@@ -134,6 +134,12 @@ Pin은 저장된 장면의 identity다. `source_offer_id`는 `origin=system_offe
 Pin의 대표 좌표는 아이콘 앵커고, 공간 범위는 footprint다. 시각을 알 수 없는 수동 공간 메모는
 시간을 추측하지 않고 `temporal_precision=unknown`으로 저장한다.
 
+첫 시스템 Offer→Pin 저장 구현은
+[결정 #77](../decisions/2026-09-01-spatial-diary-episode-pin-v0.md)을 따른다. low-motion v1 중 길이순
+최대 3개만 Candidate로 다시 만들고 gap은 제외한다. Candidate와 ClaimAllowance는 저장하지 않으며,
+실제 제시한 Offer부터 session cascade 아래 보존한다. Offer·Interaction·Attestation·Pin 생성은
+caller-provided ID의 idempotent PUT이고, drift suspected인 증언은 공간 Pin으로 승격하지 않는다.
+
 ## 영구 저장하지 않는 것
 
 - 자동 `WalkJournal` 요약문

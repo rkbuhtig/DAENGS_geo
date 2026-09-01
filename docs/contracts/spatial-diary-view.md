@@ -106,6 +106,12 @@ snapshot에서 조립한다. v0 동기 응답의 운영 상한(366일·2,000 후
 context known 수는 필터에 사용한 축이 모두 알려진 Capsule 수이며, 무필터일 때는 지원하는 모든
 context 축을 요구한다.
 
+[결정 #77](../decisions/2026-09-01-spatial-diary-episode-pin-v0.md)부터 선택된 Capsule의 안정 Pin을
+같은 repeatable-read snapshot에서 불러온다. `EntrySelector.subject_roles`와 `meaning_codes`는
+Attestation claims에 적용되고 두 축은 AND다. 이 필터는 `pins`와 `receipt.pin_count`만 바꾸며
+Walk cohort·Cellophane Field·selected/contributing 분모는 바꾸지 않는다. Pin 응답은 footprint와
+claims를 포함하고, 실제 제시 문장은 Pin의 `source_offer_id`로 immutable Offer에서 읽는다.
+
 ## 표현
 
 통계는 원 Cellophane과 Micro Observation을 읽는다. 보수적 연속 복원 Field는 사용자 표시

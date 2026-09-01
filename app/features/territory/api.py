@@ -1,6 +1,5 @@
-"""Spatial Diary의 첫 읽기 표면. v0는 Capsule 배경 field만 반환한다. Decision: #76."""
+"""Spatial Diary 읽기 표면: Capsule field와 사용자 Episode Pin overlay. #76·#77."""
 
-from dataclasses import dataclass
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -8,15 +7,23 @@ from pydantic import BaseModel, ConfigDict
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_session
+from app.features.spatial_diary.access import (
+    SpatialDiaryPrincipal,
+    get_spatial_diary_principal,
+    require_dog_access,
+)
 from app.features.spatial_diary.contract import (
+    AttestedClaim,
+    EpisodePin,
+    ReviewDisposition,
     SpatialDiaryViewReceipt,
     SpatialDiaryViewSpec,
     SpatialFieldMetric,
 )
+from app.features.spatial_diary.snapshot import SpatialDiaryTransactionError
 from app.features.territory.spatial_diary import (
     IncompleteCapsuleError,
     MixedPaintGenerationError,
-    SpatialDiaryTransactionError,
     SpatialDiaryViewResult,
     SpatialDiaryViewTooLargeError,
     UnsupportedSpatialDiaryViewError,
@@ -24,20 +31,6 @@ from app.features.territory.spatial_diary import (
 )
 
 router = APIRouter(prefix="/spatial-diary", tags=["spatial-diary"])
-
-
-@dataclass(frozen=True)
-class SpatialDiaryPrincipal:
-    """인증 계층이 주입하는 최소 권한 문맥. Profile source를 인증에 재사용하지 않는다."""
-
-    owner_id: str
-    dog_ids: frozenset[str]
-
-
-def get_spatial_diary_principal() -> SpatialDiaryPrincipal:
-    """앱 조립부가 실제 인증 dependency로 override하기 전에는 공개 조회를 닫는다."""
-
-    raise HTTPException(503, "spatial diary authorization is not configured")
 
 
 class ProjectionOut(BaseModel):
@@ -71,12 +64,21 @@ class SpatialFieldOut(BaseModel):
     cells: tuple[FieldCellOut, ...]
 
 
+class PinEntryOut(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    pin: EpisodePin
+    review_disposition: ReviewDisposition
+    claims: tuple[AttestedClaim, ...]
+
+
 class SpatialDiaryViewOut(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     spec: SpatialDiaryViewSpec
     projection: ProjectionOut
     field: SpatialFieldOut
+    pins: tuple[PinEntryOut, ...]
     receipt: SpatialDiaryViewReceipt
 
 
@@ -111,6 +113,14 @@ def view_out(result: SpatialDiaryViewResult) -> SpatialDiaryViewOut:
                 for (q, r), value in sorted(field.values.items())
             ),
         ),
+        pins=tuple(
+            PinEntryOut(
+                pin=entry.pin,
+                review_disposition=entry.attestation.review_disposition,
+                claims=entry.attestation.claims,
+            )
+            for entry in result.pins
+        ),
         receipt=result.receipt,
     )
 
@@ -121,8 +131,7 @@ async def query_view(
     db: Annotated[AsyncSession, Depends(get_session)],
     principal: Annotated[SpatialDiaryPrincipal, Depends(get_spatial_diary_principal)],
 ) -> SpatialDiaryViewOut:
-    if body.walk_selector.dog_id not in principal.dog_ids:
-        raise HTTPException(404, "spatial diary view not found")
+    require_dog_access(principal, body.walk_selector.dog_id)
     try:
         return view_out(await query_spatial_diary_view(db, body))
     except UnsupportedSpatialDiaryViewError as exc:
