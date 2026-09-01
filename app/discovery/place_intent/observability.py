@@ -4,14 +4,15 @@ import json
 import logging
 from datetime import datetime
 from enum import StrEnum
-from typing import Any
+from typing import Any, Self
 from uuid import UUID
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.discovery.place_intent.contract import ProposalDisposition, ProposalReason
 from app.place.planning.contract import PlanningModel
 
 logger = logging.getLogger(__name__)
@@ -21,6 +22,16 @@ class AttemptStatus(StrEnum):
     COMPLETED = "completed"
     NEEDS_CLARIFICATION = "needs_clarification"
     FAILED = "failed"
+
+
+class SearchResponseMode(StrEnum):
+    """사용자에게 실제로 반환한 제품 응답의 형태."""
+
+    DIRECT_RESULTS = "direct_results"
+    EXPLORATORY_RESULTS = "exploratory_results"
+    CLARIFICATION = "clarification"
+    UNSUPPORTED = "unsupported"
+    PROVIDER_FAILURE = "provider_failure"
 
 
 class SearchEventType(StrEnum):
@@ -43,11 +54,56 @@ class SearchAttemptRecord(PlanningModel):
     radius_m: int = Field(ge=100, le=20000)
     status: AttemptStatus
     failure_code: str | None = Field(None, max_length=120)
+    proposer_disposition: ProposalDisposition | None = None
+    proposer_reason: ProposalReason | None = None
+    response_mode: SearchResponseMode
+    fallback_policy_id: str | None = Field(
+        None,
+        max_length=120,
+        pattern=r"^[a-z0-9_.:-]+$",
+    )
+    fallback_policy_version: str | None = Field(
+        None,
+        max_length=40,
+        pattern=r"^[a-z0-9_.:-]+$",
+    )
     interpretation_count: int = Field(ge=0)
     target_lens_count: int = Field(ge=0)
     executable_lens_count: int = Field(ge=0)
     result_count: int = Field(ge=0)
     snapshot: dict[str, Any] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def observation_metadata_is_consistent(self) -> Self:
+        if self.proposer_disposition is None:
+            if self.proposer_reason is not None:
+                raise ValueError("proposer reason requires a proposer disposition")
+        elif self.proposer_disposition is ProposalDisposition.PROPOSED:
+            if self.proposer_reason is not None:
+                raise ValueError("proposed disposition cannot carry a reason")
+        elif self.proposer_disposition is ProposalDisposition.AMBIGUOUS:
+            if self.proposer_reason is not ProposalReason.MULTIPLE_PLAUSIBLE_READINGS:
+                raise ValueError("ambiguous disposition requires its matching reason")
+        elif self.proposer_reason is None:
+            raise ValueError("abstained disposition requires a reason")
+        if (self.fallback_policy_id is None) != (self.fallback_policy_version is None):
+            raise ValueError("fallback policy id and version must be supplied together")
+        if self.status is AttemptStatus.COMPLETED and self.response_mode not in {
+            SearchResponseMode.DIRECT_RESULTS,
+            SearchResponseMode.EXPLORATORY_RESULTS,
+        }:
+            raise ValueError("completed attempt requires a result response mode")
+        if self.status is AttemptStatus.NEEDS_CLARIFICATION and self.response_mode not in {
+            SearchResponseMode.CLARIFICATION,
+            SearchResponseMode.UNSUPPORTED,
+        }:
+            raise ValueError("non-completed product outcome requires clarification or unsupported")
+        if (
+            self.status is AttemptStatus.FAILED
+            and self.response_mode is not SearchResponseMode.PROVIDER_FAILURE
+        ):
+            raise ValueError("failed attempt requires provider_failure response mode")
+        return self
 
 
 class ObservedSearchAttempt(PlanningModel):
@@ -57,6 +113,11 @@ class ObservedSearchAttempt(PlanningModel):
     model: str
     status: AttemptStatus
     failure_code: str | None = None
+    proposer_disposition: ProposalDisposition | None = None
+    proposer_reason: ProposalReason | None = None
+    response_mode: SearchResponseMode
+    fallback_policy_id: str | None = None
+    fallback_policy_version: str | None = None
     interpretation_count: int
     target_lens_count: int
     executable_lens_count: int
@@ -71,11 +132,15 @@ async def record_attempt(db: AsyncSession, record: SearchAttemptRecord) -> None:
             """
             INSERT INTO place_intent_lab_attempt (
                 id, previous_attempt_id, utterance, model, lat, lng, radius_m,
-                status, failure_code, interpretation_count, target_lens_count,
+                status, failure_code, proposer_disposition, proposer_reason,
+                response_mode, fallback_policy_id, fallback_policy_version,
+                interpretation_count, target_lens_count,
                 executable_lens_count, result_count, snapshot
             ) VALUES (
                 :id, :previous_attempt_id, :utterance, :model, :lat, :lng, :radius_m,
-                :status, :failure_code, :interpretation_count, :target_lens_count,
+                :status, :failure_code, :proposer_disposition, :proposer_reason,
+                :response_mode, :fallback_policy_id, :fallback_policy_version,
+                :interpretation_count, :target_lens_count,
                 :executable_lens_count, :result_count, CAST(:snapshot AS jsonb)
             )
             """
@@ -90,6 +155,13 @@ async def record_attempt(db: AsyncSession, record: SearchAttemptRecord) -> None:
             "radius_m": record.radius_m,
             "status": record.status.value,
             "failure_code": record.failure_code,
+            "proposer_disposition": (
+                record.proposer_disposition.value if record.proposer_disposition else None
+            ),
+            "proposer_reason": record.proposer_reason.value if record.proposer_reason else None,
+            "response_mode": record.response_mode.value,
+            "fallback_policy_id": record.fallback_policy_id,
+            "fallback_policy_version": record.fallback_policy_version,
             "interpretation_count": record.interpretation_count,
             "target_lens_count": record.target_lens_count,
             "executable_lens_count": record.executable_lens_count,
@@ -158,6 +230,8 @@ async def list_attempts(
         text(
             f"""
             SELECT id, previous_attempt_id, utterance, model, status, failure_code,
+                   proposer_disposition, proposer_reason, response_mode,
+                   fallback_policy_id, fallback_policy_version,
                    interpretation_count, target_lens_count, executable_lens_count,
                    result_count, snapshot, created_at
             FROM place_intent_lab_attempt
@@ -176,6 +250,15 @@ async def list_attempts(
             model=row["model"],
             status=AttemptStatus(row["status"]),
             failure_code=row["failure_code"],
+            proposer_disposition=(
+                ProposalDisposition(row["proposer_disposition"])
+                if row["proposer_disposition"]
+                else None
+            ),
+            proposer_reason=(ProposalReason(row["proposer_reason"]) if row["proposer_reason"] else None),
+            response_mode=SearchResponseMode(row["response_mode"]),
+            fallback_policy_id=row["fallback_policy_id"],
+            fallback_policy_version=row["fallback_policy_version"],
             interpretation_count=row["interpretation_count"],
             target_lens_count=row["target_lens_count"],
             executable_lens_count=row["executable_lens_count"],

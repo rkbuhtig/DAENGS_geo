@@ -599,12 +599,21 @@ async function loadObservations() {
       const box = document.createElement('div'); box.className = 'box observation';
       const utterance = document.createElement('b'); utterance.textContent = '“' + attempt.utterance + '”';
       const state = badge(attempt.failure_code || attempt.status, 'warn');
+      const mode = badge('response · ' + attempt.response_mode,
+        attempt.response_mode.includes('results') ? 'good' : 'warn');
+      const proposer = attempt.proposer_disposition
+        ? attempt.proposer_disposition + (attempt.proposer_reason ? ' / ' + attempt.proposer_reason : '')
+        : 'provider 미도달';
+      const fallback = attempt.fallback_policy_id
+        ? ' · fallback ' + attempt.fallback_policy_id + '@' + attempt.fallback_policy_version
+        : '';
       const detail = document.createElement('small');
       detail.textContent = new Date(attempt.created_at).toLocaleString() +
+        ' · proposer ' + proposer +
         ' · 해석 ' + attempt.interpretation_count +
         ' · lens ' + attempt.executable_lens_count + '/' + attempt.target_lens_count +
-        ' · 결과 ' + attempt.result_count;
-      box.append(utterance, state, detail); root.append(box);
+        ' · 결과 ' + attempt.result_count + fallback;
+      box.append(utterance, state, mode, detail); root.append(box);
     });
     if (!data.attempts.length) {
       const empty = document.createElement('div'); empty.className = 'box';

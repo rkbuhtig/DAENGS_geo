@@ -2,10 +2,12 @@ from uuid import uuid4
 
 from sqlalchemy import text
 
+from app.discovery.place_intent.contract import ProposalDisposition, ProposalReason
 from app.discovery.place_intent.observability import (
     AttemptStatus,
     SearchAttemptRecord,
     SearchEventType,
+    SearchResponseMode,
     list_attempts,
     record_attempt,
     record_event,
@@ -28,6 +30,9 @@ async def test_failed_attempt_and_explicit_action_are_queryable() -> None:
                     radius_m=3000,
                     status=AttemptStatus.NEEDS_CLARIFICATION,
                     failure_code="facet_selection_required",
+                    proposer_disposition=ProposalDisposition.ABSTAINED,
+                    proposer_reason=ProposalReason.INSUFFICIENT_TARGET,
+                    response_mode=SearchResponseMode.CLARIFICATION,
                     interpretation_count=1,
                     target_lens_count=2,
                     executable_lens_count=0,
@@ -47,6 +52,11 @@ async def test_failed_attempt_and_explicit_action_are_queryable() -> None:
             row = next(item for item in observed if item.attempt_id == attempt_id)
             assert row.utterance == "테스트 실패 검색"
             assert row.failure_code == "facet_selection_required"
+            assert row.proposer_disposition is ProposalDisposition.ABSTAINED
+            assert row.proposer_reason is ProposalReason.INSUFFICIENT_TARGET
+            assert row.response_mode is SearchResponseMode.CLARIFICATION
+            assert row.fallback_policy_id is None
+            assert row.fallback_policy_version is None
             assert row.target_lens_count == 2
         finally:
             await db.execute(

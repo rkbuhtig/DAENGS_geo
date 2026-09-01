@@ -9,17 +9,22 @@ from uuid import uuid4
 import pytest
 from pydantic import ValidationError
 
+from app.discovery.place_intent.contract import ProposalDisposition, ProposalReason
 from app.discovery.place_intent.lab import (
     CandidateExecution,
     PlaceIntentConfirmationRequest,
     _attempt_outcome,
+    _attempt_snapshot,
     _ConfirmationStore,
     _InteractionStore,
     _limit_search_preview,
+    _response_mode,
 )
 from app.discovery.place_intent.lenses import TargetSearchLens
-from app.discovery.place_intent.observability import AttemptStatus
+from app.discovery.place_intent.observability import AttemptStatus, SearchResponseMode
+from app.discovery.place_intent.suggestions import SuggestionResolution
 from app.place.planning.contract import PlaceKind
+from app.place.planning.intents import PlannerStatus
 from app.place.search import PlaceSearchGroup, PlaceSearchResponse
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -44,6 +49,9 @@ def test_intent_lab_shows_model_policy_and_real_search_layers() -> None:
     assert "이 검색 방향을 명시적으로 확인" in HTML
     assert "처음부터 다시" in HTML
     assert "Operator observations" in HTML
+    assert "response · " in HTML
+    assert "proposer " in HTML
+    assert "fallback " in HTML
     assert "탭이나 장소 마커를 누르는 것은 확인이 아닙니다." in HTML
     assert "실행 가능한 lens가 없어 지도에 표시할 장소가 없습니다." in HTML
 
@@ -104,6 +112,57 @@ def test_attempt_failure_distinguishes_spatial_empty_from_gate_elimination() -> 
         AttemptStatus.NEEDS_CLARIFICATION,
         "gate_eliminated_all",
     )
+
+
+def test_attempt_observation_separates_proposer_reason_from_product_outcome() -> None:
+    trace = cast(
+        object,
+        SimpleNamespace(
+            raw=SimpleNamespace(
+                disposition=ProposalDisposition.ABSTAINED,
+                reason=ProposalReason.INSUFFICIENT_TARGET,
+            ),
+            outcome=SimpleNamespace(
+                status=PlannerStatus.NEEDS_CLARIFICATION,
+                resolution=None,
+                issues=(),
+            ),
+            lenses=None,
+        ),
+    )
+
+    response_mode = _response_mode(trace, AttemptStatus.NEEDS_CLARIFICATION)
+    snapshot = _attempt_snapshot(
+        trace,
+        (),
+        response_mode=response_mode,
+        failure_code="no_executable_lens",
+    )
+
+    assert response_mode is SearchResponseMode.CLARIFICATION
+    assert snapshot["proposer"] == {
+        "disposition": "abstained",
+        "reason": "insufficient_target",
+    }
+    assert snapshot["product_outcome"] == {
+        "response_mode": "clarification",
+        "failure_code": "no_executable_lens",
+    }
+    assert snapshot["fallback_policy"] is None
+
+
+def test_completed_exploratory_search_has_distinct_response_mode() -> None:
+    trace = cast(
+        object,
+        SimpleNamespace(
+            outcome=SimpleNamespace(
+                status=PlannerStatus.READY,
+                resolution=SuggestionResolution.EXPLORATORY,
+            )
+        ),
+    )
+
+    assert _response_mode(trace, AttemptStatus.COMPLETED) is SearchResponseMode.EXPLORATORY_RESULTS
 
 
 def test_confirmation_offer_is_lens_bound_expiring_and_single_use() -> None:

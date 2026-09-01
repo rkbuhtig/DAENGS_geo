@@ -30,6 +30,7 @@ from app.discovery.place_intent.observability import (
     ObservedSearchAttempt,
     SearchAttemptRecord,
     SearchEventType,
+    SearchResponseMode,
     list_attempts,
     safely_record_attempt,
     safely_record_event,
@@ -39,11 +40,13 @@ from app.discovery.place_intent.service import (
     PlaceIntentSuggestionService,
     PlaceIntentSuggestionTrace,
 )
+from app.discovery.place_intent.suggestions import SuggestionResolution
 from app.place.planning.contract import (
     PlaceSearchConditions,
     PlaceSpatialConstraint,
     PlanningModel,
 )
+from app.place.planning.intents import PlannerStatus
 from app.place.planning.preview import PlaceSearchPlanPreview
 from app.place.search import PlaceSearchResponse, search_place_plan
 from app.place.search_preview import preview_search_plan
@@ -348,13 +351,51 @@ def _attempt_outcome(
     return AttemptStatus.COMPLETED, None
 
 
+def _response_mode(
+    trace: PlaceIntentSuggestionTrace,
+    attempt_status: AttemptStatus,
+) -> SearchResponseMode:
+    if attempt_status is not AttemptStatus.COMPLETED:
+        if trace.outcome.status is PlannerStatus.UNSUPPORTED:
+            return SearchResponseMode.UNSUPPORTED
+        return SearchResponseMode.CLARIFICATION
+    if trace.outcome.resolution is SuggestionResolution.EXPLORATORY:
+        return SearchResponseMode.EXPLORATORY_RESULTS
+    return SearchResponseMode.DIRECT_RESULTS
+
+
 def _attempt_snapshot(
     trace: PlaceIntentSuggestionTrace,
     executions: tuple[CandidateExecution, ...],
+    *,
+    response_mode: SearchResponseMode,
+    failure_code: str | None,
+    fallback_policy_id: str | None = None,
+    fallback_policy_version: str | None = None,
 ) -> dict:
     execution_by_id = {item.lens_id: item for item in executions}
     lenses = trace.lenses.target_lenses if trace.lenses is not None else ()
     return {
+        "proposer": {
+            "disposition": trace.raw.disposition.value if trace.raw is not None else None,
+            "reason": (
+                trace.raw.reason.value
+                if trace.raw is not None and trace.raw.reason is not None
+                else None
+            ),
+        },
+        "product_outcome": {
+            "response_mode": response_mode.value,
+            "failure_code": failure_code,
+        },
+        "fallback_policy": (
+            {
+                "policy_id": fallback_policy_id,
+                "version": fallback_policy_version,
+            }
+            if fallback_policy_id is not None and fallback_policy_version is not None
+            else None
+        ),
         "planner_status": trace.outcome.status.value,
         "issues": [item.code for item in trace.outcome.issues],
         "lenses": [
@@ -424,6 +465,7 @@ async def _observe_trace(
     executions: tuple[CandidateExecution, ...],
 ) -> None:
     attempt_status, failure_code = _attempt_outcome(trace, executions)
+    response_mode = _response_mode(trace, attempt_status)
     lenses = trace.lenses.target_lenses if trace.lenses is not None else ()
     recorded = await safely_record_attempt(
         db,
@@ -437,11 +479,19 @@ async def _observe_trace(
             radius_m=radius_m,
             status=attempt_status,
             failure_code=failure_code,
+            proposer_disposition=trace.raw.disposition if trace.raw is not None else None,
+            proposer_reason=trace.raw.reason if trace.raw is not None else None,
+            response_mode=response_mode,
             interpretation_count=len(trace.raw.interpretations) if trace.raw is not None else 0,
             target_lens_count=len(lenses),
             executable_lens_count=len(executions),
             result_count=sum(_result_count(item) for item in executions),
-            snapshot=_attempt_snapshot(trace, executions),
+            snapshot=_attempt_snapshot(
+                trace,
+                executions,
+                response_mode=response_mode,
+                failure_code=failure_code,
+            ),
         ),
     )
     if recorded:
@@ -453,7 +503,10 @@ async def _observe_trace(
                 if attempt_status is AttemptStatus.COMPLETED
                 else SearchEventType.SEARCH_FAILED
             ),
-            details={"failure_code": failure_code} if failure_code else {},
+            details={
+                "failure_code": failure_code,
+                "response_mode": response_mode.value,
+            },
         )
 
 
@@ -477,11 +530,19 @@ async def _observe_failed_attempt(
             radius_m=source.radius_m,
             status=AttemptStatus.FAILED,
             failure_code=failure_code,
+            response_mode=SearchResponseMode.PROVIDER_FAILURE,
             interpretation_count=0,
             target_lens_count=0,
             executable_lens_count=0,
             result_count=0,
-            snapshot={"provider_failure": failure_code},
+            snapshot={
+                "proposer": {"disposition": None, "reason": None},
+                "product_outcome": {
+                    "response_mode": SearchResponseMode.PROVIDER_FAILURE.value,
+                    "failure_code": failure_code,
+                },
+                "fallback_policy": None,
+            },
         ),
     )
     if recorded:
@@ -489,7 +550,10 @@ async def _observe_failed_attempt(
             db,
             attempt_id=search_id,
             event_type=SearchEventType.SEARCH_FAILED,
-            details={"failure_code": failure_code},
+            details={
+                "failure_code": failure_code,
+                "response_mode": SearchResponseMode.PROVIDER_FAILURE.value,
+            },
         )
 
 
