@@ -11,6 +11,7 @@ from app.context_plane.contract import (
     ContextSpatialSupport,
     ContextTargetRef,
     ContextTemporalSupport,
+    SubjectHealthFlag,
     SubjectProfileSnapshotV1,
     SubjectProfileTimeBasis,
     TrailWeatherObservationV1,
@@ -146,6 +147,10 @@ def dog_profile_snapshot_atom(
         raise ValueError("profile revision cannot become effective after capture")
     if time_basis is SubjectProfileTimeBasis.WALK_TIME and effective_at > event_at:
         raise ValueError("walk-time profile revision cannot become effective after the walk")
+    try:
+        health_flags = tuple(sorted({SubjectHealthFlag(flag) for flag in profile.health_flags}))
+    except ValueError as exc:
+        raise ValueError("dog profile contains an unregistered health flag") from exc
     payload = SubjectProfileSnapshotV1(
         dog_id=profile.dog_id,
         profile_version=profile.profile_version,
@@ -155,7 +160,7 @@ def dog_profile_snapshot_atom(
         weight_kg=profile.weight_kg,
         size_class=profile.size_class,
         brachycephalic=profile.brachycephalic,
-        health_flags=tuple(sorted(set(profile.health_flags))),
+        health_flags=health_flags,
         activity_level=profile.activity_level,
     )
     return ContextAtom(

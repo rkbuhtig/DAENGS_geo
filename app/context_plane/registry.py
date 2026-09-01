@@ -135,6 +135,35 @@ def _validate_atoms(lens: ContextLensSpec, atoms: tuple[ContextAtom, ...]) -> No
             raise ValueError("subject profile time basis does not match the context lens")
 
 
+def _expected_allowance(
+    lens: ContextLensSpec,
+    atoms: tuple[ContextAtom, ...],
+) -> ContextUseAllowance:
+    allowed = tuple(
+        use
+        for use in ContextUse
+        if use in lens.allowed_uses
+        and all(use in capability_spec(atom.capability_id).allowed_uses for atom in atoms)
+    )
+    prohibited = tuple(use for use in ContextUse if use not in allowed)
+    return ContextUseAllowance(allowed=allowed, prohibited=prohibited)
+
+
+def verify_context_bundle(bundle: ContextBundle) -> ContextBundle:
+    """역직렬화한 Bundle도 현재 registry·Lens 계약과 정확히 일치하는지 확인한다."""
+
+    lens = validate_request(bundle.request)
+    if bundle.registry_version != CONTEXT_REGISTRY_VERSION:
+        raise ValueError("context bundle registry version is not supported")
+    if bundle.lens_version != lens.lens_version:
+        raise ValueError("context bundle lens version does not match the registry")
+    _validate_atoms(lens, bundle.atoms)
+    expected = _expected_allowance(lens, bundle.atoms)
+    if bundle.use_allowance != expected:
+        raise ValueError("context bundle use allowance does not match its lens and capabilities")
+    return bundle
+
+
 def build_context_bundle(
     *,
     bundle_id: str,
@@ -145,23 +174,17 @@ def build_context_bundle(
 ) -> ContextBundle:
     lens = validate_request(request)
     _validate_atoms(lens, atoms)
-    allowed = tuple(
-        use
-        for use in ContextUse
-        if use in lens.allowed_uses
-        and all(use in capability_spec(atom.capability_id).allowed_uses for atom in atoms)
-    )
-    prohibited = tuple(use for use in ContextUse if use not in allowed)
-    return ContextBundle(
+    bundle = ContextBundle(
         bundle_id=bundle_id,
         request=request,
         registry_version=CONTEXT_REGISTRY_VERSION,
         lens_version=lens.lens_version,
         atoms=tuple(sorted(atoms, key=lambda atom: atom.atom_id)),
         facets=tuple(sorted(facets, key=lambda facet: facet.facet_id)),
-        use_allowance=ContextUseAllowance(allowed=allowed, prohibited=prohibited),
+        use_allowance=_expected_allowance(lens, atoms),
         created_at=created_at,
     )
+    return verify_context_bundle(bundle)
 
 
 def evidence_receipt(
@@ -170,6 +193,7 @@ def evidence_receipt(
     use: ContextUse,
     evidence_atom_ids: tuple[str, ...],
 ) -> ContextEvidenceReceipt:
+    verify_context_bundle(bundle)
     if use not in bundle.use_allowance.allowed:
         raise ValueError("requested context use is prohibited by the lens")
     known_ids = {atom.atom_id for atom in bundle.atoms}

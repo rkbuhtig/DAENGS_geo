@@ -6,7 +6,9 @@ from pydantic import ValidationError
 from app.context_plane.contract import (
     ContextAtom,
     ContextAtomStatus,
+    ContextBundle,
     ContextCapabilityId,
+    ContextFacet,
     ContextLensId,
     ContextRequest,
     ContextSourceAuthority,
@@ -15,12 +17,18 @@ from app.context_plane.contract import (
     ContextTemporalSupport,
     ContextUse,
     ContextUseAllowance,
+    SubjectAgeFacetValueV1,
     SubjectProfileSnapshotV1,
     SubjectProfileTimeBasis,
     TrailWeatherObservationV1,
 )
 from app.context_plane.facets import trail_weather_facets
-from app.context_plane.registry import build_context_bundle, evidence_receipt, validate_request
+from app.context_plane.registry import (
+    build_context_bundle,
+    evidence_receipt,
+    validate_request,
+    verify_context_bundle,
+)
 
 T0 = datetime(2026, 8, 31, 11, 0, tzinfo=UTC)
 T1 = datetime(2026, 8, 31, 12, 0, tzinfo=UTC)
@@ -137,6 +145,10 @@ def test_bundle_fingerprint_is_content_based_and_evidence_use_is_checked():
     )
 
     assert first.bundle_fingerprint == retry.bundle_fingerprint
+    tampered = first.model_dump(mode="json")
+    tampered["bundle_fingerprint"] = "0" * 64
+    with pytest.raises(ValidationError, match="fingerprint does not match"):
+        ContextBundle.model_validate(tampered)
     receipt = evidence_receipt(
         first,
         use=ContextUse.DESCRIBE,
@@ -164,8 +176,6 @@ def test_unknown_weather_facets_do_not_become_dry_or_day():
 def test_bundle_contract_itself_cannot_be_forged_to_grant_causal_authority():
     atom = weather_atom()
     with pytest.raises(ValidationError, match="cannot grant causal or safety-gate"):
-        from app.context_plane.contract import ContextBundle
-
         ContextBundle(
             bundle_id="forged",
             request=journal_request(),
@@ -177,3 +187,54 @@ def test_bundle_contract_itself_cannot_be_forged_to_grant_causal_authority():
             ),
             created_at=T1,
         )
+
+
+def test_facet_evidence_capability_must_match_its_typed_value():
+    atom = weather_atom()
+    wrong_facet = ContextFacet(
+        facet_id="wrong-age",
+        value=SubjectAgeFacetValueV1(age_years=6, at=T0),
+        policy_version=1,
+        evidence_atom_ids=(atom.atom_id,),
+    )
+    with pytest.raises(ValidationError, match="facet evidence capability"):
+        ContextBundle(
+            bundle_id="wrong-evidence",
+            request=journal_request(),
+            lens_version=1,
+            atoms=(atom,),
+            facets=(wrong_facet,),
+            use_allowance=ContextUseAllowance(
+                allowed=(ContextUse.DESCRIBE,),
+                prohibited=tuple(use for use in ContextUse if use is not ContextUse.DESCRIBE),
+            ),
+            created_at=T1,
+        )
+
+
+def test_deserialized_bundle_must_be_reverified_against_the_lens_registry():
+    atom = weather_atom()
+    forged = ContextBundle(
+        bundle_id="forged-recommend",
+        request=journal_request(),
+        lens_version=1,
+        atoms=(atom,),
+        use_allowance=ContextUseAllowance(
+            allowed=(ContextUse.RECOMMEND,),
+            prohibited=tuple(use for use in ContextUse if use is not ContextUse.RECOMMEND),
+        ),
+        created_at=T1,
+    )
+    round_tripped = ContextBundle.model_validate_json(forged.model_dump_json())
+    with pytest.raises(ValueError, match="use allowance"):
+        verify_context_bundle(round_tripped)
+    with pytest.raises(ValueError, match="use allowance"):
+        evidence_receipt(
+            round_tripped,
+            use=ContextUse.RECOMMEND,
+            evidence_atom_ids=(atom.atom_id,),
+        )
+
+    wrong_version = forged.model_copy(update={"lens_version": 99})
+    with pytest.raises(ValueError, match="lens version"):
+        verify_context_bundle(wrong_version)

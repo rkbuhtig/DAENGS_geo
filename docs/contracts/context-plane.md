@@ -67,8 +67,10 @@ ContextFacet + policy_version  derived
 ```
 
 v0는 강수 `rain|dry|unknown`, 일광 `day|night|unknown`, 사건 시점 나이, drift 평가 Facet만
-등록한다. 각 Facet은 `evidence_atom_ids`를 반드시 가진다. 날씨 기준이나 생애 단계 정책이
-바뀌어도 과거 Atom을 수정하지 않는다.
+등록한다. 각 Facet은 `evidence_atom_ids`를 반드시 가지며 typed Facet과 evidence capability의
+결합도 검사한다. 나이는 Profile Atom만, 강수·일광은 Weather Atom만, drift는 Measurement Atom만
+근거로 쓸 수 있다. 사건 시점 나이는 Lens 요청의 `occurred_at`과도 같아야 한다. 날씨 기준이나
+생애 단계 정책이 바뀌어도 과거 Atom을 수정하지 않는다.
 
 ## Profile 시간축
 
@@ -82,7 +84,9 @@ current    현재 Route 추천 요청
 과거 Lens는 `walk_time`, Route Lens는 `current` payload만 허용한다. 동결 snapshot은 이름,
 temperament, 자유 서술, 견주 속성을 복사하지 않고 실제 판단에 쓰는 birth date·체중·크기·명시
 건강 flag·활동 수준만 가진다. 나이는 저장된 현재 `age_years`가 아니라 `birth_date + event_at`으로
-Facet에서 계산한다.
+Facet에서 계산한다. `health_flags`도 임의 문자열이 아니라 v1의 닫힌
+`joint|heart|obesity|senior|unvaccinated` 집합이다. 외부 Profile에 등록되지 않은 flag가 있으면
+조용히 버리거나 복사하지 않고 adapter가 실패한다.
 
 외부 프로필 서비스가 버전별 불변 조회를 보장하면 `SubjectProfileRevisionRefV1`을 쓸 수 있다.
 그 보장이 없으면 실제 사용한 최소값을 `SubjectProfileSnapshotV1`로 동결한다.
@@ -110,7 +114,13 @@ use / evidence_atom_ids
 ```
 
 Bundle fingerprint는 caller의 bundle ID와 입력 순서가 아니라 정규화된 내용으로 계산한다.
-같은 재료·Lens·시각이면 같은 지문이 된다.
+같은 재료·Lens·시각이면 같은 지문이 된다. fingerprint는 JSON에 포함되고 역직렬화 때 내용과
+다르면 거부되므로 직렬화 왕복도 가능하다.
+
+`ContextBundle`을 JSON·DB·외부 경계에서 읽은 소비자는 `verify_context_bundle()`을 먼저 호출한다.
+이 검사는 현재 registry version, Lens version, 필수·선택 capability, profile time basis와 최종
+use allowance를 다시 계산한다. `evidence_receipt()`도 내부에서 같은 검증을 수행하므로 builder를
+우회해 `Walk Journal → recommend` 같은 권한을 넣은 Bundle은 소비되지 않는다.
 
 ## 개인의 속마음
 
@@ -138,4 +148,3 @@ PR C는 adapter projection만 추가하므로 DB migration과 backfill이 없다
 - LLM tool 호출·프롬프트·문장 생성
 - 안전·의료·인과 판정 엔진
 - 개인 자유 메모 저장
-

@@ -30,6 +30,11 @@ Episode Review, Walk Journal, Memory Place Biography, Route Recommendation은 �
 LLM이 capability를 제안하더라도 registry와 Lens가 허용한 Atom만 전달하며, 실제 설명은 bundle·
 request fingerprint와 evidence Atom을 영수증으로 남긴다.
 
+Facet은 단순히 Bundle 안의 Atom ID를 가리키는 것으로 충분하지 않다. typed Facet마다 허용된
+evidence capability를 대조하고 사건 시점 Facet은 요청 시각도 대조한다. Bundle을 저장·전송 뒤
+읽을 때도 builder를 거쳤다고 가정하지 않고 registry·Lens·use allowance와 fingerprint를 다시
+검증한다.
+
 과거 기능의 profile은 `walk_time`, 현재 추천은 `current` time basis를 강제한다. 과거 나이는
 현재 계산 property를 복사하지 않고 birth date와 사건 시점으로 파생한다.
 
@@ -38,7 +43,8 @@ request fingerprint와 evidence Atom을 영수증으로 남긴다.
 속도·거리·시간·환경·주변 공간 조건·측정 품질·구조화된 프로필 사실은 객관적 원판과 경향으로
 유지할 수 있다. 사용자가 일기에 쓴 감정·생각·사적인 해석은 Context Plane에 넣지 않는다.
 별도 private 표시라는 이유로 Atom에 저장하는 것도 허용하지 않는다. 따라서 v0 registry와 typed
-payload에는 자유 문장 capability가 존재하지 않는다.
+payload에는 자유 문장 capability가 존재하지 않는다. 외부 DogProfile의 임의 문자열
+`health_flags`도 그대로 복사하지 않고 v1의 닫힌 건강 조건 집합만 허용한다.
 
 이 경계는 사람이나 AI가 일기를 과감하게 쓰지 못하도록 내용까지 심사하는 규칙이 아니다.
 작성 중에는 private composition 재료를 사용할 수 있다. 다만 그 문장이 장기 판단 Context,
@@ -55,4 +61,3 @@ world spatial capability, Bundle 영구 저장, LLM 연결은 각각 원천·보
 작업으로 연다.
 
 상세 상태·Lens·fingerprint 계약은 [Context Plane v0](../contracts/context-plane.md)을 따른다.
-

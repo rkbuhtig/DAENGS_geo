@@ -7,12 +7,11 @@
 import hashlib
 import json
 import math
-import re
 from datetime import date, datetime
 from enum import StrEnum
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 CONTEXT_ATOM_VERSION = 1
 CONTEXT_BUNDLE_VERSION = 1
@@ -98,6 +97,14 @@ class SubjectProfileTimeBasis(StrEnum):
     CURRENT = "current"
 
 
+class SubjectHealthFlag(StrEnum):
+    JOINT = "joint"
+    HEART = "heart"
+    OBESITY = "obesity"
+    SENIOR = "senior"
+    UNVACCINATED = "unvaccinated"
+
+
 class ContextTargetRef(FrozenContract):
     kind: ContextTargetKind
     target_id: str = Field(
@@ -165,18 +172,18 @@ class SubjectProfileSnapshotV1(FrozenContract):
     weight_kg: float = Field(gt=0, le=200)
     size_class: Literal["small", "medium", "large"]
     brachycephalic: bool | None = None
-    health_flags: tuple[str, ...] = ()
+    health_flags: tuple[SubjectHealthFlag, ...] = ()
     activity_level: Literal["low", "mid", "high"] | None = None
 
     _tz = field_validator("effective_at")(_timezone_required)
 
     @field_validator("health_flags")
     @classmethod
-    def valid_health_flags(cls, values: tuple[str, ...]) -> tuple[str, ...]:
+    def unique_health_flags(
+        cls, values: tuple[SubjectHealthFlag, ...]
+    ) -> tuple[SubjectHealthFlag, ...]:
         if len(values) != len(set(values)):
             raise ValueError("subject health flags must be unique")
-        if any(re.fullmatch(r"[a-z][a-z0-9_]*", value) is None for value in values):
-            raise ValueError("subject health flags must be bounded identifiers")
         return values
 
 
@@ -369,6 +376,13 @@ ContextFacetValue = Annotated[
     Field(discriminator="value_type"),
 ]
 
+_FACET_EVIDENCE_CAPABILITY = {
+    "precipitation_state_v1": ContextCapabilityId.WORLD_TRAIL_WEATHER,
+    "daylight_state_v1": ContextCapabilityId.WORLD_TRAIL_WEATHER,
+    "subject_age_at_event_v1": ContextCapabilityId.SUBJECT_DOG_PROFILE,
+    "measurement_drift_v1": ContextCapabilityId.MEASUREMENT_WALK_QUALITY,
+}
+
 
 class ContextFacet(FrozenContract):
     facet_id: str = Field(
@@ -416,6 +430,7 @@ class ContextRequest(FrozenContract):
     requested_capabilities: tuple[ContextCapabilityId, ...] = Field(min_length=1)
     occurred_at: datetime
     requested_at: datetime
+    request_fingerprint: str = Field(default="", pattern=r"^[0-9a-f]{64}$")
 
     _tz = field_validator("occurred_at", "requested_at")(_timezone_required)
 
@@ -423,14 +438,13 @@ class ContextRequest(FrozenContract):
     def capabilities_are_unique(self) -> "ContextRequest":
         if len(self.requested_capabilities) != len(set(self.requested_capabilities)):
             raise ValueError("requested context capabilities must be unique")
-        return self
-
-    @computed_field  # type: ignore[misc]
-    @property
-    def request_fingerprint(self) -> str:
         material = self.model_dump(mode="json", exclude={"request_id", "request_fingerprint"})
         material["requested_capabilities"] = sorted(material["requested_capabilities"])
-        return _fingerprint(material)
+        expected = _fingerprint(material)
+        if self.request_fingerprint and self.request_fingerprint != expected:
+            raise ValueError("request fingerprint does not match its normalized content")
+        object.__setattr__(self, "request_fingerprint", expected)
+        return self
 
 
 class ContextUseAllowance(FrozenContract):
@@ -457,6 +471,7 @@ class ContextBundle(FrozenContract):
     facets: tuple[ContextFacet, ...] = ()
     use_allowance: ContextUseAllowance
     created_at: datetime
+    bundle_fingerprint: str = Field(default="", pattern=r"^[0-9a-f]{64}$")
 
     _tz = field_validator("created_at")(_timezone_required)
 
@@ -474,9 +489,22 @@ class ContextBundle(FrozenContract):
             raise ValueError("bundle must resolve every requested capability and no others")
         if any(atom.target != self.request.target for atom in self.atoms):
             raise ValueError("all context atoms must belong to the request target")
-        known_atom_ids = set(atom_ids)
+        atoms_by_id = {atom.atom_id: atom for atom in self.atoms}
+        known_atom_ids = set(atoms_by_id)
         if any(not set(facet.evidence_atom_ids) <= known_atom_ids for facet in self.facets):
             raise ValueError("facet evidence must refer to atoms in the same bundle")
+        for facet in self.facets:
+            expected_capability = _FACET_EVIDENCE_CAPABILITY[facet.value.value_type]
+            evidence_capabilities = {
+                atoms_by_id[atom_id].capability_id for atom_id in facet.evidence_atom_ids
+            }
+            if evidence_capabilities != {expected_capability}:
+                raise ValueError("facet evidence capability does not match its typed value")
+            if (
+                isinstance(facet.value, SubjectAgeFacetValueV1)
+                and facet.value.at != self.request.occurred_at
+            ):
+                raise ValueError("subject age facet must use the request occurrence time")
         if self.created_at < self.request.requested_at:
             raise ValueError("context bundle cannot precede its request")
         if {
@@ -484,11 +512,6 @@ class ContextBundle(FrozenContract):
             ContextUse.SAFETY_GATE,
         } & set(self.use_allowance.allowed):
             raise ValueError("context bundle v0 cannot grant causal or safety-gate authority")
-        return self
-
-    @computed_field  # type: ignore[misc]
-    @property
-    def bundle_fingerprint(self) -> str:
         material = self.model_dump(
             mode="json", exclude={"bundle_id", "bundle_fingerprint"}
         )
@@ -500,7 +523,11 @@ class ContextBundle(FrozenContract):
         material["facets"] = sorted(material["facets"], key=lambda item: item["facet_id"])
         material["use_allowance"]["allowed"] = sorted(material["use_allowance"]["allowed"])
         material["use_allowance"]["prohibited"] = sorted(material["use_allowance"]["prohibited"])
-        return _fingerprint(material)
+        expected = _fingerprint(material)
+        if self.bundle_fingerprint and self.bundle_fingerprint != expected:
+            raise ValueError("bundle fingerprint does not match its normalized content")
+        object.__setattr__(self, "bundle_fingerprint", expected)
+        return self
 
 
 class ContextEvidenceReceipt(FrozenContract):

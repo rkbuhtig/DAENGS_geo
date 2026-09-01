@@ -171,6 +171,18 @@ def test_profile_adapter_freezes_minimum_values_and_age_at_walk_not_current_age(
             captured_at=CAPTURED_AT,
         )
 
+    unregistered = profile().model_copy(update={"health_flags": ["owner_anxious"]})
+    with pytest.raises(ValueError, match="unregistered health flag"):
+        dog_profile_snapshot_atom(
+            unregistered,
+            atom_id="private-profile",
+            target=TARGET,
+            time_basis=SubjectProfileTimeBasis.WALK_TIME,
+            effective_at=WALKED_AT,
+            event_at=WALKED_AT,
+            captured_at=CAPTURED_AT,
+        )
+
 
 def test_walk_lens_rejects_current_profile_and_route_lens_accepts_only_current_profile():
     current_profile = dog_profile_snapshot_atom(
@@ -241,3 +253,45 @@ def test_walk_lens_rejects_current_profile_and_route_lens_accepts_only_current_p
         use=ContextUse.RECOMMEND,
         evidence_atom_ids=(route_profile.atom_id, route_weather.atom_id),
     )
+
+
+def test_subject_age_facet_must_use_the_bundle_request_occurrence_time():
+    walk_profile = dog_profile_snapshot_atom(
+        profile(),
+        atom_id="profile-walk",
+        target=TARGET,
+        time_basis=SubjectProfileTimeBasis.WALK_TIME,
+        effective_at=WALKED_AT,
+        event_at=WALKED_AT,
+        captured_at=CAPTURED_AT,
+    )
+    weather = trail_context_atom(
+        TrailContextSnapshot(
+            session_id="walk-1",
+            status=ContextStatus.UNKNOWN,
+            walked_at=WALKED_AT,
+            captured_at=CAPTURED_AT,
+        ),
+        atom_id="weather-unknown",
+        target=TARGET,
+    )
+    request = ContextRequest(
+        request_id="journal-wrong-age",
+        lens_id=ContextLensId.WALK_JOURNAL,
+        target=TARGET,
+        requested_capabilities=(
+            ContextCapabilityId.WORLD_TRAIL_WEATHER,
+            ContextCapabilityId.SUBJECT_DOG_PROFILE,
+        ),
+        occurred_at=WALKED_AT,
+        requested_at=CAPTURED_AT,
+    )
+    wrong_time = subject_age_at_event_facet(walk_profile, CAPTURED_AT)
+    with pytest.raises(ValidationError, match="request occurrence time"):
+        build_context_bundle(
+            bundle_id="wrong-age-time",
+            request=request,
+            atoms=(weather, walk_profile),
+            facets=(wrong_time,),
+            created_at=CAPTURED_AT,
+        )
