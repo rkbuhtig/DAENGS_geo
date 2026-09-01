@@ -92,6 +92,10 @@ snapshot으로 붙는다.
 `failed + provider_error:<ExceptionType>`으로 정규화하며 외부 예외 원문은 저장하지 않는다.
 문맥 실패는 Capsule seal과 purge를 막지 않는다.
 
+다른 제품 기능이나 향후 LLM이 이 값을 판단 재료로 소비할 때는
+[`Context Plane v0`](context-plane.md)의 typed Atom adapter와 목적 Lens를 통과한다. Capsule의
+`TrailContextSnapshot`은 계속 canonical 원판이고 Context Bundle은 v0에서 별도 저장하지 않는다.
+
 ## Capability
 
 capability는 현재 generation이 무엇을 판정할 수 있다는 주장이 아니라 **어떤 현상을 다시 읽을

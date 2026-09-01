@@ -27,6 +27,11 @@ walk_baseline      { avg_min, avg_km, usual_time }  ← 없으면 첫 2주 학�
 `has_car`는 **개 속성이 아니다.** `DogProfile`에 남아 있지만 deprecated이며 `OwnerProfile.has_car`로 옮겼다.
 `walk_baseline`은 계약에만 있고 아직 `contract.py`에 없다 (산책 세션 착수 시).
 
+과거 산책의 판단에 프로필을 사용할 때는 [Context Plane v0](context-plane.md)의 `walk_time`
+snapshot 또는 불변 revision ref를 사용한다. 현재 `DogProfile.age_years`를 과거에 복사하지 않고
+`birth_date + walked_at`으로 당시 나이를 파생한다. Context snapshot은 판단에 필요한 최소 구조값만
+동결하고 이름·temperament·자유 서술·견주 속성을 복사하지 않는다.
+
 ## 페르소나를 가르는 축: **지도 위에서 이 개한테 걸리는 것**
 
 견종 인기순도, 크기 격자도 아니다. "병원까지 가는 길에서 뭐가 문제인가"로 갈랐다.
