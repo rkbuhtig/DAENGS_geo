@@ -243,9 +243,40 @@ semantic.cheap
 `/v2/places/search`나 실제 ranker를 바꾸지 않는다. 가설별 사용자 표시·소량 실행은 다음 단계의
 책임이다.
 
+## search lens 실행과 표시 계약
+
+`compile_search_lenses()`는 정규화 가설을 planner에 연결하되 사용자에게는 안정적인 lens로
+표현한다. 기술적인 interpretation key나 모델 confidence 대신 다음만 노출한다.
+
+```text
+TargetSearchLens
+├─ display_label           #놀기 / #산책·야외 / #펫샵
+├─ mapping_scope           direct / broad / product_fallback
+├─ availability            executable / blocked / needs_selection
+├─ support_note            현재 분류가 보장하는 범위
+├─ candidate               planner result와 plan
+├─ confirmable_targets     후속 사용자 선택이 승격할 target
+├─ modifier_ids            보존했지만 아직 적용하지 못한 선호
+├─ unresolved_facet_ids    선택 전에는 실행을 막는 차원
+└─ unsupported_signals     planner issue와 미지원 modifier 영수증
+```
+
+가설 target과 `common`은 반드시 `SearchHypothesisSet.planner_observations()`로 조립한 뒤
+`compile_intent_plan()`을 통과한다. 공통 hard condition이 막은 lens는 결과를 검색하지 않고
+`blocked`로 남는다. target plan이 준비됐더라도 필수 cost facet이 풀리지 않았으면
+`needs_selection`이며 역시 실행하지 않는다.
+
+`semantic.quiet`는 조금 다르다. 조용함이 적용됐다고 말하지 않고 `deferred` modifier와 명시적인
+support note를 붙인 채 제품 fallback lens의 소량 결과를 먼저 보여준다. 이 결과는 조용함 순위가
+아니며, 화면에도 그 사실을 그대로 쓴다.
+
+개발 lab은 executable lens마다 PostGIS 검색을 실행하되 한 lens 전체에서 2~4곳만 round-robin으로
+남긴다. 종류가 두 개인 purpose도 한 선반을 독점하지 않으며, lens끼리 점수 하나로 섞지 않는다.
+이 경계 역시 외부 `/v2/places/search` 계약은 변경하지 않는다.
+
 ## 후속 순서
 
-다음 단계는 `SearchHypothesis`를 사용자용 lens label·지원 수준·미리보기 결과로 표현하고,
-공통 조건을 유지한 채 branch별 소량 검색을 실행하는 경계다. 그 뒤 사용자가 lens를 선택·수정했을
-때 해당 target을 `user_confirmed`로 다시 관찰해 explicit lock으로 승격한다. 자연어 exact-command
-regex, 자동 완화, 신규 capability는 여전히 이 갈래에 포함하지 않는다.
+다음 단계는 사용자가 lens를 선택·수정했을 때 `confirmable_targets`만 `user_confirmed`로 다시
+관찰해 explicit lock으로 승격하는 경계다. 장소 마커 클릭은 탐색 행동일 뿐 confirmation으로
+취급하지 않는다. 자연어 exact-command regex, 자동 완화, 신규 capability는 여전히 이 갈래에
+포함하지 않는다.

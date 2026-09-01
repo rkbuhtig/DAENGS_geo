@@ -14,6 +14,7 @@ from app.discovery.place_intent.hypotheses import (
     NormalizedIntentOutput,
     build_search_hypotheses,
 )
+from app.discovery.place_intent.lenses import SearchLensOutcome, compile_search_lenses
 from app.discovery.place_intent.suggestions import (
     IntentSuggestionOutcome,
     compile_intent_suggestions,
@@ -32,6 +33,7 @@ class PlaceIntentSuggestionTrace(PlanningModel):
     raw: LLMIntentOutput | None
     grounded: MaterializedIntentOutput | None
     normalized: NormalizedIntentOutput | None
+    lenses: SearchLensOutcome | None
     outcome: IntentSuggestionOutcome
 
 
@@ -77,6 +79,7 @@ class PlaceIntentSuggestionService:
                 raw=None,
                 grounded=None,
                 normalized=None,
+                lenses=None,
                 outcome=IntentSuggestionOutcome(
                     status=PlannerStatus.NEEDS_CLARIFICATION,
                     source_disposition=None,
@@ -102,6 +105,7 @@ class PlaceIntentSuggestionService:
                 raw=raw,
                 grounded=None,
                 normalized=None,
+                lenses=None,
                 outcome=IntentSuggestionOutcome(
                     status=PlannerStatus.NEEDS_CLARIFICATION,
                     source_disposition=raw.disposition,
@@ -114,14 +118,22 @@ class PlaceIntentSuggestionService:
                 ),
             )
         normalized = build_search_hypotheses(grounded)
+        outcome = compile_intent_suggestions(
+            grounded,
+            spatial=spatial,
+            limit_per_kind=limit_per_kind,
+            conditions=conditions,
+        )
         return PlaceIntentSuggestionTrace(
             raw=raw,
             grounded=grounded,
             normalized=normalized,
-            outcome=compile_intent_suggestions(
-                grounded,
+            lenses=compile_search_lenses(
+                normalized,
+                outcome,
                 spatial=spatial,
                 limit_per_kind=limit_per_kind,
                 conditions=conditions,
             ),
+            outcome=outcome,
         )

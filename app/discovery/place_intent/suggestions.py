@@ -46,6 +46,7 @@ class SuggestionResolution(StrEnum):
 class SuggestionBasis(StrEnum):
     INTERPRETATION = "interpretation"
     PRODUCT_FALLBACK = "product_fallback"
+    HYPOTHESIS = "hypothesis"
 
 
 class IntentPlanCandidate(PlanningModel):
@@ -117,6 +118,7 @@ _SOFT_PLACE_ROLES = {
 _SOFT_SEMANTIC_ROLES = {
     IntentRole.GOAL,
     IntentRole.REQUIRED_TARGET,
+    IntentRole.REQUIRED_CONDITION,
     IntentRole.PREFERENCE,
     IntentRole.ANALOGY,
 }
