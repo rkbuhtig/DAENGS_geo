@@ -211,6 +211,10 @@ class IntentEvidenceError(ValueError):
 class IntentProposerInvalidOutputError(RuntimeError):
     """제공사 호출은 성공했지만 출력이 authority-free intent 계약을 만족하지 못함."""
 
+    def __init__(self, message: str, *, raw_output: str | None = None):
+        super().__init__(message)
+        self.raw_output = raw_output
+
 
 class IntentProposer(Protocol):
     async def propose(self, utterance: str) -> LLMIntentOutput: ...

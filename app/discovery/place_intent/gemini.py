@@ -101,7 +101,8 @@ class GeminiIntentProposer:
             return _adapter_output(output_text)
         except (TypeError, ValueError, json.JSONDecodeError) as exc:
             raise IntentProposerInvalidOutputError(
-                "Gemini returned an invalid intent payload"
+                "Gemini returned an invalid intent payload",
+                raw_output=output_text,
             ) from exc
 
 

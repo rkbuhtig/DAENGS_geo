@@ -28,6 +28,8 @@ def test_recorded_fixture_exercises_risk_metrics_with_perfect_baseline() -> None
 
     assert report.case_count == 13
     assert report.model_dump(exclude={"case_count"}) == {
+        "contract_valid_output_rate": 1.0,
+        "invalid_output_rate": 0.0,
         "disposition_accuracy": 1.0,
         "search_mode_accuracy": 1.0,
         "open_discovery_precision": None,

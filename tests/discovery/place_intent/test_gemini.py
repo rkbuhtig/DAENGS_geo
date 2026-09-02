@@ -256,8 +256,12 @@ async def test_gemini_rejects_incomplete_or_invalid_interactions() -> None:
         "model",
         transport=httpx.MockTransport(invalid),
     )
-    with pytest.raises(IntentProposerInvalidOutputError, match="invalid intent payload"):
+    with pytest.raises(
+        IntentProposerInvalidOutputError,
+        match="invalid intent payload",
+    ) as captured:
         await proposer.propose("카페")
+    assert captured.value.raw_output == "not-json"
 
 
 @pytest.mark.asyncio

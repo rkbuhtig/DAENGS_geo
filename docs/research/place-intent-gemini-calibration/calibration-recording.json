@@ -1,0 +1,714 @@
+{
+  "schema_version": "place-intent-predictions-v3",
+  "provider": "gemini",
+  "model": "gemini-3.1-flash-lite",
+  "corpus_sha256": "1e627fb580b98945b6e2f3c75a1f512f523292ff7bfe806b2c70715d7ca3542e",
+  "prompt_sha256": "911240960f2db5ea027fda683b6398f386ec249a29c6aba03bd4e65cd404c513",
+  "output_schema_sha256": "05eb7fa14448711359bd03947c11e90fab0d75c927e0acabd8f13c017ab49883",
+  "generation_config": {
+    "max_output_tokens": 1800,
+    "temperature": 0.0
+  },
+  "requested_repeat": 1,
+  "created_at": "2026-09-02T02:07:49.957712Z",
+  "updated_at": "2026-09-02T02:17:09.793627Z",
+  "complete": true,
+  "runs": [
+    {
+      "repeat_index": 1,
+      "predictions": {
+        "open-01": {
+          "disposition": "proposed",
+          "interpretations": [
+            {
+              "search_directive": {
+                "mode": "open_discovery",
+                "evidence": {
+                  "quote": "네가 추천해봐",
+                  "start": null,
+                  "end": null
+                }
+              },
+              "proposals": []
+            }
+          ],
+          "reason": null
+        },
+        "open-02": {
+          "disposition": "proposed",
+          "interpretations": [
+            {
+              "search_directive": {
+                "mode": "open_discovery",
+                "evidence": {
+                  "quote": "알아서 골라줘",
+                  "start": null,
+                  "end": null
+                }
+              },
+              "proposals": []
+            }
+          ],
+          "reason": null
+        },
+        "open-03": {
+          "disposition": "proposed",
+          "interpretations": [
+            {
+              "search_directive": {
+                "mode": "open_discovery",
+                "evidence": {
+                  "quote": "네가 정해줘",
+                  "start": null,
+                  "end": null
+                }
+              },
+              "proposals": []
+            }
+          ],
+          "reason": null
+        },
+        "open-04": {
+          "disposition": "proposed",
+          "interpretations": [
+            {
+              "search_directive": {
+                "mode": "open_discovery",
+                "evidence": {
+                  "quote": "아무 데나 괜찮으니 추천해줘",
+                  "start": null,
+                  "end": null
+                }
+              },
+              "proposals": []
+            }
+          ],
+          "reason": null
+        },
+        "open-05": {
+          "disposition": "proposed",
+          "interpretations": [
+            {
+              "search_directive": {
+                "mode": "open_discovery",
+                "evidence": {
+                  "quote": "그냥 골라줘",
+                  "start": null,
+                  "end": null
+                }
+              },
+              "proposals": []
+            }
+          ],
+          "reason": null
+        },
+        "open-06": {
+          "disposition": "proposed",
+          "interpretations": [
+            {
+              "search_directive": {
+                "mode": "open_discovery",
+                "evidence": {
+                  "quote": "알아서 찾아줘",
+                  "start": null,
+                  "end": null
+                }
+              },
+              "proposals": []
+            }
+          ],
+          "reason": null
+        },
+        "direct-01": {
+          "disposition": "proposed",
+          "interpretations": [
+            {
+              "search_directive": {
+                "mode": "directed_search",
+                "evidence": null
+              },
+              "proposals": [
+                {
+                  "role": "required_target",
+                  "intent": {
+                    "intent_type": "kind",
+                    "kind": "cafe"
+                  },
+                  "evidence": {
+                    "quote": "카페",
+                    "start": null,
+                    "end": null
+                  }
+                }
+              ]
+            }
+          ],
+          "reason": null
+        },
+        "direct-02": {
+          "disposition": "proposed",
+          "interpretations": [
+            {
+              "search_directive": {
+                "mode": "directed_search",
+                "evidence": null
+              },
+              "proposals": [
+                {
+                  "role": "required_target",
+                  "intent": {
+                    "intent_type": "kind",
+                    "kind": "pet_shop"
+                  },
+                  "evidence": {
+                    "quote": "용품점",
+                    "start": null,
+                    "end": null
+                  }
+                }
+              ]
+            }
+          ],
+          "reason": null
+        },
+        "direct-03": {
+          "disposition": "proposed",
+          "interpretations": [
+            {
+              "search_directive": {
+                "mode": "directed_search",
+                "evidence": null
+              },
+              "proposals": [
+                {
+                  "role": "required_target",
+                  "intent": {
+                    "intent_type": "kind",
+                    "kind": "hospital"
+                  },
+                  "evidence": {
+                    "quote": "동물병원",
+                    "start": null,
+                    "end": null
+                  }
+                },
+                {
+                  "role": "required_condition",
+                  "intent": {
+                    "intent_type": "semantic",
+                    "concept_id": "semantic.proximity"
+                  },
+                  "evidence": {
+                    "quote": "가까운",
+                    "start": null,
+                    "end": null
+                  }
+                }
+              ]
+            }
+          ],
+          "reason": null
+        },
+        "direct-04": {
+          "disposition": "proposed",
+          "interpretations": [
+            {
+              "search_directive": {
+                "mode": "directed_search",
+                "evidence": null
+              },
+              "proposals": [
+                {
+                  "role": "required_target",
+                  "intent": {
+                    "intent_type": "kind",
+                    "kind": "pharmacy"
+                  },
+                  "evidence": {
+                    "quote": "동물약국",
+                    "start": null,
+                    "end": null
+                  }
+                }
+              ]
+            }
+          ],
+          "reason": null
+        },
+        "direct-05": {
+          "disposition": "proposed",
+          "interpretations": [
+            {
+              "search_directive": {
+                "mode": "directed_search",
+                "evidence": null
+              },
+              "proposals": [
+                {
+                  "role": "required_target",
+                  "intent": {
+                    "intent_type": "purpose",
+                    "purpose_id": "dining"
+                  },
+                  "evidence": {
+                    "quote": "밥 먹을 곳",
+                    "start": null,
+                    "end": null
+                  }
+                }
+              ]
+            }
+          ],
+          "reason": null
+        },
+        "direct-06": {
+          "disposition": "proposed",
+          "interpretations": [
+            {
+              "search_directive": {
+                "mode": "directed_search",
+                "evidence": null
+              },
+              "proposals": [
+                {
+                  "role": "goal",
+                  "intent": {
+                    "intent_type": "activity",
+                    "activity_id": "play"
+                  },
+                  "evidence": {
+                    "quote": "산책",
+                    "start": null,
+                    "end": null
+                  }
+                },
+                {
+                  "role": "required_target",
+                  "intent": {
+                    "intent_type": "kind",
+                    "kind": "leisure"
+                  },
+                  "evidence": {
+                    "quote": "곳",
+                    "start": null,
+                    "end": null
+                  }
+                }
+              ]
+            }
+          ],
+          "reason": null
+        },
+        "mixed-01": {
+          "disposition": "proposed",
+          "interpretations": [
+            {
+              "search_directive": {
+                "mode": "directed_search",
+                "evidence": null
+              },
+              "proposals": [
+                {
+                  "role": "required_target",
+                  "intent": {
+                    "intent_type": "kind",
+                    "kind": "cafe"
+                  },
+                  "evidence": {
+                    "quote": "카페",
+                    "start": null,
+                    "end": null
+                  }
+                },
+                {
+                  "role": "required_condition",
+                  "intent": {
+                    "intent_type": "semantic",
+                    "concept_id": "semantic.quiet"
+                  },
+                  "evidence": {
+                    "quote": "조용한",
+                    "start": null,
+                    "end": null
+                  }
+                }
+              ]
+            }
+          ],
+          "reason": null
+        },
+        "mixed-02": {
+          "failure_type": "invalid_output",
+          "detail": "Gemini returned an invalid intent payload",
+          "raw_output": "{\n  \"disposition\": \"proposed\",\n  \"interpretations\": [\n    {\n      \"search_mode\": \"open_discovery\",\n      \"proposals\": [\n        {\n          \"role\": \"required_target\",\n          \"intent_type\": \"kind\",\n          \"quote\": \"식당\",\n          \"kind\": \"restaurant\"\n        },\n        {\n          \"role\": \"required_condition\",\n          \"intent_type\": \"boolean_capability\",\n          \"quote\": \"주차되는\",\n          \"capability_id\": \"operations.parking\",\n          \"value\": true\n        }\n      ],\n      \"search_mode_quote\": \"네가 골라줘\",\n      \"search_mode_start\": 7\n    }\n  ],\n  \"reason\": \"none\"\n}"
+        },
+        "mixed-03": {
+          "disposition": "proposed",
+          "interpretations": [
+            {
+              "search_directive": {
+                "mode": "directed_search",
+                "evidence": null
+              },
+              "proposals": [
+                {
+                  "role": "required_target",
+                  "intent": {
+                    "intent_type": "kind",
+                    "kind": "hospital"
+                  },
+                  "evidence": {
+                    "quote": "동물병원",
+                    "start": null,
+                    "end": null
+                  }
+                },
+                {
+                  "role": "required_target",
+                  "intent": {
+                    "intent_type": "purpose",
+                    "purpose_id": "healthcare"
+                  },
+                  "evidence": {
+                    "quote": "동물병원",
+                    "start": null,
+                    "end": null
+                  }
+                }
+              ]
+            }
+          ],
+          "reason": null
+        },
+        "mixed-04": {
+          "failure_type": "invalid_output",
+          "detail": "Gemini returned an invalid intent payload",
+          "raw_output": "{\n  \"disposition\": \"proposed\",\n  \"interpretations\": [\n    {\n      \"search_mode\": \"open_discovery\",\n      \"proposals\": [\n        {\n          \"role\": \"required_target\",\n          \"intent_type\": \"purpose\",\n          \"quote\": \"숙소\",\n          \"purpose_id\": \"lodging\"\n        }\n      ],\n      \"search_mode_quote\": \"알아서 골라줘\",\n      \"search_mode_start\": 8\n    }\n  ],\n  \"reason\": \"none\"\n}"
+        },
+        "mixed-05": {
+          "failure_type": "invalid_output",
+          "detail": "Gemini returned an invalid intent payload",
+          "raw_output": "{\n  \"disposition\": \"proposed\",\n  \"interpretations\": [\n    {\n      \"search_mode\": \"open_discovery\",\n      \"proposals\": [\n        {\n          \"role\": \"required_target\",\n          \"intent_type\": \"kind\",\n          \"quote\": \"미술관\",\n          \"kind\": \"gallery\"\n        }\n      ],\n      \"search_mode_quote\": \"네가 추천해줘\",\n      \"search_mode_start\": 7\n    }\n  ],\n  \"reason\": \"none\"\n}"
+        },
+        "mixed-06": {
+          "disposition": "proposed",
+          "interpretations": [
+            {
+              "search_directive": {
+                "mode": "open_discovery",
+                "evidence": {
+                  "quote": "네가 추천해줘",
+                  "start": null,
+                  "end": null
+                }
+              },
+              "proposals": [
+                {
+                  "role": "hypothetical",
+                  "intent": {
+                    "intent_type": "activity",
+                    "activity_id": "buy"
+                  },
+                  "evidence": {
+                    "quote": "사고 싶어",
+                    "start": null,
+                    "end": null
+                  }
+                },
+                {
+                  "role": "hypothetical",
+                  "intent": {
+                    "intent_type": "object",
+                    "object_id": "dog_toy"
+                  },
+                  "evidence": {
+                    "quote": "강아지 장난감",
+                    "start": null,
+                    "end": null
+                  }
+                }
+              ]
+            }
+          ],
+          "reason": null
+        },
+        "affect-01": {
+          "disposition": "proposed",
+          "interpretations": [
+            {
+              "search_directive": {
+                "mode": "open_discovery",
+                "evidence": {
+                  "quote": "조용한 곳",
+                  "start": null,
+                  "end": null
+                }
+              },
+              "proposals": [
+                {
+                  "role": "preference",
+                  "intent": {
+                    "intent_type": "semantic",
+                    "concept_id": "semantic.quiet"
+                  },
+                  "evidence": {
+                    "quote": "조용한",
+                    "start": null,
+                    "end": null
+                  }
+                }
+              ]
+            }
+          ],
+          "reason": null
+        },
+        "affect-03": {
+          "disposition": "proposed",
+          "interpretations": [
+            {
+              "search_directive": {
+                "mode": "open_discovery",
+                "evidence": {
+                  "quote": "오늘 뭐 할까",
+                  "start": null,
+                  "end": null
+                }
+              },
+              "proposals": []
+            }
+          ],
+          "reason": null
+        },
+        "affect-05": {
+          "disposition": "abstained",
+          "interpretations": [],
+          "reason": "unspecified"
+        },
+        "affect-07": {
+          "disposition": "proposed",
+          "interpretations": [
+            {
+              "search_directive": {
+                "mode": "directed_search",
+                "evidence": null
+              },
+              "proposals": [
+                {
+                  "role": "goal",
+                  "intent": {
+                    "intent_type": "activity",
+                    "activity_id": "play"
+                  },
+                  "evidence": {
+                    "quote": "놀고 싶어",
+                    "start": null,
+                    "end": null
+                  }
+                }
+              ]
+            }
+          ],
+          "reason": null
+        },
+        "affect-09": {
+          "failure_type": "invalid_output",
+          "detail": "Gemini returned an invalid intent payload",
+          "raw_output": "{\n  \"disposition\": \"ambiguous\",\n  \"interpretations\": [\n    {\n      \"search_mode\": \"open_discovery\",\n      \"proposals\": [\n        {\n          \"role\": \"required_target\",\n          \"intent_type\": \"kind\",\n          \"quote\": \"카페\",\n          \"kind\": \"cafe\"\n        }\n      ],\n      \"search_mode_quote\": \"어디가 좋을까\",\n      \"search_mode_start\": 14\n    },\n    {\n      \"search_mode\": \"open_discovery\",\n      \"proposals\": [\n        {\n          \"role\": \"goal\",\n          \"intent_type\": \"activity\",\n          \"quote\": \"산책\",\n          \"activity_id\": \"play\"\n        }\n      ],\n      \"search_mode_quote\": \"어디가 좋을까\",\n      \"search_mode_start\": 14\n    }\n  ],\n  \"reason\": \"multiple_plausible_readings\"\n}"
+        },
+        "affect-10": {
+          "disposition": "proposed",
+          "interpretations": [
+            {
+              "search_directive": {
+                "mode": "open_discovery",
+                "evidence": {
+                  "quote": "갈 곳이 애매해",
+                  "start": null,
+                  "end": null
+                }
+              },
+              "proposals": []
+            }
+          ],
+          "reason": null
+        },
+        "safety-01": {
+          "disposition": "proposed",
+          "interpretations": [
+            {
+              "search_directive": {
+                "mode": "directed_search",
+                "evidence": null
+              },
+              "proposals": [
+                {
+                  "role": "negated",
+                  "intent": {
+                    "intent_type": "kind",
+                    "kind": "hospital"
+                  },
+                  "evidence": {
+                    "quote": "병원",
+                    "start": null,
+                    "end": null
+                  }
+                }
+              ]
+            }
+          ],
+          "reason": null
+        },
+        "safety-02": {
+          "disposition": "proposed",
+          "interpretations": [
+            {
+              "search_directive": {
+                "mode": "directed_search",
+                "evidence": null
+              },
+              "proposals": [
+                {
+                  "role": "excluded",
+                  "intent": {
+                    "intent_type": "kind",
+                    "kind": "cafe"
+                  },
+                  "evidence": {
+                    "quote": "카페",
+                    "start": null,
+                    "end": null
+                  }
+                },
+                {
+                  "role": "goal",
+                  "intent": {
+                    "intent_type": "activity",
+                    "activity_id": "play"
+                  },
+                  "evidence": {
+                    "quote": "산책",
+                    "start": null,
+                    "end": null
+                  }
+                },
+                {
+                  "role": "required_target",
+                  "intent": {
+                    "intent_type": "purpose",
+                    "purpose_id": "outing"
+                  },
+                  "evidence": {
+                    "quote": "산책할 곳",
+                    "start": null,
+                    "end": null
+                  }
+                }
+              ]
+            }
+          ],
+          "reason": null
+        },
+        "safety-03": {
+          "disposition": "proposed",
+          "interpretations": [
+            {
+              "search_directive": {
+                "mode": "directed_search",
+                "evidence": null
+              },
+              "proposals": [
+                {
+                  "role": "required_target",
+                  "intent": {
+                    "intent_type": "kind",
+                    "kind": "cafe"
+                  },
+                  "evidence": {
+                    "quote": "카페",
+                    "start": null,
+                    "end": null
+                  }
+                }
+              ]
+            }
+          ],
+          "reason": null
+        },
+        "safety-04": {
+          "disposition": "proposed",
+          "interpretations": [
+            {
+              "search_directive": {
+                "mode": "directed_search",
+                "evidence": null
+              },
+              "proposals": [
+                {
+                  "role": "required_target",
+                  "intent": {
+                    "intent_type": "kind",
+                    "kind": "stay"
+                  },
+                  "evidence": {
+                    "quote": "숙소",
+                    "start": null,
+                    "end": null
+                  }
+                },
+                {
+                  "role": "relational",
+                  "intent": {
+                    "intent_type": "kind",
+                    "kind": "cafe"
+                  },
+                  "evidence": {
+                    "quote": "카페",
+                    "start": null,
+                    "end": null
+                  }
+                }
+              ]
+            }
+          ],
+          "reason": null
+        },
+        "safety-05": {
+          "failure_type": "invalid_output",
+          "detail": "Gemini returned an invalid intent payload",
+          "raw_output": "{\n  \"disposition\": \"proposed\",\n  \"interpretations\": [\n    {\n      \"search_mode\": \"open_discovery\",\n      \"proposals\": [\n        {\n          \"role\": \"hypothetical\",\n          \"intent_type\": \"activity\",\n          \"quote\": \"산다면\",\n          \"activity_id\": \"buy\"\n        },\n        {\n          \"role\": \"hypothetical\",\n          \"intent_type\": \"object\",\n          \"quote\": \"강아지 장난감\",\n          \"object_id\": \"dog_toy\"\n        }\n      ]\n    }\n  ],\n  \"reason\": \"none\"\n}"
+        },
+        "safety-06": {
+          "disposition": "proposed",
+          "interpretations": [
+            {
+              "search_directive": {
+                "mode": "open_discovery",
+                "evidence": {
+                  "quote": "주차되면 좋겠어",
+                  "start": null,
+                  "end": null
+                }
+              },
+              "proposals": [
+                {
+                  "role": "preference",
+                  "intent": {
+                    "intent_type": "boolean_capability",
+                    "capability_id": "operations.parking",
+                    "value": true
+                  },
+                  "evidence": {
+                    "quote": "주차되면 좋겠어",
+                    "start": null,
+                    "end": null
+                  }
+                }
+              ]
+            }
+          ],
+          "reason": null
+        }
+      }
+    }
+  ]
+}

@@ -12,10 +12,16 @@ from typing import Literal, Self
 from pydantic import Field, TypeAdapter, model_validator
 
 from app.core.config import settings
-from app.discovery.place_intent.contract import IntentProposer, LLMIntentOutput
+from app.discovery.place_intent.contract import (
+    IntentProposer,
+    IntentProposerInvalidOutputError,
+)
 from app.discovery.place_intent.evaluation import (
+    EvaluationFailureType,
     EvaluationSplit,
     IntentEvaluationCase,
+    IntentEvaluationFailure,
+    IntentEvaluationPrediction,
     ProductOutcomeId,
     evaluate_intent_runs,
 )
@@ -47,11 +53,14 @@ _DEFAULT_FIXTURE = (
 
 class IntentPredictionRun(PlanningModel):
     repeat_index: int = Field(ge=1)
-    predictions: dict[str, LLMIntentOutput]
+    predictions: dict[str, IntentEvaluationPrediction]
 
 
 class IntentPredictionRecording(PlanningModel):
-    schema_version: Literal["place-intent-predictions-v2"]
+    schema_version: Literal[
+        "place-intent-predictions-v2",
+        "place-intent-predictions-v3",
+    ]
     provider: Literal["gemini", "openai"]
     model: str = Field(min_length=1, max_length=120)
     corpus_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
@@ -195,9 +204,13 @@ async def _live_prediction_runs(
     proposer: IntentProposer,
     *,
     repeat: int,
-    initial_runs: tuple[dict[str, LLMIntentOutput], ...] | None = None,
-    on_progress: Callable[[tuple[dict[str, LLMIntentOutput], ...]], None] | None = None,
-) -> tuple[dict[str, LLMIntentOutput], ...]:
+    initial_runs: tuple[dict[str, IntentEvaluationPrediction], ...] | None = None,
+    on_progress: Callable[
+        [tuple[dict[str, IntentEvaluationPrediction], ...]],
+        None,
+    ]
+    | None = None,
+) -> tuple[dict[str, IntentEvaluationPrediction], ...]:
     if initial_runs is not None and len(initial_runs) != repeat:
         raise ValueError("initial prediction runs must match requested repeat count")
     runs = (
@@ -211,7 +224,14 @@ async def _live_prediction_runs(
             if case.case_id in predictions:
                 continue
             async with usage_request_scope():
-                predictions[case.case_id] = await proposer.propose(case.utterance)
+                try:
+                    predictions[case.case_id] = await proposer.propose(case.utterance)
+                except IntentProposerInvalidOutputError as exc:
+                    predictions[case.case_id] = IntentEvaluationFailure(
+                        failure_type=EvaluationFailureType.INVALID_OUTPUT,
+                        detail=str(exc),
+                        raw_output=exc.raw_output,
+                    )
             if on_progress is not None:
                 on_progress(tuple(dict(run) for run in runs))
     return tuple(runs)
@@ -219,7 +239,7 @@ async def _live_prediction_runs(
 
 def _validate_prediction_ids(
     cases: tuple[IntentEvaluationCase, ...],
-    runs: tuple[dict[str, LLMIntentOutput], ...],
+    runs: tuple[dict[str, IntentEvaluationPrediction], ...],
     *,
     require_complete: bool = True,
 ) -> None:
@@ -266,12 +286,12 @@ def _recording(
     provenance: _ProviderProvenance,
     cases: tuple[IntentEvaluationCase, ...],
     created_at: datetime,
-    prediction_runs: tuple[dict[str, LLMIntentOutput], ...],
+    prediction_runs: tuple[dict[str, IntentEvaluationPrediction], ...],
 ) -> IntentPredictionRecording:
     expected_ids = {case.case_id for case in cases}
     complete = all(set(predictions) == expected_ids for predictions in prediction_runs)
     return IntentPredictionRecording(
-        schema_version="place-intent-predictions-v2",
+        schema_version="place-intent-predictions-v3",
         provider=provider,
         model=model,
         corpus_sha256=_corpus_digest(cases),
@@ -306,7 +326,7 @@ async def run(args: argparse.Namespace) -> int:
         args.split,
         stability_probe=args.stability_probe,
     )
-    prediction_runs: tuple[dict[str, LLMIntentOutput], ...]
+    prediction_runs: tuple[dict[str, IntentEvaluationPrediction], ...]
     if live:
         proposer, model = _configured_provider(args.provider)
         provenance = _provider_provenance(args.provider)
@@ -340,7 +360,9 @@ async def run(args: argparse.Namespace) -> int:
                 f"allows {window_limit} per window; select fewer cases or repetitions"
             )
     if live:
-        def checkpoint(runs: tuple[dict[str, LLMIntentOutput], ...]) -> None:
+        def checkpoint(
+            runs: tuple[dict[str, IntentEvaluationPrediction], ...],
+        ) -> None:
             if recording_path is None:
                 return
             snapshot = _recording(
