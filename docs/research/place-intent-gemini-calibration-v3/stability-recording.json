@@ -1,0 +1,816 @@
+{
+  "schema_version": "place-intent-predictions-v3",
+  "provider": "gemini",
+  "model": "gemini-3.1-flash-lite",
+  "corpus_sha256": "8d3e7ab55e054a6c6fc4dd42180fb7f1d25acb1fc9d4d26bdc867627744b2583",
+  "prompt_sha256": "7d372d9ca71f6f8ef125398fc0d9bb7216f8f654d5ad20f01fb3ffff37149805",
+  "output_schema_sha256": "5f8b6412abb2b1fe6f9e4946f035a849fde49d9b69cb9657acc56d5f8a8528db",
+  "generation_config": {
+    "max_output_tokens": 1800,
+    "temperature": 0.0
+  },
+  "requested_repeat": 3,
+  "created_at": "2026-09-02T02:36:25.861132Z",
+  "updated_at": "2026-09-02T02:37:57.598428Z",
+  "complete": true,
+  "runs": [
+    {
+      "repeat_index": 1,
+      "predictions": {
+        "open-01": {
+          "disposition": "proposed",
+          "interpretations": [
+            {
+              "search_directive": {
+                "mode": "open_discovery",
+                "evidence": {
+                  "quote": "네가 추천해봐",
+                  "start": null,
+                  "end": null
+                }
+              },
+              "proposals": []
+            }
+          ],
+          "reason": null
+        },
+        "open-02": {
+          "disposition": "proposed",
+          "interpretations": [
+            {
+              "search_directive": {
+                "mode": "open_discovery",
+                "evidence": {
+                  "quote": "갈 데 없는데 알아서 골라줘",
+                  "start": null,
+                  "end": null
+                }
+              },
+              "proposals": []
+            }
+          ],
+          "reason": null
+        },
+        "direct-01": {
+          "disposition": "proposed",
+          "interpretations": [
+            {
+              "search_directive": {
+                "mode": "directed_search",
+                "evidence": null
+              },
+              "proposals": [
+                {
+                  "role": "required_target",
+                  "intent": {
+                    "intent_type": "kind",
+                    "kind": "cafe"
+                  },
+                  "evidence": {
+                    "quote": "카페",
+                    "start": null,
+                    "end": null
+                  }
+                }
+              ]
+            }
+          ],
+          "reason": null
+        },
+        "direct-02": {
+          "disposition": "proposed",
+          "interpretations": [
+            {
+              "search_directive": {
+                "mode": "directed_search",
+                "evidence": null
+              },
+              "proposals": [
+                {
+                  "role": "required_target",
+                  "intent": {
+                    "intent_type": "kind",
+                    "kind": "pet_shop"
+                  },
+                  "evidence": {
+                    "quote": "용품점",
+                    "start": null,
+                    "end": null
+                  }
+                }
+              ]
+            }
+          ],
+          "reason": null
+        },
+        "mixed-01": {
+          "disposition": "proposed",
+          "interpretations": [
+            {
+              "search_directive": {
+                "mode": "directed_search",
+                "evidence": null
+              },
+              "proposals": [
+                {
+                  "role": "required_target",
+                  "intent": {
+                    "intent_type": "kind",
+                    "kind": "cafe"
+                  },
+                  "evidence": {
+                    "quote": "카페",
+                    "start": null,
+                    "end": null
+                  }
+                },
+                {
+                  "role": "required_target",
+                  "intent": {
+                    "intent_type": "semantic",
+                    "concept_id": "semantic.quiet"
+                  },
+                  "evidence": {
+                    "quote": "조용한",
+                    "start": null,
+                    "end": null
+                  }
+                }
+              ]
+            }
+          ],
+          "reason": null
+        },
+        "mixed-06": {
+          "disposition": "proposed",
+          "interpretations": [
+            {
+              "search_directive": {
+                "mode": "open_discovery",
+                "evidence": {
+                  "quote": "네가 추천해줘",
+                  "start": null,
+                  "end": null
+                }
+              },
+              "proposals": [
+                {
+                  "role": "goal",
+                  "intent": {
+                    "intent_type": "activity",
+                    "activity_id": "buy"
+                  },
+                  "evidence": {
+                    "quote": "사고 싶어",
+                    "start": null,
+                    "end": null
+                  }
+                },
+                {
+                  "role": "goal",
+                  "intent": {
+                    "intent_type": "object",
+                    "object_id": "dog_toy"
+                  },
+                  "evidence": {
+                    "quote": "강아지 장난감",
+                    "start": null,
+                    "end": null
+                  }
+                }
+              ]
+            }
+          ],
+          "reason": null
+        },
+        "affect-01": {
+          "disposition": "proposed",
+          "interpretations": [
+            {
+              "search_directive": {
+                "mode": "directed_search",
+                "evidence": null
+              },
+              "proposals": [
+                {
+                  "role": "required_target",
+                  "intent": {
+                    "intent_type": "semantic",
+                    "concept_id": "semantic.quiet"
+                  },
+                  "evidence": {
+                    "quote": "조용한 곳",
+                    "start": null,
+                    "end": null
+                  }
+                }
+              ]
+            }
+          ],
+          "reason": null
+        },
+        "affect-05": {
+          "disposition": "abstained",
+          "interpretations": [],
+          "reason": "unspecified"
+        },
+        "safety-01": {
+          "disposition": "proposed",
+          "interpretations": [
+            {
+              "search_directive": {
+                "mode": "directed_search",
+                "evidence": null
+              },
+              "proposals": [
+                {
+                  "role": "negated",
+                  "intent": {
+                    "intent_type": "kind",
+                    "kind": "hospital"
+                  },
+                  "evidence": {
+                    "quote": "병원",
+                    "start": null,
+                    "end": null
+                  }
+                }
+              ]
+            }
+          ],
+          "reason": null
+        },
+        "safety-02": {
+          "disposition": "proposed",
+          "interpretations": [
+            {
+              "search_directive": {
+                "mode": "directed_search",
+                "evidence": null
+              },
+              "proposals": [
+                {
+                  "role": "excluded",
+                  "intent": {
+                    "intent_type": "kind",
+                    "kind": "cafe"
+                  },
+                  "evidence": {
+                    "quote": "카페",
+                    "start": null,
+                    "end": null
+                  }
+                },
+                {
+                  "role": "required_target",
+                  "intent": {
+                    "intent_type": "purpose",
+                    "purpose_id": "outing"
+                  },
+                  "evidence": {
+                    "quote": "산책할 곳",
+                    "start": null,
+                    "end": null
+                  }
+                }
+              ]
+            }
+          ],
+          "reason": null
+        }
+      }
+    },
+    {
+      "repeat_index": 2,
+      "predictions": {
+        "open-01": {
+          "disposition": "proposed",
+          "interpretations": [
+            {
+              "search_directive": {
+                "mode": "open_discovery",
+                "evidence": {
+                  "quote": "네가 추천해봐",
+                  "start": null,
+                  "end": null
+                }
+              },
+              "proposals": []
+            }
+          ],
+          "reason": null
+        },
+        "open-02": {
+          "disposition": "proposed",
+          "interpretations": [
+            {
+              "search_directive": {
+                "mode": "open_discovery",
+                "evidence": {
+                  "quote": "갈 데 없는데 알아서 골라줘",
+                  "start": null,
+                  "end": null
+                }
+              },
+              "proposals": []
+            }
+          ],
+          "reason": null
+        },
+        "direct-01": {
+          "disposition": "proposed",
+          "interpretations": [
+            {
+              "search_directive": {
+                "mode": "directed_search",
+                "evidence": null
+              },
+              "proposals": [
+                {
+                  "role": "required_target",
+                  "intent": {
+                    "intent_type": "kind",
+                    "kind": "cafe"
+                  },
+                  "evidence": {
+                    "quote": "카페",
+                    "start": null,
+                    "end": null
+                  }
+                }
+              ]
+            }
+          ],
+          "reason": null
+        },
+        "direct-02": {
+          "disposition": "proposed",
+          "interpretations": [
+            {
+              "search_directive": {
+                "mode": "directed_search",
+                "evidence": null
+              },
+              "proposals": [
+                {
+                  "role": "required_target",
+                  "intent": {
+                    "intent_type": "kind",
+                    "kind": "pet_shop"
+                  },
+                  "evidence": {
+                    "quote": "용품점",
+                    "start": null,
+                    "end": null
+                  }
+                }
+              ]
+            }
+          ],
+          "reason": null
+        },
+        "mixed-01": {
+          "disposition": "proposed",
+          "interpretations": [
+            {
+              "search_directive": {
+                "mode": "directed_search",
+                "evidence": null
+              },
+              "proposals": [
+                {
+                  "role": "required_target",
+                  "intent": {
+                    "intent_type": "kind",
+                    "kind": "cafe"
+                  },
+                  "evidence": {
+                    "quote": "카페",
+                    "start": null,
+                    "end": null
+                  }
+                },
+                {
+                  "role": "required_target",
+                  "intent": {
+                    "intent_type": "semantic",
+                    "concept_id": "semantic.quiet"
+                  },
+                  "evidence": {
+                    "quote": "조용한",
+                    "start": null,
+                    "end": null
+                  }
+                }
+              ]
+            }
+          ],
+          "reason": null
+        },
+        "mixed-06": {
+          "disposition": "proposed",
+          "interpretations": [
+            {
+              "search_directive": {
+                "mode": "open_discovery",
+                "evidence": {
+                  "quote": "네가 추천해줘",
+                  "start": null,
+                  "end": null
+                }
+              },
+              "proposals": [
+                {
+                  "role": "goal",
+                  "intent": {
+                    "intent_type": "activity",
+                    "activity_id": "buy"
+                  },
+                  "evidence": {
+                    "quote": "사고 싶어",
+                    "start": null,
+                    "end": null
+                  }
+                },
+                {
+                  "role": "goal",
+                  "intent": {
+                    "intent_type": "object",
+                    "object_id": "dog_toy"
+                  },
+                  "evidence": {
+                    "quote": "강아지 장난감",
+                    "start": null,
+                    "end": null
+                  }
+                }
+              ]
+            }
+          ],
+          "reason": null
+        },
+        "affect-01": {
+          "disposition": "proposed",
+          "interpretations": [
+            {
+              "search_directive": {
+                "mode": "directed_search",
+                "evidence": null
+              },
+              "proposals": [
+                {
+                  "role": "required_target",
+                  "intent": {
+                    "intent_type": "semantic",
+                    "concept_id": "semantic.quiet"
+                  },
+                  "evidence": {
+                    "quote": "조용한 곳",
+                    "start": null,
+                    "end": null
+                  }
+                }
+              ]
+            }
+          ],
+          "reason": null
+        },
+        "affect-05": {
+          "disposition": "abstained",
+          "interpretations": [],
+          "reason": "unspecified"
+        },
+        "safety-01": {
+          "disposition": "proposed",
+          "interpretations": [
+            {
+              "search_directive": {
+                "mode": "directed_search",
+                "evidence": null
+              },
+              "proposals": [
+                {
+                  "role": "negated",
+                  "intent": {
+                    "intent_type": "kind",
+                    "kind": "hospital"
+                  },
+                  "evidence": {
+                    "quote": "병원",
+                    "start": null,
+                    "end": null
+                  }
+                }
+              ]
+            }
+          ],
+          "reason": null
+        },
+        "safety-02": {
+          "disposition": "proposed",
+          "interpretations": [
+            {
+              "search_directive": {
+                "mode": "directed_search",
+                "evidence": null
+              },
+              "proposals": [
+                {
+                  "role": "excluded",
+                  "intent": {
+                    "intent_type": "kind",
+                    "kind": "cafe"
+                  },
+                  "evidence": {
+                    "quote": "카페",
+                    "start": null,
+                    "end": null
+                  }
+                },
+                {
+                  "role": "required_target",
+                  "intent": {
+                    "intent_type": "purpose",
+                    "purpose_id": "outing"
+                  },
+                  "evidence": {
+                    "quote": "산책할 곳",
+                    "start": null,
+                    "end": null
+                  }
+                }
+              ]
+            }
+          ],
+          "reason": null
+        }
+      }
+    },
+    {
+      "repeat_index": 3,
+      "predictions": {
+        "open-01": {
+          "disposition": "proposed",
+          "interpretations": [
+            {
+              "search_directive": {
+                "mode": "open_discovery",
+                "evidence": {
+                  "quote": "네가 추천해봐",
+                  "start": null,
+                  "end": null
+                }
+              },
+              "proposals": []
+            }
+          ],
+          "reason": null
+        },
+        "open-02": {
+          "disposition": "proposed",
+          "interpretations": [
+            {
+              "search_directive": {
+                "mode": "open_discovery",
+                "evidence": {
+                  "quote": "갈 데 없는데 알아서 골라줘",
+                  "start": null,
+                  "end": null
+                }
+              },
+              "proposals": []
+            }
+          ],
+          "reason": null
+        },
+        "direct-01": {
+          "disposition": "proposed",
+          "interpretations": [
+            {
+              "search_directive": {
+                "mode": "directed_search",
+                "evidence": null
+              },
+              "proposals": [
+                {
+                  "role": "required_target",
+                  "intent": {
+                    "intent_type": "kind",
+                    "kind": "cafe"
+                  },
+                  "evidence": {
+                    "quote": "카페",
+                    "start": null,
+                    "end": null
+                  }
+                }
+              ]
+            }
+          ],
+          "reason": null
+        },
+        "direct-02": {
+          "disposition": "proposed",
+          "interpretations": [
+            {
+              "search_directive": {
+                "mode": "directed_search",
+                "evidence": null
+              },
+              "proposals": [
+                {
+                  "role": "required_target",
+                  "intent": {
+                    "intent_type": "kind",
+                    "kind": "pet_shop"
+                  },
+                  "evidence": {
+                    "quote": "용품점",
+                    "start": null,
+                    "end": null
+                  }
+                }
+              ]
+            }
+          ],
+          "reason": null
+        },
+        "mixed-01": {
+          "disposition": "proposed",
+          "interpretations": [
+            {
+              "search_directive": {
+                "mode": "directed_search",
+                "evidence": null
+              },
+              "proposals": [
+                {
+                  "role": "required_target",
+                  "intent": {
+                    "intent_type": "kind",
+                    "kind": "cafe"
+                  },
+                  "evidence": {
+                    "quote": "카페",
+                    "start": null,
+                    "end": null
+                  }
+                },
+                {
+                  "role": "required_target",
+                  "intent": {
+                    "intent_type": "semantic",
+                    "concept_id": "semantic.quiet"
+                  },
+                  "evidence": {
+                    "quote": "조용한",
+                    "start": null,
+                    "end": null
+                  }
+                }
+              ]
+            }
+          ],
+          "reason": null
+        },
+        "mixed-06": {
+          "disposition": "proposed",
+          "interpretations": [
+            {
+              "search_directive": {
+                "mode": "open_discovery",
+                "evidence": {
+                  "quote": "네가 추천해줘",
+                  "start": null,
+                  "end": null
+                }
+              },
+              "proposals": [
+                {
+                  "role": "goal",
+                  "intent": {
+                    "intent_type": "activity",
+                    "activity_id": "buy"
+                  },
+                  "evidence": {
+                    "quote": "사고 싶어",
+                    "start": null,
+                    "end": null
+                  }
+                },
+                {
+                  "role": "goal",
+                  "intent": {
+                    "intent_type": "object",
+                    "object_id": "dog_toy"
+                  },
+                  "evidence": {
+                    "quote": "강아지 장난감",
+                    "start": null,
+                    "end": null
+                  }
+                }
+              ]
+            }
+          ],
+          "reason": null
+        },
+        "affect-01": {
+          "disposition": "proposed",
+          "interpretations": [
+            {
+              "search_directive": {
+                "mode": "directed_search",
+                "evidence": null
+              },
+              "proposals": [
+                {
+                  "role": "required_target",
+                  "intent": {
+                    "intent_type": "semantic",
+                    "concept_id": "semantic.quiet"
+                  },
+                  "evidence": {
+                    "quote": "조용한 곳",
+                    "start": null,
+                    "end": null
+                  }
+                }
+              ]
+            }
+          ],
+          "reason": null
+        },
+        "affect-05": {
+          "disposition": "abstained",
+          "interpretations": [],
+          "reason": "unspecified"
+        },
+        "safety-01": {
+          "disposition": "proposed",
+          "interpretations": [
+            {
+              "search_directive": {
+                "mode": "directed_search",
+                "evidence": null
+              },
+              "proposals": [
+                {
+                  "role": "negated",
+                  "intent": {
+                    "intent_type": "kind",
+                    "kind": "hospital"
+                  },
+                  "evidence": {
+                    "quote": "병원",
+                    "start": null,
+                    "end": null
+                  }
+                }
+              ]
+            }
+          ],
+          "reason": null
+        },
+        "safety-02": {
+          "disposition": "proposed",
+          "interpretations": [
+            {
+              "search_directive": {
+                "mode": "directed_search",
+                "evidence": null
+              },
+              "proposals": [
+                {
+                  "role": "excluded",
+                  "intent": {
+                    "intent_type": "kind",
+                    "kind": "cafe"
+                  },
+                  "evidence": {
+                    "quote": "카페",
+                    "start": null,
+                    "end": null
+                  }
+                },
+                {
+                  "role": "required_target",
+                  "intent": {
+                    "intent_type": "purpose",
+                    "purpose_id": "outing"
+                  },
+                  "evidence": {
+                    "quote": "산책할 곳",
+                    "start": null,
+                    "end": null
+                  }
+                }
+              ]
+            }
+          ],
+          "reason": null
+        }
+      }
+    }
+  ]
+}

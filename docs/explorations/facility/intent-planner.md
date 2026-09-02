@@ -149,6 +149,9 @@ intent가 맞아도 실제 lens가 하나도 실행되지 않는 회귀를 별�
 첫 Gemini 3.1 Flash-Lite calibration과 반복 결과는
 [2026-09-02 연구 기록](../../research/2026-09-02-place-intent-gemini-calibration.md)에 남긴다. 이 baseline은
 prompt/schema 수정 대상을 고르는 calibration이며 holdout 판정이나 제품 품질 임계값이 아니다.
+[후속 calibration](../../research/2026-09-02-place-intent-gemini-calibration-v3.md)은 mixed delegation과
+role/safety 경계를 수정하고 같은 corpus로 재측정한 결과다. 최종 계약은 holdout을 열기 전에 더 이상
+calibration에 맞추지 않는 동결 후보로 둔다.
 
 평가기는 다음 오류 비용을 각각 계산한다.
 전체 평균과 함께 같은 지표를 category별로 다시 계산해 특정 문장군의 실패가 aggregate에 숨지 않게 한다.
