@@ -36,6 +36,10 @@ async def test_failed_attempt_and_explicit_action_are_queryable() -> None:
                     interpretation_count=1,
                     target_lens_count=2,
                     executable_lens_count=0,
+                    initial_candidate_count=12,
+                    eligible_candidate_count=0,
+                    displayed_result_count=0,
+                    initial_candidate_count_truncated=False,
                     result_count=0,
                     snapshot={"lenses": []},
                 ),
@@ -58,6 +62,10 @@ async def test_failed_attempt_and_explicit_action_are_queryable() -> None:
             assert row.fallback_policy_id is None
             assert row.fallback_policy_version is None
             assert row.target_lens_count == 2
+            assert row.initial_candidate_count == 12
+            assert row.eligible_candidate_count == 0
+            assert row.displayed_result_count == 0
+            assert row.initial_candidate_count_truncated is False
         finally:
             await db.execute(
                 text("DELETE FROM place_intent_lab_attempt WHERE id = :id"),

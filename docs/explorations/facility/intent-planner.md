@@ -329,6 +329,14 @@ provider 장애, 유효하지 않은 intent 출력, facet 선택 필요, 실행 
 gate 전멸, 그 밖의 결과 0건, DB 검색 장애를
 구분한다. `/dev/place-intent/observations`와 lab의 `Operator observations`가 최근 실패를 읽는다.
 
+정량 평가에서 공급량과 UI 미리보기를 혼동하지 않도록 검색 수는 세 단계로 나눈다.
+`initial_candidate_count`는 공간·목적 종류로 조회한 preview 후보, `eligible_candidate_count`는
+마지막 gate 통과 후, `displayed_result_count`는 lens별 미리보기 제한까지 적용해 실제 반환한
+개수다. preview 후보는 최대 1,000개로 제한되므로 잘린 종류가 하나라도 있으면
+`initial_candidate_count_truncated=true`를 함께 기록해 이 값을 정확한 전체 수처럼 해석하지 않는다. 기존
+`result_count`는 호환성을 위해 `displayed_result_count`와 같은 값으로만 기록한다. 과거 attempt의
+초기·통과 후보 수는 복원할 수 없으므로 새 컬럼을 임의로 역산하지 않고 `NULL`로 보존한다.
+
 이 저장은 `DAENGS_DEV_CONSOLE` 검증 표면만 호출한다. 재현을 위해 최대 1,000자의 발화 원문을
 보존하므로 운영 검색에 그대로 연결해서는 안 된다. 운영 전에는 동의·보존 기간·삭제와 비식별화
 정책을 별도로 결정해야 한다. 이 관측은 자동 완화를 실행하지 않으며, 이후 완화 정책의 근거만 만든다.

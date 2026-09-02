@@ -395,6 +395,12 @@ function renderCandidateDetail(lens) {
 
   const previewBox = document.createElement('div'); previewBox.className = 'box';
   const previewTitle = document.createElement('b'); previewTitle.textContent = 'gate preview'; previewBox.append(previewTitle);
+  const counts = confirmation ? confirmation.candidate_counts : execution.candidate_counts;
+  const countDetail = document.createElement('small');
+  countDetail.textContent = '후보 ' + counts.initial_candidate_count +
+    (counts.initial_candidate_count_truncated ? '+' : '') + ' → ' +
+    counts.eligible_candidate_count + ' · 화면 표시 ' + counts.displayed_result_count;
+  previewBox.append(countDetail);
   preview.gates.forEach(gate => {
     const row = document.createElement('div'); row.className = 'gate';
     const name = document.createElement('b'); name.textContent = gate.capability_id;
@@ -623,12 +629,18 @@ async function loadObservations() {
       const fallback = attempt.fallback_policy_id
         ? ' · fallback ' + attempt.fallback_policy_id + '@' + attempt.fallback_policy_version
         : '';
+      const counts = attempt.initial_candidate_count === null
+        ? ' · 후보 수 미측정 · 기존 표시 ' + attempt.result_count
+        : ' · 후보 ' + attempt.initial_candidate_count +
+          (attempt.initial_candidate_count_truncated ? '+' : '') + ' → ' +
+          attempt.eligible_candidate_count +
+          ' · 화면 표시 ' + attempt.displayed_result_count;
       const detail = document.createElement('small');
       detail.textContent = new Date(attempt.created_at).toLocaleString() +
         ' · proposer ' + proposer +
         ' · 해석 ' + attempt.interpretation_count +
         ' · lens ' + attempt.executable_lens_count + '/' + attempt.target_lens_count +
-        ' · 결과 ' + attempt.result_count + fallback;
+        counts + fallback;
       box.append(utterance, state, mode, detail); root.append(box);
     });
     if (!data.attempts.length) {
