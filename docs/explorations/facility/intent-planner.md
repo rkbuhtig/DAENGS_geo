@@ -122,12 +122,25 @@ ID와 `source=llm_proposal`을 붙인다. 한 interpretation 안의 일부 evide
 OpenAI 어댑터는 [OpenAI Structured Outputs 공식 문서](https://developers.openai.com/api/docs/guides/structured-outputs)의
 Responses API `text.format=json_schema`를, Gemini 어댑터는 Interactions API의 JSON schema 응답을
 각각 같은 내부 계약으로 정규화한다. 현재 `/dev/place-intent/*` lab은 Gemini만 조립하고,
-`scripts.evaluate_place_intent --live`는 OpenAI만 조립한다. `DAENGS_LLM_PROVIDER`와 해당 API key를
-각 진입점에 맞게 명시하지 않으면 lab은 503으로 닫힌다.
+`scripts.evaluate_place_intent --live`는 `--provider gemini|openai`로 둘 중 하나를 명시적으로 고른다.
+`DAENGS_LLM_PROVIDER`와 해당 API key를 진입점에 맞게 명시하지 않으면 lab은 503으로, evaluator는
+실제 호출 전에 닫힌다.
 
 ## 평가 경계
 
-실제 모델을 CI에서 호출하지 않는다. 녹화 fixture는 다음 오류 비용을 각각 계산한다.
+실제 모델을 CI에서 호출하지 않는다. 기존 13개 녹화 fixture는 회귀 검사용으로 유지하고,
+`open_discovery_cases.json`은 실제 모델을 정량 평가하기 위한 50개 정답 코퍼스다. 코퍼스는
+`delegated_open`, `explicit_directed`, `mixed_delegation`, `affective_ambiguous`, `role_safety`
+다섯 범주를 10개씩 담고, 프롬프트를 조정해도 되는 calibration 30개와 최종 확인 전에는 열지 않는
+holdout 20개로 고정한다. calibration 안에는 범주별 2개씩 뽑은 stability probe 10개도 고정한다.
+모델 출력은 코퍼스와 분리된 recording에 저장한다.
+
+평가 준비 단계에서는 코퍼스·실행기·지표만 고정한다. 이 단계의 코드와 fixture만으로 Gemini 품질이
+좋거나 나쁘다는 결론을 내리지 않는다. 실제 실측은 별도 평가 단계에서 calibration을 먼저 반복 실행한
+후, 변경을 동결하고 holdout을 한 번 평가한다.
+
+평가기는 다음 오류 비용을 각각 계산한다.
+전체 평균과 함께 같은 지표를 category별로 다시 계산해 특정 문장군의 실패가 aggregate에 숨지 않게 한다.
 
 | metric | 막으려는 실패 |
 |---|---|
@@ -136,14 +149,46 @@ Responses API `text.format=json_schema`를, Gemini 어댑터는 Interactions API
 | `evidence_span_accuracy` | 사용자가 말하지 않은 근거를 audit 근거로 사용 |
 | `paraphrase_plan_equivalence` | 같은 뜻이 서로 다른 plan 입력으로 흔들림 |
 | `exact_command_recall` | 명확한 장소 목적을 놓침 |
+| `search_mode_accuracy` | 위임형 탐색과 목적 지정 검색을 뒤집음 |
+| `open_discovery_precision/recall/f1` | open discovery를 과잉 또는 과소 선언 |
+| `explicit_target_open_discovery_false_positive_rate` | 명시적 목적을 모델에게 다시 위임해 버림 |
+| `grounded_output_rate` | 출력 전체가 실제 사용자 원문에 근거하는지 |
+| `open_discovery_grounding_rate` | open discovery 선언의 위임 근거가 원문에 있는지 |
+| `search_mode_stability` | 동일 입력 반복 호출에서 검색 모드가 흔들림 |
+| `semantic_output_stability` | 동일 입력 반복 호출에서 intent·role 의미가 흔들림 |
 
 ```bash
 # 네트워크 없이 녹화 출력 평가
 uv run python -m scripts.evaluate_place_intent
 
-# OpenAI 평가 경로: DAENGS_LLM_PROVIDER=openai, API key, DAENGS_USAGE_POLICY=dev
-uv run python -m scripts.evaluate_place_intent --live
+# Gemini calibration 30개를 1회 호출하고 원출력과 report를 따로 보존
+# DAENGS_LLM_PROVIDER=gemini, DAENGS_GEMINI_API_KEY,
+# DAENGS_USAGE_POLICY=dev를 먼저 명시한다.
+uv run python -m scripts.evaluate_place_intent \
+  --fixture tests/fixtures/place_intent/open_discovery_cases.json \
+  --split calibration --provider gemini --repeat 1 --live \
+  --recording-out outputs/place-intent-gemini-calibration.json \
+  --report-out outputs/place-intent-gemini-calibration-report.json
+
+# 별도 Usage Gate 시간창에서 범주별 2개인 stability probe 10개를 3회 측정
+uv run python -m scripts.evaluate_place_intent \
+  --fixture tests/fixtures/place_intent/open_discovery_cases.json \
+  --split calibration --stability-probe --provider gemini --repeat 3 --live \
+  --recording-out outputs/place-intent-gemini-stability.json \
+  --report-out outputs/place-intent-gemini-stability-report.json
+
+# 외부 호출 없이 동일 코퍼스와 recording으로 report 재현
+uv run python -m scripts.evaluate_place_intent \
+  --fixture tests/fixtures/place_intent/open_discovery_cases.json \
+  --split calibration \
+  --recording-in outputs/place-intent-gemini-calibration.json
 ```
+
+recording에는 provider, model, 생성 시각, 선택된 코퍼스의 SHA-256, 반복별 구조화 출력만 들어간다.
+API key는 저장하지 않는다. digest나 case ID 집합이 다르면 재생을 거부해 다른 코퍼스의 결과를 잘못
+대조하는 것을 막는다. 기본 `dev` Usage Gate는 `language.parse`를 시간창당 30회로 제한하며 evaluator는
+이를 넘는 실행을 호출 전에 거절한다. 그러므로 calibration 1회와 stability probe 3회는 같은 시간창에
+연달아 실행하지 않는다.
 
 ## suggestion-first orchestration
 
