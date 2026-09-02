@@ -1,7 +1,7 @@
 [project]
 name = "daengs-geo"
 version = "0.1.0"
-description = "DAENGS 반려견 케어 — 지오 백엔드 (병원/약국 찾기 + 산책 세션)"
+description = "DAENGS 반려견 케어 — 장소 검색·산책 Capsule·공간 일기 지오 백엔드"
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "fastapi>=0.115",

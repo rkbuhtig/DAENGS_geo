@@ -6,13 +6,25 @@
 봐야 하나"가 답해지는 것이 이 구조의 목적이다.
 
 ```
-walk/       산책 세션·fix·WalkFacts·정지/시설 occurrence, 수집 계약
-facility/   장소 데이터 — 공공데이터 적재, 앵커 선별, 영업시간 판정, 시설 표시
-search/     검색 실행 경로 — state·plan·resolver·refine 툴·순위·PostGIS 검색
-providers/  외부 제공사 경계 — 진실성 계약, 경로 캐시, 지도 출력, 교통 태깅
-usage/      실제 외부 호출 Gate — 허용·요청당 한도·누적 사용량
-api/        HTTP 표면 — 입력 검증, 상태코드, 응답에 나가면 안 되는 값
+api/            HTTP 표면 — 입력 검증, 상태코드, 응답에 나가면 안 되는 값
+context_plane/  typed Atom·Facet·Lens, registry와 기존 기능 adapter
+core/           설정·DB·스키마 리비전 판별 같은 공통 런타임 경계
+discovery/      intent observation·planner·lens·refine·dev 관측 경로
+geo/            좌표·시간·태그·반려동물 조건·PostGIS 검색 primitive
+ingest/         공공데이터 원천 정규화·적재·연결·제약 사실
+integration/    여러 소유 경계를 실제 DB·API로 관통하는 검증
+journey/        이동 snapshot·advice·handoff·경로 선택
+place/          canonical Place 계약·resolver·검색·제약 projection
+profile/        외부 Dog/Owner profile 계약과 테스트용 source
+providers/      외부 지도·경로 제공사 경계와 진실성 계약
+sim/            장기 산책·Cellophane 통계 시뮬레이션
+spatial_diary/  Capsule 소비·Offer·Attestation·Pin·Journal·Snapshot
+territory/      Cellophane·Field·조건별 View·Memory Place
+usage/          실제 외부 호출 Gate — 허용·요청당 한도·누적 사용량
+walk/           산책 세션·fix·WalkFacts·Capsule 봉인, 수집 계약
 ```
+
+`fixtures/`는 녹화된 외부 출력 같은 재현 자료만 둔다. 테스트 소유권은 위 도메인 폴더가 가진다.
 
 `conftest.py` 는 루트에 하나다. **만드는 방법만 공유하고 무엇을 만들지는 각 테스트가
 소유한다** — 그 경계의 이유는 `conftest.py` 첫 문단에 있다. 도메인별 `fixtures.py` 를
@@ -24,9 +36,10 @@ api/        HTTP 표면 — 입력 검증, 상태코드, 응답에 나가면 안
 파일에" 는 금지다. 그렇게 만들어진 것이 `test_request_contract.py` 였고, 이름은 하나인데
 안에 서로 다른 여섯 계약이 있어서 무엇을 고칠 때 봐야 하는지 알 수 없었다.
 
-**`parked/` 폴더는 만들지 않는다.** 제품 기능이 보류된 것과 코드가 죽은 것은 다르다.
-예를 들어 자연어 입력은 parked 지만 `refine/tools` 는 UI 필터(`edits`)의 실행기라
-검색 경로 위에 있다 (결정 #18). 틀린 라벨은 없는 라벨보다 나쁘다.
+**`parked/` 폴더는 만들지 않는다.** 제품 기능이 보류·탐색 중인 것과 코드가 죽은 것은 다르다.
+예를 들어 자연어 intent lab은 dev-only 탐색 표면이지만 observation·planner·lens의 실행 계약은
+`discovery/`가 검증한다. `refine/tools`도 UI 필터(`edits`)의 실행기라 같은 검색 경로 위에
+있다. 틀린 라벨은 없는 라벨보다 나쁘다.
 
 ## Decision 링크 = 근거
 

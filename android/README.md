@@ -1,13 +1,14 @@
 # DAENGS Android 워킹 스켈레톤
 
-기존 스냅샷 검증: 2026-08-27 — 단위 테스트·lint·`assembleDebug` 통과. 실기기 화면 OFF/다른
-앱 전환 smoke는 별도 확인이 필요하다.
+현재 스냅샷 검증: 2026-09-01 — CI에서 단위 테스트와 `assembleDebug`가 통과했다. 실기기 화면
+OFF/다른 앱 전환 smoke는 별도 확인이 필요하다.
 
 `android/app` 단일 모듈이 실제 위치에서 canonical `POST /v2/places/search`를 호출하고 NAVER
 지도, 장소 마커, 사실·평가 카드를 렌더링한다. `동물병원` 바로가기도 같은 Place 검색을 사용한다.
 선택한 장소의 길찾기는 공용 `POST /journey`에서 이동수단·실측/추정 상태와 handoff를 받은 뒤
 네이버 지도 앱으로 넘긴다. 같은 지도에서 현재 위치, 서비스 소유 산책 트레일과 로컬 territory
-레이어도 실행한다.
+레이어도 실행한다. 명시적으로 산책을 종료하면 Room 원본을 서버의
+`start → fixes → finish` 멱등 경로로 best-effort 업로드한다.
 
 ## 경계
 
@@ -79,18 +80,24 @@ UI 상태(`WalkTrackingStore`)는 여전히 프로세스 메모리지만, **기�
 
 `START_NOT_STICKY`는 그대로다. 프로세스가 죽어도 산책을 자동 복원하지 않는다. 대신 **닫히지 않은
 세션**(`endedAtMillis IS NULL`)이 그 산책의 증거로 남고, `unfinishedSessions()` 로 조회된다. 이 세션을
-사용자에게 어떻게 보여주고 이어붙일지(복구 UI)와 서버 업로드는 아직 없다.
+사용자에게 어떻게 보여주고 이어붙일지와 자동 업로드할지는 아직 정하지 않았다.
+
+명시적으로 종료된 세션은 writer barrier 뒤 `WalkUploader`가 `start → fixes → finish` 전체를
+재전송한다. 서버와 Room이 중복을 멱등 처리하므로 별도 업로드 cursor는 저장하지 않는다.
+`DEV_DOG_ID`가 비어 있으면 업로드를 닫고, 실패하면 Room 행을 남긴다. 백그라운드 재시도
+스케줄러와 사용자 복구 UI는 아직 없다.
 
 세션 단위 cascade 삭제 API는 구현돼 있지만 삭제 UI와 자동 보관 기간은 아직 정하지 않았다. 로컬
-DB도 앱이 보관 정책을 결정하는 위치 데이터 저장소이므로, 사용자 노출이나 업로드 전에 동의·보관
-기간·삭제 UI를 확정해야 한다. Android 백업에는 이 DB를 싣지 않는다.
+DB도 앱이 보관 정책을 결정하는 위치 데이터 저장소이므로, 운영 사용자 계정으로 업로드를
+활성화하기 전에 동의·보관 기간·삭제 UI를 확정해야 한다. Android 백업에는 이 DB를 싣지 않는다.
 
 보관의 **층**은 결정 #57 이 정했다 ([문서](../docs/decisions/2026-08-25-walk-data-retention.md)).
 좌표를 안 담는 집계와 실제 정지 좌표는 수명이 다르며, 남은 것은 일수와 삭제 표면이다.
 
-`dogId` 는 null 로 저장한다 — 반려견 프로필은 이 레포가 소유하지 않는다 (결정 #4). 가짜 id 를 넣어
-baseline 을 오염시키지 않는다. 주입 계약은 결정 #58
-([문서](../docs/decisions/2026-08-25-subject-identity.md)) 이고, 값을 넣는 것은 업로드 경로가 붙을 때다.
+`dogId`는 반려견 프로필을 이 레포가 소유하지 않는다는 결정 #4를 따른다. 기본값은 null이며,
+debug에서 명시한 `DEV_DOG_ID`만 로컬 세션과 업로드 계약에 넣는다. 주입 계약은 결정 #58
+([문서](../docs/decisions/2026-08-25-subject-identity.md))이다. 실제 프로필 연동 전에는 임의 id로
+baseline을 만들지 않는다.
 
 스키마 JSON 은 `app/schemas/` 에 export 되어 커밋된다. 테이블이 바뀌면 diff 로 보이고, 다음
 마이그레이션을 알려진 이전 버전에 대고 쓸 수 있다.

@@ -2,10 +2,12 @@
 
 결정 #74가 채택한 내부 소비자 계약이다. `walk-record.md`의 outbound 사실 계약을 늘리지 않고,
 그 사실과 결정 #69의 Cellophane을 원좌표 purge 전에 어떻게 봉인하고 사용자 기억과 어떻게
-연결하는지를 정의한다. 현재 DB 스키마나 HTTP API가 아니다.
+연결하는지를 정의한다. 현재 저장 스키마와 HTTP API는 이 계약의 객체 수명과 권위 경계를 구현한다.
 
-순수 실행 계약은 `app/features/spatial_diary/contract.py`가 고정한다. 구현이 테이블을 이 모델과
-1:1로 만들 필요는 없지만 아래 객체를 한 상태나 한 행으로 합쳐 의미를 잃으면 안 된다.
+순수 실행 계약은 `app/features/spatial_diary/contract.py`가 고정하고, 생산 저장 경로는
+`app/features/walk/capsule.py`와 `app/features/walk/store.py`, 읽기·증언 API는
+`app/features/spatial_diary/`와 `app/features/territory/`가 맡는다. 테이블을 이 모델과 1:1로
+만들 필요는 없지만 아래 객체를 한 상태나 한 행으로 합쳐 의미를 잃으면 안 된다.
 
 ## 객체 수명
 
@@ -40,7 +42,7 @@ Trail context captured/partial/unknown/failed
 Observation capabilities
 ```
 
-필수 자식 저장과 manifest 생성, raw fix purge는 후속 저장 구현에서 하나의 멱등 트랜잭션이 된다.
+현재 저장 구현은 필수 자식 저장과 manifest 생성, raw fix purge를 하나의 멱등 트랜잭션으로 수행한다.
 manifest가 있으면 같은 finish 요청은 파생을 다시 계산하지 않고 봉인된 결과를 반환해야 한다.
 
 첫 저장 구현은 [결정 #75](../decisions/2026-09-01-walk-capsule-finalize.md)에 따라
