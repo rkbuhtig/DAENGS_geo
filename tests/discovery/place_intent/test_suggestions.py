@@ -465,20 +465,6 @@ def test_failed_product_fallback_remains_visible_as_rejected() -> None:
     ("utterance", "proposals", "expected_status"),
     [
         (
-            "주차되면 좋겠어",
-            (
-                _proposal(
-                    IntentRole.PREFERENCE,
-                    BooleanCapabilityIntent(
-                        capability_id=CapabilityId.OPERATIONS_PARKING,
-                        value=True,
-                    ),
-                    "주차되면 좋겠어",
-                ),
-            ),
-            PlannerStatus.NEEDS_CLARIFICATION,
-        ),
-        (
             "조용하고 주차 필수",
             (
                 _proposal(
@@ -537,6 +523,28 @@ def test_product_fallback_never_weakens_missing_target_hard_or_healthcare_intent
     assert not outcome.suggestions
     assert outcome.resolution is None
     assert outcome.rejected
+
+
+def test_parking_preference_without_a_target_still_offers_broad_results() -> None:
+    outcome = _compile(
+        _materialize(
+            "주차되면 좋겠어",
+            (
+                _proposal(
+                    IntentRole.PREFERENCE,
+                    BooleanCapabilityIntent(
+                        capability_id=CapabilityId.OPERATIONS_PARKING,
+                        value=True,
+                    ),
+                    "주차되면 좋겠어",
+                ),
+            ),
+        )
+    )
+
+    assert outcome.status is PlannerStatus.READY
+    assert len(outcome.suggestions) == 3
+    assert all(item.result.plan is not None for item in outcome.suggestions)
 
 
 @pytest.mark.parametrize(

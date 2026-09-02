@@ -275,6 +275,43 @@ def test_quiet_fallbacks_are_executable_but_disclose_missing_ranking() -> None:
     assert signal.availability is LensAvailability.DEFERRED
 
 
+def test_dog_interest_fallbacks_show_results_without_claiming_preference_evidence() -> None:
+    lenses = _compile(
+        "강아지가 좋아하는 거 있는 곳",
+        _proposal(
+            IntentRole.PREFERENCE,
+            SemanticIntent(concept_id="semantic.dog_interest"),
+            "강아지가 좋아하는 거 있는 곳",
+        ),
+    )
+
+    assert len(lenses.executable_targets) == 3
+    assert all(
+        item.mapping_scope is LensMappingScope.PRODUCT_FALLBACK
+        for item in lenses.target_lenses
+    )
+    assert lenses.signal_lenses[0].display_label == "#강아지 관심 가능성"
+    assert "판정할 장소 evidence" in lenses.signal_lenses[0].support_note
+
+
+def test_cheap_preference_shows_results_while_asking_which_cost_dimension() -> None:
+    lenses = _compile(
+        "싸게 갈 수 있는 곳",
+        _proposal(
+            IntentRole.PREFERENCE,
+            SemanticIntent(concept_id="semantic.cheap"),
+            "싸게 갈 수 있는 곳",
+        ),
+    )
+
+    assert len(lenses.executable_targets) == 3
+    assert all(
+        item.availability is LensAvailability.EXECUTABLE for item in lenses.target_lenses
+    )
+    assert lenses.signal_lenses[0].lens_type is LensType.UNRESOLVED
+    assert lenses.signal_lenses[0].availability is LensAvailability.NEEDS_SELECTION
+
+
 def test_cheap_becomes_a_non_executing_cost_question_with_honest_options() -> None:
     lenses = _compile(
         "싸게 갈 수 있는 곳",

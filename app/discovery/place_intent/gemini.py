@@ -20,6 +20,11 @@ from app.discovery.place_intent.metering import MeteredIntentProposer
 from app.discovery.place_intent.prompt import gemini_output_schema, proposer_instructions
 from app.usage.registry import usage_gate
 
+GEMINI_GENERATION_CONFIG = {
+    "max_output_tokens": 1800,
+    "temperature": 0.0,
+}
+
 
 class GeminiIntentProposerResponseError(RuntimeError):
     pass
@@ -64,7 +69,7 @@ class GeminiIntentProposer:
                 "mime_type": "application/json",
                 "schema": gemini_output_schema(),
             },
-            "generation_config": {"max_output_tokens": 1800},
+            "generation_config": GEMINI_GENERATION_CONFIG,
         }
         async with httpx.AsyncClient(
             timeout=self._timeout_s,
