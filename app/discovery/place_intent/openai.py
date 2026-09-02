@@ -18,6 +18,11 @@ from app.discovery.place_intent.metering import MeteredIntentProposer
 from app.discovery.place_intent.prompt import proposer_instructions, strict_output_schema
 from app.usage.registry import usage_gate
 
+OPENAI_GENERATION_CONFIG = {
+    "max_output_tokens": 1800,
+    "temperature": 0.0,
+}
+
 
 class IntentProposerResponseError(RuntimeError):
     pass
@@ -60,7 +65,7 @@ class OpenAIIntentProposer:
                 }
             },
             "store": False,
-            "max_output_tokens": 1800,
+            **OPENAI_GENERATION_CONFIG,
         }
         async with httpx.AsyncClient(
             timeout=self._timeout_s,

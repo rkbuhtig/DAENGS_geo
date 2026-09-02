@@ -139,6 +139,7 @@ class NormalizedIntentOutput(PlanningModel):
 
 _QUIET_CONCEPT = "semantic.quiet"
 _CHEAP_CONCEPT = "semantic.cheap"
+_DOG_INTEREST_CONCEPT = "semantic.dog_interest"
 _COST_OPTIONS = (
     "cost.travel_distance",
     "cost.pet_fee",
@@ -250,6 +251,31 @@ def _build_set(
             )
         )
         set_receipts.append(_receipt("semantic.quiet_to_rank_modifier", quiet, _QUIET_CONCEPT))
+
+    dog_interest = tuple(
+        item
+        for item in observations
+        if isinstance(item.intent, SemanticIntent)
+        and item.intent.concept_id == _DOG_INTEREST_CONCEPT
+        and item.role not in {IntentRole.NEGATED, IntentRole.EXCLUDED}
+    )
+    if dog_interest:
+        consumed_ids.update(item.observation_id for item in dog_interest)
+        modifiers.append(
+            SearchModifier(
+                modifier_id=_DOG_INTEREST_CONCEPT,
+                execution=ModifierExecution.RANK_ONLY_UNAVAILABLE,
+                basis_observation_ids=tuple(item.observation_id for item in dog_interest),
+                required=any(item.role in _BLOCKING_ROLES for item in dog_interest),
+            )
+        )
+        set_receipts.append(
+            _receipt(
+                "semantic.dog_interest_to_rank_modifier",
+                dog_interest,
+                _DOG_INTEREST_CONCEPT,
+            )
+        )
 
     cheap = tuple(
         item

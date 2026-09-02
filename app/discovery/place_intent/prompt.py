@@ -38,7 +38,7 @@ def proposer_instructions() -> str:
             "여러 jointly requested 조건은 한 interpretation 안에 둔다. 서로 양립하지 않는 대안 해석만 별도 interpretation으로 나눈다.",
             "play나 buy처럼 장소 종류가 아닌 행동은 activity로, dog_toy처럼 구매·이용 대상은 object로 제안하고 목적지를 임의로 확정하지 마라.",
             "가정·망설임 속 activity와 object는 goal로 올리지 말고 hypothetical 역할을 유지하라.",
-            "quiet는 semantic.quiet, cheap은 semantic.cheap으로 보존한다. 가격 종류나 조용함을 장소의 확인된 사실로 만들지 마라.",
+            "quiet는 semantic.quiet, cheap은 semantic.cheap, 강아지가 좋아할 만한 것은 semantic.dog_interest로 보존한다. 이런 느낌을 장소의 확인된 사실로 만들지 마라.",
             "근거 quote는 사용자 원문에서 연속된 문자열을 정확히 복사한다. offset을 확신하면 Python 문자열 인덱스의 [start,end)를 쓰고, 아니면 둘 다 null로 둔다.",
             "명확한 한 해석은 proposed, 대안이 둘 이상이면 ambiguous와 multiple_plausible_readings, 의미 근거가 부족하거나 안전하게 제안할 수 없으면 abstained를 쓴다.",
             "confidence 숫자, source, origin, locked, relaxable, SQL, 검색 gate를 출력하지 마라.",
@@ -47,6 +47,8 @@ def proposer_instructions() -> str:
             '예: "숙소에 카페가 있으면"의 lodging은 required_target이고 cafe는 relational이다.',
             '예: "강아지 장난감을 산다면"의 buy와 dog_toy는 둘 다 hypothetical이며 장소 target은 없다.',
             '예: "오늘 심심한데 네가 추천해봐"는 open_discovery이고 근거는 "네가 추천해봐"다.',
+            '예: "오늘 뭐 할까"나 "갈 곳이 애매해"는 장소 선택을 맡기는 말이므로 open_discovery다.',
+            '예: "강아지가 좋아하는 거 있는 곳"은 semantic.dog_interest preference이며 장소 종류를 임의로 확정하지 않는다.',
             '예: "조용한 카페 추천해줘"는 cafe 목적이 명시됐으므로 directed_search이며 quiet와 cafe를 보존한다.',
             "canonical kinds: "
             + json.dumps([kind.value for kind in PlaceKind], ensure_ascii=False),

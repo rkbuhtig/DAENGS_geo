@@ -458,6 +458,9 @@ def _modifier_signal(modifier: SearchModifier, set_key: str) -> SearchSignalLens
             if modifier.required
             else "사용자 선호는 보존했지만 조용함을 판정할 장소 evidence와 ranker가 아직 없습니다."
         )
+    elif modifier.modifier_id == "semantic.dog_interest":
+        label = "#강아지 관심 가능성"
+        note = "강아지가 좋아할 만한 요소를 요청한 것은 보존했지만 이를 판정할 장소 evidence와 ranker가 아직 없습니다."
     elif modifier.modifier_id == "activity.play":
         label = "#함께 놀기"
         note = "사용자가 하려는 활동으로 보존했지만 놀이 적합성을 판정할 장소 evidence가 아직 없습니다."

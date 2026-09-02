@@ -122,12 +122,32 @@ ID와 `source=llm_proposal`을 붙인다. 한 interpretation 안의 일부 evide
 OpenAI 어댑터는 [OpenAI Structured Outputs 공식 문서](https://developers.openai.com/api/docs/guides/structured-outputs)의
 Responses API `text.format=json_schema`를, Gemini 어댑터는 Interactions API의 JSON schema 응답을
 각각 같은 내부 계약으로 정규화한다. 현재 `/dev/place-intent/*` lab은 Gemini만 조립하고,
-`scripts.evaluate_place_intent --live`는 OpenAI만 조립한다. `DAENGS_LLM_PROVIDER`와 해당 API key를
-각 진입점에 맞게 명시하지 않으면 lab은 503으로 닫힌다.
+`scripts.evaluate_place_intent --live`는 `--provider gemini|openai`로 둘 중 하나를 명시적으로 고른다.
+`DAENGS_LLM_PROVIDER`와 해당 API key를 진입점에 맞게 명시하지 않으면 lab은 503으로, evaluator는
+실제 호출 전에 닫힌다.
 
 ## 평가 경계
 
-실제 모델을 CI에서 호출하지 않는다. 녹화 fixture는 다음 오류 비용을 각각 계산한다.
+실제 모델을 CI에서 호출하지 않는다. 기존 13개 녹화 fixture는 회귀 검사용으로 유지하고,
+`open_discovery_cases.json`은 실제 모델을 정량 평가하기 위한 50개 정답 코퍼스다. 코퍼스는
+`delegated_open`, `explicit_directed`, `mixed_delegation`, `affective_ambiguous`, `role_safety`
+다섯 범주를 10개씩 담고, 프롬프트를 조정해도 되는 calibration 30개와 최종 확인 전에는 열지 않는
+holdout 20개로 고정한다. calibration 안에는 범주별 2개씩 뽑은 stability probe 10개도 고정한다.
+모델 출력은 코퍼스와 분리된 recording에 저장한다.
+
+각 case는 LLM의 의미 정답과 별도로 제품 진행 결과를 고정한다. `results_now`와
+`results_with_refinement`는 후보를 먼저 보여주는 정보 제공 경로, `clarification_only`는 검색 전에
+질문이 필요한 경로, `safe_no_search`는 부정·필수조건처럼 임의 완화하면 안 되는 경로다. 이 구분으로
+intent가 맞아도 실제 lens가 하나도 실행되지 않는 회귀를 별도로 잡는다. 여기서 결과 제공 여부는
+순수 planning pipeline이 실행 가능한 lens를 만들었는지를 뜻한다. DB 후보 수·표시 결과 수·검색 품질은
+이 준비 지표에 섞지 않고 녹화 출력이 고정된 뒤 별도의 실제 검색 평가 단계에서 측정한다.
+
+평가 준비 단계에서는 코퍼스·실행기·지표만 고정한다. 이 단계의 코드와 fixture만으로 Gemini 품질이
+좋거나 나쁘다는 결론을 내리지 않는다. 실제 실측은 별도 평가 단계에서 calibration을 먼저 반복 실행한
+후, 변경을 동결하고 holdout을 한 번 평가한다.
+
+평가기는 다음 오류 비용을 각각 계산한다.
+전체 평균과 함께 같은 지표를 category별로 다시 계산해 특정 문장군의 실패가 aggregate에 숨지 않게 한다.
 
 | metric | 막으려는 실패 |
 |---|---|
@@ -136,14 +156,61 @@ Responses API `text.format=json_schema`를, Gemini 어댑터는 Interactions API
 | `evidence_span_accuracy` | 사용자가 말하지 않은 근거를 audit 근거로 사용 |
 | `paraphrase_plan_equivalence` | 같은 뜻이 서로 다른 plan 입력으로 흔들림 |
 | `exact_command_recall` | 명확한 장소 목적을 놓침 |
+| `search_mode_accuracy` | 위임형 탐색과 목적 지정 검색을 뒤집음 |
+| `open_discovery_precision/recall/f1` | open discovery를 과잉 또는 과소 선언 |
+| `explicit_target_open_discovery_false_positive_rate` | 명시적 목적을 모델에게 다시 위임해 버림 |
+| `grounded_output_rate` | 출력 전체가 실제 사용자 원문에 근거하는지 |
+| `open_discovery_grounding_rate` | open discovery 선언의 위임 근거가 원문에 있는지 |
+| `search_mode_stability` | 동일 입력 반복 호출에서 검색 모드가 흔들림 |
+| `semantic_output_stability` | 동일 입력 반복 호출에서 intent·role 의미가 흔들림 |
+| `product_outcome_accuracy` | 의미는 맞지만 제품이 기대한 검색 진행 상태를 만들지 못함 |
+| `information_delivery_precision/recall` | 결과를 줘야 할 때 질문만 하거나, 검색하면 안 될 때 결과를 냄 |
+| `inappropriate_search_rate` | clarification/safe-no-search 문장에서 임의 검색을 실행 |
+| `product_outcome_stability` | 동일 입력 반복 호출에서 실제 결과 제공 여부가 흔들림 |
+
+해당 범주에 positive 분모가 없으면 precision·recall을 성공 `1.0`으로 만들지 않고 JSON `null`로
+기록한다. category별 표에서 `N/A`와 완전 성공을 혼동하지 않기 위해서다.
 
 ```bash
 # 네트워크 없이 녹화 출력 평가
 uv run python -m scripts.evaluate_place_intent
 
-# OpenAI 평가 경로: DAENGS_LLM_PROVIDER=openai, API key, DAENGS_USAGE_POLICY=dev
-uv run python -m scripts.evaluate_place_intent --live
+# Gemini calibration 30개를 1회 호출하고 원출력과 report를 따로 보존
+# DAENGS_LLM_PROVIDER=gemini, DAENGS_GEMINI_API_KEY,
+# DAENGS_USAGE_POLICY=dev를 먼저 명시한다.
+uv run python -m scripts.evaluate_place_intent \
+  --fixture tests/fixtures/place_intent/open_discovery_cases.json \
+  --split calibration --provider gemini --repeat 1 --live \
+  --recording-out outputs/place-intent-gemini-calibration.json \
+  --report-out outputs/place-intent-gemini-calibration-report.json
+
+# 별도 Usage Gate 시간창에서 범주별 2개인 stability probe 10개를 3회 측정
+uv run python -m scripts.evaluate_place_intent \
+  --fixture tests/fixtures/place_intent/open_discovery_cases.json \
+  --split calibration --stability-probe --provider gemini --repeat 3 --live \
+  --recording-out outputs/place-intent-gemini-stability.json \
+  --report-out outputs/place-intent-gemini-stability-report.json
+
+# 외부 호출 없이 동일 코퍼스와 recording으로 report 재현
+uv run python -m scripts.evaluate_place_intent \
+  --fixture tests/fixtures/place_intent/open_discovery_cases.json \
+  --split calibration \
+  --recording-in outputs/place-intent-gemini-calibration.json
+
+# 중간 provider 장애로 incomplete recording이 남았으면 이미 끝난 case는 다시 호출하지 않는다.
+uv run python -m scripts.evaluate_place_intent \
+  --fixture tests/fixtures/place_intent/open_discovery_cases.json \
+  --split calibration --provider gemini --repeat 1 \
+  --resume outputs/place-intent-gemini-calibration.json
 ```
+
+recording에는 provider, model, 생성·갱신 시각, 선택된 코퍼스·prompt·output schema의 SHA-256,
+명시적인 generation config, 목표 반복 수, 완료 여부와 반복별 구조화 출력만 들어간다. API key는
+저장하지 않는다. 각 case가 끝날 때 원자적으로 checkpoint하므로 중간 실패 뒤 `--resume`할 수 있고,
+digest·provider·model·prompt·schema·generation config가 달라지면 재개를 거부한다. incomplete recording은
+평가 입력으로 사용할 수 없다. 기본 `dev` Usage Gate는 `language.parse`를 시간창당 30회로 제한하며
+evaluator는 남은 호출 수가 이를 넘으면 provider 호출 전에 거절한다. 그러므로 calibration 1회와
+stability probe 3회는 같은 시간창에 연달아 실행하지 않는다.
 
 ## suggestion-first orchestration
 
@@ -182,12 +249,16 @@ soft semantic concept
 - semantic.comfort
 - semantic.cozy
 - semantic.quiet
+- semantic.dog_interest
 ```
 
 장소 cue가 있으면 그 장소를 하나의 탐색 제안으로 사용한다. soft semantic만 있으면 제품이 고정한
 `dining`, `outing`, `culture` 세 그룹을 별도 plan으로 제안한다. 원래 interpretation은 rejected에
 남으므로 `quiet`나 `atmosphere`가 실제 데이터로 확인된 것처럼 보이지 않는다. 함께 제안된 parking
 preference는 fallback plan에도 보존한다.
+장소 target 없는 parking preference도 같은 세 방향을 먼저 보여주되, 주차 가능이 확인된 결과라고
+표시하지 않는다. `semantic.dog_interest` 역시 강아지 선호를 판정할 evidence/ranker가 없다는 신호를
+보존한 채 넓은 결과를 먼저 보여준다.
 
 다음은 fallback을 열지 않는다.
 
@@ -195,7 +266,6 @@ preference는 fallback plan에도 보존한다.
 required_condition / excluded / negated / relational
 allowlist 밖 semantic concept
 hospital / pharmacy / healthcare의 soft 언급
-장소 target 없이 parking preference만 있는 경우
 ```
 
 따라서 `주차 필수`, `카페 제외`, `병원이나 갈까`를 여가 기본 제안으로 조용히 약화하지 않는다.
@@ -236,9 +306,15 @@ activity.play
 semantic.quiet
 → rank_only_unavailable modifier
 
+semantic.dog_interest
+→ rank_only_unavailable modifier
+→ 강아지가 좋아한다고 확인된 장소라는 보장은 만들지 않음
+
 semantic.cheap
 → travel distance / pet fee / admission / product price 중
-  비용 차원을 고르기 전까지 unresolved
+  비용 차원을 unresolved facet으로 보존
+→ preference이면 넓은 결과를 먼저 보여주고 비용 차원을 함께 질문
+→ 필수 역할이면 비용 차원을 고르기 전까지 실행 차단
 → excluded / negated 역할은 positive 비용 facet으로 뒤집지 않음
 ```
 
