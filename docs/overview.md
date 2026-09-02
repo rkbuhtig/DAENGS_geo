@@ -1,62 +1,167 @@
 # 컨셉 · 범위
 
-## 담당 범위
+> 현재 범위 검증: 2026-09-02 · 기준 결정
+> [#65 Place 우선](decisions/2026-08-26-place-first-discovery.md),
+> [#71 병원 진입](decisions/2026-08-27-hospital-place-entry.md),
+> [#74 Spatial Diary](decisions/2026-09-01-spatial-diary.md),
+> [#75 Capsule finalize](decisions/2026-09-01-walk-capsule-finalize.md),
+> [#83 Context Plane](decisions/2026-09-01-context-plane-v0.md)
 
-팀 기능 목록에서 이 레포의 이름은 둘이었다 — 병원/약국 찾기 AI, 게임(산책). 나흘 만에 그 둘이 **기능이 아니라
-데이터**라는 걸 확인했고 2026-08-24 결정 #51로 채택했다
-([병원은 산책의 모드, 산책이 척추](decisions/2026-08-22-walk-as-spine.md)).
+## 한 문장
 
-이 레포가 소유하는 것:
+**DAENGS_geo는 장소 원천과 산책 측정을 재현 가능한 공간 증거로 만들고, 사용자가 증언한
+장면만 안정 기억으로 승격해 조건별 공간 일기로 다시 읽는 R&D·검증 원본이다.**
 
-| | 무엇 | 형태 |
+이 저장소에 Place 검색·Journey·Android 코드가 남아 있다고 해서 운영 소유권도 이곳에 있다는
+뜻은 아니다. 운영 Place/Journey 백엔드의 canonical 저장소는
+[SAJOYO/DAENGS_dev](https://github.com/SAJOYO/DAENGS_dev), 운영 Android 앱은
+[SAJOYO/DAENGS_app](https://github.com/SAJOYO/DAENGS_app)이다. 이곳에서는 아직 확정되지 않은
+산책·공간·검색 가설을 측정·계약·fixture로 닫고, 채택할 단위만 운영 저장소로 승격한다.
+
+## 현재 시스템
+
+```mermaid
+flowchart TD
+    A["장소 원천"] --> B["Place 사실과 검색"]
+    C["Android GPS"] --> D["산책 세션"]
+    D --> E["Walk Capsule 봉인"]
+    E --> F["Spatial Diary 읽기"]
+    G["날씨·프로필·측정"] --> H["Context Plane"]
+    H -. "허용된 Lens" .-> I["정책·LLM 소비자"]
+```
+
+산책 종료의 생산 경로는 다음 순서를 지킨다.
+
+```text
+start / fixes / finish
+→ canonical fix chain
+→ WalkFacts · occurrence · micro observation
+→ 8u Cellophane · MeasurementReceipt · TrailContextSnapshot
+→ WalkCapsuleManifest seal
+→ raw fix purge
+```
+
+Capsule 자식과 마지막 manifest가 한 트랜잭션으로 완성되기 전에는 원좌표를 지우지 않는다.
+같은 finish를 다시 보내면 이미 봉인된 결과를 반환한다. 원좌표를 지웠다는 사실이 남은
+Cellophane과 Pin을 비민감 데이터로 바꾸지는 않는다.
+
+## 소유권과 성숙도
+
+| 축 | 이 저장소의 역할 | 현재 상태 |
 |---|---|---|
-| **장소 데이터** | 전국 동물병원·동물약국 인허가 + 반려동물 동반 장소 | `place`·`facility` 테이블, 거리 검색 |
-| **이용 과정의 데이터** | 산책 사실. (저장 정책 뒤) 어디서 뭘 찾았나 | [`contracts/walk-record.md`](contracts/walk-record.md) |
-| **위치 인프라** | PostGIS 반경 검색 · 영업 판정 · 경로 · 제공사 경계 · 유료 호출 게이트 | `app/geo` `app/journey` `app/providers` `app/usage` |
+| Place 검색·Journey | 새 원천·분류·ranking·계약 후보의 검증 원본 | canonical Place v2 구현, 운영 원본은 `DAENGS_dev` |
+| Android 지도·산책 수집 | 제품 코드와 대조하는 기준 구현 | foreground service·Room·종료 업로드 구현, 운영 원본은 `DAENGS_app` |
+| Walk·Capsule | 산책 증거 생산 계약의 원본 | finish 트랜잭션과 DB 저장 구현 |
+| Territory·Spatial Diary | 조건별 공간 읽기와 사용자 기억 경계의 원본 | View·Pin·Memory Place·Journal·Snapshot API 구현 |
+| Context Plane | 판단 재료의 출처·시점·용도를 제한하는 공용 경계 | typed 계약·registry·adapter 구현, 전면 이행은 아직 |
+| 자연어 Place intent | 검색 의미 경계 실험 | dev-only lab, 제품 공개 진입점 아님 |
 
-[결정 #65](decisions/2026-08-26-place-first-discovery.md)은 이 장소들의 제품 최상위를 `Place`로
-고정했다. 웹 검증 지도와 Android 기본 장소 화면은 canonical `POST /v2/places/search`와
-`PlaceResult`를 함께 사용한다. 기존 의료·시설 endpoint와 Android 병원 전용 검색 상태는
-소비자 전환 뒤 제거했다.
+Spatial Diary API는 인증 principal을 요구한다. 실제 인증 dependency가 조립되기 전 기본 구현은
+503으로 fail closed한다. 따라서 “API와 DB가 있다”와 “운영 사용자가 쓸 수 있다”를 같은 상태로
+표현하지 않는다.
 
-소유하지 않는 것 — **포장**: 케어 밸런스 · 개의 목소리 · 출발 전 목표 · 응급 UX · 수의사 리포트.
-전부 위 데이터를 소비하는 옵션이고, 이 레포 안에 생길 수도 바깥 팀원이 만들 수도 있다. 데이터가 좋으면 누가 해도
-되고, 나쁘면 누가 해도 안 된다 — 병원 검색이 후자를 증명했다.
+## Place — 원천 분류와 사실이 먼저다
 
-생활관리 · 훈련비서 · 보행체크 · 체형진단 · 피부/안구 진단은 **타 담당**. 증상 문진 챗봇도 관할 밖.
-보행체크는 산책 사실의 소비자가 될 수 있다 ([backlog](backlog.md)).
+장소 발견의 최상위 identity는 공통 `Place`다. 원천 category를 canonical `kind`로 정규화하고,
+사용자가 종류를 고른 뒤 그 후보에 사실 조건을 적용한다. 태그와 AI 해석은 Place identity를
+만들거나 원천 사실을 덮는 권한이 없다.
 
-## 산책 — 코어는 수집이다
+`POST /v2/places/search`는 kind별 독립 그룹과 공통 Place 계약을 사용한다. 병원은 UI에서 바로
+들어갈 수 있지만 검색 identity와 순위는 canonical `hospital` kind를 따른다. 전화·운영정보는
+선택한 Place의 의료용 표현일 뿐 별도 병원 검색 세계를 만들지 않는다.
 
+자연어 intent proposer, search hypothesis, lens, open discovery는
+`app/discovery/place_intent`의 dev 검증 경로다. LLM은 후보를 제안할 수 있지만 실행 가능한
+target과 hard condition은 서버 compiler·registry가 정한다. 제품 Place 검색의 필수 전제가 아니다.
+
+## Walk Capsule — 쓰기 모델
+
+`app/features/walk`는 Android가 보낸 세션·fix를 canonical 사실과 봉인 증거로 바꾸는 생산자다.
+`WalkFacts`와 그 canonical 자식에는 시간·거리·속도·정지·시설 occurrence 같은 관측 사실만 있고
+목표·보상·개의 목소리·행동 원인·일기 문장은 없다. 이 부재는 산책 기능 전체가 수집에서
+끝난다는 뜻이 아니라,
+**생산자가 소비자의 해석을 사실로 위장하지 않는다는 뜻**이다.
+
+Walk Capsule은 기존 결과를 복제한 JSON이 아니라 다음 자식이 모두 준비됐음을 선언하는 manifest다.
+
+- `WalkFacts`와 canonical 파생
+- 산책별 Macro Cellophane과 versioned Micro Observation
+- raw fix purge 전의 `MeasurementReceipt`
+- 당시 값을 미상·실패까지 포함해 동결한 `TrailContextSnapshot`
+- 다시 읽을 수 있는 현상을 선언하는 `ObservationCapability[]`
+
+나중의 날씨나 현재 프로필로 과거 산책을 자동 보충하지 않는다.
+
+## Spatial Diary — 읽기 모델
+
+Spatial Diary는 Capsule을 덮어쓰는 저장 원본이 아니라 같은 증거를 조건과 질문에 따라 다시
+조립하는 읽기 모델이다.
+
+| 객체 | 권위 |
+|---|---|
+| `SpatialDiaryView` | 기간·강수·낮밤으로 Capsule을 고른 현재 공간 읽기 |
+| `EpisodeCandidate` | 현재 정책으로 계산한 임시 후보 |
+| `EpisodeOfferSnapshot` | 사용자에게 실제로 보여 준 제시본 |
+| `OfferInteraction` | view/dismiss 기록, 증언 아님 |
+| `WalkAttestation` | 사용자가 실제로 답한 의미와 불확실성 |
+| `EpisodePin` | Attestation을 통해 남긴 안정 장면 identity |
+| `MemoryPlaceBiography` | 서로 다른 산책의 Pin을 명시적으로 묶은 장소 전기 |
+| `WalkJournalProjection` | 사실·문맥·현재 Pin을 재생성한 자동 일기 |
+| `PublishedJournalSnapshot` | 사용자가 제목·요약·대표 Pin을 확정한 비공개 불변본 |
+
+Candidate가 생겼거나 Offer를 봤다는 이유만으로 행동 의미가 생기지 않는다. 사용자 증언만 안정
+기억으로 승격된다. 의미 정정은 Pin을 교체하지 않고 append-only Attestation correction으로 남겨
+현재 Journal과 Memory Place가 correction head를 읽는다.
+
+## Context Plane — 판단 재료의 경계
+
+날씨 API 응답, DogProfile, 측정 영수증을 각 기능이나 LLM 프롬프트에 직접 꽂지 않는다.
+
+```text
+Provider → typed ContextAtom → derived ContextFacet → purpose Lens → policy/LLM
 ```
-start → GPS 배치 → end → WalkFacts (시간·거리·속도·정지)
-```
 
-의미를 붙이지 않는다. 목표 · 보상 · 트리거 · 서술은 `app/features/walk` 에 없고, 없다는 것을
-`tests/test_walk_contract.py` 가 지킨다. 3단 루프 · 케어 밸런스는 [탐색](explorations/walk/loop-and-balance.md)으로
-내렸다 — 수집이 돌고 baseline 이 쌓인 뒤에 데이터로 정한다.
+v0 capability는 Trail weather, dog profile, walk measurement 세 가지다. Atom은 provider·source
+authority·관측/as-of/captured 시각·공간/시간 support와 `unknown`·`not_fetched`·실패를 구분한다.
+Facet은 evidence Atom과 policy version을 가진 재계산 값이고, Lens는 목적별 capability와 용도를
+제한한다.
 
-위 흐름은 실제로 돈다 — Android foreground service가 원본 fix를 Room에 쌓고, 산책을 끝내면
-서버로 올려 `WalkFacts`와 시설 occurrence를 만든 뒤 원좌표를 지운다. 에뮬레이터 주행으로
-확인했다(`scripts/verify/walk_emulator_drive.py`). process-death 복구와 업로드 주기는 아직 없다.
+속도·거리·시간·환경·주변 공간 조건·측정 품질·구조화된 프로필 사실은 객관적 원판과 경향으로
+사용할 수 있다. 사용자가 일기에 쓴 감정·생각·사적인 해석은 Context Plane과 행동 경향에 넣지
+않는다. 비공개 일기 작성 재료와 다른 산책의 판단 근거는 별개다.
 
-그래도 지키는 것 (만약 누가 얹는다면):
-- **판타지 레이어 없음.** 심해탐사·폐허도시 같은 테마 폐기. 레벨·스탯·전투 없음
-- **판정은 코드, 서술은 LLM.** `GPS 배치 → [코드] 사실 → [LLM] 확정된 사실에 문장만`. LLM 에게 "미션 깼나?"를 묻지 않는다 — 보상 인플레와 환각의 원인
-- 서술이 있다면 **개의 목소리**. 프로필로 성격·컨디션을 잡고 실제 수치를 그 개의 입장에서 읽는다. 수치는 입력값 그대로
+현재는 typed 계약·registry·기존 객체 adapter까지 구현됐다. 모든 기존 소비자가 Context Plane을
+통해서만 동작하도록 전환됐다는 뜻은 아니다.
 
-## 병원/약국 — 장소 데이터 + 거리
+## 주장과 개인정보 경계
 
-공공 인허가 데이터는 영업시간 · 과목 · 야간을 주지 않는다. 답할 수 있는 건 거리 · 종류 · 영업 상태(인허가) 다.
-그래서 남는 기능은 검색 + 전화 + 지도 딥링크 + 추정 도보 시간이고, 대화로 조건을 편집하는 루프 · 커뮤니티 근거 ·
-옵션 비교는 걷어냈다 ([결정 #66](decisions/README.md) — 대화 루프는 보류, 커뮤니티 근거와 옵션 비교는 기각).
+- 원좌표는 Capsule seal 뒤 삭제한다. Android debug export는 제품 보관 정책 밖의 개발 artifact다.
+- Cellophane은 궤적을 직접 저장하지 않아도 반복 장수가 쌓이면 생활권과 경로 topology가 드러날 수
+  있는 민감한 공간 집계다.
+- 응답하지 않은 Offer와 단순 interaction은 행동 사실이 아니다.
+- `not_observed`는 충분한 노출, 관측 capability, 방법이 명시된 drift `not_suspected` 평가가
+  함께 있을 때만 허용한다. 아니면 `unjudgeable`이다.
+- LLM은 사실을 표현하거나 제한된 intent 후보를 제안할 수 있지만 원인·진단·안전 판정을 확정하지 않는다.
+- 세션과 subject 삭제는 Capsule·Pin·Memory Place membership·Published Snapshot까지 같은 수명을 따른다.
 
-네이버 지도가 못 하는 병원 검색은 하나다 — "지금 산책 중, 집에서 1.2km, 노령견, 31℃". 그 맥락은 대화창이 아니라
-산책 세션이 갖고 있다. **응급 모드는 산책 사실의 소비자**고, 장소·위치·세션이 다 여기 있으니 여기서 만드는 게
-제일 싸다.
+## 이 저장소가 소유하지 않는 것
 
-## 병원/약국과 산책이 한 레포인 이유
+- 사용자 인증·계정과 반려견 프로필의 원본
+- 운영 앱의 배포·release 설정과 운영 인프라
+- 수의학적 진단, 보행·피부·안구 진단 모델, 증상 문진 챗봇
+- 사용자의 속마음을 재사용 가능한 성격·행동 경향으로 바꾸는 것
+- 공개 일기 링크, 수신자 ACL, 공유용 위치·시간 마스킹
+- 지도 앱 안의 실제 turn-by-turn navigation
 
-- **평시**: 산책 반경 안 동물병원이 지도 랜드마크 → 동네 병원 위치가 학습됨
-- **유사시**: 산책 중 이상 상황이면 병원 모드 (거리 · 전화)
-- 반경 검색 · 좌표 인덱싱 · 영업시간 판정 · 유료 호출 경계 = **공통 지오 인프라**. 따로 만들면 두 배
+이 기능들이 앞으로 필요 없다는 뜻이 아니라 현재 Geo 증거와 공간 일기의 권위 경계에 포함되지
+않는다는 뜻이다.
+
+## 왜 한 저장소에 있는가
+
+Place는 주변 세계의 후보와 사실을 제공하고, 산책은 그 세계를 실제로 이용한 측정을 만든다.
+Capsule은 측정을 보존 가능한 증거로 바꾸고, Spatial Diary는 사용자가 증언한 의미를 그 위에
+얹는다. Context Plane은 이 재료가 기능과 LLM으로 흘러갈 때 출처·시점·용도를 잃지 않게 막는다.
+
+운영 저장소와의 관계는 전체 폴더 동기화가 아니라 **실험 → 측정 → 계약 → 선택적 승격**이다.
+현재 승격 기준점과 차이는 [promotion-ledger.toml](promotion-ledger.toml)과
+`uv run python -m scripts.promotion_status`로 확인한다.
