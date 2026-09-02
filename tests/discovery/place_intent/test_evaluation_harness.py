@@ -5,13 +5,17 @@ from pathlib import Path
 import pytest
 
 from app.discovery.place_intent.contract import (
+    IntentProposerInvalidOutputError,
     LLMIntentOutput,
     SearchModeId,
     materialize_llm_output,
 )
 from app.discovery.place_intent.evaluation import (
     EvaluationCategory,
+    EvaluationFailureType,
     EvaluationSplit,
+    IntentEvaluationFailure,
+    IntentEvaluationPrediction,
     evaluate_intent_runs,
 )
 from scripts.evaluate_place_intent import (
@@ -87,6 +91,9 @@ def test_open_discovery_corpus_freezes_categories_splits_and_grounding() -> None
     assert report.mean.product_outcome_accuracy == 1.0
     assert report.mean.information_delivery_recall == 1.0
     assert report.mean.inappropriate_search_rate == 0.0
+    assert report.search_mode_stability is None
+    assert report.semantic_output_stability is None
+    assert report.product_outcome_stability is None
     direct_report = report.category_means[EvaluationCategory.EXPLICIT_DIRECTED]
     assert direct_report.open_discovery_precision is None
     assert direct_report.open_discovery_recall is None
@@ -146,7 +153,7 @@ async def test_live_prediction_runs_repeat_every_selected_case() -> None:
 async def test_live_prediction_runs_resume_without_repeating_completed_calls() -> None:
     cases = load_cases(_CORPUS)[:2]
     proposer = _RecordedProposer(cases[1].expected)
-    progress: list[tuple[dict[str, LLMIntentOutput], ...]] = []
+    progress: list[tuple[dict[str, IntentEvaluationPrediction], ...]] = []
 
     runs = await _live_prediction_runs(
         cases,
@@ -159,6 +166,39 @@ async def test_live_prediction_runs_resume_without_repeating_completed_calls() -
     assert proposer.utterances == [cases[1].utterance]
     assert set(runs[0]) == {case.case_id for case in cases}
     assert progress == [runs]
+
+
+class _InvalidThenRecordedProposer:
+    def __init__(self, output: LLMIntentOutput) -> None:
+        self.output = output
+        self.calls = 0
+
+    async def propose(self, utterance: str) -> LLMIntentOutput:
+        self.calls += 1
+        if self.calls == 1:
+            raise IntentProposerInvalidOutputError(
+                "provider returned an invalid contract",
+                raw_output='{"invalid":true}',
+            )
+        return self.output
+
+
+@pytest.mark.asyncio
+async def test_live_prediction_runs_record_invalid_output_and_continue() -> None:
+    cases = load_cases(_CORPUS)[:2]
+    proposer = _InvalidThenRecordedProposer(cases[1].expected)
+
+    runs = await _live_prediction_runs(cases, proposer, repeat=1)
+
+    failure = runs[0][cases[0].case_id]
+    assert isinstance(failure, IntentEvaluationFailure)
+    assert failure.failure_type is EvaluationFailureType.INVALID_OUTPUT
+    assert failure.raw_output == '{"invalid":true}'
+    assert runs[0][cases[1].case_id] == cases[1].expected
+    report = evaluate_intent_runs(cases, runs)
+    assert report.mean.contract_valid_output_rate == 0.5
+    assert report.mean.invalid_output_rate == 0.5
+    assert report.mean.disposition_accuracy == 0.5
 
 
 def test_recording_round_trip_rejects_a_different_corpus(tmp_path: Path) -> None:
@@ -183,6 +223,25 @@ def test_recording_round_trip_rejects_a_different_corpus(tmp_path: Path) -> None
     assert _corpus_digest(relabeled) != recording.corpus_sha256
     with pytest.raises(ValueError, match="does not match"):
         load_recording(path, load_cases(_CORPUS)[1:3])
+
+
+def test_v2_recording_can_resume_into_failure_aware_harness(tmp_path: Path) -> None:
+    cases = load_cases(_CORPUS)[:2]
+    recording = _recording(
+        provider="gemini",
+        model="gemini-3.1-flash-lite",
+        provenance=_provider_provenance("gemini"),
+        cases=cases,
+        created_at=datetime.now(UTC),
+        prediction_runs=({cases[0].case_id: cases[0].expected},),
+    ).model_copy(update={"schema_version": "place-intent-predictions-v2"})
+    path = tmp_path / "v2-partial.json"
+    _write_json(path, recording.model_dump_json(indent=2))
+
+    loaded = load_recording(path, cases, require_complete=False)
+
+    assert loaded.schema_version == "place-intent-predictions-v2"
+    assert loaded.runs[0].predictions[cases[0].case_id] == cases[0].expected
 
 
 def test_partial_recording_is_checkpointed_but_cannot_be_evaluated(tmp_path: Path) -> None:

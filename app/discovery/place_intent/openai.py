@@ -97,7 +97,8 @@ class OpenAIIntentProposer:
             return LLMIntentOutput.model_validate_json(output_text)
         except (ValueError, json.JSONDecodeError) as exc:
             raise IntentProposerInvalidOutputError(
-                "OpenAI returned an invalid intent payload"
+                "OpenAI returned an invalid intent payload",
+                raw_output=output_text,
             ) from exc
 
 

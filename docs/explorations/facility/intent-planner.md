@@ -146,11 +146,17 @@ intent가 맞아도 실제 lens가 하나도 실행되지 않는 회귀를 별�
 좋거나 나쁘다는 결론을 내리지 않는다. 실제 실측은 별도 평가 단계에서 calibration을 먼저 반복 실행한
 후, 변경을 동결하고 holdout을 한 번 평가한다.
 
+첫 Gemini 3.1 Flash-Lite calibration과 반복 결과는
+[2026-09-02 연구 기록](../../research/2026-09-02-place-intent-gemini-calibration.md)에 남긴다. 이 baseline은
+prompt/schema 수정 대상을 고르는 calibration이며 holdout 판정이나 제품 품질 임계값이 아니다.
+
 평가기는 다음 오류 비용을 각각 계산한다.
 전체 평균과 함께 같은 지표를 category별로 다시 계산해 특정 문장군의 실패가 aggregate에 숨지 않게 한다.
 
 | metric | 막으려는 실패 |
 |---|---|
+| `contract_valid_output_rate` | provider 응답이 intent 계약 위반으로 평가 전체를 중단시킴 |
+| `invalid_output_rate` | 구조화 응답은 왔지만 authority-free intent로 검증할 수 없음 |
 | `unsafe_positive_target_rate` | 부정·비유·가정·관계를 positive target으로 뒤집음 |
 | `unsupported_visibility` | 미지원 semantic·필수조건·제외를 조용히 버림 |
 | `evidence_span_accuracy` | 사용자가 말하지 않은 근거를 audit 근거로 사용 |
@@ -170,6 +176,7 @@ intent가 맞아도 실제 lens가 하나도 실행되지 않는 회귀를 별�
 
 해당 범주에 positive 분모가 없으면 precision·recall을 성공 `1.0`으로 만들지 않고 JSON `null`로
 기록한다. category별 표에서 `N/A`와 완전 성공을 혼동하지 않기 위해서다.
+반복 안정성 세 지표도 repeat가 2 미만이면 비교 대상이 없으므로 `null`이다.
 
 ```bash
 # 네트워크 없이 녹화 출력 평가
@@ -211,6 +218,13 @@ digest·provider·model·prompt·schema·generation config가 달라지면 재�
 평가 입력으로 사용할 수 없다. 기본 `dev` Usage Gate는 `language.parse`를 시간창당 30회로 제한하며
 evaluator는 남은 호출 수가 이를 넘으면 provider 호출 전에 거절한다. 그러므로 calibration 1회와
 stability probe 3회는 같은 시간창에 연달아 실행하지 않는다.
+
+provider가 응답했지만 intent 계약 검증에 실패한 case는 `invalid_output`과 해당 raw structured output을
+완료된 평가 결과로 기록하고 다음 case로 진행한다. 이 raw output 보존은 고정된 합성 평가 문장에만
+사용하며 운영 사용자 발화 로그 계약으로 승격하지 않는다. 반대로 HTTP 오류·timeout처럼 응답 자체를
+신뢰할 수 없는 provider 장애는 case를 완료 처리하지 않고 실행을 중단한다. 이후 `--resume`하면 마지막
+checkpoint 다음 case부터 다시 시작한다. v2 partial recording은 읽을 수 있지만 다음 checkpoint부터
+failure-aware v3로 기록한다.
 
 ## suggestion-first orchestration
 

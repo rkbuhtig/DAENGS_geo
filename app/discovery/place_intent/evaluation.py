@@ -56,6 +56,21 @@ class ProductOutcomeId(StrEnum):
     SAFE_NO_SEARCH = "safe_no_search"
 
 
+class EvaluationFailureType(StrEnum):
+    INVALID_OUTPUT = "invalid_output"
+
+
+class IntentEvaluationFailure(PlanningModel):
+    """Provider 응답은 받았지만 intent 계약으로 평가할 수 없는 완료된 시도."""
+
+    failure_type: EvaluationFailureType
+    detail: str = Field(min_length=1, max_length=500)
+    raw_output: str | None = Field(None, max_length=20000)
+
+
+type IntentEvaluationPrediction = LLMIntentOutput | IntentEvaluationFailure
+
+
 class IntentEvaluationCase(PlanningModel):
     case_id: str = Field(min_length=1, max_length=80, pattern=r"^[a-z0-9_.-]+$")
     utterance: str = Field(min_length=1, max_length=2000)
@@ -76,25 +91,27 @@ class IntentEvaluationCase(PlanningModel):
 
 class IntentEvaluationReport(PlanningModel):
     case_count: int
+    contract_valid_output_rate: float
+    invalid_output_rate: float
     disposition_accuracy: float
     search_mode_accuracy: float
     open_discovery_precision: float | None
     open_discovery_recall: float | None
     open_discovery_f1: float | None
-    explicit_target_open_discovery_false_positive_rate: float
+    explicit_target_open_discovery_false_positive_rate: float | None
     grounded_output_rate: float
     open_discovery_grounding_rate: float | None
     product_outcome_accuracy: float | None
     information_delivery_precision: float | None
     information_delivery_recall: float | None
     inappropriate_search_rate: float | None
-    intent_precision: float
-    intent_recall: float
-    evidence_span_accuracy: float
-    unsafe_positive_target_rate: float
-    exact_command_recall: float
-    unsupported_visibility: float
-    paraphrase_plan_equivalence: float
+    intent_precision: float | None
+    intent_recall: float | None
+    evidence_span_accuracy: float | None
+    unsafe_positive_target_rate: float | None
+    exact_command_recall: float | None
+    unsupported_visibility: float | None
+    paraphrase_plan_equivalence: float | None
 
 
 class RepeatedIntentEvaluationReport(PlanningModel):
@@ -103,8 +120,8 @@ class RepeatedIntentEvaluationReport(PlanningModel):
     mean: IntentEvaluationReport
     category_means: dict[EvaluationCategory, IntentEvaluationReport]
     runs: tuple[IntentEvaluationReport, ...]
-    search_mode_stability: float
-    semantic_output_stability: float
+    search_mode_stability: float | None
+    semantic_output_stability: float | None
     product_outcome_stability: float | None
 
 
@@ -176,6 +193,27 @@ def _output_shape(output: LLMIntentOutput) -> tuple:
             )
         ),
     )
+
+
+def _prediction_shape(prediction: IntentEvaluationPrediction) -> tuple:
+    if isinstance(prediction, IntentEvaluationFailure):
+        return ("failure", prediction.failure_type.value)
+    return ("output", _output_shape(prediction))
+
+
+def _prediction_search_mode_shape(prediction: IntentEvaluationPrediction) -> tuple:
+    if isinstance(prediction, IntentEvaluationFailure):
+        return ("failure", prediction.failure_type.value)
+    return ("output", _is_open_discovery(prediction))
+
+
+def _prediction_product_outcome_shape(
+    utterance: str,
+    prediction: IntentEvaluationPrediction,
+) -> tuple:
+    if isinstance(prediction, IntentEvaluationFailure):
+        return ("failure", prediction.failure_type.value)
+    return ("output", _product_outcome(utterance, prediction).value)
 
 
 def _rate(numerator: int, denominator: int) -> float:
@@ -250,7 +288,7 @@ def _product_outcome(utterance: str, output: LLMIntentOutput) -> ProductOutcomeI
 
 def evaluate_intent_outputs(
     cases: tuple[IntentEvaluationCase, ...],
-    predictions: dict[str, LLMIntentOutput],
+    predictions: dict[str, IntentEvaluationPrediction],
 ) -> IntentEvaluationReport:
     if not cases:
         raise ValueError("at least one evaluation case is required")
@@ -258,6 +296,8 @@ def evaluate_intent_outputs(
     if set(predictions) != expected_ids:
         raise ValueError("predictions must contain every case id exactly once")
 
+    valid_outputs = 0
+    invalid_outputs = 0
     disposition_matches = 0
     search_mode_matches = 0
     open_true_positive = 0
@@ -285,7 +325,7 @@ def evaluate_intent_outputs(
     exact_command_total = 0
     unsupported_visible = 0
     unsupported_total = 0
-    paraphrases: dict[str, list[tuple[tuple[tuple[str, str], ...], ...]]] = defaultdict(list)
+    paraphrases: dict[str, list[tuple]] = defaultdict(list)
 
     forbidden_positive_roles = {
         IntentRole.ANALOGY,
@@ -297,21 +337,61 @@ def evaluate_intent_outputs(
     for case in cases:
         expected = case.expected
         predicted = predictions[case.case_id]
-        disposition_matches += predicted.disposition is expected.disposition
         expected_open = _is_open_discovery(expected)
+        open_expected += expected_open
+
+        expected_proposals = _proposals(expected)
+        expected_counts = Counter(_intent_key(item) for item in expected_proposals)
+        expected_total += sum(expected_counts.values())
+        expected_required_target = any(
+            proposal.role is IntentRole.REQUIRED_TARGET for proposal in expected_proposals
+        )
+        if expected_required_target and not expected_open:
+            protected_direct_total += 1
+
+        expected_has_information = False
+        if case.expected_product_outcome is not None:
+            product_outcome_total += 1
+            expected_has_information = (
+                case.expected_product_outcome in _INFORMATION_OUTCOMES
+            )
+            expected_information += expected_has_information
+            expected_no_information += not expected_has_information
+
+        if case.exact_command:
+            exact_command_total += 1
+
+        for proposal in expected_proposals:
+            if proposal.role in forbidden_positive_roles:
+                unsafe_relevant += bool(_target_kinds(proposal))
+            requires_visibility = isinstance(
+                proposal.intent,
+                (ActivityIntent, ObjectIntent, SemanticIntent),
+            ) or proposal.role in {
+                IntentRole.REQUIRED_CONDITION,
+                IntentRole.EXCLUDED,
+            }
+            unsupported_total += requires_visibility
+
+        if isinstance(predicted, IntentEvaluationFailure):
+            invalid_outputs += predicted.failure_type is EvaluationFailureType.INVALID_OUTPUT
+            if case.paraphrase_group:
+                paraphrases[case.paraphrase_group].append(
+                    ("failure", predicted.failure_type.value, case.case_id)
+                )
+            continue
+
+        valid_outputs += 1
+        disposition_matches += predicted.disposition is expected.disposition
         predicted_open = _is_open_discovery(predicted)
         search_mode_matches += predicted_open == expected_open
         open_true_positive += expected_open and predicted_open
         open_predicted += predicted_open
-        open_expected += expected_open
 
-        expected_proposals = _proposals(expected)
         predicted_proposals = _proposals(predicted)
-        expected_counts = Counter(_intent_key(item) for item in expected_proposals)
         predicted_counts = Counter(_intent_key(item) for item in predicted_proposals)
         true_positive += sum((expected_counts & predicted_counts).values())
         predicted_total += sum(predicted_counts.values())
-        expected_total += sum(expected_counts.values())
 
         predicted_evidence += len(predicted_proposals)
         grounded_output = False
@@ -327,26 +407,16 @@ def evaluate_intent_outputs(
             predicted_open_grounded += 1
 
         if case.expected_product_outcome is not None:
-            product_outcome_total += 1
             predicted_product_outcome = _product_outcome(case.utterance, predicted)
             product_outcome_matches += (
                 predicted_product_outcome is case.expected_product_outcome
             )
-            expected_has_information = (
-                case.expected_product_outcome in _INFORMATION_OUTCOMES
-            )
             predicted_has_information = predicted_product_outcome in _INFORMATION_OUTCOMES
-            expected_information += expected_has_information
             predicted_information += predicted_has_information
             delivered_information += expected_has_information and predicted_has_information
-            expected_no_information += not expected_has_information
             inappropriate_search += not expected_has_information and predicted_has_information
 
-        expected_required_target = any(
-            proposal.role is IntentRole.REQUIRED_TARGET for proposal in expected_proposals
-        )
         if expected_required_target and not expected_open:
-            protected_direct_total += 1
             protected_direct_open += predicted_open
 
         predicted_positive_kinds = frozenset(
@@ -358,7 +428,6 @@ def evaluate_intent_outputs(
         for proposal in expected_proposals:
             if proposal.role in forbidden_positive_roles:
                 forbidden_kinds = _target_kinds(proposal)
-                unsafe_relevant += bool(forbidden_kinds)
                 if forbidden_kinds & predicted_positive_kinds:
                     unsafe_positive += 1
 
@@ -369,13 +438,10 @@ def evaluate_intent_outputs(
                 IntentRole.REQUIRED_CONDITION,
                 IntentRole.EXCLUDED,
             }
-            if requires_visibility:
-                unsupported_total += 1
-                if _intent_key(proposal) in predicted_counts:
-                    unsupported_visible += 1
+            if requires_visibility and _intent_key(proposal) in predicted_counts:
+                unsupported_visible += 1
 
         if case.exact_command:
-            exact_command_total += 1
             expected_targets = {
                 _concept_key(item)
                 for item in expected_proposals
@@ -412,17 +478,17 @@ def evaluate_intent_outputs(
     )
     return IntentEvaluationReport(
         case_count=len(cases),
+        contract_valid_output_rate=_rate(valid_outputs, len(cases)),
+        invalid_output_rate=_rate(invalid_outputs, len(cases)),
         disposition_accuracy=_rate(disposition_matches, len(cases)),
         search_mode_accuracy=_rate(search_mode_matches, len(cases)),
         open_discovery_precision=open_precision,
         open_discovery_recall=open_recall,
         open_discovery_f1=open_f1,
-        explicit_target_open_discovery_false_positive_rate=_rate(
+        explicit_target_open_discovery_false_positive_rate=_optional_rate(
             protected_direct_open,
             protected_direct_total,
-        )
-        if protected_direct_total
-        else 0.0,
+        ),
         grounded_output_rate=_rate(grounded_outputs, len(cases)),
         open_discovery_grounding_rate=_optional_rate(
             predicted_open_grounded,
@@ -445,21 +511,26 @@ def evaluate_intent_outputs(
             inappropriate_search,
             expected_no_information,
         ),
-        intent_precision=_rate(true_positive, predicted_total),
-        intent_recall=_rate(true_positive, expected_total),
-        evidence_span_accuracy=_rate(grounded, predicted_evidence),
-        unsafe_positive_target_rate=_rate(unsafe_positive, unsafe_relevant)
-        if unsafe_relevant
-        else 0.0,
-        exact_command_recall=_rate(exact_command_hit, exact_command_total),
-        unsupported_visibility=_rate(unsupported_visible, unsupported_total),
-        paraphrase_plan_equivalence=_rate(equivalent_groups, len(comparable_groups)),
+        intent_precision=_optional_precision(
+            true_positive,
+            predicted_total,
+            expected_total,
+        ),
+        intent_recall=_optional_rate(true_positive, expected_total),
+        evidence_span_accuracy=_optional_rate(grounded, predicted_evidence),
+        unsafe_positive_target_rate=_optional_rate(unsafe_positive, unsafe_relevant),
+        exact_command_recall=_optional_rate(exact_command_hit, exact_command_total),
+        unsupported_visibility=_optional_rate(unsupported_visible, unsupported_total),
+        paraphrase_plan_equivalence=_optional_rate(
+            equivalent_groups,
+            len(comparable_groups),
+        ),
     )
 
 
 def evaluate_intent_runs(
     cases: tuple[IntentEvaluationCase, ...],
-    prediction_runs: tuple[dict[str, LLMIntentOutput], ...],
+    prediction_runs: tuple[dict[str, IntentEvaluationPrediction], ...],
 ) -> RepeatedIntentEvaluationReport:
     if not prediction_runs:
         raise ValueError("at least one prediction run is required")
@@ -504,12 +575,15 @@ def evaluate_intent_runs(
     product_stability_total = 0
     for case in cases:
         outputs = tuple(run[case.case_id] for run in prediction_runs)
-        stable_modes += len({_is_open_discovery(output) for output in outputs}) == 1
-        stable_outputs += len({_output_shape(output) for output in outputs}) == 1
+        stable_modes += len({_prediction_search_mode_shape(output) for output in outputs}) == 1
+        stable_outputs += len({_prediction_shape(output) for output in outputs}) == 1
         if case.expected_product_outcome is not None:
             product_stability_total += 1
             stable_product_outcomes += len(
-                {_product_outcome(case.utterance, output) for output in outputs}
+                {
+                    _prediction_product_outcome_shape(case.utterance, output)
+                    for output in outputs
+                }
             ) == 1
     return RepeatedIntentEvaluationReport(
         case_count=len(cases),
@@ -517,10 +591,16 @@ def evaluate_intent_runs(
         mean=mean,
         category_means=category_means,
         runs=reports,
-        search_mode_stability=_rate(stable_modes, len(cases)),
-        semantic_output_stability=_rate(stable_outputs, len(cases)),
+        search_mode_stability=(
+            _rate(stable_modes, len(cases)) if len(prediction_runs) > 1 else None
+        ),
+        semantic_output_stability=(
+            _rate(stable_outputs, len(cases)) if len(prediction_runs) > 1 else None
+        ),
         product_outcome_stability=_optional_rate(
             stable_product_outcomes,
             product_stability_total,
-        ),
+        )
+        if len(prediction_runs) > 1
+        else None,
     )
