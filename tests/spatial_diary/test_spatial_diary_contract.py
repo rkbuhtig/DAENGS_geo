@@ -44,6 +44,7 @@ from app.features.spatial_diary.contract import (
     WalkCapsuleManifest,
     WalkJournalEntry,
     WalkSelector,
+    derive_negative_spatial_claim_allowance,
 )
 
 NOW = datetime(2026, 9, 1, 12, tzinfo=UTC)
@@ -418,12 +419,10 @@ def _place_reading(**overrides) -> MemoryPlaceWalkReading:
         "macro_exposure": MacroExposure.EXPOSED,
         "capability": CapabilitySupport.SUPPORTED,
         "observation": PlaceObservation.OBSERVED,
-        "negative_spatial_claim": NegativeSpatialClaimAllowance(
-            eligible=False,
+        "negative_spatial_claim": derive_negative_spatial_claim_allowance(
             macro_exposure=MacroExposure.EXPOSED,
             capability=CapabilitySupport.SUPPORTED,
             drift_assessment=DriftAssessment.NOT_ASSESSED,
-            blocking_reasons=(UnjudgeableReason.SPATIAL_DRIFT_NOT_ASSESSED,),
         ),
         "observed_episode_count": 1,
         "member_pin_count": 1,
@@ -455,12 +454,10 @@ def test_not_observed_requires_active_not_suspected_drift_evidence():
 
     eligible = _place_reading(
         observation=PlaceObservation.NOT_OBSERVED,
-        negative_spatial_claim=NegativeSpatialClaimAllowance(
-            eligible=True,
+        negative_spatial_claim=derive_negative_spatial_claim_allowance(
             macro_exposure=MacroExposure.EXPOSED,
             capability=CapabilitySupport.SUPPORTED,
             drift_assessment=DriftAssessment.NOT_SUSPECTED,
-            blocking_reasons=(),
         ),
         observed_episode_count=0,
         member_pin_count=0,
@@ -488,26 +485,15 @@ def test_drift_reason_must_match_the_assessment_exactly():
             blocking_reasons=(UnjudgeableReason.SPATIAL_DRIFT_NOT_ASSESSED,),
         )
 
-    with pytest.raises(ValidationError, match="Input should be 1"):
-        NegativeSpatialClaimAllowance(
-            policy_version=2,
-            eligible=True,
-            macro_exposure=MacroExposure.EXPOSED,
-            capability=CapabilitySupport.SUPPORTED,
-            drift_assessment=DriftAssessment.NOT_SUSPECTED,
-            blocking_reasons=(),
-        )
-
 
 def test_negative_spatial_claim_eligibility_aggregates_every_evidence_gate():
-    allowance = NegativeSpatialClaimAllowance(
-        eligible=False,
+    allowance = derive_negative_spatial_claim_allowance(
         macro_exposure=MacroExposure.NOT_EXPOSED,
         capability=CapabilitySupport.SUPPORTED,
         drift_assessment=DriftAssessment.NOT_SUSPECTED,
-        blocking_reasons=(UnjudgeableReason.NOT_EXPOSED,),
     )
     assert not allowance.eligible
+    assert allowance.blocking_reasons == (UnjudgeableReason.NOT_EXPOSED,)
     with pytest.raises(ValidationError, match="blockers must match"):
         NegativeSpatialClaimAllowance(
             eligible=True,

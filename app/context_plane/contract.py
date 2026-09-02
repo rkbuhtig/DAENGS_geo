@@ -6,7 +6,6 @@
 
 import hashlib
 import json
-import math
 from datetime import date, datetime
 from enum import StrEnum
 from typing import Annotated, Literal
@@ -545,11 +544,3 @@ class ContextEvidenceReceipt(FrozenContract):
         if len(values) != len(set(values)):
             raise ValueError("context evidence atom ids must be unique")
         return values
-
-
-def finite_number(value: float) -> float:
-    """Adapter가 외부 숫자를 payload에 넣기 전에 쓸 수 있는 공용 방어."""
-
-    if not math.isfinite(value):
-        raise ValueError("context numbers must be finite")
-    return value
