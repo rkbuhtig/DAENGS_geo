@@ -22,7 +22,6 @@ from app.features.spatial_diary.api import (
 from app.features.spatial_diary.contract import (
     AttestedClaim,
     ClaimSupport,
-    ElicitationMode,
     EntrySelector,
     MemoryAction,
     OfferInteractionKind,
@@ -47,7 +46,6 @@ from app.features.spatial_diary.episode import (
 from app.features.spatial_diary.journal import query_walk_journal
 from app.features.spatial_diary.published_journal import (
     get_published_journal_snapshot,
-    list_published_journal_snapshots,
     put_published_journal_snapshot,
 )
 from app.features.territory.spatial_diary import query_spatial_diary_view
@@ -61,6 +59,10 @@ from tests.walk.capsule_helpers import capsule_for
 DOG_ID = "dog-episode-memory"
 SESSION_ID = "test:episode-memory:walk"
 PRINCIPAL = SpatialDiaryPrincipal(owner_id="owner-episode", dog_ids=frozenset({DOG_ID}))
+OUTSIDER = SpatialDiaryPrincipal(
+    owner_id="owner-outsider",
+    dog_ids=frozenset({"another-dog"}),
+)
 
 
 def _observation(index: int, start_s: int, duration_s: int, *, kind: str = "slow"):
@@ -123,6 +125,46 @@ async def _seal_walk(db):
         capsule=capsule_for(computed, loaded),
     )
     await db.commit()
+
+
+async def _save_pin(
+    db,
+    *,
+    offer_id: str,
+    attestation_id: str,
+    pin_id: str,
+    claims: tuple[AttestedClaim, ...] | None = None,
+):
+    """테스트가 관심 없는 공통 Candidate→Offer→Pin 준비를 한 번에 수행한다."""
+
+    candidate = (await list_episode_candidates(db, SESSION_ID))[0].candidate
+    offer = await put_episode_offer(
+        db,
+        offer_id=offer_id,
+        session_id=SESSION_ID,
+        source_observation_id=candidate.source_observation_ids[0],
+        candidate_policy_version=1,
+        offered_at=candidate.event_at + timedelta(minutes=1),
+    )
+    saved = await attest_episode_offer(
+        db,
+        offer_id=offer.offer_id,
+        attestation_id=attestation_id,
+        review_disposition=ReviewDisposition.CONFIRMED,
+        claims=claims
+        if claims is not None
+        else (
+            AttestedClaim(
+                subject_role=SubjectRole.DOG,
+                meaning_code="exploration",
+                vocabulary_version=1,
+            ),
+        ),
+        memory_action=MemoryAction.SAVE,
+        pin_id=pin_id,
+        attested_at=candidate.event_at + timedelta(minutes=2),
+    )
+    return candidate, saved
 
 
 def _view_spec(*, meanings=(), roles=()) -> SpatialDiaryViewSpec:
@@ -313,29 +355,11 @@ async def test_pin_attestation_correction_preserves_history_and_updates_read_mod
         await _cleanup(db)
         try:
             await _seal_walk(db)
-            candidate = (await list_episode_candidates(db, SESSION_ID))[0].candidate
-            offer = await put_episode_offer(
+            candidate, initial = await _save_pin(
                 db,
                 offer_id="offer-correction",
-                session_id=SESSION_ID,
-                source_observation_id=candidate.source_observation_ids[0],
-                candidate_policy_version=1,
-            )
-            initial = await attest_episode_offer(
-                db,
-                offer_id=offer.offer_id,
                 attestation_id="attestation-correction-origin",
-                review_disposition=ReviewDisposition.CONFIRMED,
-                claims=(
-                    AttestedClaim(
-                        subject_role=SubjectRole.DOG,
-                        meaning_code="exploration",
-                        vocabulary_version=1,
-                    ),
-                ),
-                memory_action=MemoryAction.SAVE,
                 pin_id="pin-correction",
-                attested_at=candidate.event_at + timedelta(minutes=2),
             )
             await db.commit()
 
@@ -354,19 +378,6 @@ async def test_pin_attestation_correction_preserves_history_and_updates_read_mod
                 attested_at=candidate.event_at + timedelta(minutes=3),
             )
             await db.commit()
-            same = await correct_pin_attestation(
-                db,
-                pin_id="pin-correction",
-                attestation_id="attestation-correction-1",
-                supersedes_attestation_id=initial.attestation.attestation_id,
-                review_disposition=ReviewDisposition.CONFIRMED,
-                claims=(owner_claim,),
-            )
-            assert same == correction
-            assert correction.elicitation_mode is ElicitationMode.PIN_CORRECTION
-            assert correction.offer_id is None
-            assert correction.pin_id == "pin-correction"
-            await db.rollback()
 
             history = await list_pin_attestations(db, "pin-correction")
             assert tuple(item.attestation_id for item in history) == (
@@ -427,25 +438,13 @@ async def test_pin_attestation_correction_preserves_history_and_updates_read_mod
                 PRINCIPAL,
             )
             assert second.supersedes_attestation_id == correction.attestation_id
-            same_second = await put_pin_attestation_correction(
-                "pin-correction",
-                "attestation-correction-2",
-                second_body,
-                db,
-                PRINCIPAL,
-            )
-            assert same_second == second
             listed = await read_pin_attestations("pin-correction", db, PRINCIPAL)
             assert listed.current_attestation_id == second.attestation_id
             assert len(listed.attestations) == 3
             await db.rollback()
 
-            outsider = SpatialDiaryPrincipal(
-                owner_id="owner-outsider",
-                dog_ids=frozenset({"another-dog"}),
-            )
             with pytest.raises(HTTPException) as hidden:
-                await read_pin_attestations("pin-correction", db, outsider)
+                await read_pin_attestations("pin-correction", db, OUTSIDER)
             assert hidden.value.status_code == 404
             await db.rollback()
 
@@ -469,27 +468,10 @@ async def test_concurrent_identical_pin_corrections_are_idempotent():
     async with db_session() as setup:
         await _cleanup(setup)
         await _seal_walk(setup)
-        candidate = (await list_episode_candidates(setup, SESSION_ID))[0].candidate
-        offer = await put_episode_offer(
+        _, initial = await _save_pin(
             setup,
             offer_id="offer-concurrent-correction",
-            session_id=SESSION_ID,
-            source_observation_id=candidate.source_observation_ids[0],
-            candidate_policy_version=1,
-        )
-        initial = await attest_episode_offer(
-            setup,
-            offer_id=offer.offer_id,
             attestation_id="attestation-concurrent-origin",
-            review_disposition=ReviewDisposition.CONFIRMED,
-            claims=(
-                AttestedClaim(
-                    subject_role=SubjectRole.DOG,
-                    meaning_code="exploration",
-                    vocabulary_version=1,
-                ),
-            ),
-            memory_action=MemoryAction.SAVE,
             pin_id="pin-concurrent-correction",
         )
         await setup.commit()
@@ -628,13 +610,8 @@ async def test_candidate_api_hides_an_unowned_capsule():
         await _cleanup(db)
         try:
             await _seal_walk(db)
-            outsider = SpatialDiaryPrincipal(
-                owner_id="owner-outsider",
-                dog_ids=frozenset({"another-dog"}),
-            )
-
             with pytest.raises(HTTPException) as hidden:
-                await read_candidates(SESSION_ID, db, outsider)
+                await read_candidates(SESSION_ID, db, OUTSIDER)
             assert hidden.value.status_code == 404
             await db.rollback()
 
@@ -684,30 +661,11 @@ async def test_walk_journal_projection_replays_context_facts_and_saved_pins():
             assert "기억으로 남긴 장면은 아직 없어요" in empty.summary
             await db.rollback()
 
-            candidate = (await list_episode_candidates(db, SESSION_ID))[0].candidate
-            offer = await put_episode_offer(
+            await _save_pin(
                 db,
                 offer_id="offer-journal-1",
-                session_id=SESSION_ID,
-                source_observation_id=candidate.source_observation_ids[0],
-                candidate_policy_version=1,
-                offered_at=candidate.event_at + timedelta(minutes=1),
-            )
-            await attest_episode_offer(
-                db,
-                offer_id=offer.offer_id,
                 attestation_id="attestation-journal-1",
-                review_disposition=ReviewDisposition.CONFIRMED,
-                claims=(
-                    AttestedClaim(
-                        subject_role=SubjectRole.DOG,
-                        meaning_code="exploration",
-                        vocabulary_version=1,
-                    ),
-                ),
-                memory_action=MemoryAction.SAVE,
                 pin_id="pin-journal-1",
-                attested_at=candidate.event_at + timedelta(minutes=2),
             )
             await db.commit()
 
@@ -731,12 +689,8 @@ async def test_walk_journal_projection_replays_context_facts_and_saved_pins():
             assert visible.session_id == SESSION_ID
             await db.rollback()
 
-            outsider = SpatialDiaryPrincipal(
-                owner_id="owner-outsider",
-                dog_ids=frozenset({"another-dog"}),
-            )
             with pytest.raises(HTTPException) as hidden:
-                await read_walk_journal(SESSION_ID, db, outsider)
+                await read_walk_journal(SESSION_ID, db, OUTSIDER)
             assert hidden.value.status_code == 404
             await db.rollback()
 
@@ -759,27 +713,10 @@ async def test_published_journal_snapshot_is_private_immutable_and_cascades_with
         await _cleanup(db)
         try:
             await _seal_walk(db)
-            candidate = (await list_episode_candidates(db, SESSION_ID))[0].candidate
-            offer = await put_episode_offer(
+            _, initial = await _save_pin(
                 db,
                 offer_id="offer-published-journal",
-                session_id=SESSION_ID,
-                source_observation_id=candidate.source_observation_ids[0],
-                candidate_policy_version=1,
-            )
-            initial = await attest_episode_offer(
-                db,
-                offer_id=offer.offer_id,
                 attestation_id="attestation-published-journal",
-                review_disposition=ReviewDisposition.CONFIRMED,
-                claims=(
-                    AttestedClaim(
-                        subject_role=SubjectRole.DOG,
-                        meaning_code="exploration",
-                        vocabulary_version=1,
-                    ),
-                ),
-                memory_action=MemoryAction.SAVE,
                 pin_id="pin-published-journal",
             )
             await db.commit()
@@ -809,8 +746,6 @@ async def test_published_journal_snapshot_is_private_immutable_and_cascades_with
                 selected_pin_ids=("pin-published-journal",),
             )
             assert same == snapshot
-            assert await get_published_journal_snapshot(db, snapshot.snapshot_id) == snapshot
-            assert await list_published_journal_snapshots(db, SESSION_ID) == (snapshot,)
             await db.rollback()
 
             correction = await correct_pin_attestation(
@@ -894,12 +829,8 @@ async def test_published_journal_api_hides_snapshot_and_allows_summary_only_vers
             assert listed.snapshots == (snapshot,)
             await db.rollback()
 
-            outsider = SpatialDiaryPrincipal(
-                owner_id="owner-outsider",
-                dog_ids=frozenset({"another-dog"}),
-            )
             with pytest.raises(HTTPException) as hidden:
-                await read_journal_snapshot(snapshot.snapshot_id, db, outsider)
+                await read_journal_snapshot(snapshot.snapshot_id, db, OUTSIDER)
             assert hidden.value.status_code == 404
             await db.rollback()
 

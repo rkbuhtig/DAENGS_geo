@@ -435,66 +435,61 @@ async def test_negative_spatial_claim_requires_an_active_not_suspected_assessmen
             )
             await db.commit()
 
-            biography = await query_memory_place_biography(db, place.place.place_id, _spec())
-            observed_reading = next(
-                item for item in biography.readings if item.session_id == observed
+            cases = (
+                (
+                    DriftAssessment.NOT_ASSESSED,
+                    PlaceObservation.UNJUDGEABLE,
+                    (UnjudgeableReason.SPATIAL_DRIFT_NOT_ASSESSED,),
+                    False,
+                    0,
+                ),
+                (
+                    DriftAssessment.INSUFFICIENT_EVIDENCE,
+                    PlaceObservation.UNJUDGEABLE,
+                    (UnjudgeableReason.SPATIAL_DRIFT_INSUFFICIENT_EVIDENCE,),
+                    False,
+                    0,
+                ),
+                (
+                    DriftAssessment.NOT_SUSPECTED,
+                    PlaceObservation.NOT_OBSERVED,
+                    (),
+                    True,
+                    1,
+                ),
             )
-            absent_reading = next(item for item in biography.readings if item.session_id == absent)
-            assert observed_reading.observation is PlaceObservation.OBSERVED
-            assert not observed_reading.negative_spatial_claim.eligible
-            assert observed_reading.negative_spatial_claim.blocking_reasons == (
-                UnjudgeableReason.SPATIAL_DRIFT_NOT_ASSESSED,
-            )
-            assert observed_reading.unjudgeable_reasons == ()
-            assert absent_reading.observation is PlaceObservation.UNJUDGEABLE
-            assert not absent_reading.negative_spatial_claim.eligible
-            assert absent_reading.unjudgeable_reasons == (
-                UnjudgeableReason.SPATIAL_DRIFT_NOT_ASSESSED,
-            )
-            assert biography.summary.not_observed_walks == 0
-            await db.rollback()
-
-            await db.execute(
-                text("""
-                    UPDATE walk_measurement_receipt
-                    SET drift_assessment = 'insufficient_evidence',
-                        drift_assessment_method = 'fixture_drift_screen_v1'
-                    WHERE session_id = :session_id
-                """),
-                {"session_id": absent},
-            )
-            await db.commit()
-            insufficient = await query_memory_place_biography(
-                db, place.place.place_id, _spec()
-            )
-            insufficient_reading = next(
-                item for item in insufficient.readings if item.session_id == absent
-            )
-            assert insufficient_reading.observation is PlaceObservation.UNJUDGEABLE
-            assert insufficient_reading.unjudgeable_reasons == (
-                UnjudgeableReason.SPATIAL_DRIFT_INSUFFICIENT_EVIDENCE,
-            )
-            await db.rollback()
-
-            await db.execute(
-                text("""
-                    UPDATE walk_measurement_receipt
-                    SET drift_assessment = 'not_suspected',
-                        drift_assessment_method = 'fixture_drift_screen_v1'
-                    WHERE session_id = :session_id
-                """),
-                {"session_id": absent},
-            )
-            await db.commit()
-            screened = await query_memory_place_biography(db, place.place.place_id, _spec())
-            screened_reading = next(
-                item for item in screened.readings if item.session_id == absent
-            )
-            assert screened_reading.observation is PlaceObservation.NOT_OBSERVED
-            assert screened_reading.negative_spatial_claim.eligible
-            assert screened_reading.negative_spatial_claim.blocking_reasons == ()
-            assert screened_reading.unjudgeable_reasons == ()
-            assert screened.summary.not_observed_walks == 1
+            for index, (assessment, observation, reasons, eligible, absent_count) in enumerate(
+                cases
+            ):
+                if index:
+                    await db.execute(
+                        text("""
+                            UPDATE walk_measurement_receipt
+                            SET drift_assessment = :assessment,
+                                drift_assessment_method = 'fixture_drift_screen_v1'
+                            WHERE session_id = :session_id
+                        """),
+                        {"session_id": absent, "assessment": assessment},
+                    )
+                    await db.commit()
+                biography = await query_memory_place_biography(
+                    db, place.place.place_id, _spec()
+                )
+                absent_reading = next(
+                    item for item in biography.readings if item.session_id == absent
+                )
+                assert absent_reading.observation is observation
+                assert absent_reading.negative_spatial_claim.eligible is eligible
+                assert absent_reading.unjudgeable_reasons == reasons
+                assert biography.summary.not_observed_walks == absent_count
+                if index == 0:
+                    observed_reading = next(
+                        item for item in biography.readings if item.session_id == observed
+                    )
+                    assert observed_reading.observation is PlaceObservation.OBSERVED
+                    assert not observed_reading.negative_spatial_claim.eligible
+                    assert observed_reading.unjudgeable_reasons == ()
+                await db.rollback()
         finally:
             await _cleanup(db)
 

@@ -638,6 +638,43 @@ class MemoryPlaceBiographySpec(FrozenContract):
     quality_policy: QualityPolicy
 
 
+_DRIFT_UNJUDGEABLE_REASON = {
+    DriftAssessment.NOT_ASSESSED: UnjudgeableReason.SPATIAL_DRIFT_NOT_ASSESSED,
+    DriftAssessment.INSUFFICIENT_EVIDENCE: (
+        UnjudgeableReason.SPATIAL_DRIFT_INSUFFICIENT_EVIDENCE
+    ),
+    DriftAssessment.NOT_SUSPECTED: None,
+    DriftAssessment.SUSPECTED: UnjudgeableReason.SPATIAL_DRIFT_SUSPECTED,
+}
+_DRIFT_UNJUDGEABLE_REASONS = frozenset(
+    reason for reason in _DRIFT_UNJUDGEABLE_REASON.values() if reason is not None
+)
+
+
+def drift_unjudgeable_reason(assessment: DriftAssessment) -> UnjudgeableReason | None:
+    """공간 드리프트 판정이 부재 주장을 막는 사유를 반환한다."""
+
+    return _DRIFT_UNJUDGEABLE_REASON[assessment]
+
+
+def _negative_spatial_claim_blockers(
+    macro_exposure: MacroExposure,
+    capability: CapabilitySupport,
+    drift_assessment: DriftAssessment,
+) -> tuple[UnjudgeableReason, ...]:
+    reasons = []
+    if macro_exposure is MacroExposure.NOT_EXPOSED:
+        reasons.append(UnjudgeableReason.NOT_EXPOSED)
+    elif macro_exposure is MacroExposure.UNCERTAIN:
+        reasons.append(UnjudgeableReason.EXPOSURE_UNCERTAIN)
+    if capability is CapabilitySupport.UNSUPPORTED:
+        reasons.append(UnjudgeableReason.CAPABILITY_UNSUPPORTED)
+    drift_reason = drift_unjudgeable_reason(drift_assessment)
+    if drift_reason is not None:
+        reasons.append(drift_reason)
+    return tuple(reasons)
+
+
 class NegativeSpatialClaimAllowance(FrozenContract):
     """한 산책의 사건 부재를 공간적 `not_observed`로 말할 수 있는 적극적 자격."""
 
@@ -652,28 +689,36 @@ class NegativeSpatialClaimAllowance(FrozenContract):
 
     @model_validator(mode="after")
     def eligibility_requires_all_negative_evidence(self) -> "NegativeSpatialClaimAllowance":
-        expected_reasons: list[UnjudgeableReason] = []
-        if self.macro_exposure is MacroExposure.NOT_EXPOSED:
-            expected_reasons.append(UnjudgeableReason.NOT_EXPOSED)
-        elif self.macro_exposure is MacroExposure.UNCERTAIN:
-            expected_reasons.append(UnjudgeableReason.EXPOSURE_UNCERTAIN)
-        if self.capability is CapabilitySupport.UNSUPPORTED:
-            expected_reasons.append(UnjudgeableReason.CAPABILITY_UNSUPPORTED)
-        drift_reason = {
-            DriftAssessment.NOT_ASSESSED: UnjudgeableReason.SPATIAL_DRIFT_NOT_ASSESSED,
-            DriftAssessment.INSUFFICIENT_EVIDENCE: (
-                UnjudgeableReason.SPATIAL_DRIFT_INSUFFICIENT_EVIDENCE
-            ),
-            DriftAssessment.NOT_SUSPECTED: None,
-            DriftAssessment.SUSPECTED: UnjudgeableReason.SPATIAL_DRIFT_SUSPECTED,
-        }[self.drift_assessment]
-        if drift_reason is not None:
-            expected_reasons.append(drift_reason)
-        if self.blocking_reasons != tuple(expected_reasons):
+        expected_reasons = _negative_spatial_claim_blockers(
+            self.macro_exposure,
+            self.capability,
+            self.drift_assessment,
+        )
+        if self.blocking_reasons != expected_reasons:
             raise ValueError("negative spatial claim blockers must match its evidence")
         if self.eligible != (not expected_reasons):
             raise ValueError("negative spatial claim eligibility requires all evidence gates")
         return self
+
+
+def derive_negative_spatial_claim_allowance(
+    *,
+    macro_exposure: MacroExposure,
+    capability: CapabilitySupport,
+    drift_assessment: DriftAssessment,
+) -> NegativeSpatialClaimAllowance:
+    blocking_reasons = _negative_spatial_claim_blockers(
+        macro_exposure,
+        capability,
+        drift_assessment,
+    )
+    return NegativeSpatialClaimAllowance(
+        eligible=not blocking_reasons,
+        macro_exposure=macro_exposure,
+        capability=capability,
+        drift_assessment=drift_assessment,
+        blocking_reasons=blocking_reasons,
+    )
 
 
 class MemoryPlaceWalkReading(FrozenContract):
@@ -702,32 +747,19 @@ class MemoryPlaceWalkReading(FrozenContract):
             or self.negative_spatial_claim.capability is not self.capability
         ):
             raise ValueError("negative spatial claim evidence must match the walk reading")
-        expected_reasons: set[UnjudgeableReason] = set()
-        if self.macro_exposure is MacroExposure.NOT_EXPOSED:
-            expected_reasons.add(UnjudgeableReason.NOT_EXPOSED)
-        elif self.macro_exposure is MacroExposure.UNCERTAIN:
-            expected_reasons.add(UnjudgeableReason.EXPOSURE_UNCERTAIN)
-        if self.capability is CapabilitySupport.UNSUPPORTED:
-            expected_reasons.add(UnjudgeableReason.CAPABILITY_UNSUPPORTED)
+        negative_reasons = set(self.negative_spatial_claim.blocking_reasons)
+        exposure_capability_reasons = negative_reasons - _DRIFT_UNJUDGEABLE_REASONS
         if (
             self.observation is PlaceObservation.NOT_OBSERVED
             and not self.negative_spatial_claim.eligible
         ):
             raise ValueError("not_observed requires negative spatial claim eligibility")
-        drift_reason = {
-            DriftAssessment.NOT_ASSESSED: UnjudgeableReason.SPATIAL_DRIFT_NOT_ASSESSED,
-            DriftAssessment.INSUFFICIENT_EVIDENCE: (
-                UnjudgeableReason.SPATIAL_DRIFT_INSUFFICIENT_EVIDENCE
-            ),
-            DriftAssessment.NOT_SUSPECTED: None,
-            DriftAssessment.SUSPECTED: UnjudgeableReason.SPATIAL_DRIFT_SUSPECTED,
-        }[self.negative_spatial_claim.drift_assessment]
-        drift_reasons = {
-            UnjudgeableReason.SPATIAL_DRIFT_NOT_ASSESSED,
-            UnjudgeableReason.SPATIAL_DRIFT_INSUFFICIENT_EVIDENCE,
-            UnjudgeableReason.SPATIAL_DRIFT_SUSPECTED,
-        }
-        present_drift_reasons = set(self.unjudgeable_reasons) & drift_reasons
+        drift_reason = drift_unjudgeable_reason(
+            self.negative_spatial_claim.drift_assessment
+        )
+        present_drift_reasons = (
+            set(self.unjudgeable_reasons) & _DRIFT_UNJUDGEABLE_REASONS
+        )
         required_drift_reason = None
         if (
             self.negative_spatial_claim.drift_assessment is DriftAssessment.SUSPECTED
@@ -738,7 +770,7 @@ class MemoryPlaceWalkReading(FrozenContract):
         expected_drift_reasons = {required_drift_reason} if required_drift_reason else set()
         if present_drift_reasons != expected_drift_reasons:
             raise ValueError("drift reason must match the negative spatial claim evidence")
-        allowed_reasons = expected_reasons | drift_reasons
+        allowed_reasons = exposure_capability_reasons | _DRIFT_UNJUDGEABLE_REASONS
         if not set(self.unjudgeable_reasons).issubset(allowed_reasons):
             raise ValueError("unjudgeable reasons must match the reading evidence")
         if self.observation is PlaceObservation.UNJUDGEABLE:
@@ -746,7 +778,7 @@ class MemoryPlaceWalkReading(FrozenContract):
                 raise ValueError("unjudgeable observation requires at least one reason")
         elif self.unjudgeable_reasons:
             raise ValueError("judgeable observation cannot carry unjudgeable reasons")
-        if not expected_reasons.issubset(self.unjudgeable_reasons):
+        if not exposure_capability_reasons.issubset(self.unjudgeable_reasons):
             raise ValueError("exposure and capability failures must remain visible as reasons")
         if self.observation is PlaceObservation.OBSERVED and self.observed_episode_count == 0:
             raise ValueError("observed status requires an observed episode")

@@ -11,7 +11,6 @@ from sqlalchemy import bindparam, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.features.spatial_diary.contract import (
-    NEGATIVE_SPATIAL_CLAIM_POLICY_VERSION,
     CapabilitySupport,
     ContextFacetFilter,
     DriftAssessment,
@@ -29,11 +28,12 @@ from app.features.spatial_diary.contract import (
     MemoryPlaceMembershipOrigin,
     MemoryPlaceTimelineEntry,
     MemoryPlaceWalkReading,
-    NegativeSpatialClaimAllowance,
     PlaceObservation,
     PrecipitationBiographyComparison,
     SpatialDiaryViewSpec,
     UnjudgeableReason,
+    derive_negative_spatial_claim_allowance,
+    drift_unjudgeable_reason,
 )
 from app.features.spatial_diary.episode import PinEntry, load_pin_entries, pin_entry_matches
 from app.features.spatial_diary.snapshot import ensure_repeatable_read_snapshot
@@ -64,15 +64,6 @@ MAX_PLACE_MEMBERSHIPS = 2_000
 MAX_RAW_OBSERVATIONS = 50_000
 MIN_EVENT_RADIUS_M = 5.0
 EARTH_R_M = 6_371_000.0
-
-_DRIFT_UNJUDGEABLE_REASON = {
-    DriftAssessment.NOT_ASSESSED: UnjudgeableReason.SPATIAL_DRIFT_NOT_ASSESSED,
-    DriftAssessment.INSUFFICIENT_EVIDENCE: (
-        UnjudgeableReason.SPATIAL_DRIFT_INSUFFICIENT_EVIDENCE
-    ),
-    DriftAssessment.NOT_SUSPECTED: None,
-    DriftAssessment.SUSPECTED: UnjudgeableReason.SPATIAL_DRIFT_SUSPECTED,
-}
 
 
 class MemoryPlaceNotFoundError(LookupError):
@@ -568,17 +559,11 @@ async def query_memory_place_biography(
         if capability is CapabilitySupport.UNSUPPORTED:
             reasons.append(UnjudgeableReason.CAPABILITY_UNSUPPORTED)
         episode_count = observed_counts.get(capsule.session_id, 0)
-        drift_reason = _DRIFT_UNJUDGEABLE_REASON[capsule.drift_assessment]
-        negative_blockers = [*reasons]
-        if drift_reason is not None:
-            negative_blockers.append(drift_reason)
-        negative_spatial_claim = NegativeSpatialClaimAllowance(
-            policy_version=NEGATIVE_SPATIAL_CLAIM_POLICY_VERSION,
-            eligible=not negative_blockers,
+        drift_reason = drift_unjudgeable_reason(capsule.drift_assessment)
+        negative_spatial_claim = derive_negative_spatial_claim_allowance(
             macro_exposure=exposure,
             capability=capability,
             drift_assessment=capsule.drift_assessment,
-            blocking_reasons=tuple(negative_blockers),
         )
         # suspected drift는 좌표가 있는 긍정 관측도 막는다. 그 밖의 미평가 상태는 관측된
         # 사건을 approximate로 남기되, 사건 부재를 `not_observed`로 바꾸는 것만 막는다.

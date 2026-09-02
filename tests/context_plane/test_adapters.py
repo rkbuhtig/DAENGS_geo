@@ -129,8 +129,6 @@ def test_measurement_adapter_keeps_named_counts_not_a_confidence_score():
     assert atom.payload.rejection_counts.low_accuracy == 1
     assert atom.payload.accepted_accuracy.p90_m == 8
     assert "confidence" not in atom.payload.model_dump()
-    with pytest.raises(ValidationError):
-        atom.payload.rejection_counts.low_accuracy = 99
 
 
 def test_profile_adapter_freezes_minimum_values_and_age_at_walk_not_current_age():

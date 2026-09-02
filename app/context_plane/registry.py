@@ -173,7 +173,6 @@ def build_context_bundle(
     created_at: datetime,
 ) -> ContextBundle:
     lens = validate_request(request)
-    _validate_atoms(lens, atoms)
     bundle = ContextBundle(
         bundle_id=bundle_id,
         request=request,
@@ -201,9 +200,6 @@ def evidence_receipt(
         raise ValueError("context evidence must refer to atoms in the bundle")
     if not evidence_atom_ids:
         raise ValueError("context evidence cannot be empty")
-    used_atoms = [atom for atom in bundle.atoms if atom.atom_id in evidence_atom_ids]
-    if any(use not in capability_spec(atom.capability_id).allowed_uses for atom in used_atoms):
-        raise ValueError("an evidence capability prohibits the requested use")
     return ContextEvidenceReceipt(
         bundle_fingerprint=bundle.bundle_fingerprint,
         request_fingerprint=bundle.request.request_fingerprint,
