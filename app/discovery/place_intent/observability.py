@@ -70,6 +70,10 @@ class SearchAttemptRecord(PlanningModel):
     interpretation_count: int = Field(ge=0)
     target_lens_count: int = Field(ge=0)
     executable_lens_count: int = Field(ge=0)
+    initial_candidate_count: int = Field(ge=0)
+    eligible_candidate_count: int = Field(ge=0)
+    displayed_result_count: int = Field(ge=0)
+    initial_candidate_count_truncated: bool
     result_count: int = Field(ge=0)
     snapshot: dict[str, Any] = Field(default_factory=dict)
 
@@ -103,6 +107,8 @@ class SearchAttemptRecord(PlanningModel):
             and self.response_mode is not SearchResponseMode.PROVIDER_FAILURE
         ):
             raise ValueError("failed attempt requires provider_failure response mode")
+        if self.result_count != self.displayed_result_count:
+            raise ValueError("legacy result_count must equal displayed_result_count")
         return self
 
 
@@ -121,6 +127,10 @@ class ObservedSearchAttempt(PlanningModel):
     interpretation_count: int
     target_lens_count: int
     executable_lens_count: int
+    initial_candidate_count: int | None = None
+    eligible_candidate_count: int | None = None
+    displayed_result_count: int | None = None
+    initial_candidate_count_truncated: bool | None = None
     result_count: int
     snapshot: dict[str, Any]
     created_at: datetime
@@ -135,13 +145,17 @@ async def record_attempt(db: AsyncSession, record: SearchAttemptRecord) -> None:
                 status, failure_code, proposer_disposition, proposer_reason,
                 response_mode, fallback_policy_id, fallback_policy_version,
                 interpretation_count, target_lens_count,
-                executable_lens_count, result_count, snapshot
+                executable_lens_count, initial_candidate_count,
+                eligible_candidate_count, displayed_result_count,
+                initial_candidate_count_truncated, result_count, snapshot
             ) VALUES (
                 :id, :previous_attempt_id, :utterance, :model, :lat, :lng, :radius_m,
                 :status, :failure_code, :proposer_disposition, :proposer_reason,
                 :response_mode, :fallback_policy_id, :fallback_policy_version,
                 :interpretation_count, :target_lens_count,
-                :executable_lens_count, :result_count, CAST(:snapshot AS jsonb)
+                :executable_lens_count, :initial_candidate_count,
+                :eligible_candidate_count, :displayed_result_count,
+                :initial_candidate_count_truncated, :result_count, CAST(:snapshot AS jsonb)
             )
             """
         ),
@@ -165,6 +179,10 @@ async def record_attempt(db: AsyncSession, record: SearchAttemptRecord) -> None:
             "interpretation_count": record.interpretation_count,
             "target_lens_count": record.target_lens_count,
             "executable_lens_count": record.executable_lens_count,
+            "initial_candidate_count": record.initial_candidate_count,
+            "eligible_candidate_count": record.eligible_candidate_count,
+            "displayed_result_count": record.displayed_result_count,
+            "initial_candidate_count_truncated": record.initial_candidate_count_truncated,
             "result_count": record.result_count,
             "snapshot": json.dumps(record.snapshot, ensure_ascii=False),
         },
@@ -233,6 +251,8 @@ async def list_attempts(
                    proposer_disposition, proposer_reason, response_mode,
                    fallback_policy_id, fallback_policy_version,
                    interpretation_count, target_lens_count, executable_lens_count,
+                   initial_candidate_count, eligible_candidate_count,
+                   displayed_result_count, initial_candidate_count_truncated,
                    result_count, snapshot, created_at
             FROM place_intent_lab_attempt
             {where}
@@ -262,6 +282,10 @@ async def list_attempts(
             interpretation_count=row["interpretation_count"],
             target_lens_count=row["target_lens_count"],
             executable_lens_count=row["executable_lens_count"],
+            initial_candidate_count=row["initial_candidate_count"],
+            eligible_candidate_count=row["eligible_candidate_count"],
+            displayed_result_count=row["displayed_result_count"],
+            initial_candidate_count_truncated=row["initial_candidate_count_truncated"],
             result_count=row["result_count"],
             snapshot=row["snapshot"],
             created_at=row["created_at"],

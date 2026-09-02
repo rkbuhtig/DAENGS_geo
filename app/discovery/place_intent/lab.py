@@ -74,9 +74,25 @@ class PlaceIntentLabRequest(PlanningModel):
         return self
 
 
+class CandidateResultCounts(PlanningModel):
+    """한 lens의 공급량과 실제 노출량을 서로 다른 의미로 보존한다."""
+
+    initial_candidate_count: int = Field(ge=0)
+    eligible_candidate_count: int = Field(ge=0)
+    displayed_result_count: int = Field(ge=0)
+    initial_candidate_count_truncated: bool = False
+
+    @model_validator(mode="after")
+    def counts_follow_the_search_funnel(self) -> Self:
+        if self.eligible_candidate_count > self.initial_candidate_count:
+            raise ValueError("eligible candidates cannot exceed initial candidates")
+        return self
+
+
 class CandidateExecution(PlanningModel):
     lens_id: str
     confirmation_token: str = Field(min_length=20, max_length=200)
+    candidate_counts: CandidateResultCounts
     preview: PlaceSearchPlanPreview
     search: PlaceSearchResponse
 
@@ -96,6 +112,7 @@ class PlaceIntentConfirmationRequest(PlanningModel):
 
 class PlaceIntentConfirmationResponse(PlanningModel):
     confirmation: ConfirmedSearchLens
+    candidate_counts: CandidateResultCounts
     preview: PlaceSearchPlanPreview
     search: PlaceSearchResponse
 
@@ -323,6 +340,38 @@ def _result_count(execution: CandidateExecution) -> int:
     return sum(len(group.results) for group in execution.search.groups)
 
 
+def _candidate_result_counts(
+    preview: PlaceSearchPlanPreview,
+    displayed_search: PlaceSearchResponse,
+) -> CandidateResultCounts:
+    eligible = preview.gates[-1].remaining if preview.gates else preview.initial_candidates
+    return CandidateResultCounts(
+        initial_candidate_count=preview.initial_candidates,
+        eligible_candidate_count=eligible,
+        displayed_result_count=sum(len(group.results) for group in displayed_search.groups),
+        initial_candidate_count_truncated=bool(preview.truncated_kinds),
+    )
+
+
+def _aggregate_candidate_counts(
+    executions: tuple[CandidateExecution, ...],
+) -> CandidateResultCounts:
+    return CandidateResultCounts(
+        initial_candidate_count=sum(
+            item.candidate_counts.initial_candidate_count for item in executions
+        ),
+        eligible_candidate_count=sum(
+            item.candidate_counts.eligible_candidate_count for item in executions
+        ),
+        displayed_result_count=sum(
+            item.candidate_counts.displayed_result_count for item in executions
+        ),
+        initial_candidate_count_truncated=any(
+            item.candidate_counts.initial_candidate_count_truncated for item in executions
+        ),
+    )
+
+
 def _attempt_outcome(
     trace: PlaceIntentSuggestionTrace,
     executions: tuple[CandidateExecution, ...],
@@ -424,6 +473,11 @@ def _attempt_snapshot(
                     if lens.lens_id in execution_by_id
                     else 0
                 ),
+                "candidate_counts": (
+                    execution_by_id[lens.lens_id].candidate_counts.model_dump()
+                    if lens.lens_id in execution_by_id
+                    else None
+                ),
                 "gates": [
                     {
                         "capability_id": gate.capability_id.value,
@@ -457,12 +511,15 @@ async def _execute_trace(
         if plan is None:
             continue
         search = await search_place_plan(db, plan)
+        preview = await preview_search_plan(db, plan)
+        displayed_search = _limit_search_preview(search, preview_per_lens)
         executions.append(
             CandidateExecution(
                 lens_id=lens.lens_id,
                 confirmation_token=_confirmation_store.issue(lens, search_id),
-                preview=await preview_search_plan(db, plan),
-                search=_limit_search_preview(search, preview_per_lens),
+                candidate_counts=_candidate_result_counts(preview, displayed_search),
+                preview=preview,
+                search=displayed_search,
             )
         )
     return tuple(executions)
@@ -486,6 +543,7 @@ async def _observe_trace(
     fallback_policy_id = fallback_policy[0] if fallback_policy is not None else None
     fallback_policy_version = fallback_policy[1] if fallback_policy is not None else None
     lenses = trace.lenses.target_lenses if trace.lenses is not None else ()
+    candidate_counts = _aggregate_candidate_counts(executions)
     recorded = await safely_record_attempt(
         db,
         SearchAttemptRecord(
@@ -506,7 +564,13 @@ async def _observe_trace(
             interpretation_count=len(trace.raw.interpretations) if trace.raw is not None else 0,
             target_lens_count=len(lenses),
             executable_lens_count=len(executions),
-            result_count=sum(_result_count(item) for item in executions),
+            initial_candidate_count=candidate_counts.initial_candidate_count,
+            eligible_candidate_count=candidate_counts.eligible_candidate_count,
+            displayed_result_count=candidate_counts.displayed_result_count,
+            initial_candidate_count_truncated=(
+                candidate_counts.initial_candidate_count_truncated
+            ),
+            result_count=candidate_counts.displayed_result_count,
             snapshot=_attempt_snapshot(
                 trace,
                 executions,
@@ -531,6 +595,7 @@ async def _observe_trace(
                 "response_mode": response_mode.value,
                 "fallback_policy_id": fallback_policy_id,
                 "fallback_policy_version": fallback_policy_version,
+                "candidate_counts": candidate_counts.model_dump(),
             },
         )
 
@@ -559,6 +624,10 @@ async def _observe_failed_attempt(
             interpretation_count=0,
             target_lens_count=0,
             executable_lens_count=0,
+            initial_candidate_count=0,
+            eligible_candidate_count=0,
+            displayed_result_count=0,
+            initial_candidate_count_truncated=False,
             result_count=0,
             snapshot={
                 "proposer": {"disposition": None, "reason": None},
@@ -920,13 +989,21 @@ async def confirm_place_intent(
             detail="confirmed lens has no executable plan",
         )
     search = await search_place_plan(db, plan)
+    preview = await preview_search_plan(db, plan)
+    displayed_search = _limit_search_preview(search, plan.limit_per_kind)
+    candidate_counts = _candidate_result_counts(preview, displayed_search)
+    policy = pending.lens.candidate
     await safely_record_event(
         db,
         attempt_id=pending.search_id,
         event_type=SearchEventType.LENS_CONFIRMED,
         lens_id=request.lens_id,
         details={
-            "result_count": sum(len(group.results) for group in search.groups),
+            "result_count": candidate_counts.displayed_result_count,
+            "candidate_counts": candidate_counts.model_dump(),
+            "fallback_policy_id": policy.basis_policy_id,
+            "fallback_policy_version": policy.basis_policy_version,
+            "fallback_policy_branch_id": policy.basis_policy_branch_id,
             "locked_capabilities": [
                 gate.capability_id.value for gate in plan.gates if gate.locked
             ],
@@ -934,6 +1011,7 @@ async def confirm_place_intent(
     )
     return PlaceIntentConfirmationResponse(
         confirmation=confirmation,
-        preview=await preview_search_plan(db, plan),
-        search=_limit_search_preview(search, plan.limit_per_kind),
+        candidate_counts=candidate_counts,
+        preview=preview,
+        search=displayed_search,
     )

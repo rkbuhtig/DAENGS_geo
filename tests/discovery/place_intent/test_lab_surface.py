@@ -8,24 +8,47 @@ from uuid import uuid4
 
 import pytest
 from pydantic import ValidationError
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.discovery.place_intent.contract import ProposalDisposition, ProposalReason
+from app.discovery.place_intent import lab as lab_module
+from app.discovery.place_intent.contract import (
+    EvidenceQuote,
+    IntentInterpretation,
+    LLMIntentOutput,
+    LLMSearchDirective,
+    ProposalDisposition,
+    ProposalReason,
+    SearchModeId,
+    materialize_llm_output,
+)
+from app.discovery.place_intent.hypotheses import build_search_hypotheses
 from app.discovery.place_intent.lab import (
     CandidateExecution,
+    CandidateResultCounts,
     PlaceIntentConfirmationRequest,
+    _aggregate_candidate_counts,
     _attempt_outcome,
     _attempt_snapshot,
+    _candidate_result_counts,
     _ConfirmationStore,
     _fallback_policy,
     _InteractionStore,
     _limit_search_preview,
     _response_mode,
 )
-from app.discovery.place_intent.lenses import TargetSearchLens
-from app.discovery.place_intent.observability import AttemptStatus, SearchResponseMode
-from app.discovery.place_intent.suggestions import SuggestionResolution
-from app.place.planning.contract import PlaceKind
-from app.place.planning.intents import PlannerStatus
+from app.discovery.place_intent.lenses import TargetSearchLens, compile_search_lenses
+from app.discovery.place_intent.observability import (
+    AttemptStatus,
+    SearchEventType,
+    SearchResponseMode,
+)
+from app.discovery.place_intent.suggestions import (
+    SuggestionResolution,
+    compile_intent_suggestions,
+)
+from app.place.planning.contract import CapabilityId, GateOrigin, PlaceKind
+from app.place.planning.intents import IntentSource, PlannerStatus
+from app.place.planning.preview import PlaceSearchPlanPreview
 from app.place.search import PlaceSearchGroup, PlaceSearchResponse
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -58,6 +81,10 @@ def test_intent_lab_shows_model_policy_and_real_search_layers() -> None:
     assert "response · " in HTML
     assert "proposer " in HTML
     assert "fallback " in HTML
+    assert "counts.initial_candidate_count" in HTML
+    assert "counts.eligible_candidate_count" in HTML
+    assert "counts.displayed_result_count" in HTML
+    assert "후보 수 미측정" in HTML
     assert "탭이나 장소 마커를 누르는 것은 확인이 아닙니다." in HTML
     assert "실행 가능한 lens가 없어 지도에 표시할 장소가 없습니다." in HTML
 
@@ -88,6 +115,151 @@ def test_intent_lab_limits_each_lens_preview_across_groups() -> None:
         ["restaurant-1"],
     ]
     assert [group.truncated for group in limited.groups] == [False, True]
+
+
+def test_candidate_counts_separate_supply_from_displayed_preview() -> None:
+    preview = PlaceSearchPlanPreview.model_construct(
+        initial_candidates=12,
+        candidate_limit_per_kind=100,
+        truncated_kinds=(PlaceKind.CAFE,),
+        gates=(SimpleNamespace(remaining=5),),
+    )
+    displayed = PlaceSearchResponse.model_construct(
+        conditions=None,
+        groups=[
+            PlaceSearchGroup.model_construct(
+                kind=PlaceKind.CAFE,
+                limit=3,
+                truncated=True,
+                results=["cafe-1", "cafe-2", "cafe-3"],
+            )
+        ],
+    )
+
+    counts = _candidate_result_counts(preview, displayed)
+
+    assert counts == CandidateResultCounts(
+        initial_candidate_count=12,
+        eligible_candidate_count=5,
+        displayed_result_count=3,
+        initial_candidate_count_truncated=True,
+    )
+    assert _aggregate_candidate_counts(
+        (
+            cast(CandidateExecution, SimpleNamespace(candidate_counts=counts)),
+            cast(CandidateExecution, SimpleNamespace(candidate_counts=counts)),
+        )
+    ) == CandidateResultCounts(
+        initial_candidate_count=24,
+        eligible_candidate_count=10,
+        displayed_result_count=6,
+        initial_candidate_count_truncated=True,
+    )
+
+
+def _open_discovery_lens() -> TargetSearchLens:
+    utterance = "오늘 심심한데 네가 추천해봐"
+    observation_ids = iter(f"open-confirm-{index}" for index in range(20))
+    grounded = materialize_llm_output(
+        utterance,
+        LLMIntentOutput(
+            disposition=ProposalDisposition.PROPOSED,
+            interpretations=(
+                IntentInterpretation(
+                    search_directive=LLMSearchDirective(
+                        mode=SearchModeId.OPEN_DISCOVERY,
+                        evidence=EvidenceQuote(
+                            quote="네가 추천해봐",
+                            start=None,
+                            end=None,
+                        ),
+                    ),
+                    proposals=(),
+                ),
+            ),
+            reason=None,
+        ),
+        id_factory=lambda: next(observation_ids),
+    )
+    spatial = {"lat": 37.5563, "lng": 126.9236, "radius_m": 3000}
+    hypotheses = build_search_hypotheses(grounded)
+    suggestions = compile_intent_suggestions(
+        grounded,
+        spatial=spatial,
+        limit_per_kind=3,
+    )
+    lenses = compile_search_lenses(
+        hypotheses,
+        suggestions,
+        spatial=spatial,
+        limit_per_kind=3,
+    )
+    assert len(lenses.target_lenses) == 3
+    return lenses.target_lenses[0]
+
+
+async def test_open_discovery_confirmation_recompiles_and_records_provenance(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    lens = _open_discovery_lens()
+    search_id = uuid4()
+    token = lab_module._confirmation_store.issue(lens, search_id)
+    preview = PlaceSearchPlanPreview.model_construct(
+        initial_candidates=4,
+        candidate_limit_per_kind=100,
+        truncated_kinds=(),
+        gates=(),
+    )
+    search = PlaceSearchResponse.model_construct(conditions=None, groups=[])
+    captured_event: dict = {}
+
+    async def fake_search(_db, plan):
+        assert any(
+            gate.capability_id is CapabilityId.PURPOSE_KIND
+            and gate.origin is GateOrigin.USER_EXPLICIT
+            and gate.locked
+            and not gate.relaxable
+            for gate in plan.gates
+        )
+        return search
+
+    async def fake_preview(_db, _plan):
+        return preview
+
+    async def fake_record_event(_db, **kwargs):
+        captured_event.update(kwargs)
+        return True
+
+    monkeypatch.setattr(lab_module, "search_place_plan", fake_search)
+    monkeypatch.setattr(lab_module, "preview_search_plan", fake_preview)
+    monkeypatch.setattr(lab_module, "safely_record_event", fake_record_event)
+
+    response = await lab_module.confirm_place_intent(
+        PlaceIntentConfirmationRequest(
+            lens_id=lens.lens_id,
+            confirmation_token=token,
+        ),
+        cast(AsyncSession, object()),
+    )
+
+    assert response.confirmation.source_lens_id == lens.lens_id
+    assert {
+        observation.source for observation in response.confirmation.confirmed_observations
+    } == {IntentSource.USER_CONFIRMED}
+    assert response.candidate_counts == CandidateResultCounts(
+        initial_candidate_count=4,
+        eligible_candidate_count=4,
+        displayed_result_count=0,
+    )
+    assert captured_event["attempt_id"] == search_id
+    assert captured_event["event_type"] is SearchEventType.LENS_CONFIRMED
+    assert captured_event["lens_id"] == lens.lens_id
+    assert captured_event["details"]["fallback_policy_id"] == "place.open_discovery"
+    assert captured_event["details"]["fallback_policy_version"] == "v1"
+    assert captured_event["details"]["fallback_policy_branch_id"] == "eat-and-rest"
+    assert CapabilityId.PURPOSE_KIND.value in captured_event["details"][
+        "locked_capabilities"
+    ]
 
 
 def test_attempt_failure_distinguishes_spatial_empty_from_gate_elimination() -> None:
