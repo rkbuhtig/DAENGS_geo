@@ -17,6 +17,8 @@
 |---|---|---|---|
 | [pet-axes](pet-axes.md) | exploring | working | `pet` 자유텍스트 봉투 → 필터 가능한 축. 근거는 커버리지 측정 |
 | [source-facts](source-facts.md) | exploring | shadow | KCISA/KTO를 합치기 전 원천별 의미와 결측 상태를 보존 |
+| [search-plan](search-plan.md) | exploring | internal | UI·규칙·LLM이 공유하는 결정론적 `PlaceSearchPlan`과 gate 경계 |
+| [intent-planner](intent-planner.md) | exploring | internal | LLM 제안은 authority 없이 evidence grounding 뒤에만 planner로 전달 |
 | [row-tags](row-tags.md) | proposed | partial | `kind` 가 버린 행 사이 차이를 태그로 복원. 근거는 [재료 측정](../../research/2026-08-27-tag-material.md) |
 
 ## 병원과 무엇이 다른가
@@ -37,4 +39,4 @@
 
 - 측정: [`research/2026-08-24-facility-pet-coverage.md`](../../research/2026-08-24-facility-pet-coverage.md)
 - 적재: `app/ingest/kcisa.py` (CSV 스냅샷 교체) · `app/ingest/kto.py` (API 증분)
-- 검색: `app/api/facility.py` — 필드 단위 병합, 빌린 값에 `field_sources`
+- 검색: `app/api/places_v2.py` → `app/place/search.py`·`facility_resolver.py` — canonical Place 그룹과 필드 단위 출처

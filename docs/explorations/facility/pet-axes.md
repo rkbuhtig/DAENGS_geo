@@ -1,6 +1,6 @@
 ---
 status: exploring
-implementation: working
+implementation: working-skeleton
 ---
 # `pet` 봉투 → 축 — 자유 텍스트를 필터 가능한 컬럼으로
 
@@ -16,8 +16,8 @@ implementation: working
 병원 간판 정규식의 재판이다 — 그때 얻은 교훈이 "정규식 태그를 `WHERE` 에 쓰지 마라"였다.
 
 **둘. 원천마다 봉투가 다르고, 게다가 서로 빌려진다.** KCISA 와 KTO 의 `pet` 은 키가 하나도
-안 겹친다(측정 §1). 그런데 `app/api/facility.py` 의 `_BORROWABLE` 에 `pet` 이 들어 있어
-빈 쪽이 상대 봉투를 통째로 빌린다. 소비자는 어떤 키가 올지 모른 채 받는다. 원천이 셋이 되면
+안 겹친다(측정 §1). 그런데 `app/place/facility_resolver.py`의 SQL 병합층은 `pet`과 파생 축을 한 묶음으로 다뤄
+빈 쪽이 연결된 상대 원천의 봉투를 빌릴 수 있다. 소비자는 어떤 키가 올지 모른 채 받는다. 원천이 셋이 되면
 셋이 된다. **정규화는 다원천의 전제 조건이다.**
 
 **셋. 같은 파일에 이미 기준이 있다.** `parking`·`indoor`·`outdoor` 는 `_flag()` 로 `BOOLEAN`
@@ -85,7 +85,8 @@ UPSERT가 기존 축을 무효화해 일반 배치가 다시 계산하고, 문�
 | `alembic/versions/0013_facility_pet_axes.py` | 컬럼 5개 + CHECK. alembic 도입 뒤 첫 신규 리비전이라 `downgrade()` 가 실제로 동작한다 |
 | `app/geo/pet.py` | 순수 파생 (`derive_axes`). kg 문턱값 상수도 여기 한 곳 |
 | `app/ingest/pet_axes.py` | 저장된 `pet` → 컬럼. 원천 재호출 없음 |
-| `app/api/facility.py` | `pet_axes` 응답 + `dog_size`/`only_dog_ok` 필터 |
+| `app/place/facility_resolver.py` | `pet_axes` 응답 + `dog_size`/`only_dog_ok` 필터·출처 병합 |
+| `app/api/places_v2.py` | 위 resolver를 canonical `POST /v2/places/search`로 노출 |
 | `scripts/facility_pet_coverage.py` | 커버리지 재측정 |
 
 ```bash
@@ -104,7 +105,7 @@ uv run python -m app.ingest restrictions                   # 같은 봉투의 re
 - ~~**`restrictions` 파싱.** 자유 서술이고 값이 제각각이다. 표시용으로만 낸다~~
   → **뒤집혔다** ([결정 #70](../../decisions/2026-08-27-place-row-tags.md), [row-tags](row-tags.md)).
   "값이 제각각" 이 맞긴 한데 **종류가 291개뿐**이라 사람이 전수 판독할 수 있는 양이었다.
-  정규식으로 파싱하는 것은 여전히 안 한다 — 판독표(`place/restriction_map.py`)가 하고,
+  정규식으로 파싱하는 것은 여전히 안 한다 — 판독표(`app/place/restriction_map.py`)가 하고,
   표에 없는 문장은 추측 없이 원문으로 남는다
 - **`extra_fee` 를 금액으로.** 채움률 1.8%(427행). 유무 판단조차 표본이 모자라 이번엔 축을 안 만든다
 - **KTO `acmpy*`를 저장 축으로 확정.** 상세가 붙은 비율이 낮아 아직 DB/검색 축으로 굳히지

@@ -1,6 +1,10 @@
+---
+status: exploring
+implementation: working-skeleton
+---
 # Continuous Brush Reference
 
-상태: `exploring` — Hex Cellophane의 대체 저장 형식이 아니라 비교 기준 계산기다.
+Hex Cellophane의 대체 저장 형식이 아니라 비교 기준 계산기다.
 
 ## 질문
 

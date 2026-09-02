@@ -1,3 +1,7 @@
+---
+status: exploring
+implementation: working-skeleton
+---
 # 결정론적 산책 시뮬레이터 core
 
 `scripts/verify/walk_fixture.py`는 정확한 계약 검사용이다. 고정 직선·고정 속도·정지 1회라는
@@ -76,7 +80,7 @@ sheets = observation.sheets            # 통계 계산기에 전달할 유일한
 모든 산책은 같은 집과 공통 현관·주 동선에서 시작해 다시 집으로 돌아온다. 생성 비율은 동쪽
 루프 14회, 남쪽 왕복 9회, 북쪽 공원 4회, 임시 탐색 3회다. 북쪽 공원에만 180초 이상의 긴
 체류를 심는다. `PopulationObservation`에는 이 branch와 hold label, 원래 seed가 없고 관측
-GPS·canonical Segment·Cellophane만 남는다. PR1 통계층은 `sheets`만 읽으며, branch별 기대
+GPS·canonical Segment·Cellophane만 남는다. 통계층은 `sheets`만 읽으며, branch별 기대
 순위와 질량 영역 회수는 evaluator가 truth를 사후 결합하는 다음 단계에서 검증한다.
 
 통계 지도 fixture와 dev 화면:
