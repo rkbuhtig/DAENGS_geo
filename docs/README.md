@@ -11,7 +11,7 @@
 
 - 운영 **Place 검색·Journey 백엔드**의 canonical 구현은 `SAJOYO/DAENGS_dev`다. 운영 버그,
   배포·인프라, 실제 서비스 API 변경은 그 저장소에서 한다.
-- 운영 **Android 지도·Place UX**의 canonical 구현은 `SAJOYO/DAENGS_APP`이다. 이 저장소의
+- 운영 **Android 지도·Place UX**의 canonical 구현은 `SAJOYO/DAENGS_app`이다. 이 저장소의
   Android 사본은 연구·대조용 기준 구현이지 제품 수정의 원본이 아니다.
 - **walk·territory·공간 해석**, 그리고 검색의 새 원천·분류·ranking·추천 같은 아직 검증 중인
   실험은 이 저장소에서 계속 진행한다.
@@ -43,7 +43,7 @@ backlog.md           갈래에 안 붙는 미결
 ```
 
 ## 갈래 상태
-`exploring` 파는 중 · `adopted` 채택 (decisions/에 한 줄 생김) · `parked` 보류 · `rejected` 기각 (지우지 않음 — 같은 질문 다시 안 하려고)
+`proposed` 도입 후보 · `exploring` 파는 중 · `adopted` 채택 (decisions/에 한 줄 생김) · `parked` 보류 · `rejected` 기각 (지우지 않음 — 같은 질문 다시 안 하려고)
 
 `status`는 **제품 결정**, 선택적인 `implementation`은 **코드 성숙도**다. 구현돼 있어도 현재
 제품 범위에서 빠졌다면 `status: parked`, `implementation: working-skeleton`이 될 수 있다.
@@ -53,7 +53,7 @@ backlog.md           갈래에 안 붙는 미결
 - [병원 찾기](explorations/hospital-search/README.md) — 장소·거리 코어와 parked 실험을 분리
 - [지도 제공사](explorations/map-provider/README.md)
 - [문화시설](explorations/facility/README.md) — 기반층을 실제로 쓸 수 있게. 병원과 달리 조건 편집의 오른쪽 항이 있다
-- [산책](explorations/walk/README.md) — 코어는 수집 계약, 갈래는 전부 소비자 옵션
+- [산책](explorations/walk/README.md) — 수집 코어는 사실 계약, Capsule·Spatial Diary는 그 사실을 별도 권위 경계에서 소비
 - [싸인펜·셀로판·통계층](explorations/walk/cellophane-statistical-layer.md) — 한 산책의 시간 공간장, 산책별 z축 보존, 방문률·체류·공간 이용 분포를 서로 다른 연산으로 분리
 - [반복 체류 영역 — 조작적 정의](explorations/walk/repeated-dwell-area.md) — 의미를 안 붙인 채로 "여러 산책에서 반복해 주변보다 우세한 자리" 를 못 박는다
 - [판단 가능한 상태로 — Evidence 층](explorations/walk/evidence-layer.md) — 원시 행동을 저장하는 게 목적이 아니라 사람과 AI 가 같은 근거를 읽고 판단하게 만드는 것. 지도는 맨 마지막
@@ -125,7 +125,7 @@ backlog.md           갈래에 안 붙는 미결
 `explorations/<주제>/<갈래>.md`, 상단에
 ```
 ---
-status: exploring | adopted | parked | rejected
+status: proposed | exploring | adopted | parked | rejected
 implementation: none | draft | working-skeleton | verified  # 선택
 last_verified: YYYY-MM-DD                                   # 현재 상태를 주장할 때
 depends-on: (있으면)

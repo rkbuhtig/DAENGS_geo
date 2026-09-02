@@ -12,6 +12,7 @@
 | [name-tagging](name-tagging.md) | adopted | verified | 사업장명·인허가에서 태그·규모 표시. 이름 태그는 기본 부스트 |
 | [kakao-category](kakao-category.md) | rejected | none | 보강하려던 `specialty` 축이 #64 로 사라짐 |
 | [community-search](community-search.md) | rejected | none | 원천 약관이 파생물 저장을 막는다. 구현 제거 (#63) |
+| [evidence-index](evidence-index.md) | rejected | none | 오프라인 근거 인덱스도 합법 원천이 확정되지 않아 중단 (#63) |
 | [policy-split](policy-split.md) | adopted | verified | 조건을 target/journey/view로 분리. 경계는 테스트로 강제 |
 | [refine-loop](refine-loop.md) | parked | working-skeleton | 상태 편집·툴·undo는 구현됐으나 제품 코어에서 보류 |
 | [condition-schema](condition-schema.md) | adopted | verified | context/target/journey/view와 실행 plan 경계를 테스트로 고정 |

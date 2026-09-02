@@ -3,7 +3,7 @@
 > 이 문서는 "코드가 존재한다"와 "현재 제품에 꽂혀 있다"를 구분한다. 지도 중심 서비스라
 > 공급자를 바꿔 실험할 수 있게, **현재 조립**, **선택 이유**, **교체 지점**, **검증 결과**를 같이 남긴다.
 
-최종 갱신: 2026-08-27 · 관련 결정: [#11, #13, #21, #39~#44, #46~#51, #65, #71](decisions/README.md)
+최종 검증: 2026-09-02 · 관련 결정: [#11, #13, #21, #39~#44, #46~#51, #65, #71, #74~#83](decisions/README.md)
 
 결정 #51 이후 경로 어댑터와 진실성 계약은 유지하지만 해당 기능을 현재 제품
 차별점으로 활성화하지 않는다. 커뮤니티 근거는 결정 #63 으로 기각해 이 표에서 뺐다. 아래 표의 `fake`·`none`은 이 parked 상태까지 포함한 현재 조립이다.
@@ -21,6 +21,8 @@
 | 자동차 경로 | `fake` | 실제 어댑터 미구현 | estimate | 이번 조립 범위 밖 |
 | 대중교통 경로 | `fake` | 실제 어댑터 미구현 | estimate | 이번 조립 범위 밖 |
 | 지도앱 따라가기 | NAVER·Kakao·TMAP 딥링크 | 활성 | 링크만 제공 | 내비게이션을 직접 만들지 않음 |
+| Place intent dev lab | **Gemini 3.1 Flash-Lite** | dev console 전용 | 미설정 시 503, 호출 실패 시 502 | 모델은 authority 없는 제안만 만들고 planner가 evidence·gate를 검증 |
+| Place intent 수동 평가 | **OpenAI Responses API** | `--live`에서만 | 기본은 녹화 fixture 평가 | 같은 내부 출력 계약을 별도 공급자로 대조 |
 
 `fake`는 개발 계산식이고 실제 공급자가 아니다. 응답에서도 `measured`가 아니라 `estimate`로 나간다.
 
@@ -40,6 +42,10 @@ Android 지도  DAENGS_NAVER_NCP_KEY_ID
 
 지오코딩       DAENGS_GEOCODE_PROVIDER=none
 경로           *_ROUTE_PROVIDER=fake
+
+의도 lab       DAENGS_DEV_CONSOLE=true
+               DAENGS_LLM_PROVIDER=gemini + DAENGS_GEMINI_API_KEY
+수동 live 평가 DAENGS_LLM_PROVIDER=openai + DAENGS_OPENAI_API_KEY
 
 실제 외부 호출 DAENGS_USAGE_POLICY=deny-all | dev
                  └─ 기본 거부. dev도 요청·시간당 고정 한도 안에서만 호출
@@ -113,8 +119,12 @@ GET http://127.0.0.1:8000/facility-map
 GET /map/static?...      image/png과 검색 결과 마커
 ```
 
-`DAENGS_USAGE_POLICY`를 생략하면 실제 Static Map·TMAP·OpenAI 호출은 기본 거부된다. `dev`는
+`DAENGS_USAGE_POLICY`를 생략하면 실제 Static Map·TMAP·OpenAI·Gemini 호출은 기본 거부된다. `dev`는
 무제한 우회가 아니라 프로세스별 제한 정책이다. Static Map 100회/시간, 실측 경로 60회/시간,
-OpenAI 파싱 30회/시간이며 요청 하나의 실측 경로는 최대 4회다.
+`language.parse` 30회/시간이며 요청 하나의 실측 경로는 최대 4회다.
 
 키가 없으면 `/facility-map` 상단에 `OSM · NAVER key 없음`이 표시되어야 한다.
+
+Context Plane은 `ContextProvider` port·capability/Lens registry와 TrailContext·MeasurementReceipt·
+DogProfile adapter까지 구현됐지만, 외부 context provider를 설정으로 조립하는 단계는 아직 아니다.
+따라서 위 표의 “현재 선택”에는 넣지 않고 contract/adapters 구현 상태로만 구분한다.

@@ -96,7 +96,8 @@ ID만 연결한다.
 
 ## LLM proposer도 authority를 갖지 않는다
 
-`app.discovery.place_intent`가 OpenAI Responses API의 strict Structured Outputs로 다음만 받는다.
+`app.discovery.place_intent`의 OpenAI Responses·Gemini Interactions 어댑터는 같은 authority-free
+출력 계약으로 다음만 받는다.
 
 ```text
 disposition = proposed | ambiguous | abstained
@@ -117,9 +118,12 @@ ID와 `source=llm_proposal`을 붙인다. 한 interpretation 안의 일부 evide
 독립적인 `PlannerRequest`로 컴파일할 수 있게 분리된 채 유지한다. 질문할지, 여가 시설을 제안형으로
 보여줄지는 이 proposer가 아니라 후속 orchestration 정책의 책임이다.
 
-OpenAI 호출은 `language.parse` Usage Gate 뒤에 있고 출고 기본 정책은 `deny-all`이다. 구현은
-[OpenAI Structured Outputs 공식 문서](https://developers.openai.com/api/docs/guides/structured-outputs)의
-Responses API `text.format=json_schema` 계약을 따른다.
+두 실제 모델 호출은 모두 `language.parse` Usage Gate 뒤에 있고 출고 기본 정책은 `deny-all`이다.
+OpenAI 어댑터는 [OpenAI Structured Outputs 공식 문서](https://developers.openai.com/api/docs/guides/structured-outputs)의
+Responses API `text.format=json_schema`를, Gemini 어댑터는 Interactions API의 JSON schema 응답을
+각각 같은 내부 계약으로 정규화한다. 현재 `/dev/place-intent/*` lab은 Gemini만 조립하고,
+`scripts.evaluate_place_intent --live`는 OpenAI만 조립한다. `DAENGS_LLM_PROVIDER`와 해당 API key를
+각 진입점에 맞게 명시하지 않으면 lab은 503으로 닫힌다.
 
 ## 평가 경계
 
@@ -137,7 +141,7 @@ Responses API `text.format=json_schema` 계약을 따른다.
 # 네트워크 없이 녹화 출력 평가
 uv run python -m scripts.evaluate_place_intent
 
-# DAENGS_LLM_PROVIDER=openai, API key, DAENGS_USAGE_POLICY=dev를 명시한 수동 실측
+# OpenAI 평가 경로: DAENGS_LLM_PROVIDER=openai, API key, DAENGS_USAGE_POLICY=dev
 uv run python -m scripts.evaluate_place_intent --live
 ```
 

@@ -70,9 +70,10 @@ git grep -n 'scripts/spikes/<갈래>'   # app · tests · docs · android 전부
 부른다. 현재 KTO 저장 레코드를 순수 projector에 통과시켜 scope·predicate·amenity·실패 수를
 읽기 전용으로 다시 잰다.
 
-`discover_place_tags.py` 는 [결정 #72](../docs/decisions/2026-08-27-place-tag-catalog.md)의
-**발견** 칸이다 — 사전을 고칠 때마다 다시 돈다. 갈래가 닫히면 사라질 측정 장치가 아니라
-`app/place/tag_catalog.py` 를 손보는 사람이 매번 여는 작업대라서 최상위에 있다.
+`discover_place_tags.py`는 [제안 #72](../docs/decisions/2026-08-27-place-tag-catalog.md)의
+**발견** 칸이다. 승인된 이름 태그 catalog와 ingest 경로는 아직 구현되지 않았고,
+`app/place/tag_catalog.py`는 그 제안이 가리키는 예정 경로다. 이 도구는 후보를 다시 뽑는
+작업대라 최상위에 있지만, 출력만으로 현재 제품 데이터가 바뀌지는 않는다.
 이 도구의 출력은 **후보일 뿐 어떤 행에도 저장되지 않는다** (#70 §8: 임베딩 자동 분류 기각).
 임베딩 모드는 레포 의존성 밖이라 `uv run --with sentence-transformers --with scikit-learn` 이
 필요하고, `--mode mine` 만 추가 의존성 없이 돈다.
