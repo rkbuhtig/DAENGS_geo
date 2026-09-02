@@ -84,6 +84,8 @@ def test_intent_lab_shows_model_policy_and_real_search_layers() -> None:
     assert "counts.initial_candidate_count" in HTML
     assert "counts.eligible_candidate_count" in HTML
     assert "counts.displayed_result_count" in HTML
+    assert "const counts = confirmed ? confirmed.candidate_counts" in HTML
+    assert "const counts = confirmation ?" not in HTML
     assert "후보 수 미측정" in HTML
     assert "탭이나 장소 마커를 누르는 것은 확인이 아닙니다." in HTML
     assert "실행 가능한 lens가 없어 지도에 표시할 장소가 없습니다." in HTML
