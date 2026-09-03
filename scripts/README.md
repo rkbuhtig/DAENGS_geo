@@ -11,6 +11,7 @@
 |---|---|---|
 | `scripts/*.py` | 운영 도구. README 가 실행을 지시하는 정식 명령 | 그 워크플로가 없어질 때 |
 | `verify/` | 관통 검증 하네스. 같은 경로를 여러 단계가 다시 쓴다 | 검증 대상이 없어질 때 |
+| `sim/` | 재현 가능한 생성기. truth·센서 관측·전달을 분리해 실패를 비교한다 | 해당 계약을 대체할 때 |
 | `spikes/<갈래>/` | 측정 스파이크. 연구 문서의 재현 장치 | **갈래가 닫힐 때** |
 
 ## `spikes/` — 갈래에 묶고, 갈래가 닫히면 폴더째 지운다
@@ -58,6 +59,13 @@ git grep -n 'scripts/spikes/<갈래>'   # app · tests · docs · android 전부
 `walk_bundle.py`(실측 회수) 가 그걸 같이 읽는다. 단계를 나눈 이유는 실패 원인을 좁히기
 위해서고 (`walk_pipeline_check.py` 도크스트링), 검증할 때마다 다시 쓴다. 측정이 아니라
 도구다.
+
+## `sim/` — 제품 데이터도 일회성 fixture도 아니다
+
+`sim/walk`는 지도 독립 행동과 로컬 polyline으로 연속 motion truth를 만든 뒤 센서 관측과 앱
+전달을 따로 오염한다. 저장한 `walk-trace-scenario-v1`을 다시 실행할 수 있고, 결과의
+`walk-export.json`만 기존 제품 계산기로 들어간다. 사용법과 층별 출력은
+[`simulator-core.md`](../docs/explorations/walk/simulator-core.md)에 둔다.
 
 ## 최상위
 

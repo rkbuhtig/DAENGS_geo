@@ -17,7 +17,23 @@ from app.features.walk.observation import extract_observations, moving_speed_pro
 from scripts.sim.walk.kinematics import MotionTruth, integrate_motion
 from scripts.sim.walk.model import GENERATOR_VERSION, BehaviorName, behavior_preset
 from scripts.sim.walk.route import RouteName, route_preset
-from scripts.sim.walk.sensor import ObservedWalk, PerfectSensor, observe_perfectly
+from scripts.sim.walk.sensor import (
+    NoisySensor,
+    ObservedWalk,
+    observe_noisily,
+    observe_perfectly,
+)
+from scripts.sim.walk.spec import (
+    DeliverySpec,
+    HoldSpec,
+    MotionSpec,
+    OriginSpec,
+    RouteSpec,
+    SensorSpec,
+    SlowMotifSpec,
+    WalkTraceScenarioSpec,
+)
+from scripts.sim.walk.trace import apply_sensor_faults, build_delivery, build_trace
 
 DEFAULT_START = datetime(2026, 1, 1, tzinfo=UTC)
 DEFAULT_ORIGIN = (37.4979, 127.0276)
@@ -25,9 +41,12 @@ DEFAULT_ORIGIN = (37.4979, 127.0276)
 
 @dataclass(frozen=True)
 class ScenarioArtifacts:
+    scenario: dict[str, object]
     manifest: dict[str, object]
     truth: dict[str, object]
     observed: ObservedWalk
+    trace: dict[str, object]
+    delivery: dict[str, object]
     computed: ComputedFacts
     derived: dict[str, object]
     cellophane_geojson: str
@@ -65,6 +84,14 @@ def _scenario_session_id(
     ).encode("utf-8")
     digest = hashlib.sha256(encoded).hexdigest()[:16]
     return f"sim-v{GENERATOR_VERSION}-{behavior_name}-{route_name}-{digest}"
+
+
+def _trace_session_id(spec: WalkTraceScenarioSpec) -> str:
+    signature = spec.model_dump(mode="json", exclude={"session_id"})
+    encoded = json.dumps(
+        signature, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+    ).encode("utf-8")
+    return f"sim-trace-v1-{hashlib.sha256(encoded).hexdigest()[:16]}"
 
 
 def _derived_payload(computed: ComputedFacts, truth: MotionTruth) -> dict[str, object]:
@@ -105,6 +132,89 @@ def _derived_payload(computed: ComputedFacts, truth: MotionTruth) -> dict[str, o
     }
 
 
+def build_scenario_from_spec(spec: WalkTraceScenarioSpec) -> ScenarioArtifacts:
+    """검증된 파일 계약 하나를 전체 truth → 관측 → 전달 → canonical 흐름으로 실행한다."""
+    resolved_session_id = spec.session_id or _trace_session_id(spec)
+    resolved_spec = spec.model_copy(update={"session_id": resolved_session_id})
+    route = resolved_spec.route.to_geometry()
+    behavior = resolved_spec.motion.to_behavior(route.length_m)
+    motion = integrate_motion(behavior, route)
+    sensor = resolved_spec.sensor.to_sensor(seed=resolved_spec.seed)
+    observe = observe_noisily if isinstance(sensor, NoisySensor) else observe_perfectly
+    observed = observe(
+        motion,
+        sensor,
+        session_id=resolved_session_id,
+        dog_id=resolved_spec.dog_id,
+        started_at=resolved_spec.started_at,
+        origin_lat=resolved_spec.origin.lat,
+        origin_lng=resolved_spec.origin.lng,
+    )
+    observed = apply_sensor_faults(
+        observed,
+        resolved_spec.faults,
+        motion=motion,
+        sample_interval_s=resolved_spec.sensor.sample_interval_s,
+    )
+    computed = compute_facts(
+        resolved_session_id,
+        resolved_spec.dog_id,
+        resolved_spec.started_at,
+        observed.ended_at,
+        list(observed.fixes),
+    )
+    sheet = paint_sheet(
+        resolved_session_id, resolved_spec.started_at, computed.segments, 8.0, NARROW_STEP
+    )
+    manifest = {
+        "generator_version": GENERATOR_VERSION,
+        "scenario_format": resolved_spec.format,
+        "seed": resolved_spec.seed,
+        "session_id": resolved_session_id,
+        "behavior": behavior.to_dict(),
+        "route": route.to_dict(),
+        "sensor": sensor.to_dict(),
+        "faults": [fault.model_dump(mode="json") for fault in resolved_spec.faults],
+        "delivery": resolved_spec.delivery.model_dump(mode="json"),
+        "origin": resolved_spec.origin.model_dump(mode="json"),
+        "truth_semantics": {
+            "latent_state": "generator input, not a product judgment",
+            "target_speed_mps": "continuous behavior speed field v(s)",
+            "forward_speed_mps": "integrated progress change per second",
+            "ground_speed_mps": "physical 2D speed before GPS",
+            "cellophane_occupancy": "derived by canonical Paint, never generated directly",
+        },
+    }
+    truth_payload = {
+        "duration_s": round(motion.duration_s, 6),
+        "sample_interval_s": 1.0,
+        "samples": [sample.to_dict() for sample in motion.samples(1.0)],
+    }
+    trace = build_trace(
+        motion,
+        observed,
+        sample_interval_s=resolved_spec.sensor.sample_interval_s,
+        faults=resolved_spec.faults,
+    )
+    delivery = build_delivery(
+        motion,
+        observed,
+        resolved_spec.delivery,
+        sample_interval_s=resolved_spec.sensor.sample_interval_s,
+    )
+    return ScenarioArtifacts(
+        scenario=resolved_spec.model_dump(mode="json"),
+        manifest=manifest,
+        truth=truth_payload,
+        observed=observed,
+        trace=trace,
+        delivery=delivery,
+        computed=computed,
+        derived=_derived_payload(computed, motion),
+        cellophane_geojson=dumps_cellophane_geojson(sheet, computed.segments),
+    )
+
+
 def build_scenario(
     *,
     behavior_name: BehaviorName = "exploratory",
@@ -133,62 +243,41 @@ def build_scenario(
         origin_lat=origin_lat,
         origin_lng=origin_lng,
     )
-    behavior = behavior_preset(behavior_name, length_m, seed)
     route = route_preset(route_name, length_m)
-    motion = integrate_motion(behavior, route)
-    sensor = PerfectSensor(
-        sample_interval_s=sample_interval_s,
-        accuracy_m=3.0,
-        chain_breaks_m=chain_breaks_m,
-    )
-    observed = observe_perfectly(
-        motion,
-        sensor,
+    behavior = behavior_preset(behavior_name, length_m, seed)
+    spec = WalkTraceScenarioSpec(
+        seed=seed,
         session_id=resolved_session_id,
         dog_id=dog_id,
         started_at=started_at,
-        origin_lat=origin_lat,
-        origin_lng=origin_lng,
+        origin=OriginSpec(lat=origin_lat, lng=origin_lng),
+        route=RouteSpec(name=route.name, points_xy=route.points_xy),
+        motion=MotionSpec(
+            name=behavior.name,
+            base_speed_mps=behavior.base_speed_mps,
+            slow_motifs=tuple(
+                SlowMotifSpec(
+                    centre_m=motif.centre_m,
+                    width_m=motif.width_m,
+                    min_factor=motif.min_factor,
+                )
+                for motif in behavior.slow_motifs
+            ),
+            holds=tuple(
+                HoldSpec(progress_m=hold.progress_m, duration_s=hold.duration_s)
+                for hold in behavior.holds
+            ),
+            fatigue_start_fraction=behavior.fatigue_start_fraction,
+            fatigue_end_factor=behavior.fatigue_end_factor,
+        ),
+        sensor=SensorSpec(
+            sample_interval_s=sample_interval_s,
+            accuracy_m=3.0,
+            chain_breaks_m=chain_breaks_m,
+        ),
+        delivery=DeliverySpec(),
     )
-    computed = compute_facts(
-        resolved_session_id,
-        dog_id,
-        started_at,
-        observed.ended_at,
-        list(observed.fixes),
-    )
-    sheet = paint_sheet(
-        resolved_session_id, started_at, computed.segments, 8.0, NARROW_STEP
-    )
-    manifest = {
-        "generator_version": GENERATOR_VERSION,
-        "seed": seed,
-        "session_id": resolved_session_id,
-        "behavior": behavior.to_dict(),
-        "route": route.to_dict(),
-        "sensor": sensor.to_dict(),
-        "origin": {"lat": origin_lat, "lng": origin_lng},
-        "truth_semantics": {
-            "latent_state": "generator input, not a product judgment",
-            "target_speed_mps": "continuous behavior speed field v(s)",
-            "forward_speed_mps": "integrated progress change per second",
-            "ground_speed_mps": "physical 2D speed before GPS",
-            "cellophane_occupancy": "derived by canonical Paint, never generated directly",
-        },
-    }
-    truth_payload = {
-        "duration_s": round(motion.duration_s, 6),
-        "sample_interval_s": 1.0,
-        "samples": [sample.to_dict() for sample in motion.samples(1.0)],
-    }
-    return ScenarioArtifacts(
-        manifest=manifest,
-        truth=truth_payload,
-        observed=observed,
-        computed=computed,
-        derived=_derived_payload(computed, motion),
-        cellophane_geojson=dumps_cellophane_geojson(sheet, computed.segments),
-    )
+    return build_scenario_from_spec(spec)
 
 
 def write_scenario(out: Path, artifacts: ScenarioArtifacts) -> None:
@@ -197,9 +286,12 @@ def write_scenario(out: Path, artifacts: ScenarioArtifacts) -> None:
         raise FileExistsError(f"output directory is not empty: {out}")
     out.mkdir(parents=True, exist_ok=True)
     payloads = {
+        "scenario.json": artifacts.scenario,
         "manifest.json": artifacts.manifest,
         "truth.json": artifacts.truth,
         "walk-export.json": artifacts.observed.to_export(),
+        "trace.json": artifacts.trace,
+        "delivery.json": artifacts.delivery,
         "derived.json": artifacts.derived,
     }
     for filename, payload in payloads.items():

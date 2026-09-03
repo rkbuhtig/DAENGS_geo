@@ -14,7 +14,11 @@ BehaviorPlan       지도와 독립된 v(s), slow motif, hold, fatigue
     ↓ dt/ds 적분
 MotionTruth        시간축 progress와 실제 로컬 east/north 동선
     ↓ RouteGeometry의 호 길이 투영
-PerfectSensor      고정 간격의 mock WalkFix와 명시적 chain break
+Sensor             Perfect(고정 간격) | Noisy(seed 기반 GPS 오염)
+    ↓ 명시적 시간축 fault
+Trace              같은 sample ID의 truth ↔ observed 대응
+    ↓ 독립 delivery 계획
+Delivery           앱 도착 지연·배치·역순·중복
     ↓ 기존 production 순수함수
 compute_facts → observations → paint_sheet → Cellophane GeoJSON
 ```
@@ -30,9 +34,9 @@ compute_facts → observations → paint_sheet → Cellophane GeoJSON
 - 모든 fix는 `is_mock=true`다.
 
 `SlowMotif`는 cosine envelope로 진입·유지·회복을 부드럽게 만든다. preset의 seed는 motif
-위치·폭·깊이를 제한적으로 흔들지만, 실제 산책 분포를 안다고 주장하지 않는다. GPS drift,
-dropout, outlier도 아직 없다. 먼저 perfect observation에서 truth와 canonical 연결을 고정한
-뒤 별도 sensor version으로 추가한다.
+위치·폭·깊이를 제한적으로 흔들지만, 실제 산책 분포를 안다고 주장하지 않는다. 확률적 GPS
+오염은 `NoisySensor`, 사람이 특정 시점에 심는 결함은 `faults`, 센서가 캡처한 뒤 앱에 도착하는
+문제는 `delivery`가 맡는다. 셋을 섞지 않으므로 같은 truth에서 한 축만 바꿔 비교할 수 있다.
 
 ## 실행
 
@@ -52,16 +56,40 @@ uv run python -m scripts.sim.walk.cli `
 chain break, 시작 시각·원점 등 관측 결과를 바꾸는 입력 전체에서 결정론적으로 만든다. 외부
 실행명과 맞춰야 할 때만 `--session-id`로 명시한다.
 
+지도에서 그린 임의 polyline과 세부 행동·결함은 versioned JSON으로 저장한 뒤 다시 실행한다.
+
+```powershell
+uv run python -m scripts.sim.walk.cli `
+  --spec scripts/sim/walk/examples/sniff-and-go.json `
+  --out C:/dev/walk-sim/authored-result
+```
+
+`walk-trace-scenario-v1`은 다음 네 경계를 가진다.
+
+- `route.points_xy`: 원점 기준 east/north 미터 polyline
+- `motion`: 기준 속도, 거리축 slow motif, hold, fatigue
+- `sensor`: perfect/noisy 표본화와 확률 오염
+- `faults` / `delivery`: 의도한 GPS 결함과 앱 전달 결함
+
+명시적 센서 fault는 시간 구간 dropout, 시간 구간 accuracy 저하, 한 표본 position offset을
+지원한다. delivery는 기본 지연, 시간 구간 추가 지연, batch, batch 내부 역순, 특정 캡처 시각의
+중복 전달을 지원한다. 시나리오에 session ID가 없으면 **시나리오 전체 내용**에서 안정적인 ID를
+만든다.
+
 ```text
-manifest.json       generator version, seed, 최종 motif, route, sensor 계약
+scenario.json       재실행 가능한 walk-trace-scenario-v1 입력
+manifest.json       generator version, seed, 최종 motif, route, sensor/fault 계약
 truth.json          GPS 이전의 1초 간격 실제 운동
 walk-export.json    Android export와 같은 서버 입력 계약
+trace.json          sensor 간격별 truth ↔ observed sample 대응과 fault 표식
+delivery.json       capture와 분리된 앱 도착 순서·지연·batch·duplicate
 derived.json        facts, curve, 관측, 구간별 파생 속도
 cellophane.geojson  기존 canonical Paint 결과
 ```
 
-같은 seed는 위 다섯 출력을 다시 만들 수 있다. behavior는 그대로 두고 route만 바꾸면 실제
-동선 모양만, sensor seed를 추가할 다음 단계에서는 observation만 바꿔 원인을 분리한다.
+같은 scenario는 위 여덟 출력을 다시 만든다. delivery만 바꾸면 `walk-export`와 canonical
+계산값은 그대로이고 도착 사건만 바뀐다. sensor/fault만 바꾸면 truth는 그대로이고 관측부터
+달라진다. 이 분리가 이후 Android replay source와 서버 업로드 adapter의 기준선이다.
 
 ## 셀로판 모집단 fixture
 
