@@ -286,6 +286,9 @@ def build_scenario(
 
 def write_scenario(out: Path, artifacts: ScenarioArtifacts) -> None:
     """기존 실행 결과를 덮지 않는다. 비어 있거나 아직 없는 폴더만 받는다."""
+    # evaluation은 bundle을 입력으로 다시 perfect 기준군을 만들므로 import cycle을 피한다.
+    from scripts.sim.walk.evaluation import evaluate_scenario
+
     if out.exists() and any(out.iterdir()):
         raise FileExistsError(f"output directory is not empty: {out}")
     out.mkdir(parents=True, exist_ok=True)
@@ -297,6 +300,7 @@ def write_scenario(out: Path, artifacts: ScenarioArtifacts) -> None:
         "trace.json": artifacts.trace,
         "delivery.json": artifacts.delivery,
         "derived.json": artifacts.derived,
+        "evaluation.json": evaluate_scenario(artifacts),
     }
     for filename, payload in payloads.items():
         (out / filename).write_text(
