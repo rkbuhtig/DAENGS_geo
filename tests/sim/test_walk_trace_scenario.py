@@ -107,6 +107,16 @@ def test_delivery_faults_do_not_rewrite_capture_order_or_canonical_facts():
     assert max(event["delivered_elapsed_s"] for event in events) >= 75
 
 
+def test_each_duplicate_time_produces_an_event_when_targets_share_a_sample():
+    artifacts = build_scenario_from_spec(
+        _spec(delivery={"duplicate_at_s": [10.1, 10.2]})
+    )
+
+    duplicates = [event for event in artifacts.delivery["events"] if event["duplicate"]]
+    assert len(duplicates) == 2
+    assert duplicates[0]["sample_id"] == duplicates[1]["sample_id"]
+
+
 def test_same_spec_reproduces_all_trace_layers():
     spec = _spec(
         sensor={

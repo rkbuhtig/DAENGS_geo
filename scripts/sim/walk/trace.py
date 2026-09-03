@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+from collections import Counter
 from dataclasses import dataclass
 
 from app.features.walk.models import WalkFix
@@ -185,7 +186,7 @@ def build_delivery(
         scheduled[index : index + spec.batch_size]
         for index in range(0, len(scheduled), spec.batch_size)
     ]
-    duplicate_ids = {
+    duplicate_counts = Counter(
         _sample_id(
             min(
                 range(len(truth_samples)),
@@ -193,14 +194,14 @@ def build_delivery(
             )
         )
         for target_s in spec.duplicate_at_s
-    }
+    )
     unordered = []
     for batch_index, batch in enumerate(batches):
         release_s = max(item.planned_delivery_s for item in batch)
         ordered = list(reversed(batch)) if spec.reverse_within_batch else batch
         for within_batch, item in enumerate(ordered):
             unordered.append((release_s, batch_index, within_batch, False, item))
-            if item.sample_id in duplicate_ids:
+            for _ in range(duplicate_counts[item.sample_id]):
                 unordered.append((release_s, batch_index, within_batch, True, item))
     unordered.sort(key=lambda row: (row[0], row[1], row[2], row[3]))
 
