@@ -34,8 +34,9 @@ EARTH_R = 6_378_137.0
 # 이 버전의 값을 고정하고, 셀로판(`paint.Cellophane`)이 이 버전을 달고 다닌다.
 GRID_VERSION = "hex-v1"
 
-# anchors.py 가 앵커를 솎은 반지름(격자 단위). 위도 37.5° 에서 실제 91m, 셀 간격 158m.
-ANCHOR_RADIUS_U = 115.0
+# anchors.py 가 앵커를 솎는 1차 밀도 실험값(격자 단위).
+# 위도 37.5° 에서 실제 반지름 111m, 이웃 셀 중심 간격 192m다.
+ANCHOR_RADIUS_U = 140.0
 
 Cell = tuple[int, int]
 
@@ -133,6 +134,9 @@ def hex_boundary_latlng(
 
 def cell_id(cell: Cell, radius_u: float = ANCHOR_RADIUS_U) -> str:
     """반지름이 id 에 들어간다 — 반지름이 다르면 다른 격자고, 섞이면 안 된다."""
+    # 지금은 게임 셀과 그 셀에서 고른 보안등을 Anchor 한 행에 함께 둔다. 점령 상태의
+    # 안정적인 식별자는 원본 시설이 아니라 이 셀 id 다. 대표 시설의 독립적인 교체 이력이나
+    # 생명주기가 실제 요구사항이 되기 전에는 논리 앵커/현실 랜드마크를 별도 엔티티로 쪼개지 않는다.
     return f"hex:{round(radius_u)}:{cell[0]}:{cell[1]}"
 
 
