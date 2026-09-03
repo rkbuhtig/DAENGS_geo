@@ -125,6 +125,23 @@ uv run uvicorn app.main:app --reload
 다시 CLI `--spec` 또는 Lab 입력으로 쓸 수 있다. 이 표면은 Android replay나 제품 Spatial
 Diary UI가 아니다.
 
+## Android replay 어댑터
+
+같은 scenario의 observed capture를 Android에서 반복하려면 별도 어댑터를 실행한다.
+
+```powershell
+uv run python -m scripts.sim.walk.android_replay `
+  --spec scripts/sim/walk/examples/sniff-and-go.json `
+  --out C:/dev/walk-replay/sniff-and-go
+```
+
+`android-replay.json`은 좌표·상대 capture 시각·accuracy·mock과 chain control을 보존해 이후
+APP debug `TraceLocationSource`가 읽을 계약이다. `android-route.gpx`는 Android Studio Location
+입력용이고 missing/chain 경계에서 track segment를 끊는다. `--play`는 같은 capture 시간축을
+배속해 AVD에 `adb emu geo fix`를 보낸다. GPX/ADB가 accuracy·mock·pause/resume·delivery를 전부
+표현한다고 주장하지 않으며, 정확한 손실과 APP/DEV 경계는
+[`android-replay-adapter.md`](./android-replay-adapter.md)에 둔다.
+
 ## 셀로판 모집단 fixture
 
 단일 산책의 싸인펜 검증과 여러 산책의 z축 검증을 섞지 않도록 30회 모집단은 별도 builder가
