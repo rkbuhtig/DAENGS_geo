@@ -316,6 +316,7 @@ def write_android_replay(out: Path, artifacts: AndroidReplayArtifacts) -> None:
 
 CommandRunner = Callable[[Sequence[str]], None]
 Sleeper = Callable[[float], None]
+Clock = Callable[[], float]
 
 
 def _run_command(command: Sequence[str]) -> None:
@@ -333,6 +334,24 @@ def _adb_fix_command(prefix: Sequence[str], sample: AndroidReplaySample) -> list
     ]
 
 
+def _validate_adb_replay(
+    contract: AndroidReplayContract,
+    *,
+    speed_multiplier: float,
+    prime_wait_s: float,
+    allow_unapplied_controls: bool,
+) -> None:
+    if not math.isfinite(speed_multiplier) or speed_multiplier <= 0:
+        raise ValueError("speed_multiplier must be finite and positive")
+    if not math.isfinite(prime_wait_s) or prime_wait_s < 0:
+        raise ValueError("prime_wait_s must be finite and non-negative")
+    if contract.control_events and not allow_unapplied_controls:
+        raise ValueError(
+            "ADB coordinates cannot apply chain breaks; replay pause/resume controls separately "
+            "or pass allow_unapplied_controls=True"
+        )
+
+
 def replay_with_adb(
     replay: AndroidReplayContract | dict[str, object],
     *,
@@ -343,6 +362,7 @@ def replay_with_adb(
     allow_unapplied_controls: bool = False,
     runner: CommandRunner = _run_command,
     sleeper: Sleeper = time.sleep,
+    clock: Clock = time.monotonic,
 ) -> int:
     """observed capture를 emulator console에 흘린다. 경도/위도 순서를 이 경계가 소유한다."""
     contract = (
@@ -350,15 +370,12 @@ def replay_with_adb(
         if isinstance(replay, AndroidReplayContract)
         else AndroidReplayContract.model_validate(replay)
     )
-    if not math.isfinite(speed_multiplier) or speed_multiplier <= 0:
-        raise ValueError("speed_multiplier must be finite and positive")
-    if not math.isfinite(prime_wait_s) or prime_wait_s < 0:
-        raise ValueError("prime_wait_s must be finite and non-negative")
-    if contract.control_events and not allow_unapplied_controls:
-        raise ValueError(
-            "ADB coordinates cannot apply chain breaks; replay pause/resume controls separately "
-            "or pass allow_unapplied_controls=True"
-        )
+    _validate_adb_replay(
+        contract,
+        speed_multiplier=speed_multiplier,
+        prime_wait_s=prime_wait_s,
+        allow_unapplied_controls=allow_unapplied_controls,
+    )
     prefix = [adb_binary]
     if serial:
         prefix.extend(("-s", serial))
@@ -367,10 +384,12 @@ def replay_with_adb(
         # 시작을 누른다. 대기 뒤 첫 표본부터 다시 보내므로 replay capture 시간축은 그때 시작한다.
         runner(_adb_fix_command(prefix, contract.samples[0]))
         sleeper(prime_wait_s)
+    replay_started_at = clock()
     for sample in contract.samples:
-        delay_s = sample.delay_from_previous_ms / 1_000 / speed_multiplier
-        if delay_s > 0:
-            sleeper(delay_s)
+        deadline = replay_started_at + sample.captured_offset_ms / 1_000 / speed_multiplier
+        remaining_s = deadline - clock()
+        if remaining_s > 0:
+            sleeper(remaining_s)
         runner(_adb_fix_command(prefix, sample))
     return len(contract.samples)
 
@@ -401,6 +420,14 @@ def main(argv: list[str] | None = None) -> int:
         spec = WalkTraceScenarioSpec.model_validate_json(args.spec.read_text(encoding="utf-8"))
         scenario = build_scenario_from_spec(spec)
         artifacts = build_android_replay_artifacts(scenario)
+        if args.play:
+            # 사용자 입력 오류는 출력 폴더를 만들기 전에 끊어 같은 경로로 재시도할 수 있게 한다.
+            _validate_adb_replay(
+                artifacts.replay,
+                speed_multiplier=args.speed,
+                prime_wait_s=args.prime_wait,
+                allow_unapplied_controls=args.allow_unapplied_controls,
+            )
         write_android_replay(args.out.resolve(), artifacts)
         played = 0
         if args.play:

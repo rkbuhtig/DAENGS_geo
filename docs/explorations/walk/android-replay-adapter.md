@@ -39,10 +39,11 @@ uv run python -m scripts.sim.walk.android_replay `
 `--prime-wait 5`는 첫 좌표를 먼저 넣어 Fused의 과거 cached 위치를 밀어낸 뒤 5초 동안 산책
 시작 버튼을 누를 시간을 준다. 그 뒤 첫 표본부터 다시 보내며 capture 시간축을 시작한다.
 
-ADB 재생기는 첫 관측 전 공백과 이후 관측 간격을 배속으로 나눠 기다린 뒤 `longitude`,
-`latitude` 순서로 `adb emu geo fix`를 호출한다. 앱 시작·종료 버튼이나 서버 업로드는 제어하지
-않는다. 그것은 이 좌표 source를 실제 `WalkTrackingService → Room → upload`에 통과시키는 APP
-통합 하네스의 책임이다.
+ADB 재생기는 재생 시작 monotonic clock에 각 capture offset/배속을 더한 절대
+deadline까지만 기다린 뒤 `longitude`, `latitude` 순서로 `adb emu geo fix`를 호출한다.
+그래야 이전 ADB 명령 실행 시간이 다음 표본 간격에 누적되지 않는다. 앱 시작·종료 버튼이나
+서버 업로드는 제어하지 않는다. 그것은 이 좌표 source를 실제
+`WalkTrackingService → Room → upload`에 통과시키는 APP 통합 하네스의 책임이다.
 
 ## `walk-location-replay-v1`
 

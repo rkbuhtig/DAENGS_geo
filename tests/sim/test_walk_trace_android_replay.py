@@ -150,13 +150,19 @@ def test_adb_replay_scales_capture_delays_and_puts_longitude_before_latitude():
     contract = AndroidReplayContract.model_validate(payload)
     commands = []
     delays = []
+    now = [0.0]
+
+    def sleep(seconds):
+        delays.append(seconds)
+        now[0] += seconds
 
     count = replay_with_adb(
         contract,
         speed_multiplier=5,
         serial="emulator-5554",
         runner=lambda command: commands.append(list(command)),
-        sleeper=delays.append,
+        sleeper=sleep,
+        clock=lambda: now[0],
     )
 
     assert count == 3
@@ -177,17 +183,52 @@ def test_adb_can_prime_the_first_fix_before_the_capture_timeline_starts():
     contract = AndroidReplayContract.model_validate(payload)
     commands = []
     delays = []
+    now = [0.0]
+
+    def sleep(seconds):
+        delays.append(seconds)
+        now[0] += seconds
 
     replay_with_adb(
         contract,
         speed_multiplier=5,
         prime_wait_s=3,
         runner=lambda command: commands.append(list(command)),
-        sleeper=delays.append,
+        sleeper=sleep,
+        clock=lambda: now[0],
     )
 
     assert commands[0] == commands[1]
     assert delays == [3, 1.0]
+
+
+def test_adb_replay_uses_absolute_deadlines_to_absorb_command_overhead():
+    replay = build_android_replay_artifacts(build_scenario_from_spec(_spec())).replay
+    payload = replay.model_dump(mode="json")
+    payload["samples"] = payload["samples"][:3]
+    payload["receipt"]["source_truth_sample_count"] = 3
+    payload["receipt"]["emitted_location_sample_count"] = 3
+    contract = AndroidReplayContract.model_validate(payload)
+    delays = []
+    now = [0.0]
+
+    def run_with_overhead(command):
+        now[0] += 0.2
+
+    def sleep(seconds):
+        delays.append(seconds)
+        now[0] += seconds
+
+    replay_with_adb(
+        contract,
+        speed_multiplier=5,
+        runner=run_with_overhead,
+        sleeper=sleep,
+        clock=lambda: now[0],
+    )
+
+    assert delays == pytest.approx([0.8, 0.8])
+    assert now[0] == pytest.approx(2.2)
 
 
 def test_contract_rejects_a_timeline_whose_delay_does_not_match_offsets():
@@ -216,3 +257,24 @@ def test_cli_writes_portable_android_and_gpx_artifacts(tmp_path):
     assert ET.fromstring((out / "android-route.gpx").read_text(encoding="utf-8")).tag == (
         f"{{{GPX_NAMESPACE}}}gpx"
     )
+
+
+def test_cli_rejects_invalid_play_options_before_writing_artifacts(tmp_path):
+    spec_path = tmp_path / "scenario.json"
+    spec_path.write_text(_spec().model_dump_json(), encoding="utf-8")
+    out = tmp_path / "android-replay"
+
+    with pytest.raises(SystemExit):
+        main(
+            [
+                "--spec",
+                str(spec_path),
+                "--out",
+                str(out),
+                "--play",
+                "--speed",
+                "0",
+            ]
+        )
+
+    assert not out.exists()
