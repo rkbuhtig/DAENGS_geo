@@ -17,6 +17,7 @@
 `CURVE_VERSION` 으로 결과에 남긴다 — 바뀌면 이전 곡선과 섞지 않는다.
 """
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -45,7 +46,7 @@ class CurveBucket:
 
 
 def compute_curve(
-    started_at: datetime, ended_at: datetime, segments: list[Segment]
+    started_at: datetime, ended_at: datetime, segments: Sequence[Segment]
 ) -> list[CurveBucket]:
     """세션을 벽시계 시간으로 `BUCKETS` 등분하고 각 구간의 이동·정지를 모은다.
 

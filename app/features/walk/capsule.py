@@ -5,6 +5,7 @@ DB를 모르는 순수 조립층이다. 외부 문맥 호출만 Protocol 뒤에 
 """
 
 import math
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Protocol
@@ -16,8 +17,8 @@ from app.features.spatial_diary.contract import (
     TrailContextSnapshot,
     WalkCapsuleManifest,
 )
-from app.features.walk.facts import ComputedFacts
-from app.features.walk.models import WalkFix
+from app.features.walk.facts import CanonicalTrail, MeasurementReceiptInput
+from app.features.walk.models import WalkFacts, WalkFix
 from app.features.walk.observation import MICRO_OBSERVATION_VERSION
 from app.features.walk.paint import NARROW_STEP, Cellophane, paint_sheet
 
@@ -85,17 +86,13 @@ class CapsuleArtifacts:
             raise ValueError("capsule cannot be sealed before context capture")
 
 
-def trail_context_request(computed: ComputedFacts) -> TrailContextRequest:
+def trail_context_request(facts: WalkFacts, trail: CanonicalTrail) -> TrailContextRequest:
     """산책 중간 시각과 그 시각에 가까운 수용 fix를 외부 문맥 조회 기준으로 쓴다."""
 
-    facts = computed.facts
     walked_at = facts.started_at + (facts.ended_at - facts.started_at) / 2
-    if not computed.accepted_fixes:
+    if trail.midpoint_sample is None:
         return TrailContextRequest(facts.session_id, walked_at, None, None)
-    point = min(
-        computed.accepted_fixes,
-        key=lambda fix: abs((fix.at - walked_at).total_seconds()),
-    )
+    point = trail.midpoint_sample
     return TrailContextRequest(facts.session_id, walked_at, point.lat, point.lng)
 
 
@@ -134,20 +131,27 @@ def _percentile(ordered: list[float], quantile: float) -> float:
     return ordered[low] * (high - position) + ordered[high] * (position - low)
 
 
-def _accuracy_summary(fixes: list[WalkFix]) -> tuple[int, float | None, float | None]:
+def _accuracy_summary(fixes: Sequence[WalkFix]) -> tuple[int, float | None, float | None]:
     values = sorted(float(fix.accuracy_m) for fix in fixes if fix.accuracy_m is not None)
     if not values:
         return 0, None, None
     return len(values), round(_percentile(values, 0.50), 2), round(_percentile(values, 0.90), 2)
 
 
-def measurement_receipt(computed: ComputedFacts, received_fixes: list[WalkFix]) -> MeasurementReceipt:
+def measurement_receipt(
+    facts: WalkFacts,
+    trail: CanonicalTrail,
+    receipt_input: MeasurementReceiptInput,
+) -> MeasurementReceipt:
     """FixQuality와 transient fix 열을 이름 붙은 원시 분자·분모로 동결한다."""
 
-    facts = computed.facts
-    quality = computed.quality
-    reported_count, reported_p50, reported_p90 = _accuracy_summary(received_fixes)
-    accepted_count, accepted_p50, accepted_p90 = _accuracy_summary(computed.accepted_fixes)
+    quality = trail.quality
+    reported_count, reported_p50, reported_p90 = _accuracy_summary(
+        receipt_input.received_fixes
+    )
+    accepted_count, accepted_p50, accepted_p90 = _accuracy_summary(
+        receipt_input.accepted_fixes
+    )
     return MeasurementReceipt(
         session_id=facts.session_id,
         evidence_origin=facts.evidence_origin,
@@ -164,8 +168,8 @@ def measurement_receipt(computed: ComputedFacts, received_fixes: list[WalkFix]) 
         dropped_at_capacity_count=quality.dropped_at_capacity,
         mock_fix_count=quality.mock_fixes,
         session_wall_time_s=(facts.ended_at - facts.started_at).total_seconds(),
-        canonical_segment_time_s=math.fsum(segment.dt for segment in computed.segments),
-        gap_elapsed_s=math.fsum(gap.dt for gap in computed.gaps),
+        canonical_segment_time_s=math.fsum(segment.dt for segment in trail.segments),
+        gap_elapsed_s=math.fsum(gap.dt for gap in trail.gaps),
         reported_accuracy_count=reported_count,
         reported_accuracy_p50_m=reported_p50,
         reported_accuracy_p90_m=reported_p90,
@@ -176,22 +180,22 @@ def measurement_receipt(computed: ComputedFacts, received_fixes: list[WalkFix]) 
 
 
 def build_capsule_artifacts(
-    computed: ComputedFacts,
-    received_fixes: list[WalkFix],
+    facts: WalkFacts,
+    trail: CanonicalTrail,
+    receipt_input: MeasurementReceiptInput,
     context: TrailContextSnapshot,
     sealed_at: datetime,
 ) -> CapsuleArtifacts:
     """Macro·receipt·context가 준비된 뒤 마지막에 manifest를 만든다."""
 
-    facts = computed.facts
     sheet = paint_sheet(
         facts.session_id,
         facts.started_at,
-        computed.segments,
+        trail.segments,
         CAPSULE_RADIUS_U,
         CAPSULE_PROFILE,
     )
-    receipt = measurement_receipt(computed, received_fixes)
+    receipt = measurement_receipt(facts, trail, receipt_input)
     capabilities = (
         ObservationCapability(name="low_motion", generation=MICRO_OBSERVATION_VERSION),
         ObservationCapability(name="gap", generation=MICRO_OBSERVATION_VERSION),

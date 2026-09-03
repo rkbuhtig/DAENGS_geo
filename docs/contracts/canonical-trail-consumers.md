@@ -1,8 +1,8 @@
 # CanonicalTrail consumer contract
 
 이 문서는 [결정 #84](../decisions/2026-09-03-canonical-trail-consumer-boundary.md)를 구현할 때
-지켜야 할 최소 경계다. 현재 Python 이름 `ComputedFacts`를 즉시 바꾸거나 새 저장 테이블을
-만드는 계약은 아니다.
+지켜야 할 최소 경계다. Python에서는 `CanonicalWalkComputation.trail`과 receipt 전용
+`MeasurementReceiptInput`으로 드러나며 새 저장 테이블을 만들지 않는다.
 
 ## Producer
 
@@ -16,6 +16,7 @@ CanonicalTrail [TRANSIENT, RAW-SENSITIVE]
 - ordered Segment[]
 - GapSpan[] and chain boundaries
 - canonical quality evidence
+- midpoint_sample one point for current Trail Context capture
 ```
 
 불변식:
@@ -24,7 +25,8 @@ CanonicalTrail [TRANSIENT, RAW-SENSITIVE]
 2. Segment는 gap, jump, explicit chain boundary를 가로질러 연결되지 않는다.
 3. CanonicalTrail은 DB·cache·log·message bus에 영구 기록하지 않는다.
 4. accepted fix 열은 receipt 전용 입력이며 기본 consumer surface가 아니다.
-5. 동일 입력과 calculation version은 동일한 canonical 결과를 만든다.
+5. Trail Context에는 전체 열 대신 산책 중간 시각에 가장 가까운 대표점 하나만 제공한다.
+6. 동일 입력과 calculation version은 동일한 canonical 결과를 만든다.
 
 ## Consumer
 

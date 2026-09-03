@@ -41,6 +41,7 @@ Walk finalize가 원좌표 삭제 전에 영구 Cellophane을 만드는 canonica
 import hashlib
 import json
 import math
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 
@@ -343,7 +344,7 @@ def brush_stamp(
 def paint_sheet(
     walk_id: str,
     at: datetime,
-    segments: list[Segment],
+    segments: Sequence[Segment],
     radius_u: float,
     profile: BrushProfile,
     step_m: float = 0.0,

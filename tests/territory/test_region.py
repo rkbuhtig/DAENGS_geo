@@ -59,7 +59,7 @@ def segments_through(points: list[tuple[float, float]], step_s: float = 1.0):
                          at=START + timedelta(seconds=t),
                          lat=lat, lng=lng, accuracy_m=3.0, is_mock=False))
     ended = START + timedelta(seconds=t + 1)
-    return compute_facts("t", "dog", START, ended, fixes).segments
+    return compute_facts("t", "dog", START, ended, fixes).trail.segments
 
 
 def test_straight_crossing_dwell_equals_chord_length():

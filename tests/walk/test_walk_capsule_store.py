@@ -64,9 +64,9 @@ async def test_finalize_persists_all_capsule_children_before_raw_purge():
             await store.finalize(
                 db,
                 computed.facts,
-                computed.quality,
+                computed.trail.quality,
                 computed.events,
-                capsule=capsule_for(computed, fixes),
+                capsule=capsule_for(computed),
             )
             await db.commit()
 
@@ -146,9 +146,9 @@ async def test_manifest_failure_rolls_back_children_and_preserves_raw_fixes(monk
                 await store.finalize(
                     db,
                     computed.facts,
-                    computed.quality,
+                    computed.trail.quality,
                     computed.events,
-                    capsule=capsule_for(computed, fixes),
+                    capsule=capsule_for(computed),
                 )
             await db.rollback()
 
@@ -170,13 +170,13 @@ async def test_session_delete_cascades_every_capsule_layer():
     async with db_session() as db:
         await _cleanup(db)
         try:
-            fixes, computed = await _open_walk(db)
+            _, computed = await _open_walk(db)
             await store.finalize(
                 db,
                 computed.facts,
-                computed.quality,
+                computed.trail.quality,
                 computed.events,
-                capsule=capsule_for(computed, fixes),
+                capsule=capsule_for(computed),
             )
             await db.commit()
             await db.execute(text("DELETE FROM walk_session WHERE id = :id"), {"id": SID})

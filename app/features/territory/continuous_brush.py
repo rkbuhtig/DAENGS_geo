@@ -18,6 +18,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -170,7 +171,7 @@ def radial_kernel_area_m2(profile: BrushProfile) -> float:
 
 
 def continuous_brush_field(
-    segments: list[Segment],
+    segments: Sequence[Segment],
     profile: BrushProfile,
     step_m: float = 0.0,
 ) -> ContinuousBrushField:

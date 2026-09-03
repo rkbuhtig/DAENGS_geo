@@ -214,7 +214,7 @@ def rasterize_observation(
     return tuple(
         rasterize_continuous_field(
             walk.observed.session_id,
-            continuous_brush_field(list(walk.computed.segments), NARROW_STEP),
+            continuous_brush_field(list(walk.computed.trail.segments), NARROW_STEP),
             raster,
         )
         for walk in observation.walks
@@ -328,7 +328,7 @@ def repaint_observation(
         paint_sheet(
             walk.observed.session_id,
             walk.observed.started_at,
-            list(walk.computed.segments),
+            list(walk.computed.trail.segments),
             radius_u,
             NARROW_STEP,
         )
@@ -661,7 +661,7 @@ def build_comparison_payload(
             "pixel_m": raster.pixel_m,
             "pixel_count": len(reference_fields["total_time"].values),
             "brush_fp": continuous_brush_field(
-                list(observation.walks[0].computed.segments), NARROW_STEP
+                list(observation.walks[0].computed.trail.segments), NARROW_STEP
             ).spec.fingerprint,
             "profile_fp": NARROW_STEP.fingerprint,
             "dab_count": sum(sheet.dab_count for sheet in reference_sheets),

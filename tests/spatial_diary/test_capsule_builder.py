@@ -58,8 +58,10 @@ def _computed():
 
 
 def test_receipt_preserves_raw_denominators_and_both_accuracy_distributions():
-    fixes, computed = _computed()
-    receipt = measurement_receipt(computed, fixes)
+    _, computed = _computed()
+    receipt = measurement_receipt(
+        computed.facts, computed.trail, computed.receipt_input
+    )
 
     assert (receipt.received_fix_count, receipt.accepted_fix_count) == (4, 3)
     assert receipt.rejected_low_accuracy_count == 1
@@ -73,8 +75,8 @@ def test_receipt_preserves_raw_denominators_and_both_accuracy_distributions():
 
 
 def test_capsule_builds_the_adopted_macro_generation_and_seals_capabilities():
-    fixes, computed = _computed()
-    request = trail_context_request(computed)
+    _, computed = _computed()
+    request = trail_context_request(computed.facts, computed.trail)
     captured_at = computed.facts.ended_at + timedelta(seconds=1)
     context = TrailContextSnapshot(
         session_id=request.session_id,
@@ -83,8 +85,9 @@ def test_capsule_builds_the_adopted_macro_generation_and_seals_capabilities():
         captured_at=captured_at,
     )
     capsule = build_capsule_artifacts(
-        computed,
-        fixes,
+        computed.facts,
+        computed.trail,
+        computed.receipt_input,
         context,
         sealed_at=captured_at + timedelta(seconds=1),
     )
@@ -98,7 +101,7 @@ def test_capsule_builds_the_adopted_macro_generation_and_seals_capabilities():
 
 def test_context_request_uses_walk_midpoint_and_nearest_accepted_fix():
     _, computed = _computed()
-    request = trail_context_request(computed)
+    request = trail_context_request(computed.facts, computed.trail)
 
     assert request.walked_at == WALK_T0 + timedelta(seconds=10)
     nearest = walk_fix(10, 14, accuracy=None)

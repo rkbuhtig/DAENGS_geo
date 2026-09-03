@@ -74,7 +74,7 @@ def _walk(walk_id: str, at: datetime, start_m: float, end_m: float, *,
         for i, x in enumerate(xs)
     ]
     segs = compute_facts("w", "d", fixes[0].at, fixes[-1].at + timedelta(seconds=1),
-                         fixes).segments
+                         fixes).trail.segments
     return paint_sheet(walk_id, at, segs, RADIUS_U, NARROW_STEP)
 
 

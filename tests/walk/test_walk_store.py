@@ -49,15 +49,15 @@ async def test_full_session_lifecycle():
             computed = compute_facts(SID, "halmae", WALK_T0, ended, loaded)
             nearby = walk_fix(30, 35)
             encounters = compute_encounters(
-                SID, computed.segments, computed.events,
+                SID, computed.trail.segments, computed.events,
                 [FacilityCandidate(
                     facility_source="test", facility_ref="nearby", kind="cafe",
                     lat=nearby.lat, lng=nearby.lng, place_active=None, as_of=None,
                 )],
             )
             await store.finalize(
-                db, computed.facts, computed.quality, computed.events, encounters,
-                capsule=capsule_for(computed, loaded),
+                db, computed.facts, computed.trail.quality, computed.events, encounters,
+                capsule=capsule_for(computed),
             )
             await db.commit()
 
@@ -213,9 +213,9 @@ async def test_finish_lock_prevents_late_upload_from_surviving():
             await store.finalize(
                 finishing,
                 computed.facts,
-                computed.quality,
+                computed.trail.quality,
                 computed.events,
-                capsule=capsule_for(computed, loaded),
+                capsule=capsule_for(computed),
             )
             await finishing.commit()
 
@@ -251,15 +251,15 @@ async def test_curve_is_written_with_its_version_and_omitted_together():
             ended = WALK_T0 + timedelta(seconds=60)
             computed = compute_facts(sid, "halmae", WALK_T0, ended, loaded)
 
-            curve = compute_curve(WALK_T0, ended, computed.segments)
+            curve = compute_curve(WALK_T0, ended, computed.trail.segments)
             await store.finalize(
                 db,
                 computed.facts,
-                computed.quality,
+                computed.trail.quality,
                 computed.events,
                 (),
                 curve,
-                capsule=capsule_for(computed, loaded),
+                capsule=capsule_for(computed),
             )
             await db.commit()
 
@@ -288,9 +288,9 @@ async def test_a_session_without_a_curve_stores_neither_half():
             await store.finalize(
                 db,
                 computed.facts,
-                computed.quality,
+                computed.trail.quality,
                 computed.events,
-                capsule=capsule_for(computed, loaded),
+                capsule=capsule_for(computed),
             )
             await db.commit()
 

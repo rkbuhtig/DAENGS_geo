@@ -12,7 +12,7 @@ from pathlib import Path
 from app.features.territory.geojson import dumps_cellophane_geojson
 from app.features.territory.paint import NARROW_STEP, paint_sheet
 from app.features.walk.curve import compute_curve
-from app.features.walk.facts import ComputedFacts, compute_facts
+from app.features.walk.facts import CanonicalWalkComputation, compute_facts
 from app.features.walk.observation import extract_observations, moving_speed_profile
 from scripts.sim.walk.kinematics import MotionTruth, integrate_motion
 from scripts.sim.walk.model import GENERATOR_VERSION, BehaviorName, behavior_preset
@@ -47,7 +47,7 @@ class ScenarioArtifacts:
     observed: ObservedWalk
     trace: dict[str, object]
     delivery: dict[str, object]
-    computed: ComputedFacts
+    computed: CanonicalWalkComputation
     derived: dict[str, object]
     cellophane_geojson: str
 
@@ -94,13 +94,13 @@ def _trace_session_id(spec: WalkTraceScenarioSpec) -> str:
     return f"sim-trace-v1-{hashlib.sha256(encoded).hexdigest()[:16]}"
 
 
-def _derived_payload(computed: ComputedFacts, truth: MotionTruth) -> dict[str, object]:
-    profile = moving_speed_profile(computed.segments)
+def _derived_payload(computed: CanonicalWalkComputation, truth: MotionTruth) -> dict[str, object]:
+    profile = moving_speed_profile(computed.trail.segments)
     curve = compute_curve(
-        computed.facts.started_at, computed.facts.ended_at, computed.segments
+        computed.facts.started_at, computed.facts.ended_at, computed.trail.segments
     )
     observations = extract_observations(
-        computed.facts.session_id, computed.segments, computed.gaps
+        computed.facts.session_id, computed.trail.segments, computed.trail.gaps
     )
     observation_rows = []
     for observation in observations:
@@ -110,7 +110,7 @@ def _derived_payload(computed: ComputedFacts, truth: MotionTruth) -> dict[str, o
         observation_rows.append(row)
     return {
         "facts": computed.facts.model_dump(mode="json"),
-        "quality": computed.quality.to_dict(),
+        "quality": computed.trail.quality.to_dict(),
         "events": [event.model_dump(mode="json") for event in computed.events],
         "curve": [bucket.to_dict() for bucket in curve],
         "moving_speed_profile": profile.to_dict() if profile else None,
@@ -125,10 +125,10 @@ def _derived_payload(computed: ComputedFacts, truth: MotionTruth) -> dict[str, o
                 "speed_mps": round(segment.dist / segment.dt, 6),
                 "moving": segment.moving,
             }
-            for segment in computed.segments
+            for segment in computed.trail.segments
         ],
         "truth_duration_s": round(truth.duration_s, 6),
-        "accepted_segment_s": round(math.fsum(segment.dt for segment in computed.segments), 6),
+        "accepted_segment_s": round(math.fsum(segment.dt for segment in computed.trail.segments), 6),
     }
 
 
@@ -164,7 +164,11 @@ def build_scenario_from_spec(spec: WalkTraceScenarioSpec) -> ScenarioArtifacts:
         list(observed.fixes),
     )
     sheet = paint_sheet(
-        resolved_session_id, resolved_spec.started_at, computed.segments, 8.0, NARROW_STEP
+        resolved_session_id,
+        resolved_spec.started_at,
+        computed.trail.segments,
+        8.0,
+        NARROW_STEP,
     )
     manifest = {
         "generator_version": GENERATOR_VERSION,
@@ -211,7 +215,7 @@ def build_scenario_from_spec(spec: WalkTraceScenarioSpec) -> ScenarioArtifacts:
         delivery=delivery,
         computed=computed,
         derived=_derived_payload(computed, motion),
-        cellophane_geojson=dumps_cellophane_geojson(sheet, computed.segments),
+        cellophane_geojson=dumps_cellophane_geojson(sheet, computed.trail.segments),
     )
 
 

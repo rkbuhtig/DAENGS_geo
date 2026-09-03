@@ -28,7 +28,7 @@ def straight_walk(seconds: int = 300) -> list[WalkFix]:
 
 def compute(fixes, cands, ended_s=300):
     c = compute_facts("s1", "halmae", WALK_T0, WALK_T0 + timedelta(seconds=ended_s), fixes)
-    return compute_encounters("s1", c.segments, c.events, cands), c
+    return compute_encounters("s1", c.trail.segments, c.events, cands), c
 
 
 def test_geometry_offset_lateral_and_bands():
@@ -88,7 +88,7 @@ def test_gap_inside_same_facility_splits_occurrences_with_unknown_boundaries():
         fixes, [cand("gap-facility", east_m=70, north_m=0)], ended_s=105,
     )
 
-    assert computed.quality.gap_breaks == 1
+    assert computed.trail.quality.gap_breaks == 1
     assert len(enc) == 2
     assert [e.occurrence_index for e in enc] == [0, 1]
     assert all(not e.entry_observed and not e.exit_observed for e in enc)

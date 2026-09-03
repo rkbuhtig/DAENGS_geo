@@ -43,12 +43,12 @@ def walk_with(steps: list[tuple[float, float]]):
 
 
 def _one(computed) -> tuple[str, list, list]:
-    return "s:obs", computed.segments, computed.gaps
+    return "s:obs", computed.trail.segments, computed.trail.gaps
 
 
 # ---------------------------------------------------------------- 수용 기준
 def _low_motion_mass_from_raw(computed, threshold: float) -> float:
-    return sum(s.dt for s in computed.segments if s.dist / s.dt < threshold)
+    return sum(s.dt for s in computed.trail.segments if s.dist / s.dt < threshold)
 
 
 def _low_motion_mass_from_observations(observations, threshold: float) -> float:
@@ -58,7 +58,7 @@ def _low_motion_mass_from_observations(observations, threshold: float) -> float:
 
 
 def _excess_from_raw(computed, v_ref: float) -> float:
-    return sum(max(0.0, s.dt - s.dist / v_ref) for s in computed.segments)
+    return sum(max(0.0, s.dt - s.dist / v_ref) for s in computed.trail.segments)
 
 
 def _excess_from_observations(observations, v_ref: float) -> float:
@@ -71,7 +71,7 @@ def test_low_motion_mass_survives_without_raw_fixes():
     computed = walk_with(
         [(1.0, 1.2)] * 20 + [(1.0, 0.1)] * 30 + [(1.0, 1.2)] * 20   # 걷다 서다 걷다
     )
-    observations = extract_observations("s:obs", computed.segments, computed.gaps)
+    observations = extract_observations("s:obs", computed.trail.segments, computed.trail.gaps)
 
     raw = _low_motion_mass_from_raw(computed, 0.5)
     kept = _low_motion_mass_from_observations(observations, 0.5)
@@ -87,8 +87,8 @@ def test_excess_time_survives_when_v_ref_comes_from_the_walk_itself():
     분포에서 얻어야 하는 이유이기도 하다.
     """
     computed = walk_with([(1.0, 1.2)] * 30 + [(1.0, 0.1)] * 40 + [(1.0, 1.2)] * 30)
-    observations = extract_observations("s:obs", computed.segments, computed.gaps)
-    profile = moving_speed_profile(computed.segments)
+    observations = extract_observations("s:obs", computed.trail.segments, computed.trail.gaps)
+    profile = moving_speed_profile(computed.trail.segments)
 
     for v_ref in (0.9, 1.0, profile.p50, profile.p70, profile.p80):
         raw = _excess_from_raw(computed, v_ref)
@@ -109,7 +109,7 @@ def test_excess_leaks_when_v_ref_exceeds_the_walking_speed():
     새 generation 이 필요하다.
     """
     computed = walk_with([(1.0, 1.2)] * 30 + [(1.0, 0.1)] * 40 + [(1.0, 1.2)] * 30)
-    observations = extract_observations("s:obs", computed.segments, computed.gaps)
+    observations = extract_observations("s:obs", computed.trail.segments, computed.trail.gaps)
 
     raw = _excess_from_raw(computed, 1.44)              # 실제 보행 1.2 보다 20% 높다
     kept = _excess_from_observations(observations, 1.44)
@@ -123,7 +123,7 @@ def test_chronic_slow_zone_is_kept_although_it_is_never_a_stop():
     아예 못 본다. 이 테스트가 `CANDIDATE_SPEED_MPS` 가 후한 이유를 고정한다.
     """
     computed = walk_with([(1.0, 1.2)] * 20 + [(1.0, 0.72)] * 60 + [(1.0, 1.2)] * 20)
-    observations = extract_observations("s:obs", computed.segments, computed.gaps)
+    observations = extract_observations("s:obs", computed.trail.segments, computed.trail.gaps)
 
     assert computed.facts.stop_count == 0            # 정지로는 하나도 안 잡힌다
     slow = [o for o in observations if o.kind == "slow"]
@@ -142,7 +142,7 @@ def test_gap_is_recorded_as_absence_not_as_dwell():
                       lat=fixes[-1].lat + (i + 1) * 1.2 / M_PER_DEG_LAT,
                       lng=LNG0, accuracy_m=5.0) for i in range(20)]
     computed = compute_facts("s:obs", "dubu", T0, fixes[-1].at + timedelta(seconds=1), fixes)
-    observations = extract_observations("s:obs", computed.segments, computed.gaps)
+    observations = extract_observations("s:obs", computed.trail.segments, computed.trail.gaps)
 
     gaps = [o for o in observations if o.kind == "gap"]
     assert len(gaps) == 1
@@ -163,7 +163,7 @@ def test_windows_do_not_span_a_break():
                       lat=slow_a[-1].lat, lng=LNG0, accuracy_m=5.0) for i in range(20)]
     fixes = slow_a + slow_b
     computed = compute_facts("s:obs", "dubu", T0, fixes[-1].at + timedelta(seconds=1), fixes)
-    observations = extract_observations("s:obs", computed.segments, computed.gaps)
+    observations = extract_observations("s:obs", computed.trail.segments, computed.trail.gaps)
 
     slow = [o for o in observations if o.kind == "slow"]
     assert len(slow) == 2                              # 하나로 합쳐지지 않았다
@@ -174,7 +174,7 @@ def test_windows_do_not_span_a_break():
 def test_short_wobbles_are_not_rows():
     """점 간격 수준의 흔들림까지 행으로 만들지 않는다."""
     computed = walk_with([(1.0, 1.2)] * 20 + [(1.0, 0.1)] * 2 + [(1.0, 1.2)] * 20)
-    observations = extract_observations("s:obs", computed.segments, computed.gaps)
+    observations = extract_observations("s:obs", computed.trail.segments, computed.trail.gaps)
     assert [o for o in observations if o.duration_s < CANDIDATE_MIN_S] == []
 
 
@@ -202,7 +202,7 @@ def test_path_net_and_span_are_three_different_facts():
 def test_speed_profile_is_recorded_or_honestly_absent():
     """v_ref 를 하나로 굽지 않는다 — 분위수를 남기고 고르는 건 나중이다."""
     computed = walk_with([(1.0, 1.2)] * 30 + [(1.0, 0.72)] * 30)
-    profile = moving_speed_profile(computed.segments)
+    profile = moving_speed_profile(computed.trail.segments)
     assert profile is not None
     assert profile.p50 <= profile.p70 <= profile.p80 <= profile.p90
     # 만성 저속(0.72)이 섞여 평균은 끌려 내려가지만 상위 분위수는 버틴다
@@ -210,10 +210,10 @@ def test_speed_profile_is_recorded_or_honestly_absent():
     assert profile.sample_n >= 30
 
     too_short = walk_with([(1.0, 1.2)] * 2)
-    assert moving_speed_profile(too_short.segments) is None   # 없는 것을 지어내지 않는다
+    assert moving_speed_profile(too_short.trail.segments) is None   # 없는 것을 지어내지 않는다
 
 
 def test_threshold_is_the_declared_exploration_range():
     """문턱 위 행동은 이 층에 없다 — 범위를 넓히려면 새 generation 이다."""
     fast = walk_with([(1.0, CANDIDATE_SPEED_MPS + 0.3)] * 40)
-    assert extract_observations("s:obs", fast.segments, fast.gaps) == []
+    assert extract_observations("s:obs", fast.trail.segments, fast.trail.gaps) == []

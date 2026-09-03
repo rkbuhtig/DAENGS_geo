@@ -1,4 +1,4 @@
-"""WalkFix 열 → WalkFacts. 순수함수 — DB·시계·난수 없음, 같은 입력은 같은 사실.
+"""WalkFix 열 → WalkFacts + transient CanonicalTrail. 순수함수 — 같은 입력은 같은 사실.
 
 계산 정책 v4. 문턱값은 실기기 반복 측정 전의 잠정값이며 계산 버전으로 결과에 남긴다.
 Android 미리보기와 서버 확정치를 맞추는 작업은 앱 수집기가 이 계약을 채택할 때 한다.
@@ -15,7 +15,7 @@ Android 미리보기와 서버 확정치를 맞추는 작업은 앱 수집기가
 
 import math
 import statistics
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import UTC, datetime
 
 from app.features.walk.models import (
@@ -85,16 +85,41 @@ class GapSpan:
     chain_index: int
 
 
-@dataclass
-class ComputedFacts:
+@dataclass(frozen=True)
+class CanonicalPoint:
+    """전체 accepted fix 열을 노출하지 않고 소비자에게 넘기는 대표 위치 한 점."""
+
+    lat: float
+    lng: float
+
+
+@dataclass(frozen=True)
+class CanonicalTrail:
+    """finalize 동안만 사는 raw-sensitive 공통 경로 증거. Decision: #84."""
+
+    session_id: str
+    dog_id: str
+    calculation_version: int
+    segments: tuple[Segment, ...]
+    gaps: tuple[GapSpan, ...]
+    quality: FixQuality
+    midpoint_sample: CanonicalPoint | None
+
+
+@dataclass(frozen=True)
+class MeasurementReceiptInput:
+    """MeasurementReceipt만 받는 transient 원시 분포 입력."""
+
+    received_fixes: tuple[WalkFix, ...]
+    accepted_fixes: tuple[WalkFix, ...]
+
+
+@dataclass(frozen=True)
+class CanonicalWalkComputation:
     facts: WalkFacts
-    quality: FixQuality = field(default_factory=FixQuality)
-    events: list[MotionEventOccurrence] = field(default_factory=list)
-    segments: list[Segment] = field(default_factory=list)
-    gaps: list[GapSpan] = field(default_factory=list)
-    # 영구 저장하지 않는 finalize 중간값. MeasurementReceipt의 accepted accuracy 분포를
-    # 원좌표 purge 전에 계산하려면 "수용된 fix" 집합을 다시 추측하지 않고 그대로 넘겨야 한다.
-    accepted_fixes: list[WalkFix] = field(default_factory=list)
+    events: list[MotionEventOccurrence]
+    trail: CanonicalTrail
+    receipt_input: MeasurementReceiptInput
 
 
 def haversine_m(a: WalkFix, b: WalkFix) -> float:
@@ -111,7 +136,7 @@ def compute_facts(
     started_at: datetime,
     ended_at: datetime,
     fixes: list[WalkFix],
-) -> ComputedFacts:
+) -> CanonicalWalkComputation:
     """fixes는 client_seq 순서다. 점이 2개 미만이면 전부 0인 사실이 나온다."""
     q = FixQuality(received=len(fixes), mock_fixes=sum(1 for f in fixes if f.is_mock))
     origins = {f.is_mock for f in fixes}
@@ -259,11 +284,31 @@ def compute_facts(
         avg_speed_mps=round(moving_distance / moving_s, 3) if moving_s > 0 else None,
         fix_count=q.accepted,
     )
-    return ComputedFacts(
-        facts=facts,
+    walked_at = facts.started_at + (facts.ended_at - facts.started_at) / 2
+    midpoint_fix = min(
+        accepted_fixes,
+        key=lambda fix: abs((fix.at - walked_at).total_seconds()),
+        default=None,
+    )
+    trail = CanonicalTrail(
+        session_id=facts.session_id,
+        dog_id=facts.dog_id,
+        calculation_version=facts.calculation_version,
+        segments=tuple(segments),
+        gaps=tuple(gaps),
         quality=q,
+        midpoint_sample=(
+            CanonicalPoint(lat=midpoint_fix.lat, lng=midpoint_fix.lng)
+            if midpoint_fix is not None
+            else None
+        ),
+    )
+    return CanonicalWalkComputation(
+        facts=facts,
         events=events,
-        segments=segments,
-        gaps=gaps,
-        accepted_fixes=accepted_fixes,
+        trail=trail,
+        receipt_input=MeasurementReceiptInput(
+            received_fixes=tuple(fixes),
+            accepted_fixes=tuple(accepted_fixes),
+        ),
     )

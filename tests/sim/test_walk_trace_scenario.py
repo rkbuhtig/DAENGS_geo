@@ -79,7 +79,7 @@ def test_explicit_fault_timeline_marks_missing_and_low_accuracy_samples():
     assert inaccurate and all(row["observed_fix"]["accuracy_m"] == 95 for row in inaccurate)
     assert len(spike) == 1
     assert spike[0]["observed_fix"] is not None
-    assert artifacts.computed.quality.jump_breaks > 0
+    assert artifacts.computed.trail.quality.jump_breaks > 0
 
 
 def test_delivery_faults_do_not_rewrite_capture_order_or_canonical_facts():
@@ -151,8 +151,8 @@ def test_checked_in_authored_example_stays_executable():
 
     artifacts = build_scenario_from_spec(spec)
     assert artifacts.scenario["session_id"] == "lab-sniff-and-go"
-    assert artifacts.computed.quality.rejected_low_accuracy > 0
-    assert artifacts.computed.quality.jump_breaks > 0
+    assert artifacts.computed.trail.quality.rejected_low_accuracy > 0
+    assert artifacts.computed.trail.quality.jump_breaks > 0
 
 
 def test_cli_can_replay_a_saved_scenario_contract(tmp_path):

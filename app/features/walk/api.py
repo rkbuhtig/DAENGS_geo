@@ -168,24 +168,27 @@ async def finish_session(
 
     fixes = await store.load_fixes_ordered(db, session_id)
     computed = compute_facts(s.id, s.dog_id, s.started_at, body.ended_at, fixes)
+    trail = computed.trail
     # 시설 관측은 fix 가 살아 있는 지금(DERIVED 이전)만 계산 가능하다 — purge 뒤엔 원본이 없다
     candidates = await store.facility_candidates(db, session_id)
-    encounters = compute_encounters(s.id, computed.segments, computed.events, candidates)
+    encounters = compute_encounters(s.id, trail.segments, computed.events, candidates)
     # 곡선은 segments 가 살아 있는 지금만 만들 수 있다 — finalize 가 원좌표를 지운다.
-    curve = compute_curve(computed.facts.started_at, computed.facts.ended_at, computed.segments)
+    curve = compute_curve(computed.facts.started_at, computed.facts.ended_at, trail.segments)
     # 미시 관측도 같은 이유로 지금이다. 정지 판정(events)보다 후하게 잡은 후보 구간이라,
     # 문턱을 다시 고를 때 재계산할 재료가 여기 남는다 (observation.py).
-    observations = extract_observations(s.id, computed.segments, computed.gaps)
-    context_request = trail_context_request(computed)
+    observations = extract_observations(s.id, trail.segments, trail.gaps)
+    context_request = trail_context_request(computed.facts, trail)
     context = await capture_trail_context(context_provider, context_request, utc_now())
-    capsule = build_capsule_artifacts(computed, fixes, context, utc_now())
+    capsule = build_capsule_artifacts(
+        computed.facts, trail, computed.receipt_input, context, utc_now()
+    )
     await store.finalize(
-        db, computed.facts, computed.quality, computed.events, encounters, curve,
-        observations, moving_speed_profile(computed.segments),
+        db, computed.facts, computed.trail.quality, computed.events, encounters, curve,
+        observations, moving_speed_profile(trail.segments),
         capsule=capsule,
     )
     await db.commit()
-    return FinishOut(facts=computed.facts, quality=computed.quality.to_dict(),
+    return FinishOut(facts=computed.facts, quality=computed.trail.quality.to_dict(),
                      events=computed.events, encounters=encounters)
 
 

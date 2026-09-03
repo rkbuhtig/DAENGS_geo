@@ -35,7 +35,7 @@ from app.features.territory.paint import (
     brush_stamp,
     paint_sheet,
 )
-from app.features.walk.facts import ComputedFacts, Segment, compute_facts
+from app.features.walk.facts import CanonicalWalkComputation, Segment, compute_facts
 from app.features.walk.models import WalkFix
 from app.geo.cells import EARTH_R, cell_area_m2, hex_center_latlng
 
@@ -102,7 +102,7 @@ VARIANTS = (
 )
 
 
-def parse_export(payload: object) -> tuple[DeviceExport, ComputedFacts]:
+def parse_export(payload: object) -> tuple[DeviceExport, CanonicalWalkComputation]:
     """기기 payload를 검증하고 canonical segment를 한 번만 계산한다."""
     device = DeviceExport.model_validate(payload)
     session = device.session
@@ -163,10 +163,10 @@ def _local_mass_summary(
     return len(readings), statistics.median(readings), max(readings)
 
 
-def _gap_brush_overlap_count(computed: ComputedFacts, variant: ReplayVariant) -> int:
+def _gap_brush_overlap_count(computed: CanonicalWalkComputation, variant: ReplayVariant) -> int:
     """실제 segment는 없지만 양 끝 붓 때문에 시각적으로 이어질 수 있는 gap 수."""
     count = 0
-    for gap in computed.gaps:
+    for gap in computed.trail.gaps:
         before = {
             cell for cell, _weight in brush_stamp(
                 gap.a.lat, gap.a.lng, variant.radius_u, variant.profile
@@ -183,7 +183,7 @@ def _gap_brush_overlap_count(computed: ComputedFacts, variant: ReplayVariant) ->
 
 def _variant_result(
     device: DeviceExport,
-    computed: ComputedFacts,
+    computed: CanonicalWalkComputation,
     variant: ReplayVariant,
     read_m: float,
     clock: Callable[[], float],
@@ -192,17 +192,17 @@ def _variant_result(
     sheet = paint_sheet(
         device.session.id,
         device.session.started_at,
-        computed.segments,
+        computed.trail.segments,
         variant.radius_u,
         variant.profile,
     )
     paint_ms = (clock() - started) * 1000
 
     started = clock()
-    geojson = dumps_cellophane_geojson(sheet, computed.segments)
+    geojson = dumps_cellophane_geojson(sheet, computed.trail.segments)
     serialize_ms = (clock() - started) * 1000
     anchors, local_median, local_max = _local_mass_summary(
-        sheet.occupancy, variant.radius_u, computed.segments, read_m
+        sheet.occupancy, variant.radius_u, computed.trail.segments, read_m
     )
     occupancy_mass = math.fsum(sheet.occupancy.values())
     top_ten = sorted(sheet.occupancy.values(), reverse=True)[:10]
@@ -231,7 +231,7 @@ def _variant_result(
         "top10_mass_share": math.fsum(top_ten) / occupancy_mass if occupancy_mass else 0.0,
         "gap_brush_overlap_count": _gap_brush_overlap_count(computed, variant),
         "occupancy_mass_s": occupancy_mass,
-        "mass_error_s": occupancy_mass - math.fsum(s.dt for s in computed.segments),
+        "mass_error_s": occupancy_mass - math.fsum(s.dt for s in computed.trail.segments),
     }, geojson
 
 
@@ -245,7 +245,7 @@ def replay_export(
     if not math.isfinite(local_read_m) or local_read_m <= 0:
         raise ValueError("local_read_m must be a finite positive number")
     device, computed = parse_export(payload)
-    source_segment_s = math.fsum(segment.dt for segment in computed.segments)
+    source_segment_s = math.fsum(segment.dt for segment in computed.trail.segments)
     rows: list[dict[str, object]] = []
     outputs: dict[str, str] = {}
     for variant in VARIANTS:
@@ -255,7 +255,7 @@ def replay_export(
         rows.append(row)
         outputs[row["geojson_file"]] = geojson
 
-    chains = {segment.chain_index for segment in computed.segments}
+    chains = {segment.chain_index for segment in computed.trail.segments}
     report = {
         "report_version": REPORT_VERSION,
         "input": {
@@ -267,10 +267,10 @@ def replay_export(
             "fix_count": len(device.fixes),
             "evidence_origin": computed.facts.evidence_origin,
             "source_segment_s": source_segment_s,
-            "segment_count": len(computed.segments),
+            "segment_count": len(computed.trail.segments),
             "chain_count": len(chains),
-            "gap_count": len(computed.gaps),
-            "quality": computed.quality.to_dict(),
+            "gap_count": len(computed.trail.gaps),
+            "quality": computed.trail.quality.to_dict(),
         },
         "comparison": {
             "local_read_m": local_read_m,

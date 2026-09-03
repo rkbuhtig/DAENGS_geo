@@ -42,14 +42,14 @@ async def test_observations_outlive_the_purge():
             loaded = await store.load_fixes_ordered(db, SID)
             ended = WALK_T0 + timedelta(seconds=80)
             computed = compute_facts(SID, "halmae", WALK_T0, ended, loaded)
-            observations = extract_observations(SID, computed.segments, computed.gaps)
-            profile = moving_speed_profile(computed.segments)
+            observations = extract_observations(SID, computed.trail.segments, computed.trail.gaps)
+            profile = moving_speed_profile(computed.trail.segments)
             assert observations and profile is not None
 
             await store.finalize(
-                db, computed.facts, computed.quality, computed.events, (), None,
+                db, computed.facts, computed.trail.quality, computed.events, (), None,
                 observations, profile,
-                capsule=capsule_for(computed, loaded),
+                capsule=capsule_for(computed),
             )
             await db.commit()
 
@@ -97,10 +97,10 @@ async def test_deleting_a_session_takes_its_observations():
             computed = compute_facts(SID, "halmae", WALK_T0,
                                      WALK_T0 + timedelta(seconds=30), loaded)
             await store.finalize(
-                db, computed.facts, computed.quality, computed.events, (), None,
-                extract_observations(SID, computed.segments, computed.gaps),
-                moving_speed_profile(computed.segments),
-                capsule=capsule_for(computed, loaded),
+                db, computed.facts, computed.trail.quality, computed.events, (), None,
+                extract_observations(SID, computed.trail.segments, computed.trail.gaps),
+                moving_speed_profile(computed.trail.segments),
+                capsule=capsule_for(computed),
             )
             await db.commit()
             assert await store.get_observations(db, SID)

@@ -119,9 +119,9 @@ def test_explicit_chain_break_never_creates_a_bridging_segment():
         sample_interval_s=2.0,
         chain_breaks_m=(150.0,),
     )
-    segments = artifacts.computed.segments
+    segments = artifacts.computed.trail.segments
 
-    assert artifacts.computed.quality.explicit_breaks == 1
+    assert artifacts.computed.trail.quality.explicit_breaks == 1
     assert {segment.chain_index for segment in segments} == {0, 1}
     assert all(segment.a.chain_index == segment.b.chain_index for segment in segments)
 
@@ -129,7 +129,7 @@ def test_explicit_chain_break_never_creates_a_bridging_segment():
 def test_canonical_paint_conserves_the_observed_segment_time():
     artifacts = build_scenario(seed=301, chain_breaks_m=(330.0,))
     payload = json.loads(artifacts.cellophane_geojson)
-    observed_s = math.fsum(segment.dt for segment in artifacts.computed.segments)
+    observed_s = math.fsum(segment.dt for segment in artifacts.computed.trail.segments)
 
     assert payload["meta"]["mass_conserved"] is True
     assert payload["meta"]["source_segment_s"] == pytest.approx(observed_s, abs=1e-9)
@@ -152,7 +152,7 @@ def test_walk_export_is_the_existing_replay_contract():
 
     assert replayed_device.session.id == artifacts.observed.session_id
     assert replayed.facts == artifacts.computed.facts
-    assert replayed.quality.to_dict() == artifacts.computed.quality.to_dict()
+    assert replayed.trail.quality.to_dict() == artifacts.computed.trail.quality.to_dict()
 
 
 def test_cli_writes_all_truth_observation_and_derived_layers(tmp_path, capsys):

@@ -105,7 +105,7 @@ def _distribution(values: list[float]) -> dict[str, float]:
 def _quality_totals(observation: PopulationObservation) -> dict[str, int]:
     totals: dict[str, int] = {}
     for walk in observation.walks:
-        for name, value in walk.computed.quality.to_dict().items():
+        for name, value in walk.computed.trail.quality.to_dict().items():
             totals[name] = totals.get(name, 0) + value
     return totals
 
