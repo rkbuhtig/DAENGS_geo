@@ -44,7 +44,7 @@ def test_database_stopped_at_009_stamps_there_and_upgrades_the_rest():
     assert [m.revision for m in detection.missing] == [
         "0010", "0011", "0012", "0013", "0014", "0015", "0016", "0017", "0018",
         "0019", "0020", "0021", "0022", "0023", "0024", "0025", "0026", "0027",
-        "0028", "0029", "0030", "0031",
+        "0028", "0029", "0030", "0031", "0032",
     ]
 
 
@@ -69,6 +69,7 @@ def test_database_missing_only_anchor_is_consistent():
         "0029_negative_spatial_claim_eligibility.py",
         "0030_spatial_diary_attestation_correction.py",
         "0031_place_intent_candidate_counts.py",
+        "0032_territory_site.py",
     ]
 
 
@@ -84,7 +85,7 @@ def test_a_hole_in_the_chain_refuses_to_stamp():
     assert [m.revision for m in detection.out_of_order] == [
         "0009", "0010", "0011", "0012", "0013", "0014", "0015", "0017", "0018",
         "0019", "0020", "0021", "0022", "0023", "0024", "0025", "0026", "0027",
-        "0028", "0029", "0030", "0031",
+        "0028", "0029", "0030", "0031", "0032",
     ]
 
 
@@ -112,6 +113,13 @@ def test_markers_are_one_per_revision_and_unique():
     detectable = [m for m in LEGACY_MARKERS if m.detectable]
     assert len({(m.table, m.column, m.constraint) for m in detectable}) == len(detectable)
     assert all(isinstance(m, LegacyMarker) for m in LEGACY_MARKERS)
+
+
+def test_renamed_table_keeps_the_legacy_marker_detectable():
+    marker = next(m for m in LEGACY_MARKERS if m.revision == "0012")
+
+    assert marker.table == "anchor"
+    assert marker.table_aliases == ("territory_site",)
 
 
 def test_data_only_revisions_are_transparent_to_detection():

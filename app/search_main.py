@@ -1,6 +1,6 @@
 """Place 검색 전용 진입점 — `uvicorn app.search_main:app`.
 
-`main.py` 는 walk/journey/static-map/anchor 까지 전부 mount 하고 route provider 설정을
+`main.py` 는 walk/journey/static-map/territory-site 까지 전부 mount 하고 route provider 설정을
 기동 게이트로 검증한다. 그 문을 같이 쓰면 Place 검색만 필요한 배포에서도 TMAP 키 하나
 때문에 서버가 안 뜬다 — 코드 경계(결정 #73)를 끊어도 프로세스 경계가 남아 있던 자리다.
 

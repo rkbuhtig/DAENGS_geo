@@ -40,6 +40,7 @@ LAYER_NAMES = {0: "core", 1: "인프라", 2: "도메인", 3: "응용"}
 # 결정 #67 §3. 파일명 패턴이 아니라 이 집합이 기준이다 — `providers/base.py` 는
 # 이름이 contract 가 아니지만 제공사 계약을 소유한 기존 계약 모듈이다.
 CONTRACT_MODULES = {
+    "features.territory.game.contract",
     "profile.contract",
     "providers.base",
     "geo.contract",

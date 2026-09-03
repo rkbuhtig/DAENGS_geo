@@ -21,7 +21,7 @@ import org.junit.Test
  * two stop matching.
  *
  * If these values must change, the grid changed — and every stored cell id changes meaning with
- * it (`anchor.cell`, 480k rows). Decide the migration before regenerating the golden file.
+ * it (`territory_site.site_id`). Decide the migration before regenerating the golden file.
  *
  * Parsed with `parseToJsonElement` rather than `@Serializable` data classes: the golden file is
  * read in exactly one place, and this keeps the test independent of the serialization plugin.

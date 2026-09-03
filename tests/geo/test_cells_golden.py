@@ -8,7 +8,7 @@
 android 모듈은 이 저장소 밖에서도 빌드돼야 해서 옆 폴더로 손을 뻗을 수 없다. 사본이 갈라지면
 `test_android_copy_matches_the_contract` 가 잡는다.
 
-값이 바뀌어야 한다면 격자가 바뀐 것이고, 그건 이미 저장된 셀 id(`anchor.cell` 48만 행)의
+값이 바뀌어야 한다면 격자가 바뀐 것이고, 그건 이미 저장된 점령지 ID(`territory_site.site_id`)의
 뜻이 바뀐다는 뜻이다. golden 을 갱신하기 전에 그 이전(移轉)을 먼저 정해야 한다.
 """
 

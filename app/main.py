@@ -8,12 +8,13 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api import anchor, places_v2, static_map
+from app.api import places_v2, static_map
 from app.core.config import settings
 from app.core.db import get_session
 from app.features.journey import api as journey
 from app.features.spatial_diary import api as spatial_diary_episode
 from app.features.territory import api as spatial_diary
+from app.features.territory.game import api as territory_game
 from app.features.walk import api as walk
 from app.usage.composition import route_capability_problems
 from app.usage.gate import usage_request_scope
@@ -30,7 +31,7 @@ app.include_router(journey.router)
 app.include_router(spatial_diary.router)
 app.include_router(spatial_diary_episode.router)
 app.include_router(static_map.router)
-app.include_router(anchor.router)
+app.include_router(territory_game.router)
 
 
 @app.middleware("http")
@@ -42,10 +43,12 @@ async def bind_usage_request_scope(request, call_next):
 
 if settings.dev_console:
     from app.discovery.place_intent.lab import router as place_intent_lab_router
+    from app.features.territory.game.dev_api import router as territory_site_dev_router
 
     app.include_router(place_intent_lab_router)
+    app.include_router(territory_site_dev_router)
 
-    _ANCHORS = Path(__file__).parent / "static" / "anchors.html"
+    _TERRITORY_SITES = Path(__file__).parent / "static" / "territory_sites.html"
     _CELLOPHANE = Path(__file__).parent / "static" / "cellophane.html"
     _CELLOPHANE_DISTRIBUTION = Path(__file__).parent / "static" / "cellophane_distribution.html"
     _CONTINUOUS_HEX_COMPARISON = (
@@ -58,10 +61,10 @@ if settings.dev_console:
         """시설 필터를 눈으로 보는 표면. 개를 바꾸면 무엇이 빠지는지가 보여야 한다."""
         return FileResponse(_FACILITY, media_type="text/html")
 
-    @app.get("/anchors", include_in_schema=False)
-    async def anchor_map():
-        """앵커 분포 눈으로 보기. 검증용 표면이라 dev_console 과 같은 게이트 뒤에 둔다."""
-        return FileResponse(_ANCHORS, media_type="text/html")
+    @app.get("/dev/territory-sites", include_in_schema=False)
+    async def territory_site_map():
+        """점령지 분포를 보는 검수 표면. 앱 지도와 분리해 dev_console 뒤에 둔다."""
+        return FileResponse(_TERRITORY_SITES, media_type="text/html")
 
     @app.get("/cellophane", include_in_schema=False)
     async def cellophane_view():
