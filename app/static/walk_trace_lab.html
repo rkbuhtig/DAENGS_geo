@@ -1,0 +1,519 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Walk Trace Lab</title>
+<style>
+  :root {
+    color-scheme:light;
+    --paper:#f3f0e9; --surface:#fffdf8; --ink:#262b2d; --muted:#687174;
+    --line:#d9ddd8; --truth:#247a77; --observed:#d64b65; --fault:#e69836;
+    --missing:#9aa0a2; --paint:#d84b70; --focus:#174b70;
+  }
+  * { box-sizing:border-box; }
+  html,body { min-height:100%; margin:0; }
+  body { overflow:hidden; background:var(--paper); color:var(--ink); font-family:system-ui,-apple-system,"Malgun Gothic",sans-serif; }
+  button,input,select { font:inherit; }
+  button { cursor:pointer; }
+  button:focus-visible,input:focus-visible,select:focus-visible { outline:3px solid #92bdd5; outline-offset:2px; }
+  [hidden] { display:none !important; }
+  #app { height:100vh; min-height:100vh; display:grid; grid-template-rows:auto minmax(0,1fr); }
+  header {
+    display:flex; align-items:center; justify-content:space-between; gap:20px;
+    padding:14px 20px; border-bottom:1px solid var(--line); background:var(--surface);
+  }
+  h1 { margin:0; font-size:20px; letter-spacing:-.03em; }
+  .subtitle { color:var(--muted); font-size:12px; }
+  .status { min-height:28px; padding:6px 10px; border-radius:999px; background:#edf2ef; color:#476056; font-size:12px; }
+  .status.error { background:#fff0ec; color:#a63f34; }
+  .workspace { min-height:0; display:grid; grid-template-columns:330px minmax(0,1fr); }
+  aside { overflow:auto; padding:14px; border-right:1px solid var(--line); background:#faf8f3; }
+  .card { margin-bottom:10px; padding:13px; border:1px solid var(--line); border-radius:14px; background:var(--surface); }
+  .card h2 { margin:0 0 10px; font-size:13px; }
+  .row { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px; }
+  label { display:grid; gap:4px; color:var(--muted); font-size:11px; }
+  input,select {
+    min-width:0; width:100%; min-height:36px; padding:7px 8px; border:1px solid var(--line);
+    border-radius:9px; background:#fff; color:var(--ink);
+  }
+  input[type="checkbox"] { width:17px; min-height:17px; padding:0; }
+  .check { display:flex; grid-column:1/-1; align-items:center; gap:7px; color:var(--ink); font-size:12px; }
+  .button-row { display:flex; flex-wrap:wrap; gap:7px; margin-top:10px; }
+  .button-row button,.file-label {
+    min-height:34px; padding:7px 10px; border:1px solid var(--line); border-radius:9px;
+    background:#fff; color:var(--ink); font-size:12px;
+  }
+  .button-row .primary { border-color:#1c6562; background:#1f7773; color:white; font-weight:700; }
+  .button-row .active { border-color:#d77c28; background:#fff3df; color:#8a4a13; }
+  .file-label { display:inline-flex; align-items:center; cursor:pointer; }
+  #import-file { position:absolute; width:1px; height:1px; opacity:0; }
+  .route-readout { margin-top:8px; color:var(--muted); font-size:11px; line-height:1.45; }
+  .stage { min-width:0; min-height:0; display:grid; grid-template-rows:minmax(360px,1fr) auto; }
+  .map-wrap { position:relative; min-height:0; background:#dce3df; }
+  #map { position:absolute; inset:0; }
+  .legend {
+    position:absolute; z-index:500; top:12px; left:12px; display:flex; flex-wrap:wrap; gap:5px;
+    max-width:calc(100% - 24px); padding:7px 9px; border:1px solid rgba(0,0,0,.1);
+    border-radius:10px; background:rgba(255,253,248,.93); font-size:11px;
+  }
+  .legend span { display:flex; align-items:center; gap:4px; }
+  .swatch { width:16px; height:4px; border-radius:9px; background:currentColor; }
+  .truth { color:var(--truth); } .observed { color:var(--observed); }
+  .fault { color:var(--fault); } .paint { color:var(--paint); }
+  .map-help {
+    position:absolute; z-index:500; right:12px; top:12px; max-width:230px; padding:8px 10px;
+    border-radius:10px; background:rgba(38,43,45,.88); color:#fff; font-size:11px;
+  }
+  .result-panel { padding:12px 14px 14px; border-top:1px solid var(--line); background:var(--surface); }
+  .metrics { display:grid; grid-template-columns:repeat(6,minmax(90px,1fr)); gap:7px; }
+  .metric { padding:8px 9px; border-radius:10px; background:#f2f4f1; }
+  .metric span { display:block; color:var(--muted); font-size:10px; }
+  .metric strong { display:block; margin-top:2px; font-size:14px; }
+  .timeline-head { display:flex; justify-content:space-between; gap:10px; margin-top:10px; font-size:11px; color:var(--muted); }
+  #timeline {
+    display:flex; align-items:stretch; min-height:42px; margin-top:5px; overflow-x:auto;
+    border:1px solid var(--line); border-radius:9px; background:#eef1ee;
+  }
+  .sample { flex:1 0 7px; min-width:7px; border:0; border-right:1px solid rgba(255,255,255,.45); background:#4eaaa3; padding:0; }
+  .sample.hold { background:#6c61b7; }
+  .sample.missing { background:repeating-linear-gradient(135deg,#93999a,#93999a 3px,#c8ccca 3px,#c8ccca 6px); }
+  .sample.accuracy { background:#e7b34d; }
+  .sample.spike { background:#df5d32; }
+  .sample.selected { box-shadow:inset 0 0 0 3px #172e3b; }
+  .inspector { display:grid; grid-template-columns:1.1fr 1fr; gap:8px; margin-top:8px; }
+  .detail { min-height:68px; padding:9px 10px; border:1px solid var(--line); border-radius:10px; background:#fff; }
+  .detail h3 { margin:0 0 5px; font-size:11px; color:var(--muted); }
+  .detail p { margin:2px 0; font-size:12px; line-height:1.4; }
+  .fault-dot {
+    display:block; width:16px; height:16px; border:3px solid #fff; border-radius:50%;
+    background:var(--fault); box-shadow:0 1px 5px rgba(0,0,0,.35);
+  }
+  @media (max-width:900px) {
+    body { overflow:auto; }
+    #app { height:auto; }
+    .workspace { grid-template-columns:1fr; }
+    aside { border-right:0; border-bottom:1px solid var(--line); }
+    .stage { min-height:720px; }
+    .metrics { grid-template-columns:repeat(3,1fr); }
+  }
+</style>
+</head>
+<body>
+<main id="app">
+  <header>
+    <div><h1>Walk Trace Lab</h1><div class="subtitle">실제 움직임 → GPS 관측 → 앱 전달을 한 화면에서 분리해 봅니다</div></div>
+    <div class="status" id="status" role="status">준비 중</div>
+  </header>
+  <div class="workspace">
+    <aside aria-label="시나리오 저작 도구">
+      <section class="card">
+        <h2>1. 경로</h2>
+        <div class="button-row">
+          <button id="draw-toggle" type="button" aria-pressed="false">지도에 그리기</button>
+          <button id="undo" type="button">한 점 취소</button>
+          <button id="clear" type="button">비우기</button>
+        </div>
+        <div class="route-readout" id="route-readout">경로를 불러오는 중</div>
+      </section>
+
+      <section class="card">
+        <h2>2. 실제 움직임</h2>
+        <div class="row">
+          <label>행동 모양
+            <select id="behavior">
+              <option value="steady">일정하게 걷기</option>
+              <option value="sniff-and-go" selected>냄새 맡고 걷기</option>
+              <option value="stop-heavy">자주 멈추기</option>
+              <option value="fatigued">후반 피로</option>
+            </select>
+          </label>
+          <label>기준 속도 m/s<input id="speed" type="number" min="0.2" max="4" step="0.05" value="1.25"></label>
+          <label class="check"><input id="hold-enabled" type="checkbox" checked> 명시적 정지 넣기</label>
+          <label>정지 위치 %<input id="hold-progress" type="number" min="1" max="99" value="57"></label>
+          <label>정지 시간 s<input id="hold-duration" type="number" min="1" max="600" value="18"></label>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>3. GPS 센서와 의도적 결함</h2>
+        <div class="row">
+          <label>센서 프로필
+            <select id="sensor-profile">
+              <option value="perfect">Perfect</option>
+              <option value="city" selected>도심 보통</option>
+              <option value="unstable">불안정 GPS</option>
+            </select>
+          </label>
+          <label>표본 간격 s<input id="sample-interval" type="number" min="1" max="30" step="1" value="5"></label>
+          <label class="check"><input id="dropout-enabled" type="checkbox" checked> 수집 공백</label>
+          <label>공백 시작/끝 s<div class="row"><input id="dropout-start" type="number" min="0" value="45"><input id="dropout-end" type="number" min="0" value="60"></div></label>
+          <label class="check"><input id="accuracy-enabled" type="checkbox" checked> 정확도 저하</label>
+          <label>저하 시작/끝 s<div class="row"><input id="accuracy-start" type="number" min="0" value="120"><input id="accuracy-end" type="number" min="0" value="140"></div></label>
+          <label>정확도 m<input id="accuracy-value" type="number" min="0" value="85"></label>
+          <label class="check"><input id="spike-enabled" type="checkbox" checked> 단발 좌표 튐</label>
+          <label>발생 시각 s<input id="spike-at" type="number" min="0" value="90"></label>
+          <label>동쪽 이동 m<input id="spike-east" type="number" value="260"></label>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>4. 앱 전달</h2>
+        <div class="row">
+          <label>기본 지연 s<input id="latency" type="number" min="0" step="0.05" value="0.25"></label>
+          <label>배치 크기<input id="batch-size" type="number" min="1" max="100" value="3"></label>
+          <label class="check"><input id="reverse" type="checkbox" checked> 배치 안에서 역순 도착</label>
+          <label class="check"><input id="delay-enabled" type="checkbox" checked> 오프라인 버퍼</label>
+          <label>버퍼 시작/끝 s<div class="row"><input id="delay-start" type="number" min="0" value="30"><input id="delay-end" type="number" min="0" value="80"></div></label>
+          <label>추가 지연 s<input id="delay-value" type="number" min="1" value="45"></label>
+          <label class="check"><input id="duplicate-enabled" type="checkbox" checked> 중복 전달</label>
+          <label>중복 시각 s<input id="duplicate-at" type="number" min="0" value="20"></label>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>5. 실행과 교환</h2>
+        <div class="button-row">
+          <button class="primary" id="run" type="button">시나리오 실행</button>
+          <button id="reset" type="button">예제 복원</button>
+          <button id="download" type="button">JSON 저장</button>
+          <label class="file-label" for="import-file">JSON 불러오기</label>
+          <input id="import-file" type="file" accept="application/json,.json">
+        </div>
+      </section>
+    </aside>
+
+    <section class="stage" aria-label="시나리오 결과">
+      <div class="map-wrap">
+        <div id="map" role="application" aria-label="경로를 그리고 truth와 GPS 관측을 비교하는 지도"></div>
+        <div class="legend" aria-label="지도 범례">
+          <span class="truth"><i class="swatch"></i>실제 움직임</span>
+          <span class="observed"><i class="swatch"></i>GPS 관측</span>
+          <span class="fault"><i class="swatch"></i>결함</span>
+          <span class="paint"><i class="swatch"></i>Cellophane</span>
+        </div>
+        <div class="map-help" id="map-help">‘지도에 그리기’를 켜면 클릭한 순서대로 경로가 만들어집니다.</div>
+      </div>
+      <div class="result-panel">
+        <div class="metrics">
+          <div class="metric"><span>경로 길이</span><strong id="m-distance">—</strong></div>
+          <div class="metric"><span>실제 시간</span><strong id="m-wall">—</strong></div>
+          <div class="metric"><span>truth 표본</span><strong id="m-truth">—</strong></div>
+          <div class="metric"><span>관측 fix</span><strong id="m-observed">—</strong></div>
+          <div class="metric"><span>누락 표본</span><strong id="m-missing">—</strong></div>
+          <div class="metric"><span>전달 사건</span><strong id="m-delivery">—</strong></div>
+        </div>
+        <div class="timeline-head"><span>캡처 시간축 — 한 칸이 truth sample 하나</span><span id="timeline-caption">실행 전</span></div>
+        <div id="timeline" role="listbox" aria-label="GPS 표본 시간축"></div>
+        <div class="inspector">
+          <div class="detail"><h3>선택한 실제 움직임 / GPS 관측</h3><div id="sample-detail"><p>시간축의 한 칸을 선택하세요.</p></div></div>
+          <div class="detail"><h3>앱 전달</h3><div id="delivery-detail"><p>선택한 표본의 전달 사건이 표시됩니다.</p></div></div>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<script>
+'use strict';
+const EXAMPLE_URL='/walk-trace-lab/example';
+const RUN_URL='/walk-trace-lab/run';
+const EARTH_R=6371000;
+const $=id => document.getElementById(id);
+const state={backend:null,points:[],draw:false,result:null,startedAt:null,selectedSampleId:null,overlays:[]};
+
+function status(message,error=false) {
+  $('status').textContent=message;
+  $('status').classList.toggle('error',error);
+}
+function number(id) { return Number($(id).value); }
+function clearOverlays() { state.overlays.forEach(item => item.remove()); state.overlays=[]; }
+function metresBetween(a,b) {
+  const lat1=a[0]*Math.PI/180,lat2=b[0]*Math.PI/180;
+  const dLat=lat2-lat1,dLng=(b[1]-a[1])*Math.PI/180;
+  const h=Math.sin(dLat/2)**2+Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLng/2)**2;
+  return 2*EARTH_R*Math.asin(Math.sqrt(h));
+}
+function routeLength(points) { return points.slice(1).reduce((sum,p,i) => sum+metresBetween(points[i],p),0); }
+function toLocal(point,origin) {
+  return [
+    (point[1]-origin[1])*Math.PI/180*EARTH_R*Math.cos(origin[0]*Math.PI/180),
+    (point[0]-origin[0])*Math.PI/180*EARTH_R,
+  ];
+}
+function toLatLng(point,origin) {
+  return [
+    origin[0]+point[1]/EARTH_R*180/Math.PI,
+    origin[1]+point[0]/(EARTH_R*Math.cos(origin[0]*Math.PI/180))*180/Math.PI,
+  ];
+}
+
+function loadScript(url,ready) {
+  return new Promise((resolve,reject) => {
+    if (ready()) { resolve(); return; }
+    const script=document.createElement('script'); script.src=url; script.onload=resolve;
+    script.onerror=() => reject(new Error(`${url} 로드 실패`)); document.head.appendChild(script);
+  });
+}
+function loadNaverMaps(keyId) {
+  return new Promise((resolve,reject) => {
+    const callback='__walkTraceLabNaverReady';
+    const timeout=setTimeout(() => reject(new Error('NAVER SDK timeout')),8000);
+    window[callback]=() => { clearTimeout(timeout); resolve(); };
+    window.navermap_authFailure=() => { clearTimeout(timeout); reject(new Error('NAVER 인증 실패')); };
+    const script=document.createElement('script');
+    script.src=`https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${encodeURIComponent(keyId)}&callback=${callback}`;
+    script.onerror=() => { clearTimeout(timeout); reject(new Error('NAVER SDK 로드 실패')); };
+    document.head.appendChild(script);
+  });
+}
+async function loadLeaflet() {
+  if (!document.querySelector('link[data-leaflet]')) {
+    const css=document.createElement('link'); css.rel='stylesheet'; css.dataset.leaflet='true';
+    css.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'; document.head.appendChild(css);
+  }
+  await loadScript('https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',() => Boolean(window.L));
+}
+function naverBackend(center) {
+  const map=new naver.maps.Map('map',{center:new naver.maps.LatLng(...center),zoom:16,scaleControl:false,mapDataControl:false});
+  return {
+    name:'NAVER',
+    onClick(fn) { naver.maps.Event.addListener(map,'click',event => fn([event.coord.lat(),event.coord.lng()])); },
+    polyline(points,style) {
+      const item=new naver.maps.Polyline({map,path:points.map(p => new naver.maps.LatLng(...p)),strokeColor:style.color,strokeOpacity:style.opacity ?? .95,strokeWeight:style.weight ?? 4,strokeStyle:style.dashed ? 'shortdash' : 'solid',zIndex:style.zIndex ?? 30});
+      return {remove:() => item.setMap(null)};
+    },
+    polygon(points,style) {
+      const item=new naver.maps.Polygon({map,paths:[points.map(p => new naver.maps.LatLng(...p))],fillColor:style.color,fillOpacity:style.opacity,strokeWeight:0,zIndex:10});
+      return {remove:() => item.setMap(null)};
+    },
+    marker(point,options) {
+      const content=options.fault ? '<span class="fault-dot"></span>' : `<span style="display:block;width:10px;height:10px;border:2px solid white;border-radius:50%;background:${options.color};box-shadow:0 1px 4px #333"></span>`;
+      const item=new naver.maps.Marker({map,position:new naver.maps.LatLng(...point),icon:{content,anchor:new naver.maps.Point(8,8)},zIndex:80});
+      if (options.choose) naver.maps.Event.addListener(item,'click',options.choose);
+      return {remove:() => item.setMap(null)};
+    },
+    fit(points) {
+      if (!points.length) return;
+      const bounds=new naver.maps.LatLngBounds(); points.forEach(p => bounds.extend(new naver.maps.LatLng(...p))); map.fitBounds(bounds,{top:70,right:45,bottom:45,left:45});
+    },
+  };
+}
+function leafletBackend(center) {
+  const map=L.map('map',{zoomControl:true}).setView(center,16);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:20,attribution:'© OpenStreetMap'}).addTo(map);
+  return {
+    name:'OpenStreetMap',
+    onClick(fn) { map.on('click',event => fn([event.latlng.lat,event.latlng.lng])); },
+    polyline(points,style) { const item=L.polyline(points,{color:style.color,opacity:style.opacity ?? .95,weight:style.weight ?? 4,dashArray:style.dashed ? '7 6' : null}).addTo(map); return {remove:() => item.remove()}; },
+    polygon(points,style) { const item=L.polygon(points,{fillColor:style.color,fillOpacity:style.opacity,stroke:false,interactive:false}).addTo(map); return {remove:() => item.remove()}; },
+    marker(point,options) {
+      const html=options.fault ? '<span class="fault-dot"></span>' : `<span style="display:block;width:10px;height:10px;border:2px solid white;border-radius:50%;background:${options.color};box-shadow:0 1px 4px #333"></span>`;
+      const item=L.marker(point,{icon:L.divIcon({className:'',html,iconSize:[16,16],iconAnchor:[8,8]})}).addTo(map);
+      if (options.choose) item.on('click',options.choose); return {remove:() => item.remove()};
+    },
+    fit(points) { if (points.length > 1) map.fitBounds(points,{padding:[45,45]}); else if (points.length) map.setView(points[0],17); },
+  };
+}
+async function createMap(config,center) {
+  if (config.provider==='naver' && config.naver_key_id) {
+    try { await loadNaverMaps(config.naver_key_id); return naverBackend(center); }
+    catch (error) { status(`${error.message}; OSM으로 전환`,true); }
+  }
+  await loadLeaflet(); return leafletBackend(center);
+}
+
+function motionFor(length) {
+  const name=$('behavior').value,base=number('speed');
+  const motion={name,base_speed_mps:base,slow_motifs:[],holds:[],fatigue_start_fraction:.6,fatigue_end_factor:1};
+  const motif=(fraction,widthFraction,factor) => ({centre_m:length*fraction,width_m:Math.max(1,length*widthFraction),min_factor:factor});
+  if (name==='sniff-and-go') motion.slow_motifs=[motif(.3,.12,.35),motif(.74,.15,.5)];
+  if (name==='stop-heavy') motion.slow_motifs=[motif(.28,.12,.25),motif(.68,.12,.3)];
+  if (name==='fatigued') { motion.slow_motifs=[motif(.38,.1,.6)]; motion.fatigue_start_fraction=.45; motion.fatigue_end_factor=.64; }
+  if ($('hold-enabled').checked) motion.holds=[{progress_m:length*number('hold-progress')/100,duration_s:number('hold-duration')}];
+  return motion;
+}
+function sensorSpec() {
+  const profile=$('sensor-profile').value;
+  const sensor={kind:profile==='perfect'?'perfect':'noisy',sample_interval_s:number('sample-interval'),accuracy_m:3,jitter_sigma_m:0,accuracy_sigma_m:0,dropout_rate:0,outlier_rate:0,outlier_distance_m:260,drift_east_m:0,drift_north_m:0,low_accuracy_rate:0,low_accuracy_m:80,chain_breaks_m:[]};
+  if (profile==='city') Object.assign(sensor,{jitter_sigma_m:1.5,accuracy_sigma_m:1,dropout_rate:.02,outlier_rate:.005,drift_east_m:4,drift_north_m:-2});
+  if (profile==='unstable') Object.assign(sensor,{jitter_sigma_m:6,accuracy_sigma_m:4,dropout_rate:.12,outlier_rate:.03,drift_east_m:18,drift_north_m:8,low_accuracy_rate:.08});
+  return sensor;
+}
+function buildSpec() {
+  if (state.points.length < 2) throw new Error('지도에 경로 점을 두 개 이상 찍어 주세요');
+  const origin=state.points[0],length=routeLength(state.points);
+  if (length < 5) throw new Error('경로 길이는 최소 5m가 필요합니다');
+  const faults=[];
+  if ($('dropout-enabled').checked) faults.push({kind:'dropout',id:'authored-dropout',start_s:number('dropout-start'),end_s:number('dropout-end')});
+  if ($('accuracy-enabled').checked) faults.push({kind:'accuracy',id:'authored-low-accuracy',start_s:number('accuracy-start'),end_s:number('accuracy-end'),accuracy_m:number('accuracy-value')});
+  if ($('spike-enabled').checked) faults.push({kind:'position_offset',id:'authored-spike',at_s:number('spike-at'),east_m:number('spike-east'),north_m:0});
+  const delay_windows=$('delay-enabled').checked ? [{id:'authored-offline-buffer',start_s:number('delay-start'),end_s:number('delay-end'),delay_s:number('delay-value')}] : [];
+  return {
+    format:'walk-trace-scenario-v1',seed:48123,session_id:null,dog_id:'lab-dog',
+    started_at:state.startedAt || '2026-09-03T18:30:00+09:00',
+    origin:{lat:origin[0],lng:origin[1]},
+    route:{name:'map-authored-route',points_xy:state.points.map(point => toLocal(point,origin))},
+    motion:motionFor(length),sensor:sensorSpec(),faults,
+    delivery:{base_latency_s:number('latency'),batch_size:number('batch-size'),reverse_within_batch:$('reverse').checked,delay_windows,duplicate_at_s:$('duplicate-enabled').checked?[number('duplicate-at')]:[]},
+  };
+}
+
+function updateRouteReadout() {
+  $('route-readout').textContent=`${state.points.length}개 점 · ${Math.round(routeLength(state.points))}m · 첫 점이 로컬 좌표 원점`;
+}
+function invalidateResult(message='입력이 바뀌었습니다. 다시 실행하세요.') {
+  state.result=null; state.selectedSampleId=null; $('timeline').replaceChildren();
+  ['m-distance','m-wall','m-truth','m-observed','m-missing','m-delivery'].forEach(id => $(id).textContent='—');
+  $('timeline-caption').textContent='실행 전';
+  $('sample-detail').textContent='변경된 입력은 아직 실행되지 않았습니다.';
+  $('delivery-detail').textContent='변경된 입력은 아직 실행되지 않았습니다.';
+  status(message);
+}
+function renderAuthoredRoute(fit=false) {
+  clearOverlays(); updateRouteReadout();
+  if (state.points.length > 1) state.overlays.push(state.backend.polyline(state.points,{color:'#247a77',weight:5}));
+  state.points.forEach((point,index) => state.overlays.push(state.backend.marker(point,{color:index===0?'#172e3b':'#247a77'})));
+  if (fit) state.backend.fit(state.points);
+}
+function observedGroups(rows) {
+  const groups=[]; let current=[]; let previousIndex=-2; let previousChain=null;
+  rows.forEach((row,index) => {
+    const fix=row.observed_fix;
+    if (!fix) { if (current.length) groups.push(current); current=[]; previousIndex=-2; return; }
+    if (index!==previousIndex+1 || (previousChain!==null && fix.chain_index!==previousChain)) { if (current.length) groups.push(current); current=[]; }
+    current.push([fix.lat,fix.lng]); previousIndex=index; previousChain=fix.chain_index;
+  });
+  if (current.length) groups.push(current); return groups;
+}
+function selectSample(sampleId) { state.selectedSampleId=sampleId; renderTimeline(); renderInspector(); renderResultMap(false); }
+function renderResultMap(fit=false) {
+  if (!state.result) { renderAuthoredRoute(fit); return; }
+  clearOverlays(); const result=state.result,origin=[result.scenario.origin.lat,result.scenario.origin.lng];
+  const rows=result.trace.samples;
+  result.cellophane.features.filter(feature => feature.geometry?.type==='Polygon').forEach(feature => {
+    const boundary=feature.geometry.coordinates[0].map(([lng,lat]) => [lat,lng]);
+    const occupancy=feature.properties?.occupancy_s || 0;
+    state.overlays.push(state.backend.polygon(boundary,{color:'#d84b70',opacity:Math.min(.34,.04+occupancy/120)}));
+  });
+  const truthPoints=rows.map(row => toLatLng([row.truth.east_m,row.truth.north_m],origin));
+  state.overlays.push(state.backend.polyline(truthPoints,{color:'#247a77',weight:4,dashed:true,opacity:.9,zIndex:35}));
+  observedGroups(rows).filter(group => group.length>1).forEach(group => state.overlays.push(state.backend.polyline(group,{color:'#d64b65',weight:5,opacity:.9,zIndex:45})));
+  rows.filter(row => row.fault_ids.length).forEach(row => {
+    const point=toLatLng([row.truth.east_m,row.truth.north_m],origin);
+    state.overlays.push(state.backend.marker(point,{fault:true,choose:() => selectSample(row.sample_id)}));
+  });
+  const selected=rows.find(row => row.sample_id===state.selectedSampleId);
+  if (selected) {
+    const point=selected.observed_fix?[selected.observed_fix.lat,selected.observed_fix.lng]:toLatLng([selected.truth.east_m,selected.truth.north_m],origin);
+    state.overlays.push(state.backend.marker(point,{color:'#172e3b'}));
+  }
+  if (fit) state.backend.fit(truthPoints);
+}
+function sampleClass(row) {
+  const classes=['sample'];
+  if (row.truth.latent_state==='hold') classes.push('hold');
+  if (!row.observed_fix) classes.push('missing');
+  if (row.fault_ids.some(id => id.includes('accuracy'))) classes.push('accuracy');
+  if (row.fault_ids.some(id => id.includes('spike'))) classes.push('spike');
+  if (row.sample_id===state.selectedSampleId) classes.push('selected');
+  return classes.join(' ');
+}
+function renderTimeline() {
+  const timeline=$('timeline'); timeline.replaceChildren();
+  if (!state.result) return;
+  state.result.trace.samples.forEach(row => {
+    const button=document.createElement('button'); button.type='button'; button.className=sampleClass(row);
+    button.setAttribute('role','option'); button.setAttribute('aria-selected',String(row.sample_id===state.selectedSampleId));
+    button.title=`${row.captured_elapsed_s}s · ${row.truth.latent_state} · ${row.observed_fix?'관측':'누락'}`;
+    button.addEventListener('click',() => selectSample(row.sample_id)); timeline.appendChild(button);
+  });
+}
+function renderInspector() {
+  if (!state.result) return;
+  const row=state.result.trace.samples.find(item => item.sample_id===state.selectedSampleId) || state.result.trace.samples[0];
+  state.selectedSampleId=row.sample_id;
+  const observed=row.observed_fix;
+  $('sample-detail').replaceChildren();
+  const lines=[`${row.sample_id} · ${row.captured_elapsed_s}s`, `truth ${row.truth.latent_state} · ${row.truth.ground_speed_mps.toFixed(2)}m/s`, observed?`GPS ${observed.lat.toFixed(6)}, ${observed.lng.toFixed(6)} · ±${observed.accuracy_m ?? '?'}m`:'GPS 표본 누락', row.fault_ids.length?`결함: ${row.fault_ids.join(', ')}`:'명시적 결함 없음'];
+  lines.forEach(line => { const p=document.createElement('p'); p.textContent=line; $('sample-detail').appendChild(p); });
+  $('delivery-detail').replaceChildren();
+  const events=state.result.delivery.events.filter(event => event.sample_id===row.sample_id);
+  if (!events.length) { const p=document.createElement('p'); p.textContent='앱에 전달된 사건 없음'; $('delivery-detail').appendChild(p); }
+  events.forEach(event => { const p=document.createElement('p'); p.textContent=`#${event.delivery_index} · ${event.delivered_elapsed_s}s 도착 · ${event.batch_id}${event.duplicate?' · 중복':''}`; $('delivery-detail').appendChild(p); });
+}
+function renderSummary() {
+  const summary=state.result.summary,facts=summary.facts;
+  $('m-distance').textContent=`${facts.moving_distance_m}m`;
+  $('m-wall').textContent=`${facts.duration_s}s`;
+  $('m-truth').textContent=summary.truth_sample_count;
+  $('m-observed').textContent=summary.observed_fix_count;
+  $('m-missing').textContent=summary.missing_sample_count;
+  $('m-delivery').textContent=summary.delivery_event_count;
+  $('timeline-caption').textContent=`수용 ${summary.quality.accepted} · 정확도 거부 ${summary.quality.rejected_low_accuracy} · jump ${summary.quality.jump_breaks} · gap ${summary.quality.gap_breaks}`;
+}
+
+async function runScenario(specOverride=null) {
+  try {
+    status('계산 중'); const spec=specOverride || buildSpec();
+    const response=await fetch(RUN_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(spec)});
+    const payload=await response.json();
+    if (!response.ok) throw new Error(Array.isArray(payload.detail)?payload.detail.map(item => `${item.loc.slice(1).join('.')}: ${item.msg}`).join(' / '):payload.detail || '실행 실패');
+    state.result=payload; state.selectedSampleId=payload.trace.samples.find(row => row.fault_ids.length)?.sample_id || payload.trace.samples[0].sample_id;
+    renderResultMap(true); renderSummary(); renderTimeline(); renderInspector();
+    status(`${state.backend.name} · ${payload.scenario.session_id}`);
+  } catch (error) { status(error.message || String(error),true); }
+}
+function syncExampleControls(spec) {
+  $('behavior').value=['steady','sniff-and-go','stop-heavy','fatigued'].includes(spec.motion.name)?spec.motion.name:'sniff-and-go';
+  $('speed').value=spec.motion.base_speed_mps;
+  $('sample-interval').value=spec.sensor.sample_interval_s;
+  $('sensor-profile').value=spec.sensor.kind==='perfect'?'perfect':'city';
+  const dropout=spec.faults.find(item => item.kind==='dropout');
+  $('dropout-enabled').checked=Boolean(dropout); if (dropout) { $('dropout-start').value=dropout.start_s; $('dropout-end').value=dropout.end_s; }
+  const accuracy=spec.faults.find(item => item.kind==='accuracy');
+  $('accuracy-enabled').checked=Boolean(accuracy); if (accuracy) { $('accuracy-start').value=accuracy.start_s; $('accuracy-end').value=accuracy.end_s; $('accuracy-value').value=accuracy.accuracy_m; }
+  const spike=spec.faults.find(item => item.kind==='position_offset');
+  $('spike-enabled').checked=Boolean(spike); if (spike) { $('spike-at').value=spike.at_s; $('spike-east').value=spike.east_m; }
+  $('latency').value=spec.delivery.base_latency_s; $('batch-size').value=spec.delivery.batch_size; $('reverse').checked=spec.delivery.reverse_within_batch;
+  const delay=spec.delivery.delay_windows[0]; $('delay-enabled').checked=Boolean(delay); if (delay) { $('delay-start').value=delay.start_s; $('delay-end').value=delay.end_s; $('delay-value').value=delay.delay_s; }
+  $('duplicate-enabled').checked=spec.delivery.duplicate_at_s.length>0; if (spec.delivery.duplicate_at_s.length) $('duplicate-at').value=spec.delivery.duplicate_at_s[0];
+  const hold=spec.motion.holds[0]; $('hold-enabled').checked=Boolean(hold); if (hold) { const length=routeLength(state.points); $('hold-progress').value=Math.round(hold.progress_m/length*100); $('hold-duration').value=hold.duration_s; }
+}
+async function loadSpec(spec,fit=true) {
+  state.startedAt=spec.started_at; const origin=[spec.origin.lat,spec.origin.lng];
+  state.points=spec.route.points_xy.map(point => toLatLng(point,origin)); state.result=null;
+  syncExampleControls(spec); renderAuthoredRoute(fit); await runScenario(spec);
+}
+async function loadExample() {
+  const response=await fetch(EXAMPLE_URL,{cache:'no-store'}); if (!response.ok) throw new Error('예제 시나리오 로드 실패');
+  await loadSpec(await response.json());
+}
+function downloadScenario() {
+  try {
+    const payload=state.result?.scenario || buildSpec(); const blob=new Blob([JSON.stringify(payload,null,2)+'\n'],{type:'application/json'});
+    const url=URL.createObjectURL(blob),link=document.createElement('a'); link.href=url; link.download='walk-trace-scenario.json'; link.click(); URL.revokeObjectURL(url);
+  } catch (error) { status(error.message || String(error),true); }
+}
+
+$('draw-toggle').addEventListener('click',event => { state.draw=!state.draw; event.currentTarget.classList.toggle('active',state.draw); event.currentTarget.setAttribute('aria-pressed',String(state.draw)); event.currentTarget.textContent=state.draw?'그리기 종료':'지도에 그리기'; $('map-help').textContent=state.draw?'지도를 클릭해 경로 점을 추가하세요. 첫 점이 시나리오 원점입니다.':'‘지도에 그리기’를 켜면 클릭한 순서대로 경로가 만들어집니다.'; });
+$('undo').addEventListener('click',() => { state.points.pop(); invalidateResult(); renderAuthoredRoute(); });
+$('clear').addEventListener('click',() => { state.points=[]; invalidateResult(); renderAuthoredRoute(); });
+$('run').addEventListener('click',() => runScenario());
+$('reset').addEventListener('click',() => loadExample().catch(error => status(error.message,true)));
+$('download').addEventListener('click',downloadScenario);
+$('import-file').addEventListener('change',async event => { try { const file=event.target.files[0]; if (file) await loadSpec(JSON.parse(await file.text())); } catch (error) { status(`JSON 불러오기 실패: ${error.message}`,true); } finally { event.target.value=''; } });
+
+async function main() {
+  try {
+    const [configResponse,exampleResponse]=await Promise.all([fetch('/map/client-config'),fetch(EXAMPLE_URL,{cache:'no-store'})]);
+    if (!configResponse.ok || !exampleResponse.ok) throw new Error('지도 설정 또는 예제를 읽지 못했습니다');
+    const config=await configResponse.json(),spec=await exampleResponse.json(),origin=[spec.origin.lat,spec.origin.lng];
+    state.backend=await createMap(config,origin); state.backend.onClick(point => { if (!state.draw) return; state.points.push(point); invalidateResult(); renderAuthoredRoute(); });
+    await loadSpec(spec,true);
+  } catch (error) { status(error.message || String(error),true); }
+}
+main();
+</script>
+</body>
+</html>

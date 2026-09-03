@@ -45,9 +45,11 @@ if settings.dev_console:
     from app.api.spatial_diary_lab import build_spatial_diary_ui_fixture
     from app.discovery.place_intent.lab import router as place_intent_lab_router
     from app.features.territory.game.dev_api import router as territory_site_dev_router
+    from scripts.sim.walk.lab import router as walk_trace_lab_router
 
     app.include_router(place_intent_lab_router)
     app.include_router(territory_site_dev_router)
+    app.include_router(walk_trace_lab_router)
 
     _TERRITORY_SITES = Path(__file__).parent / "static" / "territory_sites.html"
     _CELLOPHANE = Path(__file__).parent / "static" / "cellophane.html"
