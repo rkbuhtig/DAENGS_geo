@@ -8,16 +8,25 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 
-from scripts.sim.walk.bundle import build_scenario, write_scenario
+from pydantic import ValidationError
+
+from scripts.sim.walk.bundle import build_scenario, build_scenario_from_spec, write_scenario
+from scripts.sim.walk.spec import WalkTraceScenarioSpec
 
 
 def main(argv: list[str] | None = None) -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument(
+        "--spec",
+        type=Path,
+        help="walk-trace-scenario-v1 JSON. 지정하면 preset 옵션 대신 이 계약을 실행한다.",
+    )
     parser.add_argument(
         "--behavior",
         choices=("steady", "exploratory", "fatigued", "stop-heavy"),
@@ -36,22 +45,30 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     try:
-        artifacts = build_scenario(
-            behavior_name=args.behavior,
-            route_name=args.route,
-            length_m=args.length_m,
-            seed=args.seed,
-            sample_interval_s=args.sample_interval_s,
-            chain_breaks_m=tuple(sorted(args.chain_break_m)),
-            session_id=args.session_id,
-        )
+        if args.spec:
+            spec = WalkTraceScenarioSpec.model_validate_json(
+                args.spec.read_text(encoding="utf-8")
+            )
+            artifacts = build_scenario_from_spec(spec)
+        else:
+            artifacts = build_scenario(
+                behavior_name=args.behavior,
+                route_name=args.route,
+                length_m=args.length_m,
+                seed=args.seed,
+                sample_interval_s=args.sample_interval_s,
+                chain_breaks_m=tuple(sorted(args.chain_break_m)),
+                session_id=args.session_id,
+            )
         write_scenario(args.out.resolve(), artifacts)
-    except (FileExistsError, OSError, ValueError) as error:
+    except (FileExistsError, json.JSONDecodeError, OSError, ValidationError, ValueError) as error:
         parser.error(str(error))
 
     facts = artifacts.computed.facts
+    behavior = artifacts.manifest["behavior"]["name"]
+    route = artifacts.manifest["route"]["name"]
     print(
-        f"{args.behavior} × {args.route} · seed {args.seed} · "
+        f"{behavior} × {route} · seed {artifacts.manifest['seed']} · "
         f"fix {facts.fix_count} · {facts.duration_s}s · {facts.moving_distance_m}m · "
         f"stop {facts.stop_count} · accepted {artifacts.derived['accepted_segment_s']:.1f}s"
     )

@@ -168,9 +168,12 @@ def test_cli_writes_all_truth_observation_and_derived_layers(tmp_path, capsys):
     ]) == 0
 
     assert {path.name for path in out.iterdir()} == {
+        "scenario.json",
         "manifest.json",
         "truth.json",
         "walk-export.json",
+        "trace.json",
+        "delivery.json",
         "derived.json",
         "cellophane.geojson",
     }

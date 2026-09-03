@@ -1,0 +1,69 @@
+{
+  "format": "walk-trace-scenario-v1",
+  "seed": 48123,
+  "session_id": "lab-sniff-and-go",
+  "dog_id": "simulated-dog",
+  "started_at": "2026-09-03T18:30:00+09:00",
+  "origin": {
+    "lat": 37.4979,
+    "lng": 127.0276
+  },
+  "route": {
+    "name": "hand-drawn-park-edge",
+    "points_xy": [[0, 0], [80, 0], [110, 40], [190, 40]]
+  },
+  "motion": {
+    "name": "sniff-and-go",
+    "base_speed_mps": 1.25,
+    "slow_motifs": [
+      {"centre_m": 65, "width_m": 24, "min_factor": 0.35},
+      {"centre_m": 155, "width_m": 30, "min_factor": 0.5}
+    ],
+    "holds": [
+      {"progress_m": 120, "duration_s": 18}
+    ],
+    "fatigue_start_fraction": 0.65,
+    "fatigue_end_factor": 0.85
+  },
+  "sensor": {
+    "kind": "noisy",
+    "sample_interval_s": 5,
+    "accuracy_m": 3,
+    "jitter_sigma_m": 1.5,
+    "dropout_rate": 0.02,
+    "outlier_rate": 0.01,
+    "outlier_distance_m": 260,
+    "accuracy_sigma_m": 1,
+    "drift_east_m": 4,
+    "drift_north_m": -2,
+    "low_accuracy_rate": 0,
+    "low_accuracy_m": 80,
+    "chain_breaks_m": []
+  },
+  "faults": [
+    {"kind": "dropout", "id": "underpass", "start_s": 45, "end_s": 60},
+    {
+      "kind": "position_offset",
+      "id": "single-spike",
+      "at_s": 90,
+      "east_m": 260,
+      "north_m": 0
+    },
+    {
+      "kind": "accuracy",
+      "id": "tree-cover",
+      "start_s": 120,
+      "end_s": 140,
+      "accuracy_m": 85
+    }
+  ],
+  "delivery": {
+    "base_latency_s": 0.25,
+    "batch_size": 3,
+    "reverse_within_batch": true,
+    "delay_windows": [
+      {"id": "offline-buffer", "start_s": 30, "end_s": 80, "delay_s": 45}
+    ],
+    "duplicate_at_s": [20]
+  }
+}
