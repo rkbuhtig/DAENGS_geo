@@ -154,6 +154,8 @@ def test_cellophane_surface_is_behind_the_dev_console_gate():
         "/cellophane-distribution/data",
         "/continuous-hex-comparison",
         "/continuous-hex-comparison/data",
+        "/spatial-diary-lab",
+        "/spatial-diary-lab/data",
     }
     assert comparison_paths.isdisjoint(_paths_with_dev_console(False))
     assert comparison_paths <= _paths_with_dev_console(True)

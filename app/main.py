@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Annotated
 
 from fastapi import Depends, FastAPI, HTTPException, status
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -43,6 +43,7 @@ async def bind_usage_request_scope(request, call_next):
 
 if settings.dev_console:
     from app.discovery.place_intent.lab import router as place_intent_lab_router
+    from app.features.spatial_diary.dev_lab import build_spatial_diary_ui_fixture
     from app.features.territory.game.dev_api import router as territory_site_dev_router
 
     app.include_router(place_intent_lab_router)
@@ -54,6 +55,7 @@ if settings.dev_console:
     _CONTINUOUS_HEX_COMPARISON = (
         Path(__file__).parent / "static" / "continuous_hex_comparison.html"
     )
+    _SPATIAL_DIARY_LAB = Path(__file__).parent / "static" / "spatial_diary_lab.html"
     _FACILITY = Path(__file__).parent / "static" / "facility.html"
 
     @app.get("/facility-map", include_in_schema=False)
@@ -114,6 +116,19 @@ if settings.dev_console:
         return FileResponse(
             path,
             media_type="application/json",
+            headers={"Cache-Control": "no-store"},
+        )
+
+    @app.get("/spatial-diary-lab", include_in_schema=False)
+    async def spatial_diary_lab_view():
+        """좁은 화면의 Cellophane 적층과 고정 일기 reader를 함께 보는 UI 실험실."""
+        return FileResponse(_SPATIAL_DIARY_LAB, media_type="text/html")
+
+    @app.get("/spatial-diary-lab/data", include_in_schema=False)
+    async def spatial_diary_lab_data():
+        """실사용 좌표 없이 canonical Paint로 매번 같은 UI fixture를 만든다."""
+        return JSONResponse(
+            build_spatial_diary_ui_fixture(),
             headers={"Cache-Control": "no-store"},
         )
 

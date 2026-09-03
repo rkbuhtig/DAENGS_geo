@@ -1,0 +1,588 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Spatial Diary 모바일 UI Lab</title>
+<style>
+  :root {
+    color-scheme:light;
+    --page:#eee8e3; --surface:#fffaf7; --surface-2:#f7efeb; --ink:#392d30;
+    --muted:#806f73; --line:#e6d8d3; --paint:#db466f; --read:#86652c;
+    --slow:#287f74; --normal:#d9772f; --fast:#c93663; --stopped:#6d5fc7;
+    --shadow:0 12px 34px rgba(72,42,51,.16);
+  }
+  * { box-sizing:border-box; }
+  html,body { width:100%; min-height:100%; margin:0; }
+  body {
+    display:grid; place-items:start center; overflow:hidden; background:var(--page);
+    color:var(--ink); font-family:system-ui,-apple-system,"Malgun Gothic",sans-serif;
+  }
+  button { font:inherit; }
+  [hidden] { display:none !important; }
+  #app {
+    width:min(100vw,411px); height:100dvh; max-height:891px; overflow:hidden;
+    display:grid; grid-template-rows:auto minmax(0,3fr) minmax(0,2fr);
+    background:var(--surface); box-shadow:var(--shadow);
+  }
+  header { z-index:30; padding:12px 14px 10px; border-bottom:1px solid var(--line); background:var(--surface); }
+  .title-row { display:flex; align-items:baseline; justify-content:space-between; gap:12px; }
+  h1 { margin:0; font-size:20px; line-height:1.2; letter-spacing:-.03em; }
+  #walk-count { color:var(--muted); font-size:11px; white-space:nowrap; }
+  .mode-tabs { display:grid; grid-template-columns:1fr 1fr; gap:4px; margin-top:9px; padding:3px; border-radius:12px; background:var(--surface-2); }
+  .mode-tab {
+    min-height:38px; border:0; border-radius:9px; background:transparent; color:var(--muted);
+    font-size:12px; font-weight:600; cursor:pointer;
+  }
+  .mode-tab[aria-selected="true"] { background:#fff; color:var(--ink); box-shadow:0 2px 8px rgba(72,42,51,.1); }
+  .filters { display:grid; grid-template-columns:1.1fr .95fr 1fr; gap:6px; margin-top:8px; }
+  .session-controls { display:grid; grid-template-columns:42px minmax(0,1fr) 42px; gap:6px; margin-top:8px; }
+  .filter,.session-step,.session-label {
+    min-width:0; min-height:38px; overflow:hidden; padding:7px 9px; border:1px solid var(--line);
+    border-radius:999px; background:#fff; color:var(--ink); font-size:12px; text-overflow:ellipsis;
+    white-space:nowrap; cursor:pointer;
+  }
+  .session-step { padding:0; font-size:18px; }
+  .session-label { cursor:default; }
+  .filter:focus-visible,.session-step:focus-visible,.mode-tab:focus-visible,.pager:focus-visible,#radius-toggle:focus-visible {
+    outline:3px solid rgba(219,70,111,.24); outline-offset:1px;
+  }
+  #map-wrap { position:relative; min-height:0; overflow:hidden; background:#e7ebe7; }
+  #map { width:100%; height:100%; }
+  #banner {
+    position:absolute; z-index:1200; top:9px; left:9px; right:9px; display:none; padding:8px 10px;
+    border-radius:10px; background:#8d332c; color:#fff; font-size:11px; line-height:1.4;
+  }
+  .map-badge {
+    position:absolute; z-index:1000; top:9px; left:9px; max-width:calc(100% - 18px); padding:7px 9px;
+    border:1px solid rgba(230,216,211,.9); border-radius:11px; background:rgba(255,250,247,.94);
+    color:var(--muted); box-shadow:0 3px 12px rgba(60,40,46,.1); font-size:10px;
+    backdrop-filter:blur(7px); pointer-events:none;
+  }
+  .speed-key { display:inline-flex; align-items:center; gap:3px; }
+  .speed-swatch { width:9px; height:3px; border-radius:9px; display:inline-block; }
+  #radius-toggle {
+    position:absolute; z-index:1000; right:9px; bottom:9px; min-height:36px; padding:7px 10px;
+    border:1px solid var(--line); border-radius:999px; background:rgba(255,250,247,.94);
+    color:var(--ink); box-shadow:0 3px 12px rgba(60,40,46,.12); font-size:11px; cursor:pointer;
+  }
+  #radius-toggle[aria-pressed="true"] { border-color:var(--paint); color:#a92e52; font-weight:700; }
+  .memory-marker,.event-marker,.endpoint-marker {
+    width:30px; height:30px; display:grid; place-items:center; border:0; border-radius:50%;
+    background:transparent; color:#fff; cursor:pointer;
+  }
+  .memory-marker::before {
+    content:""; width:13px; height:13px; border:3px solid #fff; border-radius:50%;
+    background:#5c3440; box-shadow:0 2px 7px rgba(0,0,0,.34);
+  }
+  .memory-marker.selected::before { width:17px; height:17px; background:var(--paint); }
+  .event-marker {
+    width:25px; height:25px; border:2px solid #fff; background:#4f3940; box-shadow:0 2px 8px rgba(0,0,0,.34);
+    font-size:11px; font-weight:700;
+  }
+  .event-marker.selected { width:29px; height:29px; background:var(--paint); }
+  .endpoint-marker { width:22px; height:22px; border:3px solid #fff; box-shadow:0 2px 7px rgba(0,0,0,.3); font-size:0; cursor:default; }
+  .endpoint-marker.start { background:var(--slow); }
+  .endpoint-marker.end { background:var(--fast); }
+  .endpoint-marker.roundtrip { background:linear-gradient(90deg,var(--slow) 0 50%,var(--fast) 50%); }
+  .diary {
+    position:relative; min-height:0; overflow:auto; padding:14px 16px 18px;
+    border-top:1px solid var(--line); background:var(--surface); box-shadow:0 -7px 22px rgba(59,37,44,.09);
+  }
+  .grabber { width:34px; height:4px; margin:-6px auto 10px; border-radius:99px; background:var(--line); }
+  .diary-head { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+  .eyebrow { color:var(--muted); font-size:11px; }
+  h2 { margin:4px 0 0; font-size:18px; line-height:1.35; letter-spacing:-.025em; }
+  .pager-wrap { flex:0 0 auto; display:flex; align-items:center; gap:2px; }
+  .pager {
+    width:31px; height:31px; padding:0; border:1px solid var(--line); border-radius:50%;
+    background:var(--surface-2); color:var(--ink); cursor:pointer;
+  }
+  .pager:disabled { opacity:.3; cursor:default; }
+  #page-count { min-width:31px; color:var(--muted); font-size:10px; text-align:center; }
+  #narration { margin:11px 0 0; font-size:14px; line-height:1.58; }
+  #summary { margin:7px 0 0; color:var(--muted); font-size:12px; line-height:1.5; }
+  .meta { display:flex; align-items:center; flex-wrap:wrap; gap:5px; margin-top:11px; }
+  .tag { padding:5px 8px; border-radius:999px; background:var(--surface-2); color:var(--muted); font-size:10px; }
+  #nearby { margin-left:auto; color:var(--muted); font-size:10px; }
+  .leaflet-control-attribution { font-size:8px !important; }
+  @media (max-width:350px) {
+    header { padding-inline:11px; }
+    .filters { gap:4px; }
+    .filter { padding-inline:6px; font-size:11px; }
+    .diary { padding-inline:13px; }
+    h2 { font-size:17px; }
+  }
+  @media (min-width:412px) {
+    #app { margin-top:12px; border:1px solid var(--line); border-radius:28px; }
+  }
+</style>
+</head>
+<body>
+<main id="app">
+  <header>
+    <div class="title-row">
+      <h1>산책 일기</h1>
+      <span id="walk-count">불러오는 중</span>
+    </div>
+    <div class="mode-tabs" role="tablist" aria-label="산책 기록 열람 방식">
+      <button class="mode-tab" id="session-mode" type="button" role="tab" aria-selected="true" aria-controls="map-wrap">날짜별 일기</button>
+      <button class="mode-tab" id="cohort-mode" type="button" role="tab" aria-selected="false" aria-controls="map-wrap">겹쳐보기</button>
+    </div>
+    <div class="session-controls" id="session-controls" data-policy="single-session" aria-label="날짜와 산책 세션 선택">
+      <button class="session-step" id="session-previous" type="button" aria-label="이전 산책">‹</button>
+      <button class="session-label" id="session-label" type="button" disabled>산책 불러오는 중</button>
+      <button class="session-step" id="session-next" type="button" aria-label="다음 산책">›</button>
+    </div>
+    <div class="filters" id="cohort-controls" data-policy="session-cohort" aria-label="겹쳐볼 산책 조건" hidden>
+      <button class="filter" id="pet-filter" type="button">가족 전체⌄</button>
+      <button class="filter" id="period-filter" type="button">최근 30일⌄</button>
+      <button class="filter" id="context-filter" type="button">모든 날⌄</button>
+    </div>
+  </header>
+
+  <section id="map-wrap" role="tabpanel" aria-labelledby="session-mode" aria-label="선택한 산책 기록 지도">
+    <div id="map"></div>
+    <div id="banner" role="alert"></div>
+    <div class="map-badge" id="map-badge"><span id="provider-label">지도 준비 중</span></div>
+    <button id="radius-toggle" type="button" aria-pressed="false" hidden>두 반경 비교</button>
+  </section>
+
+  <article class="diary" id="diary" aria-live="polite">
+    <div class="grabber" aria-hidden="true"></div>
+    <div class="diary-head">
+      <div>
+        <div class="eyebrow" id="event-at">산책을 불러오는 중</div>
+        <h2 id="journal-title">산책 일기</h2>
+      </div>
+      <div class="pager-wrap" id="pager-wrap" aria-label="산책 사건 순서">
+        <button class="pager" id="previous" type="button" aria-label="이전 사건">‹</button>
+        <span id="page-count">—</span>
+        <button class="pager" id="next" type="button" aria-label="다음 사건">›</button>
+      </div>
+    </div>
+    <p id="narration">지도 위 사건을 누르면 해당 시점의 기록이 표시됩니다.</p>
+    <p id="summary"></p>
+    <div class="meta">
+      <span class="tag" id="participants">—</span>
+      <span class="tag" id="context">—</span>
+      <span id="nearby">—</span>
+    </div>
+  </article>
+</main>
+
+<script>
+'use strict';
+const DATA_URL = '/spatial-diary-lab/data';
+const state = {
+  payload:null, backend:null, fieldOverlays:[], routeOverlays:[], pinOverlays:[], radiusOverlays:[],
+  mode:'session', lastFocusedSessionId:null,
+  session:{selectedSessionId:'ui-walk-03',selectedEpisodeId:null},
+  cohort:{pet:'all',period:30,context:'all',selectedAreaKey:null,showBothRadii:false},
+};
+const PET_MODES = ['all','choco','bori','together'];
+const PERIOD_MODES = [30,14,7];
+const CONTEXT_MODES = ['all','rain','night','dry','day'];
+const PET_LABELS = {all:'가족 전체⌄',choco:'초코⌄',bori:'보리⌄',together:'둘이 함께⌄'};
+const CONTEXT_LABELS = {all:'모든 날⌄',rain:'비 오는 날⌄',night:'밤 산책⌄',dry:'비 안 온 날⌄',day:'낮 산책⌄'};
+const SPEED_STYLES = {
+  slow:{color:'#287f74',weight:5}, normal:{color:'#d9772f',weight:5},
+  fast:{color:'#c93663',weight:6}, stopped:{color:'#6d5fc7',weight:7},
+};
+const $ = (id) => document.getElementById(id);
+
+function showError(message) {
+  const banner = $('banner');
+  banner.textContent = message || '';
+  banner.style.display = message ? 'block' : 'none';
+}
+
+function loadScript(url,ready) {
+  return new Promise((resolve,reject) => {
+    if (ready()) { resolve(); return; }
+    const script = document.createElement('script');
+    script.src = url; script.onload = resolve;
+    script.onerror = () => reject(new Error(`${url} 로드 실패`));
+    document.head.appendChild(script);
+  });
+}
+
+function loadNaverMaps(keyId) {
+  return new Promise((resolve,reject) => {
+    const callback = '__spatialDiaryLabNaverReady';
+    const timeout = setTimeout(() => reject(new Error('NAVER SDK timeout')),8000);
+    window[callback] = () => { clearTimeout(timeout); resolve(); };
+    window.navermap_authFailure = () => { clearTimeout(timeout); reject(new Error('NAVER 인증 실패')); };
+    const script = document.createElement('script');
+    script.src = `https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${encodeURIComponent(keyId)}&callback=${callback}`;
+    script.onerror = () => { clearTimeout(timeout); reject(new Error('NAVER SDK 로드 실패')); };
+    document.head.appendChild(script);
+  });
+}
+
+async function loadLeaflet() {
+  if (!document.querySelector('link[data-leaflet]')) {
+    const css = document.createElement('link');
+    css.rel = 'stylesheet'; css.dataset.leaflet = 'true';
+    css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    document.head.appendChild(css);
+  }
+  await loadScript('https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',() => Boolean(window.L));
+}
+
+function markerHtml(kind,label,selected=false) {
+  if (kind === 'event') return `<span class="event-marker${selected ? ' selected' : ''}" aria-hidden="true">${label}</span>`;
+  if (kind === 'start' || kind === 'end' || kind === 'roundtrip') return `<span class="endpoint-marker ${kind}" aria-hidden="true"></span>`;
+  return `<span class="memory-marker${selected ? ' selected' : ''}" aria-hidden="true"></span>`;
+}
+
+function naverBackend(payload) {
+  const map = new naver.maps.Map('map',{
+    center:new naver.maps.LatLng(...payload.viewport.center),zoom:payload.viewport.zoom,
+    scaleControl:false,logoControl:false,mapDataControl:false,zoomControl:false,
+  });
+  return {
+    name:'NAVER',
+    polygon(boundary,style) {
+      const overlay = new naver.maps.Polygon({
+        map,paths:[boundary.map(([lat,lng]) => new naver.maps.LatLng(lat,lng))],clickable:false,
+        fillColor:style.fillColor,fillOpacity:style.fillOpacity,strokeWeight:0,zIndex:20,
+      });
+      return {remove:() => overlay.setMap(null)};
+    },
+    polyline(points,style) {
+      const overlay = new naver.maps.Polyline({
+        map,path:points.map(point => new naver.maps.LatLng(...point)),clickable:false,
+        strokeColor:style.color,strokeOpacity:.94,strokeWeight:style.weight,zIndex:45,
+      });
+      return {remove:() => overlay.setMap(null)};
+    },
+    marker(point,options) {
+      const overlay = new naver.maps.Marker({
+        map,position:new naver.maps.LatLng(...point),zIndex:options.selected ? 90 : 75,title:options.title,
+        icon:{content:markerHtml(options.kind,options.label,options.selected),anchor:new naver.maps.Point(
+          options.kind === 'event' || options.kind === 'memory' ? 15 : 11,
+          options.kind === 'event' || options.kind === 'memory' ? 15 : 11
+        )},
+      });
+      if (options.choose) naver.maps.Event.addListener(overlay,'click',options.choose);
+      return {remove:() => overlay.setMap(null)};
+    },
+    circle(point,radius,style) {
+      const overlay = new naver.maps.Circle({
+        map,center:new naver.maps.LatLng(...point),radius,
+        strokeColor:style.strokeColor,strokeOpacity:style.strokeOpacity,strokeWeight:style.strokeWeight,
+        strokeStyle:style.dashed ? 'shortdash' : 'solid',fillColor:style.fillColor,
+        fillOpacity:style.fillOpacity,clickable:false,zIndex:60,
+      });
+      return {remove:() => overlay.setMap(null)};
+    },
+    focus(points) {
+      const bounds = new naver.maps.LatLngBounds();
+      points.forEach(point => bounds.extend(new naver.maps.LatLng(...point)));
+      map.fitBounds(bounds,{top:40,right:28,bottom:40,left:28});
+    },
+  };
+}
+
+function leafletBackend(payload) {
+  const map = L.map('map',{zoomControl:false,attributionControl:true}).setView(payload.viewport.center,payload.viewport.zoom);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    maxZoom:19,attribution:'© OpenStreetMap contributors',
+  }).addTo(map);
+  return {
+    name:'OpenStreetMap',
+    polygon(boundary,style) {
+      const overlay = L.polygon(boundary,{fillColor:style.fillColor,fillOpacity:style.fillOpacity,stroke:false,interactive:false}).addTo(map);
+      return {remove:() => overlay.remove()};
+    },
+    polyline(points,style) {
+      const overlay = L.polyline(points,{color:style.color,opacity:.94,weight:style.weight,interactive:false}).addTo(map);
+      return {remove:() => overlay.remove()};
+    },
+    marker(point,options) {
+      const size = options.kind === 'event' || options.kind === 'memory' ? 30 : 22;
+      const icon = L.divIcon({className:'',html:markerHtml(options.kind,options.label,options.selected),iconSize:[size,size],iconAnchor:[size/2,size/2]});
+      const overlay = L.marker(point,{icon,zIndexOffset:options.selected ? 1100 : 950,title:options.title,alt:options.title});
+      if (options.choose) overlay.on('click',options.choose);
+      overlay.addTo(map);
+      return {remove:() => overlay.remove()};
+    },
+    circle(point,radius,style) {
+      const overlay = L.circle(point,{
+        radius,color:style.strokeColor,opacity:style.strokeOpacity,weight:style.strokeWeight,
+        dashArray:style.dashed ? '5 5' : null,fillColor:style.fillColor,fillOpacity:style.fillOpacity,interactive:false,
+      }).addTo(map);
+      return {remove:() => overlay.remove()};
+    },
+    focus(points) { map.fitBounds(points,{padding:[32,32],maxZoom:17,animate:false}); },
+  };
+}
+
+function removeAll(items) { items.splice(0).forEach(item => item.remove()); }
+function clearMap() {
+  removeAll(state.fieldOverlays); removeAll(state.routeOverlays);
+  removeAll(state.pinOverlays); removeAll(state.radiusOverlays);
+}
+function daysBetween(a,b) { return Math.floor((a-b)/86400000); }
+function petNames(values) { return values.map(value => value === 'choco' ? '초코' : '보리').join(' · '); }
+function metresBetween(a,b) {
+  const lat = (a[0]+b[0])/2*Math.PI/180;
+  const dy = (a[0]-b[0])*111320;
+  const dx = (a[1]-b[1])*111320*Math.cos(lat);
+  return Math.hypot(dx,dy);
+}
+function formatEventAt(value) {
+  return new Intl.DateTimeFormat('ko-KR',{
+    month:'long',day:'numeric',hour:'numeric',minute:'2-digit',hour12:true,timeZone:'Asia/Seoul',
+  }).format(new Date(value));
+}
+function formatSessionLabel(session) {
+  const when = new Intl.DateTimeFormat('ko-KR',{
+    month:'long',day:'numeric',weekday:'short',hour:'numeric',minute:'2-digit',hour12:true,timeZone:'Asia/Seoul',
+  }).format(new Date(session.started_at));
+  return `${when} · ${petNames(session.participants)}`;
+}
+function formatDuration(seconds) {
+  const minutes = Math.max(1,Math.round(seconds/60));
+  return `${minutes}분 · 단순화 경로`;
+}
+
+function sessionById() {
+  return state.payload.sessions.find(session => session.session_id === state.session.selectedSessionId) || state.payload.sessions[0];
+}
+function sessionPins(session) {
+  return state.payload.pins.filter(pin => pin.session_id === session.session_id).sort((a,b) => a.event_at.localeCompare(b.event_at));
+}
+function setPanel({eyebrow,title,narration,summary,participants,context,nearby}) {
+  $('event-at').textContent = eyebrow;
+  $('journal-title').textContent = title;
+  $('narration').textContent = narration;
+  $('summary').textContent = summary;
+  $('participants').textContent = participants;
+  $('context').textContent = context;
+  $('nearby').textContent = nearby;
+}
+
+function renderSessionPanel(session,pins,selected) {
+  $('pager-wrap').hidden = pins.length === 0;
+  if (!selected) {
+    setPanel({
+      eyebrow:formatEventAt(session.started_at),title:session.title,narration:session.narration,
+      summary:session.summary,participants:petNames(session.participants),
+      context:formatDuration(session.duration_s),nearby:'기록된 사건 없음',
+    });
+    return;
+  }
+  const index = pins.findIndex(pin => pin.pin_id === selected.pin_id);
+  setPanel({
+    eyebrow:`${index+1}번째 장면 · ${formatEventAt(selected.event_at)}`,title:selected.title,
+    narration:selected.narration,summary:selected.summary,participants:petNames(selected.participants),
+    context:`${selected.behavior_label} · ${selected.context_label}`,nearby:`사건 ${index+1}/${pins.length}`,
+  });
+  $('page-count').textContent = `${index+1}/${pins.length}`;
+  $('previous').disabled = pins.length < 2;
+  $('next').disabled = pins.length < 2;
+}
+
+function renderSessionMode() {
+  clearMap();
+  const session = sessionById();
+  state.session.selectedSessionId = session.session_id;
+  const pins = sessionPins(session);
+  if (!pins.some(pin => pin.pin_id === state.session.selectedEpisodeId)) state.session.selectedEpisodeId = pins[0]?.pin_id || null;
+  const selected = pins.find(pin => pin.pin_id === state.session.selectedEpisodeId) || null;
+  session.route.segments.forEach(segment => state.routeOverlays.push(state.backend.polyline(
+    [segment.from,segment.to],SPEED_STYLES[segment.speed_band]
+  )));
+  if (metresBetween(session.route.approximate_start,session.route.approximate_end) < 2) {
+    state.routeOverlays.push(state.backend.marker(session.route.approximate_start,{kind:'roundtrip',label:'',title:'근사 시작·종료점'}));
+  } else {
+    state.routeOverlays.push(state.backend.marker(session.route.approximate_start,{kind:'start',label:'',title:'근사 시작점'}));
+    state.routeOverlays.push(state.backend.marker(session.route.approximate_end,{kind:'end',label:'',title:'근사 종료점'}));
+  }
+  pins.forEach((pin,index) => state.pinOverlays.push(state.backend.marker(pin.point,{
+    kind:'event',label:String(index+1),title:pin.title,selected:pin.pin_id === state.session.selectedEpisodeId,
+    choose:() => { state.session.selectedEpisodeId=pin.pin_id; renderSessionMode(); },
+  })));
+  if (session.session_id !== state.lastFocusedSessionId) {
+    const points = session.route.segments.flatMap(segment => [segment.from,segment.to]);
+    state.backend.focus(points);
+    state.lastFocusedSessionId = session.session_id;
+  }
+  $('session-label').textContent = formatSessionLabel(session);
+  $('walk-count').textContent = '1번의 산책';
+  $('map-badge').innerHTML = `<span id="provider-label">${state.backend.name}</span> · <span class="speed-key"><i class="speed-swatch" style="background:var(--slow)"></i>느림 <i class="speed-swatch" style="background:var(--normal)"></i>보통 <i class="speed-swatch" style="background:var(--fast)"></i>빠름 <i class="speed-swatch" style="background:var(--stopped)"></i>정지</span>`;
+  renderSessionPanel(session,pins,selected);
+}
+
+function selectedSheets() {
+  const latest = Math.max(...state.payload.sheets.map(sheet => Date.parse(sheet.started_at)));
+  return state.payload.sheets.filter(sheet => {
+    const pet = state.cohort.pet === 'all' ||
+      (state.cohort.pet === 'together' ? sheet.participants.length > 1 : sheet.participants.includes(state.cohort.pet));
+    const period = daysBetween(latest,Date.parse(sheet.started_at)) < state.cohort.period;
+    const context = state.cohort.context === 'all' || sheet.precipitation === state.cohort.context || sheet.daylight === state.cohort.context;
+    return pet && period && context;
+  });
+}
+function selectedPins(sheets) {
+  const ids = new Set(sheets.map(sheet => sheet.session_id));
+  return state.payload.pins.filter(pin => ids.has(pin.session_id));
+}
+function aggregateCells(sheets) {
+  const cells = new Map();
+  const base = state.payload.display.sheet_alpha;
+  const minPeak = state.payload.display.min_peak;
+  sheets.forEach(sheet => sheet.cells.forEach(cell => {
+    if (cell.peak < minPeak) return;
+    const layerAlpha = base*(.42+.58*cell.peak);
+    const current = cells.get(cell.id) || {boundary:cell.boundary,remaining:1,count:0};
+    current.remaining *= 1-layerAlpha;
+    current.count += 1;
+    cells.set(cell.id,current);
+  }));
+  return [...cells.values()].map(cell => ({boundary:cell.boundary,count:cell.count,opacity:Math.min(.78,1-cell.remaining)}));
+}
+
+function memoryAreas(pins) {
+  const areas = new Map();
+  pins.forEach(pin => {
+    const area = areas.get(pin.place_label) || {
+      key:pin.place_label,placeLabel:pin.place_label,point:pin.point,readRadiusM:pin.read_radius_m,pins:[],
+    };
+    area.pins.push(pin);
+    areas.set(pin.place_label,area);
+  });
+  return [...areas.values()];
+}
+
+function renderCohortPanel(selectedArea,visiblePins) {
+  $('pager-wrap').hidden = true;
+  if (!selectedArea) {
+    setPanel({
+      eyebrow:'조건에 맞는 기억이 없습니다',title:'다른 조건을 선택해 보세요',
+      narration:'지도 배경은 선택된 산책만으로 다시 겹쳐집니다.',summary:'',participants:'—',context:'—',nearby:'—',
+    });
+    return;
+  }
+  const nearby = visiblePins.filter(pin => metresBetween(pin.point,selectedArea.point) <= selectedArea.readRadiusM);
+  const sessions = new Set(nearby.map(pin => pin.session_id));
+  const participants = [...new Set(nearby.flatMap(pin => pin.participants))];
+  const behaviors = [...new Set(nearby.map(pin => pin.behavior_label))];
+  const memories = nearby.slice(0,3).map(pin => pin.title).join(' · ');
+  setPanel({
+    eyebrow:`읽기 반경 ${selectedArea.readRadiusM}m · ${sessions.size}번의 산책`,
+    title:`${selectedArea.placeLabel}에 쌓인 기억`,
+    narration:`이 영역에서 사람이 확인한 장면 ${nearby.length}개가 서로 겹칩니다. 시작·종료와 사건 순서는 합산하지 않습니다.`,
+    summary:memories,participants:petNames(participants),context:behaviors.join(' · '),nearby:`기억 ${nearby.length}개`,
+  });
+}
+
+function renderCohortMode() {
+  clearMap();
+  const sheets = selectedSheets();
+  aggregateCells(sheets).forEach(cell => state.fieldOverlays.push(state.backend.polygon(cell.boundary,{
+    fillColor:'#db466f',fillOpacity:cell.opacity,
+  })));
+  const pins = selectedPins(sheets);
+  const areas = memoryAreas(pins);
+  if (!areas.some(area => area.key === state.cohort.selectedAreaKey)) state.cohort.selectedAreaKey = areas[0]?.key || null;
+  areas.forEach(area => state.pinOverlays.push(state.backend.marker(area.point,{
+    kind:'memory',label:'',title:`${area.placeLabel} · 기억 ${area.pins.length}개`,selected:area.key === state.cohort.selectedAreaKey,
+    choose:() => { state.cohort.selectedAreaKey=area.key; renderCohortMode(); },
+  })));
+  const selectedArea = areas.find(area => area.key === state.cohort.selectedAreaKey) || null;
+  if (selectedArea) {
+    state.radiusOverlays.push(state.backend.circle(selectedArea.point,selectedArea.readRadiusM,{
+      strokeColor:'#86652c',strokeOpacity:.9,strokeWeight:1.5,dashed:true,fillColor:'#d9b762',fillOpacity:.07,
+    }));
+    if (state.cohort.showBothRadii) state.radiusOverlays.push(state.backend.circle(
+      selectedArea.point,state.payload.paint.brush_reach_m,{
+        strokeColor:'#db466f',strokeOpacity:.9,strokeWeight:1.5,dashed:false,fillColor:'#db466f',fillOpacity:.14,
+      }
+    ));
+  }
+  $('pet-filter').textContent = PET_LABELS[state.cohort.pet];
+  $('period-filter').textContent = `최근 ${state.cohort.period}일⌄`;
+  $('context-filter').textContent = CONTEXT_LABELS[state.cohort.context];
+  $('walk-count').textContent = `${sheets.length}번의 산책`;
+  $('map-badge').innerHTML = `<span id="provider-label">${state.backend.name}</span> · 겹칠수록 짙게`;
+  renderCohortPanel(selectedArea,pins);
+}
+
+function renderAll() {
+  const isSession = state.mode === 'session';
+  $('session-mode').setAttribute('aria-selected',String(isSession));
+  $('cohort-mode').setAttribute('aria-selected',String(!isSession));
+  $('session-controls').hidden = !isSession;
+  $('cohort-controls').hidden = isSession;
+  $('radius-toggle').hidden = isSession;
+  $('map-wrap').setAttribute('aria-labelledby',isSession ? 'session-mode' : 'cohort-mode');
+  $('map-wrap').setAttribute('aria-label',isSession ? '한 산책의 시간순 경로 지도' : '조건별 산책의 셀로판지 중첩 지도');
+  if (isSession) renderSessionMode(); else renderCohortMode();
+}
+function cycle(list,current) { return list[(list.indexOf(current)+1)%list.length]; }
+function moveSession(step) {
+  const sessions = state.payload.sessions;
+  const current = sessions.findIndex(session => session.session_id === state.session.selectedSessionId);
+  state.session.selectedSessionId = sessions[(current+step+sessions.length)%sessions.length].session_id;
+  state.session.selectedEpisodeId = null;
+  renderSessionMode();
+}
+function pageEpisode(step) {
+  const pins = sessionPins(sessionById());
+  if (pins.length < 2) return;
+  const current = pins.findIndex(pin => pin.pin_id === state.session.selectedEpisodeId);
+  state.session.selectedEpisodeId = pins[(current+step+pins.length)%pins.length].pin_id;
+  renderSessionMode();
+}
+
+async function createMap(config,payload) {
+  if (config.provider === 'naver' && config.naver_key_id) {
+    try {
+      await loadNaverMaps(config.naver_key_id);
+      return naverBackend(payload);
+    } catch (error) {
+      showError(`${error.message}. OpenStreetMap으로 전환합니다.`);
+    }
+  }
+  await loadLeaflet();
+  return leafletBackend(payload);
+}
+
+async function main() {
+  try {
+    const [configResponse,dataResponse] = await Promise.all([
+      fetch('/map/client-config'),fetch(DATA_URL,{cache:'no-store'}),
+    ]);
+    if (!configResponse.ok || !dataResponse.ok) throw new Error('지도 설정 또는 UI fixture를 읽지 못했습니다');
+    const config = await configResponse.json();
+    state.payload = await dataResponse.json();
+    state.backend = await createMap(config,state.payload);
+    renderAll();
+  } catch (error) {
+    showError(error.message || String(error));
+    $('walk-count').textContent = '로드 실패';
+  }
+}
+
+$('session-mode').addEventListener('click',() => { state.mode='session'; renderAll(); });
+$('cohort-mode').addEventListener('click',() => { state.mode='cohort'; renderAll(); });
+$('session-previous').addEventListener('click',() => moveSession(-1));
+$('session-next').addEventListener('click',() => moveSession(1));
+$('pet-filter').addEventListener('click',() => { state.cohort.pet=cycle(PET_MODES,state.cohort.pet); renderCohortMode(); });
+$('period-filter').addEventListener('click',() => { state.cohort.period=cycle(PERIOD_MODES,state.cohort.period); renderCohortMode(); });
+$('context-filter').addEventListener('click',() => { state.cohort.context=cycle(CONTEXT_MODES,state.cohort.context); renderCohortMode(); });
+$('radius-toggle').addEventListener('click',event => {
+  state.cohort.showBothRadii=!state.cohort.showBothRadii;
+  event.currentTarget.setAttribute('aria-pressed',String(state.cohort.showBothRadii));
+  event.currentTarget.textContent=state.cohort.showBothRadii ? '두 반경 표시 중' : '두 반경 비교';
+  renderCohortMode();
+});
+$('previous').addEventListener('click',() => pageEpisode(-1));
+$('next').addEventListener('click',() => pageEpisode(1));
+main();
+</script>
+</body>
+</html>

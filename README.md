@@ -108,6 +108,10 @@ uv run uvicorn app.main:app --reload
 OpenAPI는 `http://127.0.0.1:8000/docs`, 상태 확인은 `/health`와 `/health/ready`다.
 `DAENGS_DEV_CONSOLE=true`이면 `/facility-map`·`/place-intent-lab`·`/cellophane` 같은
 검증 화면도 열린다. `.env.example`은 로컬용으로 켜져 있지만 코드 기본값은 닫혀 있다.
+`/spatial-diary-lab`은 좁은 화면의 지도 60%·열람 패널 40% 배치에서 두 읽기 정책을 시험한다.
+`날짜별 일기`는 fixture 전용 단순화 경로·속도 구간·시작/종료·시간순 Pin을, `겹쳐보기`는
+canonical Paint로 만든 12회 Cellophane의 정적 합성과 별도 읽기 반경을 보여준다. 전자의 경로와
+근사 endpoint는 현재 영구 저장 계약이 아니라 UI 결정을 위한 실험값이다.
 
 테스트와 정적 검사는 CI와 같은 명령으로 실행한다.
 
