@@ -1,5 +1,7 @@
 from collections.abc import Iterator
 
+import pytest
+
 from app.discovery.place_intent.assembly import PlaceDiscoveryAssemblyService
 from app.discovery.place_intent.contract import (
     EvidenceQuote,
@@ -23,7 +25,15 @@ from app.place.contracts import (
 )
 from app.place.planning.contract import PlaceKind, PlaceSpatialConstraint
 from app.place.planning.execution import purpose_kinds
-from app.place.planning.intents import IntentRole, KindIntent, SemanticIntent
+from app.place.planning.intents import (
+    ActivityId,
+    ActivityIntent,
+    IntentRole,
+    KindIntent,
+    ObjectIntent,
+    SearchObjectId,
+    SemanticIntent,
+)
 from app.place.presentation.needs import InformationNeedId
 from app.place.search import PlaceSearchGroup, PlaceSearchHit, PlaceSearchResponse
 from app.place.source_facts.bundle import (
@@ -58,6 +68,32 @@ class _Proposer:
             ),
             reason=None,
         )
+
+
+class _OutputProposer:
+    def __init__(self, query: str, output: LLMIntentOutput):
+        self._query = query
+        self._output = output
+
+    async def propose(self, utterance: str) -> LLMIntentOutput:
+        assert utterance == self._query
+        return self._output
+
+
+def _proposal(role: IntentRole, intent, quote: str) -> LLMIntentProposal:
+    return LLMIntentProposal(
+        role=role,
+        intent=intent,
+        evidence=EvidenceQuote(quote=quote, start=None, end=None),
+    )
+
+
+def _output(*proposals: LLMIntentProposal) -> LLMIntentOutput:
+    return LLMIntentOutput(
+        disposition=ProposalDisposition.PROPOSED,
+        interpretations=(IntentInterpretation(proposals=proposals),),
+        reason=None,
+    )
 
 
 def _ids() -> Iterator[str]:
@@ -200,3 +236,131 @@ async def test_non_executable_planning_does_not_touch_search_or_source_facts() -
 
     assert not calls
     assert not result.lens_results
+
+
+@pytest.mark.parametrize(
+    ("query", "output", "expected_need", "expected_lenses"),
+    [
+        (
+            "강아지랑 놀고 싶음",
+            _output(
+                _proposal(
+                    IntentRole.GOAL,
+                    ActivityIntent(activity_id=ActivityId.PLAY),
+                    "놀고 싶음",
+                )
+            ),
+            InformationNeedId.ACTIVITY_PLAY,
+            3,
+        ),
+        (
+            "강아지 장난감 사고 싶어",
+            _output(
+                _proposal(
+                    IntentRole.GOAL,
+                    ObjectIntent(object_id=SearchObjectId.DOG_TOY),
+                    "강아지 장난감",
+                ),
+                _proposal(
+                    IntentRole.GOAL,
+                    ActivityIntent(activity_id=ActivityId.BUY),
+                    "사고 싶어",
+                ),
+            ),
+            InformationNeedId.PRODUCTS_PURCHASABLE,
+            1,
+        ),
+    ],
+)
+async def test_composed_meaning_reaches_every_discovery_lens(
+    query: str,
+    output: LLMIntentOutput,
+    expected_need: InformationNeedId,
+    expected_lenses: int,
+) -> None:
+    ids = _ids()
+    bridge = PlaceIntentCompatibilityBridge(
+        PlaceIntentSuggestionService(
+            _OutputProposer(query, output),
+            observation_id_factory=lambda: next(ids),
+        )
+    )
+
+    async def searcher(db, plan):
+        del db
+        return PlaceSearchResponse(
+            conditions=plan.conditions,
+            groups=[
+                PlaceSearchGroup(
+                    kind=purpose_kinds(plan)[0],
+                    limit=plan.limit_per_kind,
+                    results=[],
+                )
+            ],
+        )
+
+    async def loader(db, keys):
+        del db
+        assert not keys
+        return []
+
+    service = PlaceDiscoveryAssemblyService(
+        bridge,
+        searcher=searcher,
+        source_fact_loader=loader,
+    )
+    request = PlaceCapabilityInput(
+        query=query,
+        spatial=PlaceSpatialConstraint(lat=37.5563, lng=126.9236, radius_m=3_000),
+        limit_per_kind=10,
+    )
+
+    result = await service.discover(None, request)  # type: ignore[arg-type]
+
+    assert len(result.lens_results) == expected_lenses
+    assert all(item.information_needs == (expected_need,) for item in result.lens_results)
+
+
+async def test_aggregate_budget_is_checked_before_any_search() -> None:
+    query = "강아지랑 놀고 싶음"
+    ids = _ids()
+    bridge = PlaceIntentCompatibilityBridge(
+        PlaceIntentSuggestionService(
+            _OutputProposer(
+                query,
+                _output(
+                    _proposal(
+                        IntentRole.GOAL,
+                        ActivityIntent(activity_id=ActivityId.PLAY),
+                        "놀고 싶음",
+                    )
+                ),
+            ),
+            observation_id_factory=lambda: next(ids),
+        )
+    )
+    calls = []
+
+    async def searcher(db, plan):
+        calls.append((db, plan))
+        raise AssertionError("search must not run above the aggregate budget")
+
+    async def loader(db, keys):
+        calls.append((db, keys))
+        raise AssertionError("source facts must not load above the aggregate budget")
+
+    service = PlaceDiscoveryAssemblyService(
+        bridge,
+        searcher=searcher,
+        source_fact_loader=loader,
+    )
+    request = PlaceCapabilityInput(
+        query=query,
+        spatial=PlaceSpatialConstraint(lat=37.5563, lng=126.9236, radius_m=3_000),
+        limit_per_kind=2_000,
+    )
+
+    with pytest.raises(ValueError, match="aggregate 5000-result execution budget"):
+        await service.discover(None, request)  # type: ignore[arg-type]
+
+    assert not calls

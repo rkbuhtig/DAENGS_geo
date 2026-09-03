@@ -1,3 +1,5 @@
+import pytest
+
 from app.place.contracts import (
     FieldProvenance,
     PlaceClassification,
@@ -6,10 +8,11 @@ from app.place.contracts import (
     PlaceRef,
     PlaceResult,
 )
+from app.place.evaluations import DogAccessEvaluation
 from app.place.presentation.assembler import assemble_place_presentation
-from app.place.presentation.contract import PresentationFactId
+from app.place.presentation.contract import EvaluationState, PresentationFactId
 from app.place.presentation.needs import InformationNeedId
-from app.place.search import PlaceSearchGroup, PlaceSearchHit
+from app.place.search import PlaceEvaluations, PlaceSearchGroup, PlaceSearchHit
 from app.place.source_facts.bundle import (
     CandidateFactBundle,
     SourceFactKey,
@@ -27,6 +30,7 @@ def _hit(
     ref: str = "K1",
     facts: PlaceFacts | None = None,
     field_sources: dict[str, FieldProvenance] | None = None,
+    evaluations: PlaceEvaluations | None = None,
 ) -> PlaceSearchHit:
     key = PlaceRef(source=source, ref=ref)
     return PlaceSearchHit(
@@ -47,7 +51,8 @@ def _hit(
             ],
             facts=facts or PlaceFacts(address="서울 마포구"),
             field_sources=field_sources or {},
-        )
+        ),
+        evaluations=evaluations or PlaceEvaluations(),
     )
 
 
@@ -70,6 +75,29 @@ def _kto_bundle(detail: dict | None, *, detail_state: FactState) -> CandidateFac
                     {"contenttypeid": "12"},
                     detail,
                     detail_state=detail_state,
+                ),
+            )
+        ],
+    )
+
+
+def _kcisa_bundle(size: str) -> CandidateFactBundle:
+    key = SourceFactKey(source="kcisa", source_ref="C1")
+    return build_candidate_fact_bundle(
+        key,
+        [
+            SourceFactVariant(
+                source_ref="C1",
+                record_ref="record:1",
+                occurrence_count=1,
+                snapshot="test-snapshot",
+                detail_state=DetailAcquisitionState.NOT_APPLICABLE,
+                projection=project_kcisa(
+                    {
+                        "카테고리3": "자연관광지",
+                        "반려동물 동반 가능정보": "Y",
+                        "입장 가능 동물 크기": size,
+                    }
                 ),
             )
         ],
@@ -235,4 +263,103 @@ def test_bundle_for_another_place_cannot_be_misattributed() -> None:
         )
 
 
-import pytest
+def test_shadow_facts_do_not_reuse_legacy_hit_evaluation() -> None:
+    hit = _hit(
+        source="kcisa",
+        ref="C1",
+        evaluations=PlaceEvaluations(
+            dog_access=DogAccessEvaluation(
+                state="incompatible",
+                reason="dog_disallowed",
+            )
+        ),
+    )
+
+    result = assemble_place_presentation(
+        hit,
+        _group(hit),
+        lens_id="lens:travel",
+        lens_label="#나들이",
+        lens_support_note="나들이 후보입니다.",
+        information_needs=(InformationNeedId.PET_SIZE,),
+        source_facts=_kcisa_bundle("모두 가능"),
+    )
+
+    shadow_facts = {
+        item.fact_id: item
+        for item in (*result.core_items, *result.promoted_items, *result.detail_items)
+        if item.fact_id in {PresentationFactId.PET_ACCESS_ALLOWED, PresentationFactId.PET_SIZE}
+    }
+    assert shadow_facts
+    assert all(
+        item.evaluation_state is EvaluationState.NOT_EVALUATED for item in shadow_facts.values()
+    )
+
+
+def test_size_display_preserves_boundary_and_subject() -> None:
+    hit = _hit(source="kcisa", ref="C1")
+
+    result = assemble_place_presentation(
+        hit,
+        _group(hit),
+        lens_id="lens:travel",
+        lens_label="#나들이",
+        lens_support_note="나들이 후보입니다.",
+        information_needs=(InformationNeedId.PET_SIZE,),
+        source_facts=_kcisa_bundle("10kg 이하 소형"),
+    )
+
+    size = next(
+        item
+        for item in (*result.core_items, *result.promoted_items, *result.detail_items)
+        if item.fact_id is PresentationFactId.PET_SIZE
+    )
+    assert "10kg 이하" in size.display_text
+    assert "중대형견" in size.display_text
+
+
+def test_unparsed_size_is_unknown_instead_of_open() -> None:
+    hit = _hit(source="kcisa", ref="C1")
+
+    result = assemble_place_presentation(
+        hit,
+        _group(hit),
+        lens_id="lens:travel",
+        lens_label="#나들이",
+        lens_support_note="나들이 후보입니다.",
+        information_needs=(InformationNeedId.PET_SIZE,),
+        source_facts=_kcisa_bundle("현장 문의"),
+    )
+
+    size = next(
+        item
+        for item in (*result.core_items, *result.promoted_items, *result.detail_items)
+        if item.fact_id is PresentationFactId.PET_SIZE
+    )
+    assert size.source_state is FactState.PARSE_FAILED
+    assert size.value is None
+    assert size.display_text != "확인된 제한 조건 없음"
+    assert "source_facts.projection_issues" in {item.code for item in result.notices}
+
+
+def test_explicit_open_size_satisfies_size_information_need() -> None:
+    hit = _hit(source="kcisa", ref="C1")
+
+    result = assemble_place_presentation(
+        hit,
+        _group(hit),
+        lens_id="lens:travel",
+        lens_label="#나들이",
+        lens_support_note="나들이 후보입니다.",
+        information_needs=(InformationNeedId.PET_SIZE,),
+        source_facts=_kcisa_bundle("모두 가능"),
+    )
+
+    size = next(
+        item
+        for item in (*result.core_items, *result.promoted_items, *result.detail_items)
+        if item.fact_id is PresentationFactId.PET_SIZE
+    )
+    assert size.value == "any"
+    assert size.display_text == "모든 크기 가능"
+    assert "pet.size.unknown" not in {item.code for item in result.notices}

@@ -2,7 +2,7 @@
 
 import re
 
-from app.geo.pet import derive_axes
+from app.geo.pet import SIZE_OPEN, SIZE_UNKNOWN, derive_axes
 from app.place.restriction_map import derive
 from app.place.source_catalog import KCISA_KINDS
 from app.place.source_facts.contract import (
@@ -281,9 +281,33 @@ def project_kcisa(row: dict) -> SourceFactProjection:
     evidence["restrictions.size"] = _evidence(
         "입장 가능 동물 크기",
         row.get("입장 가능 동물 크기"),
-        state=FactState.KNOWN if size_raw else FactState.NOT_PROVIDED,
+        state=(
+            FactState.NOT_PROVIDED
+            if size_raw is None
+            else FactState.NOT_APPLICABLE
+            if size_raw == SIZE_UNKNOWN
+            else FactState.KNOWN
+            if size_predicates or SIZE_OPEN in size_raw
+            else FactState.PARSE_FAILED
+        ),
         certainty=EvidenceCertainty.DERIVED,
+        note=(
+            "크기 허용 범위로 안전하게 읽을 수 없는 원문"
+            if size_raw
+            and size_raw != SIZE_UNKNOWN
+            and not size_predicates
+            and SIZE_OPEN not in size_raw
+            else None
+        ),
     )
+    if size_raw and size_raw != SIZE_UNKNOWN and not size_predicates and SIZE_OPEN not in size_raw:
+        issues.append(
+            ProjectionIssue(
+                code="unparsed_size_constraint",
+                paths=("restrictions.size",),
+                detail=f"크기 허용 범위로 읽을 수 없는 KCISA 원문: {size_raw}",
+            )
+        )
 
     codes = {value.code for value in restrictions.predicates}
     if "zone:outdoor_only" in codes and indoor is True:

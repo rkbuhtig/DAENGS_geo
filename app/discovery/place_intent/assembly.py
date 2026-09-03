@@ -16,7 +16,14 @@ from app.discovery.place_intent.orchestration_bridge import (
     PlaceDiscoveryPlanningData,
     PlaceIntentCompatibilityBridge,
 )
-from app.place.planning.contract import CapabilityId, GateMode, PlaceSearchPlan, PlanningModel
+from app.place.planning.contract import (
+    MAX_TOTAL_RESULTS,
+    CapabilityId,
+    GateMode,
+    PlaceSearchPlan,
+    PlanningModel,
+)
+from app.place.planning.execution import purpose_kinds
 from app.place.presentation.assembler import assemble_place_presentation
 from app.place.presentation.contract import PlacePresentation
 from app.place.presentation.needs import InformationNeedId
@@ -37,11 +44,7 @@ SourceFactLoader = Callable[
     Awaitable[list[CandidateFactBundle]],
 ]
 
-_MODIFIER_NEEDS = {
-    "activity.play": InformationNeedId.ACTIVITY_PLAY,
-    "composition.buy_dog_toy": InformationNeedId.PRODUCTS_PURCHASABLE,
-    "semantic.quiet": InformationNeedId.AMBIENCE_QUIET,
-}
+MAX_DISCOVERY_RESULTS = MAX_TOTAL_RESULTS
 _OPTION_NEEDS = {
     item.value: item
     for item in (
@@ -102,11 +105,7 @@ def information_needs_for_lens(
 ) -> tuple[InformationNeedId, ...]:
     """lens가 보존한 의미를 표시 우선순위로 옮기되 검색 조건으로 승격하지 않는다."""
 
-    needs = [
-        _MODIFIER_NEEDS[modifier_id]
-        for modifier_id in lens.modifier_ids
-        if modifier_id in _MODIFIER_NEEDS
-    ]
+    needs = list(lens.information_need_ids)
     plan = lens.candidate.result.plan
     if plan is None:
         raise ValueError("information needs require a ready target plan")
@@ -186,12 +185,21 @@ class PlaceDiscoveryAssemblyService:
         """초기 planning 또는 사용자가 refinement한 planning을 같은 방식으로 실행한다."""
 
         targets = planning.lenses.executable_targets
-        searches = []
+        plans = []
+        planned_result_count = 0
         for target in targets:
             plan = target.candidate.result.plan
             if plan is None:
                 raise RuntimeError("executable target lens did not carry a search plan")
-            searches.append(await self._searcher(db, plan))
+            plans.append(plan)
+            planned_result_count += plan.limit_per_kind * len(purpose_kinds(plan))
+        if planned_result_count > MAX_DISCOVERY_RESULTS:
+            raise ValueError(
+                "discovery plans exceed the aggregate "
+                f"{MAX_DISCOVERY_RESULTS}-result execution budget"
+            )
+
+        searches = [await self._searcher(db, plan) for plan in plans]
 
         bundles = await _load_bundles(
             db,
@@ -231,6 +239,7 @@ class PlaceDiscoveryAssemblyService:
 
 
 __all__ = [
+    "MAX_DISCOVERY_RESULTS",
     "PlaceDiscoveryAssemblyService",
     "PlaceDiscoveryData",
     "PlaceDiscoveryLensResult",

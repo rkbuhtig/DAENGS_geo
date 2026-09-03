@@ -37,6 +37,7 @@ from app.place.planning.intents import (
 )
 from app.place.planning.planner import compile_intent_plan
 from app.place.planning.purpose import PURPOSE_CATALOG, PurposeId
+from app.place.presentation.needs import InformationNeedId
 
 ConfirmableTarget = Annotated[
     KindIntent | PurposeIntent,
@@ -102,10 +103,14 @@ class SearchSignalLens(PlanningModel):
             ):
                 raise ValueError("modifier lens must be deferred and cannot carry options")
         elif self.lens_type is LensType.UNRESOLVED:
-            if self.availability not in {
-                LensAvailability.NEEDS_SELECTION,
-                LensAvailability.RESOLVED,
-            } or not self.options:
+            if (
+                self.availability
+                not in {
+                    LensAvailability.NEEDS_SELECTION,
+                    LensAvailability.RESOLVED,
+                }
+                or not self.options
+            ):
                 raise ValueError("facet lens requires selectable options")
             if self.selected_option_id is not None and self.selected_option_id not in {
                 item.option_id for item in self.options
@@ -131,6 +136,7 @@ class TargetSearchLens(PlanningModel):
     candidate: IntentPlanCandidate
     confirmable_targets: tuple[ConfirmableTarget, ...] = Field(min_length=1, max_length=6)
     modifier_ids: tuple[str, ...] = Field(max_length=10)
+    information_need_ids: tuple[InformationNeedId, ...] = Field(default=(), max_length=10)
     unresolved_facet_ids: tuple[str, ...] = Field(max_length=10)
     unsupported_signals: tuple[str, ...] = Field(max_length=30)
     confirmation_context: tuple[IntentObservation, ...] = Field(
@@ -141,6 +147,8 @@ class TargetSearchLens(PlanningModel):
 
     @model_validator(mode="after")
     def availability_matches_candidate(self) -> Self:
+        if len(set(self.information_need_ids)) != len(self.information_need_ids):
+            raise ValueError("target lens information needs must be unique")
         ready = self.candidate.result.status is PlannerStatus.READY
         if self.availability is LensAvailability.EXECUTABLE:
             if not ready or self.unresolved_facet_ids:
@@ -239,6 +247,40 @@ _FACET_OPTIONS = {
         support_note="상품 가격과 재고 데이터가 없어 비교할 수 없습니다.",
     ),
 }
+_MODIFIER_INFORMATION_NEEDS = {
+    "activity.play": InformationNeedId.ACTIVITY_PLAY,
+    "composition.buy_dog_toy": InformationNeedId.PRODUCTS_PURCHASABLE,
+    "semantic.quiet": InformationNeedId.AMBIENCE_QUIET,
+}
+_PRODUCT_INFORMATION_NEED_POLICIES = {
+    "activity.buy_dog_toy_implies_pet_shop": InformationNeedId.PRODUCTS_PURCHASABLE,
+    "activity.buy_dog_toy_kept_with_target": InformationNeedId.PRODUCTS_PURCHASABLE,
+}
+
+
+def _modifier_information_needs(
+    modifiers: tuple[SearchModifier, ...],
+) -> tuple[InformationNeedId, ...]:
+    return tuple(
+        dict.fromkeys(
+            _MODIFIER_INFORMATION_NEEDS[item.modifier_id]
+            for item in modifiers
+            if item.modifier_id in _MODIFIER_INFORMATION_NEEDS
+        )
+    )
+
+
+def _hypothesis_information_needs(
+    hypothesis: SearchHypothesis,
+    modifiers: tuple[SearchModifier, ...],
+) -> tuple[InformationNeedId, ...]:
+    needs = list(_modifier_information_needs(modifiers))
+    for receipt in hypothesis.relation_receipts:
+        if receipt.policy_id.startswith("activity.play_expands_to_"):
+            needs.append(InformationNeedId.ACTIVITY_PLAY)
+        elif receipt.policy_id in _PRODUCT_INFORMATION_NEED_POLICIES:
+            needs.append(_PRODUCT_INFORMATION_NEED_POLICIES[receipt.policy_id])
+    return tuple(dict.fromkeys(needs))
 
 
 def _target_label(targets: tuple[ConfirmableTarget, ...]) -> str:
@@ -370,6 +412,10 @@ def _hypothesis_lens(
         candidate=candidate,
         confirmable_targets=targets,
         modifier_ids=tuple(item.modifier_id for item in hypothesis_set.modifiers),
+        information_need_ids=_hypothesis_information_needs(
+            hypothesis,
+            hypothesis_set.modifiers,
+        ),
         unresolved_facet_ids=tuple(
             item.facet_id for item in hypothesis_set.unresolved_facets if item.blocking
         ),
@@ -421,6 +467,7 @@ def _fallback_lens(
         candidate=candidate,
         confirmable_targets=targets,
         modifier_ids=tuple(item.modifier_id for item in modifiers),
+        information_need_ids=_modifier_information_needs(modifiers),
         unresolved_facet_ids=tuple(item.facet_id for item in facets if item.blocking),
         unsupported_signals=_unsupported_signals(candidate, modifiers),
         confirmation_context=confirmation_context,

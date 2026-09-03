@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 
 from app.place.source_facts.kcisa import project_kcisa
+from app.place.source_facts.states import FactState
 
 FIXTURE = Path(__file__).parent / "fixtures" / "kcisa.json"
 
@@ -95,3 +96,15 @@ def test_species_denial_is_not_lost_inside_size_text():
     codes = [item.code for item in projection.restrictions.predicates]
 
     assert codes.count("deny:species_dog") == 1
+
+
+def test_unparsed_size_text_is_not_reported_as_a_known_open_boundary():
+    projection = project_kcisa(
+        {
+            **_cases()["size-and-fee"],
+            "입장 가능 동물 크기": "현장 문의",
+        }
+    )
+
+    assert projection.evidence["restrictions.size"].state is FactState.PARSE_FAILED
+    assert "unparsed_size_constraint" in {item.code for item in projection.issues}

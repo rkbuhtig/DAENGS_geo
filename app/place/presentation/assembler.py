@@ -6,6 +6,7 @@
 
 from collections.abc import Iterable
 
+from app.geo.pet import SIZE_OPEN
 from app.place.contracts import PlaceRef
 from app.place.presentation.contract import (
     DecisionRole,
@@ -23,9 +24,14 @@ from app.place.presentation.contract import (
 )
 from app.place.presentation.needs import InformationNeedId, information_need_spec
 from app.place.presentation.policy import arrange_presentation
+from app.place.restriction_map import LABELS, SUBJECT_LABELS, Subject
 from app.place.search import PlaceSearchGroup, PlaceSearchHit
 from app.place.source_facts.bundle import CandidateFactBundle, FactSection
-from app.place.source_facts.contract import FactEvidence, SourceFactProjection
+from app.place.source_facts.contract import (
+    FactEvidence,
+    RestrictionPredicate,
+    SourceFactProjection,
+)
 from app.place.source_facts.states import EvidenceCertainty, FactState, ProjectionState
 
 _KIND_LABELS = {
@@ -54,22 +60,6 @@ _UNKNOWN_TEXT = {
     FactState.NOT_APPLICABLE: "해당 없음",
     FactState.PARSE_FAILED: "원문 확인 필요",
     FactState.UNKNOWN: "확인되지 않음",
-}
-_RESTRICTION_LABELS = {
-    "deny:species_dog": "강아지 동반 불가",
-    "deny:size": "크기 제한",
-    "deny:age": "나이 제한",
-    "deny:breed": "견종 제한",
-    "deny:behavior": "행동 제한",
-    "deny:health": "건강 상태 제한",
-    "require:leash": "목줄 필요",
-    "require:muzzle": "입마개 필요",
-    "require:poop_bag": "배변봉투 필요",
-    "require:stroller": "유모차 필요",
-    "require:carrier": "이동장 필요",
-    "require:hold": "안아서 이동",
-    "require:vaccination": "예방접종 필요",
-    "zone:outdoor_only": "야외 구역만 가능",
 }
 _SAFETY_FACTS = {
     PresentationFactId.PET_ACCESS_ALLOWED,
@@ -157,12 +147,6 @@ def _evidence_fact(
         evaluation=evaluation,
         roles=roles,
     )
-
-
-def _evaluation(value) -> EvaluationState:
-    if value is None:
-        return EvaluationState.NOT_EVALUATED
-    return EvaluationState(value.state)
 
 
 def _format_distance(distance_m: int) -> str:
@@ -258,11 +242,76 @@ def _base_facts(hit: PlaceSearchHit) -> list[PresentationFact]:
     return facts
 
 
-def _restriction_text(predicates) -> str:
+def _display_number(value: str) -> str:
+    try:
+        number = float(value)
+    except ValueError:
+        return value
+    return str(int(number)) if number.is_integer() else str(number)
+
+
+def _predicate_text(predicate: RestrictionPredicate) -> str:
+    base = LABELS.get(predicate.code, predicate.code)
+    params = predicate.params
+    detail = None
+    if predicate.code == "deny:size" and "max_kg" in params:
+        boundary = "이하" if params.get("inclusive") == "true" else "미만"
+        detail = f"{_display_number(params['max_kg'])}kg {boundary}"
+    elif predicate.code == "deny:size" and "min_kg" in params:
+        detail = f"{_display_number(params['min_kg'])}kg 이상"
+    elif predicate.code == "deny:age" and "max_months" in params:
+        detail = f"{_display_number(params['max_months'])}개월 기준"
+    elif predicate.code == "deny:age" and "min_years" in params:
+        detail = f"{_display_number(params['min_years'])}살 이상"
+    elif predicate.code == "limit:max_dogs" and "max" in params:
+        detail = f"최대 {_display_number(params['max'])}마리"
+    elif predicate.code == "fee:deposit" and "amount" in params:
+        try:
+            detail = f"예치금 {int(params['amount']):,}원"
+        except ValueError:
+            detail = f"예치금 {params['amount']}원"
+    try:
+        qualifier = SUBJECT_LABELS[Subject(predicate.applies_to)]
+    except ValueError:
+        qualifier = predicate.applies_to
+    return "·".join(item for item in (base, detail, qualifier) if item)
+
+
+def _restriction_text(predicates: Iterable[RestrictionPredicate]) -> str:
+    predicates = tuple(predicates)
     if not predicates:
         return "확인된 제한 조건 없음"
-    labels = [_RESTRICTION_LABELS.get(item.code, item.code) for item in predicates]
+    labels = [_predicate_text(item) for item in predicates]
     return " · ".join(dict.fromkeys(labels))[:500]
+
+
+def _restriction_evidence(projection: SourceFactProjection) -> FactEvidence | None:
+    direct = projection.evidence.get("restrictions.predicates")
+    if direct is not None:
+        return direct
+    paths = ["restrictions.text"]
+    if projection.restrictions.predicates:
+        paths.append("restrictions.size")
+    candidates = tuple(
+        evidence for path in paths if (evidence := projection.evidence.get(path)) is not None
+    )
+    known = tuple(item for item in candidates if item.state is FactState.KNOWN)
+    if len(known) == 1:
+        return known[0]
+    if len(known) > 1:
+        return FactEvidence(
+            state=FactState.KNOWN,
+            source_field="/".join(item.source_field for item in known),
+            raw_value=[item.raw_value for item in known],
+            parser_version=projection.parser_version,
+            certainty=EvidenceCertainty.DERIVED,
+            note="여러 KCISA 제한 필드에서 공통 predicate를 합성",
+        )
+    parse_failed = next(
+        (item for item in candidates if item.state is FactState.PARSE_FAILED),
+        None,
+    )
+    return parse_failed or (candidates[0] if candidates else None)
 
 
 def _projection_facts(
@@ -273,16 +322,6 @@ def _projection_facts(
 ) -> list[PresentationFact]:
     source = hit.place.key
     facts: list[PresentationFact] = []
-    dog_evaluation = (
-        EvaluationState.NOT_EVALUATED
-        if "facts.pet_access" in hit.place.field_sources
-        else _evaluation(hit.evaluations.dog_access)
-    )
-    restriction_evaluation = (
-        EvaluationState.NOT_EVALUATED
-        if "facts.restrictions" in hit.place.field_sources
-        else _evaluation(hit.evaluations.restrictions)
-    )
 
     if "pet_access" in allowed_sections:
         access = projection.pet_access
@@ -293,7 +332,7 @@ def _projection_facts(
                 "반려견 동반",
                 access.allowed,
                 "동반 가능" if access.allowed else "동반 불가",
-                dog_evaluation,
+                EvaluationState.NOT_EVALUATED,
             ),
             (
                 "pet_access.scope",
@@ -345,11 +384,7 @@ def _projection_facts(
     if "restrictions" in allowed_sections:
         restrictions = projection.restrictions
         predicate_value = [item.model_dump(mode="json") for item in restrictions.predicates]
-        restriction_evidence = projection.evidence.get("restrictions.predicates")
-        if restriction_evidence is None:
-            restriction_evidence = projection.evidence.get("restrictions.text")
-        if restriction_evidence is None and restrictions.predicates:
-            restriction_evidence = projection.evidence.get("restrictions.size")
+        restriction_evidence = _restriction_evidence(projection)
         if restriction_evidence is not None:
             facts.append(
                 _fact(
@@ -360,10 +395,6 @@ def _projection_facts(
                     source,
                     state=restriction_evidence.state,
                     evidence=restriction_evidence,
-                    evaluation=restriction_evaluation,
-                    roles=(DecisionRole.DISPLAY, DecisionRole.EVALUATION)
-                    if restriction_evaluation is not EvaluationState.NOT_EVALUATED
-                    else (DecisionRole.DISPLAY,),
                 )
             )
         size_predicates = tuple(
@@ -374,18 +405,24 @@ def _projection_facts(
             size_evidence = projection.evidence.get("restrictions.predicates")
         if size_evidence is not None:
             state = size_evidence.state
-            value = [item.model_dump(mode="json") for item in size_predicates]
+            explicitly_open = state is FactState.KNOWN and SIZE_OPEN in str(
+                size_evidence.raw_value or ""
+            )
+            value = (
+                "any"
+                if explicitly_open
+                else [item.model_dump(mode="json") for item in size_predicates]
+            )
+            display = "모든 크기 가능" if explicitly_open else _restriction_text(size_predicates)
             facts.append(
                 _fact(
                     PresentationFactId.PET_SIZE,
                     "크기 제한",
                     value,
-                    _restriction_text(size_predicates),
+                    display,
                     source,
                     state=state,
                     evidence=size_evidence,
-                    evaluation=dog_evaluation,
-                    roles=(DecisionRole.DISPLAY, DecisionRole.EVALUATION),
                 )
             )
 

@@ -35,6 +35,7 @@ from app.place.planning.intents import (
     SearchObjectId,
     SemanticIntent,
 )
+from app.place.presentation.needs import InformationNeedId
 
 _SPATIAL = {"lat": 37.5563, "lng": 126.9236, "radius_m": 3000}
 
@@ -125,11 +126,12 @@ def test_open_discovery_policy_exposes_three_transparent_executable_lenses() -> 
         "#구경하기",
     ]
     assert all(
-        item.mapping_scope is LensMappingScope.OPEN_DISCOVERY
-        for item in lenses.target_lenses
+        item.mapping_scope is LensMappingScope.OPEN_DISCOVERY for item in lenses.target_lenses
     )
     assert all(item.availability is LensAvailability.EXECUTABLE for item in lenses.target_lenses)
-    assert all(item.candidate.basis_policy_id == "place.open_discovery" for item in lenses.target_lenses)
+    assert all(
+        item.candidate.basis_policy_id == "place.open_discovery" for item in lenses.target_lenses
+    )
     assert all(item.candidate.basis_policy_version == "v1" for item in lenses.target_lenses)
     assert all("보장하지 않습니다" in item.support_note for item in lenses.target_lenses)
 
@@ -189,6 +191,10 @@ def test_play_hypotheses_become_three_executable_broad_lenses() -> None:
     assert all(item.mapping_scope is LensMappingScope.BROAD for item in lenses.target_lenses)
     assert all(item.availability is LensAvailability.EXECUTABLE for item in lenses.target_lenses)
     assert all(item.candidate.result.status is PlannerStatus.READY for item in lenses.target_lenses)
+    assert all(
+        item.information_need_ids == (InformationNeedId.ACTIVITY_PLAY,)
+        for item in lenses.target_lenses
+    )
     assert lenses.executable_targets == lenses.target_lenses
 
 
@@ -217,6 +223,7 @@ def test_buying_dog_toy_exposes_pet_shop_without_inventory_overclaim() -> None:
     assert lens.display_label == "#펫샵"
     assert lens.mapping_scope is LensMappingScope.DIRECT
     assert lens.confirmable_targets == (KindIntent(kind=PlaceKind.PET_SHOP),)
+    assert lens.information_need_ids == (InformationNeedId.PRODUCTS_PURCHASABLE,)
     assert "판매·재고는 보장하지 않습니다" in lens.support_note
 
 
@@ -287,8 +294,7 @@ def test_dog_interest_fallbacks_show_results_without_claiming_preference_evidenc
 
     assert len(lenses.executable_targets) == 3
     assert all(
-        item.mapping_scope is LensMappingScope.PRODUCT_FALLBACK
-        for item in lenses.target_lenses
+        item.mapping_scope is LensMappingScope.PRODUCT_FALLBACK for item in lenses.target_lenses
     )
     assert lenses.signal_lenses[0].display_label == "#강아지 관심 가능성"
     assert "판정할 장소 evidence" in lenses.signal_lenses[0].support_note
@@ -305,9 +311,7 @@ def test_cheap_preference_shows_results_while_asking_which_cost_dimension() -> N
     )
 
     assert len(lenses.executable_targets) == 3
-    assert all(
-        item.availability is LensAvailability.EXECUTABLE for item in lenses.target_lenses
-    )
+    assert all(item.availability is LensAvailability.EXECUTABLE for item in lenses.target_lenses)
     assert lenses.signal_lenses[0].lens_type is LensType.UNRESOLVED
     assert lenses.signal_lenses[0].availability is LensAvailability.NEEDS_SELECTION
 
@@ -324,8 +328,7 @@ def test_cheap_becomes_a_non_executing_cost_question_with_honest_options() -> No
 
     assert len(lenses.target_lenses) == 3
     assert all(
-        item.availability is LensAvailability.NEEDS_SELECTION
-        for item in lenses.target_lenses
+        item.availability is LensAvailability.NEEDS_SELECTION for item in lenses.target_lenses
     )
     assert not lenses.executable_targets
     signal = lenses.signal_lenses[0]
