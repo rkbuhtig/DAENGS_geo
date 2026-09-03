@@ -131,4 +131,3 @@ exclusion의 구조화 출력, preference-only 문장의 open 과잉 선언, `ex
    분리해 결정한다.
 4. 수정 후 소비된 20건은 회귀 집합으로 돌리되, 새 문장군으로 별도 holdout을 만든다.
 5. intent 계약이 다시 안전해진 뒤 실제 DB의 candidate/eligible/displayed와 장소 품질 평가로 넘어간다.
-
