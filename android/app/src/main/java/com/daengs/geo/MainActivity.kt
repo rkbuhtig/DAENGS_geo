@@ -119,6 +119,8 @@ class MainActivity : ComponentActivity() {
                         onToggleTrail = viewModel::toggleTrail,
                         onToggleTerritory = viewModel::toggleTerritory,
                         onClaimTerritory = viewModel::claimCurrentCell,
+                        onShowPlaceSearchMap = viewModel::showPlaceSearchMap,
+                        onShowWalkMap = viewModel::showWalkMap,
                         onStartReplay = viewModel::startReplay,
                         onUseDeviceLocation = viewModel::useDeviceLocation,
                     )

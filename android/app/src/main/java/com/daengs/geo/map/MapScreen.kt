@@ -54,7 +54,10 @@ import com.daengs.geo.map.layers.territory.TerritoryLayerState
 import com.daengs.geo.map.layers.trail.TrackingState
 import com.daengs.geo.map.layers.trail.TrailLayerState
 import com.daengs.geo.map.shell.MapHost
-import com.daengs.geo.map.shell.MapScene
+import com.daengs.geo.map.shell.MapPurpose
+import com.daengs.geo.map.shell.MapSceneSources
+import com.daengs.geo.map.shell.composeMapScene
+import com.daengs.geo.map.shell.mapDisplayPolicy
 import com.daengs.geo.place.PlaceKey
 import com.daengs.geo.place.PlaceKind
 import com.daengs.geo.place.PlaceResult
@@ -63,8 +66,6 @@ import java.io.File
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
-
-private enum class AppSection { PLACES, MAP_TOOLS }
 
 /** Consecutive dropped fixes before we admit on screen that recording is going nowhere. */
 /** export 파일은 산책 종료 뒤 서비스 코루틴이 쓴다 — 생겼는지는 세어봐야 안다. */
@@ -96,10 +97,12 @@ fun MapScreen(
     onToggleTrail: () -> Unit,
     onToggleTerritory: () -> Unit,
     onClaimTerritory: () -> Unit,
+    onShowPlaceSearchMap: () -> Unit,
+    onShowWalkMap: () -> Unit,
     onStartReplay: (Double) -> Unit,
     onUseDeviceLocation: () -> Unit,
 ) {
-    var section by remember { mutableStateOf(AppSection.PLACES) }
+    val placeMap = state.mapPurpose == MapPurpose.PLACE_SEARCH
     val selectedKind = selectedPlaceKind(state.placeDiscovery)
     val canonicalMarkers = remember(state.placeDiscovery) {
         canonicalPlaceMarkers(state.placeDiscovery)
@@ -107,68 +110,60 @@ fun MapScreen(
     val canonicalKeys = remember(state.placeDiscovery.response) {
         canonicalPlaceKeysByMarker(state.placeDiscovery)
     }
-    val places = when (section) {
-        AppSection.PLACES -> canonicalMarkers
-        AppSection.MAP_TOOLS -> emptyList()
-    }
-    val activeSearchOrigin = when (section) {
-        AppSection.PLACES -> state.placeDiscovery.origin
-        AppSection.MAP_TOOLS -> null
-    }
+    val activeSearchOrigin = state.placeDiscovery.origin.takeIf { placeMap }
     // 병원 바로가기도 같은 Place request lifecycle을 쓴다. 별도 hospital loading/error를
     // 다시 만들면 진입점 하나 때문에 검색 계약이 둘로 갈라진다.
-    val sectionBusy = when (section) {
-        AppSection.PLACES -> state.placeDiscovery.loading || state.locating
-        AppSection.MAP_TOOLS -> state.locating
+    val sectionBusy = if (placeMap) state.placeDiscovery.loading || state.locating else state.locating
+    val policy = remember(state.mapPurpose, state.layers.showTrail, state.trail.state) {
+        mapDisplayPolicy(
+            purpose = state.mapPurpose,
+            trailPreferred = state.layers.showTrail,
+            walkActive = state.trail.state != TrackingState.OFF,
+        )
     }
-    // A hidden layer hands the renderer nothing, so it cannot draw what is switched off.
-    val trailLayer = remember(state.trail.segments, state.layers.showTrail) {
+    val trailLayer = remember(state.trail.segments) {
         TrailLayerState(
-            paths = if (state.layers.showTrail) {
-                state.trail.segments.map { segment -> segment.map { it.point } }
-            } else {
-                emptyList()
-            },
+            paths = state.trail.segments.map { segment -> segment.map { it.point } },
         )
     }
     val territoryLayer = remember(
         state.territoryCells,
         state.currentTerritoryCell,
-        state.layers.showTerritory,
     ) {
-        if (state.layers.showTerritory) {
-            TerritoryLayerState(
-                claimedCells = state.territoryCells,
-                previewCell = state.currentTerritoryCell,
-            )
-        } else {
-            TerritoryLayerState()
-        }
+        TerritoryLayerState(
+            claimedCells = state.territoryCells,
+            previewCell = state.currentTerritoryCell,
+        )
     }
-    val scene = remember(state.feedSample, places, trailLayer, territoryLayer) {
-        MapScene(
-            currentPosition = state.feedSample?.point,
-            places = places,
-            trail = trailLayer,
-            territory = territoryLayer,
+    val scene = remember(state.feedSample, canonicalMarkers, trailLayer, territoryLayer, policy) {
+        composeMapScene(
+            policy = policy,
+            sources = MapSceneSources(
+                currentPosition = state.feedSample?.point,
+                places = canonicalMarkers,
+                trail = trailLayer,
+                territory = territoryLayer,
+            ),
         )
     }
 
     Column(Modifier.fillMaxSize().statusBarsPadding()) {
         SectionTabs(
-            section = section,
+            purpose = state.mapPurpose,
             selectedKind = selectedKind,
             onPlaces = {
-                section = AppSection.PLACES
+                onShowPlaceSearchMap()
                 if (selectedKind == PlaceKind.HOSPITAL) {
                     onSearchPlaces(DEFAULT_PLACE_KIND, false)
                 }
             },
             onHospital = {
-                section = AppSection.PLACES
+                onShowPlaceSearchMap()
                 if (selectedKind != PlaceKind.HOSPITAL) onOpenHospital()
             },
-            onMapTools = { section = AppSection.MAP_TOOLS },
+            // This tab represents both activity purposes. Re-tapping it while territory is open
+            // must not silently switch the board back to the plain walk map.
+            onMapTools = { if (placeMap) onShowWalkMap() },
         )
         Box(Modifier.fillMaxSize()) {
             if (mapConfigured) {
@@ -179,10 +174,7 @@ fun MapScreen(
                     onCameraIdle = onCameraIdle,
                     onCameraGesture = onCameraGesture,
                     onSelectPlace = { id ->
-                        when (section) {
-                            AppSection.PLACES -> canonicalKeys[id]?.let(onSelectPlace)
-                            AppSection.MAP_TOOLS -> Unit
-                        }
+                        if (policy.showPlaceResults) canonicalKeys[id]?.let(onSelectPlace)
                     },
                     modifier = Modifier.fillMaxSize(),
                 )
@@ -200,16 +192,13 @@ fun MapScreen(
                         candidate = state.cameraCandidate,
                         origin = activeSearchOrigin,
                     )
-                    if (section != AppSection.MAP_TOOLS && movedFromOrigin) {
+                    if (policy.showPlaceResults && movedFromOrigin) {
                         Button(
                             onClick = {
-                                when (section) {
-                                    AppSection.PLACES -> onSearchPlacesAtCamera(
-                                        selectedKind,
-                                        state.placeDiscovery.preferParking,
-                                    )
-                                    AppSection.MAP_TOOLS -> Unit
-                                }
+                                onSearchPlacesAtCamera(
+                                    selectedKind,
+                                    state.placeDiscovery.preferParking,
+                                )
                             },
                             enabled = !sectionBusy,
                         ) {
@@ -221,12 +210,13 @@ fun MapScreen(
                     val locating = state.locating
                     OutlinedButton(
                         onClick = {
-                            when (section) {
-                                AppSection.PLACES -> onPlaceMyLocation(
+                            if (policy.showPlaceResults) {
+                                onPlaceMyLocation(
                                     selectedKind,
                                     state.placeDiscovery.preferParking,
                                 )
-                                AppSection.MAP_TOOLS -> onUseDeviceLocation()
+                            } else {
+                                onUseDeviceLocation()
                             }
                         },
                         enabled = !sectionBusy,
@@ -244,8 +234,8 @@ fun MapScreen(
                 state.error?.let { error -> ErrorNotice(error = error, onRetry = onRetryLocation) }
             }
 
-            when (section) {
-                AppSection.PLACES -> PlaceDiscoveryPanel(
+            if (policy.showPlaceResults) {
+                PlaceDiscoveryPanel(
                     state = state.placeDiscovery,
                     journey = state.journey,
                     onSearch = onSearchPlaces,
@@ -257,7 +247,8 @@ fun MapScreen(
                     onCall = onCall,
                     modifier = Modifier.align(Alignment.BottomCenter),
                 )
-                AppSection.MAP_TOOLS -> MapToolsPanel(
+            } else {
+                MapToolsPanel(
                     state = state,
                     onStartTracking = onStartTracking,
                     onPauseTracking = onPauseTracking,
@@ -306,26 +297,27 @@ private fun ErrorNotice(error: String, onRetry: () -> Unit) {
 
 @Composable
 private fun SectionTabs(
-    section: AppSection,
+    purpose: MapPurpose,
     selectedKind: PlaceKind,
     onPlaces: () -> Unit,
     onHospital: () -> Unit,
     onMapTools: () -> Unit,
 ) {
+    val placeMap = purpose == MapPurpose.PLACE_SEARCH
     Surface(shadowElevation = 3.dp) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)) {
             listOf(
                 Triple(
-                    section == AppSection.PLACES && selectedKind != PlaceKind.HOSPITAL,
+                    placeMap && selectedKind != PlaceKind.HOSPITAL,
                     "장소",
                     onPlaces,
                 ),
                 Triple(
-                    section == AppSection.PLACES && selectedKind == PlaceKind.HOSPITAL,
+                    placeMap && selectedKind == PlaceKind.HOSPITAL,
                     "동물병원",
                     onHospital,
                 ),
-                Triple(section == AppSection.MAP_TOOLS, "지도 기능", onMapTools),
+                Triple(!placeMap, "산책·점령", onMapTools),
             ).forEach { (selected, label, onClick) ->
                 TextButton(onClick = onClick, modifier = Modifier.weight(1f)) {
                     Text(
@@ -353,6 +345,7 @@ private fun MapToolsPanel(
     onUseDeviceLocation: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val territoryMap = state.mapPurpose == MapPurpose.TERRITORY
     Surface(
         modifier = modifier.fillMaxWidth().heightIn(min = 180.dp, max = 370.dp),
         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
@@ -369,7 +362,10 @@ private fun MapToolsPanel(
                             .background(Color(0xFFCBD3CD)).align(Alignment.CenterHorizontally),
                     )
                     Spacer(Modifier.height(10.dp))
-                    Text("지도 레이어", style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        if (territoryMap) "점령 지도" else "산책 지도",
+                        style = MaterialTheme.typography.titleMedium,
+                    )
                     Text(
                         "${feedLabel(state.locationFeed)} · ${state.trail.sampleCount}개 점 · " +
                             formatMeters(state.trail.distanceMeters),
@@ -417,15 +413,15 @@ private fun MapToolsPanel(
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FilledTonalButton(onClick = onToggleTerritory) {
-                        Text(if (state.layers.showTerritory) "영역 끄기" else "영역 켜기")
+                        Text(if (territoryMap) "산책 지도" else "점령 지도")
                     }
-                    if (state.layers.showTerritory) {
+                    if (territoryMap) {
                         Button(onClick = onClaimTerritory, enabled = state.feedSample != null) {
                             Text("현재 영역 마킹")
                         }
                     }
                 }
-                if (state.layers.showTerritory) {
+                if (territoryMap) {
                     Text(
                         "내 영역 ${state.territoryCells.size}개 · 주황색은 현재 위치",
                         style = MaterialTheme.typography.bodySmall,

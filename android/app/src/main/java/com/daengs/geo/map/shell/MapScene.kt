@@ -15,4 +15,5 @@ data class MapScene(
     val places: List<PlaceMarkerState> = emptyList(),
     val trail: TrailLayerState = TrailLayerState(),
     val territory: TerritoryLayerState = TerritoryLayerState(),
+    val baseMapStyle: BaseMapStyle = BaseMapStyle.SEARCH_DETAIL,
 )

@@ -6,3 +6,4 @@
 | 갈래 | status | implementation | 한 줄 |
 |---|---|---|---|
 | [mobile-map-shell](mobile-map-shell.md) | adopted | working-skeleton | Android 위치→검색→지도·카드→action·전화가 착지. 산책 service와 업로드는 미구현 |
+| [map-purpose-display-policy](map-purpose-display-policy.md) | exploring | working-skeleton | 장소 검색·산책·점령이 같은 지도에서 데이터는 공유하지 않고, 목적별 허용 레이어만 합성한다. 최종 소유자는 app 저장소 |

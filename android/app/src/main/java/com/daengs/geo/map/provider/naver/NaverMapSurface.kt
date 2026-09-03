@@ -17,6 +17,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.daengs.geo.location.GeoPoint
+import com.daengs.geo.map.shell.BaseMapStyle
 import com.daengs.geo.map.shell.MapScene
 import com.naver.maps.geometry.LatLng
 import com.naver.maps.geometry.LatLngBounds
@@ -94,6 +95,15 @@ fun NaverMapSurface(
         },
         modifier = modifier,
     )
+
+    LaunchedEffect(naverMap, scene.baseMapStyle) {
+        val map = naverMap ?: return@LaunchedEffect
+        // App-owned Place markers were already removed by MapScenePolicy. Naver's built-in
+        // symbols are background context, so keep roads/buildings readable and only lower their
+        // visual weight on walk/game maps.
+        map.symbolScale = symbolScaleFor(scene.baseMapStyle)
+        map.setLayerGroupEnabled(NaverMap.LAYER_GROUP_BUILDING, true)
+    }
 
     LaunchedEffect(naverMap, searchOrigin) {
         val map = naverMap ?: return@LaunchedEffect
@@ -214,6 +224,12 @@ private fun Int.isUserDriven(): Boolean =
     this == CameraUpdate.REASON_GESTURE || this == CameraUpdate.REASON_CONTROL
 
 private fun GeoPoint.toLatLng(): LatLng = LatLng(latitude, longitude)
+
+internal fun symbolScaleFor(style: BaseMapStyle): Float = when (style) {
+    BaseMapStyle.SEARCH_DETAIL -> 1f
+    BaseMapStyle.WALK_CONTEXT -> 0.85f
+    BaseMapStyle.TERRITORY_FOCUSED -> 0.65f
+}
 
 /** Selected place pins draw above their neighbours so the choice stays visible when markers collide. */
 private const val SELECTED_MARKER_Z = 100
