@@ -86,6 +86,14 @@ git grep -n 'scripts/spikes/<갈래>'   # app · tests · docs · android 전부
 임베딩 모드는 레포 의존성 밖이라 `uv run --with sentence-transformers --with scikit-learn` 이
 필요하고, `--mode mine` 만 추가 의존성 없이 돈다.
 
+`spikes/walk_diary_route`는 단일 산책 일기 동선을 영구 계약으로 만들기 전에 시작·종료
+마스킹, 양자화, 단순화가 노출과 충실도에 주는 영향을 비교한다. 출력 좌표는 개발용 민감
+payload이며 저장 승인이 아니다.
+
+```bash
+uv run python -m scripts.spikes.walk_diary_route.report
+```
+
 `evaluate_place_intent.py`는 [intent-planner 갈래](../docs/explorations/facility/intent-planner.md)의
 LLM 의미 제안 평가기다. 기본 실행은 저장된 fixture만 읽고 네트워크를 쓰지 않는다. `--live`는
 명시적으로 OpenAI 설정과 `DAENGS_USAGE_POLICY=dev`를 제공했을 때만 기존 Usage Gate를 거쳐

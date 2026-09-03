@@ -9,7 +9,8 @@
     color-scheme:light;
     --paper:#f3f0e9; --surface:#fffdf8; --ink:#262b2d; --muted:#687174;
     --line:#d9ddd8; --truth:#247a77; --observed:#d64b65; --fault:#e69836;
-    --missing:#9aa0a2; --paint:#d84b70; --focus:#174b70;
+    --missing:#9aa0a2; --paint:#d84b70; --focus:#174b70; --route-slow:#7565aa;
+    --route-mid:#3971ad; --route-fast:#23856f; --privacy:#d07828;
   }
   * { box-sizing:border-box; }
   html,body { min-height:100%; margin:0; }
@@ -61,6 +62,8 @@
   .swatch { width:16px; height:4px; border-radius:9px; background:currentColor; }
   .truth { color:var(--truth); } .observed { color:var(--observed); }
   .fault { color:var(--fault); } .paint { color:var(--paint); }
+  .route-slow { color:var(--route-slow); } .route-mid { color:var(--route-mid); }
+  .route-fast { color:var(--route-fast); } .privacy { color:var(--privacy); }
   .map-help {
     position:absolute; z-index:500; right:12px; top:12px; max-width:230px; padding:8px 10px;
     border-radius:10px; background:rgba(38,43,45,.88); color:#fff; font-size:11px;
@@ -70,6 +73,10 @@
   .metric { padding:8px 9px; border-radius:10px; background:#f2f4f1; }
   .metric span { display:block; color:var(--muted); font-size:10px; }
   .metric strong { display:block; margin-top:2px; font-size:14px; }
+  .diary-route-controls { display:flex; align-items:end; flex-wrap:wrap; gap:10px; margin-top:10px; }
+  .diary-route-controls label { min-width:220px; }
+  .diary-note { max-width:680px; color:var(--muted); font-size:11px; line-height:1.45; }
+  .diary-metrics { margin-top:8px; grid-template-columns:repeat(6,minmax(90px,1fr)); }
   .timeline-head { display:flex; justify-content:space-between; gap:10px; margin-top:10px; font-size:11px; color:var(--muted); }
   #timeline {
     display:flex; align-items:stretch; min-height:42px; margin-top:5px; overflow-x:auto;
@@ -94,8 +101,9 @@
     #app { height:auto; }
     .workspace { grid-template-columns:1fr; }
     aside { border-right:0; border-bottom:1px solid var(--line); }
-    .stage { min-height:720px; }
+    .stage { order:-1; min-height:920px; }
     .metrics { grid-template-columns:repeat(2,1fr); }
+    .diary-metrics { grid-template-columns:repeat(2,1fr); }
   }
 </style>
 </head>
@@ -191,6 +199,10 @@
           <span class="observed"><i class="swatch"></i>GPS 관측</span>
           <span class="fault"><i class="swatch"></i>결함</span>
           <span class="paint"><i class="swatch"></i>Cellophane</span>
+          <span class="route-slow"><i class="swatch"></i>상대 저속</span>
+          <span class="route-mid"><i class="swatch"></i>상대 중속</span>
+          <span class="route-fast"><i class="swatch"></i>상대 고속</span>
+          <span class="privacy"><i class="swatch"></i>시작·종료 보호권</span>
         </div>
         <div class="map-help" id="map-help">‘지도에 그리기’를 켜면 클릭한 순서대로 경로가 만들어집니다.</div>
       </div>
@@ -204,6 +216,25 @@
           <div class="metric"><span>관측 fix</span><strong id="m-observed">—</strong></div>
           <div class="metric"><span>누락 표본</span><strong id="m-missing">—</strong></div>
           <div class="metric"><span>전달 사건</span><strong id="m-delivery">—</strong></div>
+        </div>
+        <div class="diary-route-controls">
+          <label>단일 산책 일기 동선 후보
+            <select id="diary-route-profile">
+              <option value="canonical-detail">보호 없음 — 비교 기준</option>
+              <option value="trim-60m">앞뒤 경로 60m 절단</option>
+              <option value="zone-60m-q5-s5" selected>공간 60m + 5m 양자화·단순화</option>
+              <option value="zone-100m-q10-s8">공간 100m + 10m 양자화·8m 단순화</option>
+            </select>
+          </label>
+          <div class="diary-note" id="diary-route-note">실험 결과는 저장 계약이 아닙니다. 보호권은 시작·종료 좌표 주변의 모든 재방문을 잘라 별도 조각으로 표시합니다.</div>
+        </div>
+        <div class="metrics diary-metrics" aria-live="polite">
+          <div class="metric"><span>표시 점</span><strong id="m-diary-points">—</strong></div>
+          <div class="metric"><span>JSON 크기</span><strong id="m-diary-bytes">—</strong></div>
+          <div class="metric"><span>남은 거리</span><strong id="m-diary-distance">—</strong></div>
+          <div class="metric"><span>외부 경로 P95 오차</span><strong id="m-diary-error">—</strong></div>
+          <div class="metric"><span>시작점 최근접</span><strong id="m-diary-start">—</strong></div>
+          <div class="metric"><span>표시 조각</span><strong id="m-diary-fragments">—</strong></div>
         </div>
         <div class="timeline-head"><span>캡처 시간축 — 한 칸이 truth sample 하나</span><span id="timeline-caption">실행 전</span></div>
         <div id="timeline" role="listbox" aria-label="GPS 표본 시간축"></div>
@@ -223,6 +254,7 @@ const RUN_URL='/walk-trace-lab/run';
 const EARTH_R=6371000;
 const $=id => document.getElementById(id);
 const state={backend:null,points:[],draw:false,result:null,startedAt:null,selectedSampleId:null,overlays:[]};
+const SPEED_BAND_COLORS={relative_slow:'#7565aa',relative_mid:'#3971ad',relative_fast:'#23856f',unknown:'#687174'};
 
 function status(message,error=false) {
   $('status').textContent=message;
@@ -238,6 +270,13 @@ function metresBetween(a,b) {
 }
 function routeLength(points) { return points.slice(1).reduce((sum,p,i) => sum+metresBetween(points[i],p),0); }
 function localRouteLength(points) { return points.slice(1).reduce((sum,p,i) => sum+Math.hypot(p[0]-points[i][0],p[1]-points[i][1]),0); }
+function circlePolygon(center,radiusM) {
+  const latRadians=center[0]*Math.PI/180;
+  return Array.from({length:49},(_,index) => {
+    const angle=index/48*Math.PI*2;
+    return [center[0]+Math.sin(angle)*radiusM/EARTH_R*180/Math.PI,center[1]+Math.cos(angle)*radiusM/(EARTH_R*Math.cos(latRadians))*180/Math.PI];
+  });
+}
 function toLocal(point,origin) {
   return [
     (point[1]-origin[1])*Math.PI/180*EARTH_R*Math.cos(origin[0]*Math.PI/180),
@@ -368,6 +407,7 @@ function updateRouteReadout() {
 function invalidateResult(message='입력이 바뀌었습니다. 다시 실행하세요.') {
   state.result=null; state.selectedSampleId=null; $('timeline').replaceChildren();
   ['m-truth-distance','m-truth-duration','m-accepted-distance','m-accepted-duration','m-truth','m-observed','m-missing','m-delivery'].forEach(id => $(id).textContent='—');
+  ['m-diary-points','m-diary-bytes','m-diary-distance','m-diary-error','m-diary-start','m-diary-fragments'].forEach(id => $(id).textContent='—');
   $('timeline-caption').textContent='실행 전';
   $('sample-detail').textContent='변경된 입력은 아직 실행되지 않았습니다.';
   $('delivery-detail').textContent='변경된 입력은 아직 실행되지 않았습니다.';
@@ -390,6 +430,27 @@ function observedGroups(rows) {
   if (current.length) groups.push(current); return groups;
 }
 function selectSample(sampleId) { state.selectedSampleId=sampleId; renderTimeline(); renderInspector(); renderResultMap(false); }
+function selectedDiaryCandidate() {
+  if (!state.result) return null;
+  const profileId=$('diary-route-profile').value;
+  return state.result.diary_route_experiment.candidates.find(item => item.profile.id===profileId) || null;
+}
+function renderDiaryRoute() {
+  const experiment=state.result.diary_route_experiment,candidate=selectedDiaryCandidate();
+  if (!candidate) return;
+  const radius=candidate.profile.endpoint_radius_m;
+  if (radius>0) {
+    [experiment.canonical_endpoint.start,experiment.canonical_endpoint.end].filter(Boolean).forEach(point => {
+      state.overlays.push(state.backend.polygon(circlePolygon([point.lat,point.lng],radius),{color:'#d07828',opacity:.11}));
+    });
+  }
+  candidate.fragments.forEach(fragment => {
+    fragment.speed_bands.forEach((band,index) => {
+      const pair=fragment.points.slice(index,index+2).map(point => [point.lat,point.lng]);
+      state.overlays.push(state.backend.polyline(pair,{color:SPEED_BAND_COLORS[band] || SPEED_BAND_COLORS.unknown,weight:7,opacity:.92,zIndex:65}));
+    });
+  });
+}
 function renderResultMap(fit=false) {
   if (!state.result) { renderAuthoredRoute(fit); return; }
   clearOverlays(); const result=state.result,origin=[result.scenario.origin.lat,result.scenario.origin.lng];
@@ -402,6 +463,7 @@ function renderResultMap(fit=false) {
   const truthPoints=rows.map(row => toLatLng([row.truth.east_m,row.truth.north_m],origin));
   state.overlays.push(state.backend.polyline(truthPoints,{color:'#247a77',weight:4,dashed:true,opacity:.9,zIndex:35}));
   observedGroups(rows).filter(group => group.length>1).forEach(group => state.overlays.push(state.backend.polyline(group,{color:'#d64b65',weight:5,opacity:.9,zIndex:45})));
+  renderDiaryRoute();
   rows.filter(row => row.fault_ids.length).forEach(row => {
     const point=toLatLng([row.truth.east_m,row.truth.north_m],origin);
     state.overlays.push(state.backend.marker(point,{fault:true,choose:() => selectSample(row.sample_id)}));
@@ -458,6 +520,27 @@ function renderSummary() {
   $('m-missing').textContent=summary.missing_sample_count;
   $('m-delivery').textContent=summary.delivery_event_count;
   $('timeline-caption').textContent=`수용 ${summary.quality.accepted} · 정확도 거부 ${summary.quality.rejected_low_accuracy} · jump ${summary.quality.jump_breaks} · gap ${summary.quality.gap_breaks}`;
+  renderDiarySummary();
+}
+function renderDiarySummary() {
+  const candidate=selectedDiaryCandidate();
+  if (!candidate || candidate.status!=='available') {
+    ['m-diary-points','m-diary-bytes','m-diary-distance','m-diary-error','m-diary-start','m-diary-fragments'].forEach(id => $(id).textContent='없음');
+    $('diary-route-note').textContent='이 보호 설정은 현재 경로 전체를 제거했습니다. 빈 선을 산책이 없었다는 뜻으로 저장하면 안 됩니다.';
+    return;
+  }
+  const metrics=candidate.metrics;
+  $('m-diary-points').textContent=`${metrics.output_vertex_count}/${metrics.canonical_vertex_count}`;
+  $('m-diary-bytes').textContent=`${metrics.encoded_json_bytes} B`;
+  $('m-diary-distance').textContent=`${metrics.retained_distance_pct}%`;
+  $('m-diary-error').textContent=`${metrics.fidelity_p95_m}m`;
+  $('m-diary-start').textContent=`${metrics.nearest_geometry_to_start_m}m`;
+  $('m-diary-fragments').textContent=metrics.visible_fragment_count;
+  $('diary-route-note').textContent=candidate.profile.endpoint_protection==='path_trim'
+    ? '앞뒤 거리만 자르면 루프·왕복 중간의 시작점 재방문은 그대로 남을 수 있습니다.'
+    : candidate.profile.endpoint_protection==='spatial_mask'
+      ? '보호권과 교차하는 모든 구간을 잘라 조각을 분리합니다. 그래도 반복된 결손의 중심을 추론할 수 있어 익명화는 아닙니다.'
+      : 'CanonicalTrail 세부 선입니다. 비교 기준일 뿐 저장 후보가 아닙니다.';
 }
 
 async function runScenario(specOverride=null) {
@@ -510,6 +593,7 @@ $('run').addEventListener('click',() => runScenario());
 $('reset').addEventListener('click',() => loadExample().catch(error => status(error.message,true)));
 $('download').addEventListener('click',downloadScenario);
 $('import-file').addEventListener('change',async event => { try { const file=event.target.files[0]; if (file) await loadSpec(JSON.parse(await file.text())); } catch (error) { status(`JSON 불러오기 실패: ${error.message}`,true); } finally { event.target.value=''; } });
+$('diary-route-profile').addEventListener('change',() => { if (state.result) { renderResultMap(false); renderDiarySummary(); } });
 document.querySelectorAll('aside select, aside input[type="number"], aside input[type="checkbox"]').forEach(control => control.addEventListener('input',() => invalidateResult()));
 
 async function main() {
