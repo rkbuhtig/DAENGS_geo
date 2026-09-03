@@ -10,6 +10,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from starlette.concurrency import run_in_threadpool
 
 from scripts.sim.walk.bundle import ScenarioArtifacts, build_scenario_from_spec
+from scripts.sim.walk.evaluation import evaluate_scenario
 from scripts.sim.walk.spec import WalkTraceScenarioSpec
 
 router = APIRouter(prefix="/walk-trace-lab", tags=["walk-trace-lab"])
@@ -35,6 +36,7 @@ def build_lab_payload(artifacts: ScenarioArtifacts) -> dict[str, object]:
         "trace": artifacts.trace,
         "delivery": artifacts.delivery,
         "derived": artifacts.derived,
+        "evaluation": evaluate_scenario(artifacts),
         "cellophane": json.loads(artifacts.cellophane_geojson),
     }
 
@@ -57,12 +59,13 @@ async def walk_trace_lab_example():
 async def walk_trace_lab_run(spec: WalkTraceScenarioSpec):
     try:
         artifacts = await run_in_threadpool(build_scenario_from_spec, spec)
+        payload = await run_in_threadpool(build_lab_payload, artifacts)
     except ValueError as error:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=str(error),
         ) from error
     return JSONResponse(
-        build_lab_payload(artifacts),
+        payload,
         headers={"Cache-Control": "no-store"},
     )

@@ -175,12 +175,16 @@ def test_cli_writes_all_truth_observation_and_derived_layers(tmp_path, capsys):
         "trace.json",
         "delivery.json",
         "derived.json",
+        "evaluation.json",
         "cellophane.geojson",
     }
     assert json.loads((out / "manifest.json").read_text(encoding="utf-8"))["seed"] == 9
     assert json.loads((out / "manifest.json").read_text(encoding="utf-8"))[
         "session_id"
     ] == "fatigued-loop-review"
+    assert json.loads((out / "evaluation.json").read_text(encoding="utf-8"))[
+        "format"
+    ] == "walk-trace-evaluation-v1"
     assert "written to" in capsys.readouterr().out
 
 

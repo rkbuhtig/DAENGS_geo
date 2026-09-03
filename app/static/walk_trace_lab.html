@@ -70,6 +70,16 @@
   .metric { padding:8px 9px; border-radius:10px; background:#f2f4f1; }
   .metric span { display:block; color:var(--muted); font-size:10px; }
   .metric strong { display:block; margin-top:2px; font-size:14px; }
+  .evaluation-head { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:10px; }
+  .evaluation-head h2 { margin:0; font-size:12px; }
+  .evaluation-head p { margin:2px 0 0; color:var(--muted); font-size:10px; }
+  .evaluation-badge { padding:4px 8px; border-radius:999px; background:#edf2ef; color:#476056; font-size:10px; font-weight:700; }
+  .evaluation-badge.failed { background:#fff0ec; color:#a63f34; }
+  .evaluation-grid { display:grid; grid-template-columns:repeat(4,minmax(130px,1fr)); gap:7px; margin-top:6px; }
+  .receipt { padding:8px 9px; border:1px solid var(--line); border-radius:10px; background:#fff; }
+  .receipt h3 { margin:0 0 5px; font-size:11px; }
+  .receipt p { display:flex; justify-content:space-between; gap:8px; margin:2px 0; color:var(--muted); font-size:10px; }
+  .receipt strong { color:var(--ink); font-size:11px; text-align:right; }
   .timeline-head { display:flex; justify-content:space-between; gap:10px; margin-top:10px; font-size:11px; color:var(--muted); }
   #timeline {
     display:flex; align-items:stretch; min-height:42px; margin-top:5px; overflow-x:auto;
@@ -96,6 +106,7 @@
     aside { border-right:0; border-bottom:1px solid var(--line); }
     .stage { min-height:720px; }
     .metrics { grid-template-columns:repeat(2,1fr); }
+    .evaluation-grid { grid-template-columns:repeat(2,1fr); }
   }
 </style>
 </head>
@@ -205,6 +216,16 @@
           <div class="metric"><span>누락 표본</span><strong id="m-missing">—</strong></div>
           <div class="metric"><span>전달 사건</span><strong id="m-delivery">—</strong></div>
         </div>
+        <div class="evaluation-head">
+          <div><h2>Perfect 기준군 비교 영수증</h2><p>관찰값이며 제품 합격선이나 행동 판정이 아닙니다.</p></div>
+          <span class="evaluation-badge" id="eval-hard">실행 전</span>
+        </div>
+        <div class="evaluation-grid" aria-label="정량 평가 영수증">
+          <div class="receipt"><h3>Sensor</h3><p><span>fix 보존율</span><strong id="eval-sensor-retention">—</strong></p><p><span>위치 오차 p95</span><strong id="eval-sensor-p95">—</strong></p><p><span>누락 표본</span><strong id="eval-sensor-missing">—</strong></p></div>
+          <div class="receipt"><h3>CanonicalTrail</h3><p><span>이동거리 오차</span><strong id="eval-canonical-distance">—</strong></p><p><span>수용 시간 / truth</span><strong id="eval-canonical-time">—</strong></p><p><span>hold 겹침 배분 / Perfect 차이</span><strong id="eval-canonical-hold">—</strong></p></div>
+          <div class="receipt"><h3>Cellophane</h3><p><span>Perfect support IoU</span><strong id="eval-cell-iou">—</strong></p><p><span>누락 / 누출 셀</span><strong id="eval-cell-delta">—</strong></p><p><span>질량 오차</span><strong id="eval-cell-mass">—</strong></p></div>
+          <div class="receipt"><h3>Delivery</h3><p><span>지연 p50 / max</span><strong id="eval-delivery-latency">—</strong></p><p><span>역순 사건</span><strong id="eval-delivery-order">—</strong></p><p><span>중복 사건</span><strong id="eval-delivery-duplicate">—</strong></p></div>
+        </div>
         <div class="timeline-head"><span>캡처 시간축 — 한 칸이 truth sample 하나</span><span id="timeline-caption">실행 전</span></div>
         <div id="timeline" role="listbox" aria-label="GPS 표본 시간축"></div>
         <div class="inspector">
@@ -229,6 +250,8 @@ function status(message,error=false) {
   $('status').classList.toggle('error',error);
 }
 function number(id) { return Number($(id).value); }
+function percent(value) { return value===null || value===undefined?'—':`${(value*100).toFixed(1)}%`; }
+function metres(value) { return value===null || value===undefined?'—':`${Number(value).toFixed(2)}m`; }
 function clearOverlays() { state.overlays.forEach(item => item.remove()); state.overlays=[]; }
 function metresBetween(a,b) {
   const lat1=a[0]*Math.PI/180,lat2=b[0]*Math.PI/180;
@@ -368,6 +391,8 @@ function updateRouteReadout() {
 function invalidateResult(message='입력이 바뀌었습니다. 다시 실행하세요.') {
   state.result=null; state.selectedSampleId=null; $('timeline').replaceChildren();
   ['m-truth-distance','m-truth-duration','m-accepted-distance','m-accepted-duration','m-truth','m-observed','m-missing','m-delivery'].forEach(id => $(id).textContent='—');
+  ['eval-sensor-retention','eval-sensor-p95','eval-sensor-missing','eval-canonical-distance','eval-canonical-time','eval-canonical-hold','eval-cell-iou','eval-cell-delta','eval-cell-mass','eval-delivery-latency','eval-delivery-order','eval-delivery-duplicate'].forEach(id => $(id).textContent='—');
+  $('eval-hard').textContent='실행 전'; $('eval-hard').classList.remove('failed');
   $('timeline-caption').textContent='실행 전';
   $('sample-detail').textContent='변경된 입력은 아직 실행되지 않았습니다.';
   $('delivery-detail').textContent='변경된 입력은 아직 실행되지 않았습니다.';
@@ -458,6 +483,26 @@ function renderSummary() {
   $('m-missing').textContent=summary.missing_sample_count;
   $('m-delivery').textContent=summary.delivery_event_count;
   $('timeline-caption').textContent=`수용 ${summary.quality.accepted} · 정확도 거부 ${summary.quality.rejected_low_accuracy} · jump ${summary.quality.jump_breaks} · gap ${summary.quality.gap_breaks}`;
+  renderEvaluation();
+}
+function renderEvaluation() {
+  const evaluation=state.result.evaluation;
+  const sensor=evaluation.sensor,canonical=evaluation.canonical,cell=evaluation.cellophane,delivery=evaluation.delivery;
+  $('eval-sensor-retention').textContent=percent(sensor.fix_retention);
+  $('eval-sensor-p95').textContent=metres(sensor.position_error_m.p95);
+  $('eval-sensor-missing').textContent=sensor.missing_sample_count;
+  $('eval-canonical-distance').textContent=`${canonical.moving_distance_error_m>=0?'+':''}${canonical.moving_distance_error_m.toFixed(2)}m`;
+  $('eval-canonical-time').textContent=percent(canonical.accepted_time_vs_truth);
+  $('eval-canonical-hold').textContent=`${metres(canonical.distance_allocated_over_hold_m)} / ${metres(canonical.distance_allocated_over_hold_vs_perfect_m)}`;
+  $('eval-cell-iou').textContent=percent(cell.support_iou_vs_perfect);
+  $('eval-cell-delta').textContent=`${cell.missing_cell_count} / ${cell.leakage_cell_count}`;
+  $('eval-cell-mass').textContent=`${cell.mass_error_s.toFixed(6)}s`;
+  $('eval-delivery-latency').textContent=`${delivery.latency_s.p50?.toFixed(2) ?? '—'}s / ${delivery.latency_s.max?.toFixed(2) ?? '—'}s`;
+  $('eval-delivery-order').textContent=delivery.out_of_capture_order_event_count;
+  $('eval-delivery-duplicate').textContent=delivery.duplicate_event_count;
+  const invariants=Object.values(evaluation.hard_invariants),passed=invariants.filter(Boolean).length;
+  $('eval-hard').textContent=`불변식 ${passed}/${invariants.length}`;
+  $('eval-hard').classList.toggle('failed',!evaluation.hard_invariants_passed);
 }
 
 async function runScenario(specOverride=null) {
