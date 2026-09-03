@@ -1,4 +1,4 @@
-"""모바일 Spatial Diary UI를 실제 Cellophane으로 시험하는 dev-console 표면.
+"""여러 feature의 산책 투영을 조립하는 모바일 Spatial Diary dev-console 표면.
 
 제품 API나 저장 원본이 아니다. 결정론적 산책 fixture를 canonical facts/Paint 경로에 넣어
 브라우저와 이후 Android 구현이 같은 화면 상태를 읽을 수 있게 한다.

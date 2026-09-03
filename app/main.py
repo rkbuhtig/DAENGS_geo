@@ -42,8 +42,8 @@ async def bind_usage_request_scope(request, call_next):
 
 
 if settings.dev_console:
+    from app.api.spatial_diary_lab import build_spatial_diary_ui_fixture
     from app.discovery.place_intent.lab import router as place_intent_lab_router
-    from app.features.spatial_diary.dev_lab import build_spatial_diary_ui_fixture
     from app.features.territory.game.dev_api import router as territory_site_dev_router
 
     app.include_router(place_intent_lab_router)

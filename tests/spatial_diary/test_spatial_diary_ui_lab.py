@@ -4,7 +4,7 @@ import json
 import math
 from pathlib import Path
 
-from app.features.spatial_diary.dev_lab import build_spatial_diary_ui_fixture
+from app.api.spatial_diary_lab import build_spatial_diary_ui_fixture
 
 ROOT = Path(__file__).resolve().parents[2]
 HTML = (ROOT / "app" / "static" / "spatial_diary_lab.html").read_text(encoding="utf-8")
