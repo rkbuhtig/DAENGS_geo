@@ -5,6 +5,7 @@
 > [#71 병원 진입](decisions/2026-08-27-hospital-place-entry.md),
 > [#74 Spatial Diary](decisions/2026-09-01-spatial-diary.md),
 > [#75 Capsule finalize](decisions/2026-09-01-walk-capsule-finalize.md),
+> [#84 CanonicalTrail consumer boundary](decisions/2026-09-03-canonical-trail-consumer-boundary.md),
 > [#83 Context Plane](decisions/2026-09-01-context-plane-v0.md)
 
 ## 한 문장
@@ -42,6 +43,10 @@ start / fixes / finish
 ```
 
 Capsule 자식과 마지막 manifest가 한 트랜잭션으로 완성되기 전에는 원좌표를 지우지 않는다.
+이때 raw fix를 검증해 만든 `CanonicalTrail`은 저장 원본이 아니라 finalize 동안만 사는 공통
+증거다. 일기 동선과 점령 게임이 채택되더라도 이 입력까지만 공유하고, 각자의 eligibility·저장·
+실패·화면 상태는 분리한다. 현재 영구 공간 형태가 Cellophane 하나라는 #69는 별도 route
+privacy·retention 결정 전까지 유지된다.
 같은 finish를 다시 보내면 이미 봉인된 결과를 반환한다. 원좌표를 지웠다는 사실이 남은
 Cellophane과 Pin을 비민감 데이터로 바꾸지는 않는다.
 
