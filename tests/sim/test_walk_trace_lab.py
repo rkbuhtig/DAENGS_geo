@@ -77,6 +77,10 @@ def test_lab_html_authors_a_route_and_renders_all_three_time_layers():
     assert "result.delivery.events.filter" in HTML
     assert "result.cellophane.features.filter" in HTML
     assert "invalidateResult()" in HTML
+    assert "state.result.derived.truth_duration_s" in HTML
+    assert "facts.moving_distance_m" in HTML
+    assert "수용 이동거리" in HTML
+    assert "수용 구간시간" in HTML
     assert "실제 움직임 → GPS 관측 → 앱 전달" in HTML
 
 
@@ -86,6 +90,19 @@ def test_lab_can_exchange_the_versioned_scenario_json():
     assert "JSON.parse(await file.text())" in HTML
     assert "await runScenario(spec)" in HTML
     assert "session_id:null" in HTML
+
+
+def test_lab_invalidates_derived_results_when_authoring_controls_change():
+    assert "aside select, aside input[type=\"number\"], aside input[type=\"checkbox\"]" in HTML
+    assert "control.addEventListener('input',() => invalidateResult())" in HTML
+
+
+def test_lab_styles_faults_by_contract_kind_instead_of_free_form_id():
+    assert "fault.id,fault.kind" in HTML
+    assert "faultKinds.has('accuracy')" in HTML
+    assert "faultKinds.has('position_offset')" in HTML
+    assert "id.includes('accuracy')" not in HTML
+    assert "id.includes('spike')" not in HTML
 
 
 def _paths_with_dev_console(enabled: bool) -> set[str]:

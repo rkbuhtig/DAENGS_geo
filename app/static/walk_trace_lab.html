@@ -66,7 +66,7 @@
     border-radius:10px; background:rgba(38,43,45,.88); color:#fff; font-size:11px;
   }
   .result-panel { padding:12px 14px 14px; border-top:1px solid var(--line); background:var(--surface); }
-  .metrics { display:grid; grid-template-columns:repeat(6,minmax(90px,1fr)); gap:7px; }
+  .metrics { display:grid; grid-template-columns:repeat(4,minmax(90px,1fr)); gap:7px; }
   .metric { padding:8px 9px; border-radius:10px; background:#f2f4f1; }
   .metric span { display:block; color:var(--muted); font-size:10px; }
   .metric strong { display:block; margin-top:2px; font-size:14px; }
@@ -95,7 +95,7 @@
     .workspace { grid-template-columns:1fr; }
     aside { border-right:0; border-bottom:1px solid var(--line); }
     .stage { min-height:720px; }
-    .metrics { grid-template-columns:repeat(3,1fr); }
+    .metrics { grid-template-columns:repeat(2,1fr); }
   }
 </style>
 </head>
@@ -196,8 +196,10 @@
       </div>
       <div class="result-panel">
         <div class="metrics">
-          <div class="metric"><span>경로 길이</span><strong id="m-distance">—</strong></div>
-          <div class="metric"><span>실제 시간</span><strong id="m-wall">—</strong></div>
+          <div class="metric"><span>Truth 경로</span><strong id="m-truth-distance">—</strong></div>
+          <div class="metric"><span>Truth 시간</span><strong id="m-truth-duration">—</strong></div>
+          <div class="metric"><span>수용 이동거리</span><strong id="m-accepted-distance">—</strong></div>
+          <div class="metric"><span>수용 구간시간</span><strong id="m-accepted-duration">—</strong></div>
           <div class="metric"><span>truth 표본</span><strong id="m-truth">—</strong></div>
           <div class="metric"><span>관측 fix</span><strong id="m-observed">—</strong></div>
           <div class="metric"><span>누락 표본</span><strong id="m-missing">—</strong></div>
@@ -235,6 +237,7 @@ function metresBetween(a,b) {
   return 2*EARTH_R*Math.asin(Math.sqrt(h));
 }
 function routeLength(points) { return points.slice(1).reduce((sum,p,i) => sum+metresBetween(points[i],p),0); }
+function localRouteLength(points) { return points.slice(1).reduce((sum,p,i) => sum+Math.hypot(p[0]-points[i][0],p[1]-points[i][1]),0); }
 function toLocal(point,origin) {
   return [
     (point[1]-origin[1])*Math.PI/180*EARTH_R*Math.cos(origin[0]*Math.PI/180),
@@ -364,7 +367,7 @@ function updateRouteReadout() {
 }
 function invalidateResult(message='입력이 바뀌었습니다. 다시 실행하세요.') {
   state.result=null; state.selectedSampleId=null; $('timeline').replaceChildren();
-  ['m-distance','m-wall','m-truth','m-observed','m-missing','m-delivery'].forEach(id => $(id).textContent='—');
+  ['m-truth-distance','m-truth-duration','m-accepted-distance','m-accepted-duration','m-truth','m-observed','m-missing','m-delivery'].forEach(id => $(id).textContent='—');
   $('timeline-caption').textContent='실행 전';
   $('sample-detail').textContent='변경된 입력은 아직 실행되지 않았습니다.';
   $('delivery-detail').textContent='변경된 입력은 아직 실행되지 않았습니다.';
@@ -412,10 +415,12 @@ function renderResultMap(fit=false) {
 }
 function sampleClass(row) {
   const classes=['sample'];
+  const faultsById=new Map(state.result.scenario.faults.map(fault => [fault.id,fault.kind]));
+  const faultKinds=new Set(row.fault_ids.map(id => faultsById.get(id)).filter(Boolean));
   if (row.truth.latent_state==='hold') classes.push('hold');
   if (!row.observed_fix) classes.push('missing');
-  if (row.fault_ids.some(id => id.includes('accuracy'))) classes.push('accuracy');
-  if (row.fault_ids.some(id => id.includes('spike'))) classes.push('spike');
+  if (faultKinds.has('accuracy')) classes.push('accuracy');
+  if (faultKinds.has('position_offset')) classes.push('spike');
   if (row.sample_id===state.selectedSampleId) classes.push('selected');
   return classes.join(' ');
 }
@@ -444,8 +449,10 @@ function renderInspector() {
 }
 function renderSummary() {
   const summary=state.result.summary,facts=summary.facts;
-  $('m-distance').textContent=`${facts.moving_distance_m}m`;
-  $('m-wall').textContent=`${facts.duration_s}s`;
+  $('m-truth-distance').textContent=`${Math.round(localRouteLength(state.result.scenario.route.points_xy))}m`;
+  $('m-truth-duration').textContent=`${Math.round(state.result.derived.truth_duration_s*10)/10}s`;
+  $('m-accepted-distance').textContent=`${facts.moving_distance_m}m`;
+  $('m-accepted-duration').textContent=`${facts.duration_s}s`;
   $('m-truth').textContent=summary.truth_sample_count;
   $('m-observed').textContent=summary.observed_fix_count;
   $('m-missing').textContent=summary.missing_sample_count;
@@ -503,6 +510,7 @@ $('run').addEventListener('click',() => runScenario());
 $('reset').addEventListener('click',() => loadExample().catch(error => status(error.message,true)));
 $('download').addEventListener('click',downloadScenario);
 $('import-file').addEventListener('change',async event => { try { const file=event.target.files[0]; if (file) await loadSpec(JSON.parse(await file.text())); } catch (error) { status(`JSON 불러오기 실패: ${error.message}`,true); } finally { event.target.value=''; } });
+document.querySelectorAll('aside select, aside input[type="number"], aside input[type="checkbox"]').forEach(control => control.addEventListener('input',() => invalidateResult()));
 
 async function main() {
   try {
