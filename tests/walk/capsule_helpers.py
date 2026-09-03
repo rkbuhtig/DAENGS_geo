@@ -8,12 +8,11 @@ from app.features.walk.capsule import (
     build_capsule_artifacts,
     trail_context_request,
 )
-from app.features.walk.facts import ComputedFacts
-from app.features.walk.models import WalkFix
+from app.features.walk.facts import CanonicalWalkComputation
 
 
-def capsule_for(computed: ComputedFacts, received_fixes: list[WalkFix]) -> CapsuleArtifacts:
-    request = trail_context_request(computed)
+def capsule_for(computed: CanonicalWalkComputation) -> CapsuleArtifacts:
+    request = trail_context_request(computed.facts, computed.trail)
     captured_at = computed.facts.ended_at + timedelta(seconds=1)
     context = TrailContextSnapshot(
         session_id=request.session_id,
@@ -22,8 +21,9 @@ def capsule_for(computed: ComputedFacts, received_fixes: list[WalkFix]) -> Capsu
         captured_at=captured_at,
     )
     return build_capsule_artifacts(
-        computed,
-        received_fixes,
+        computed.facts,
+        computed.trail,
+        computed.receipt_input,
         context,
         sealed_at=captured_at + timedelta(seconds=1),
     )

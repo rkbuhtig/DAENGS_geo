@@ -11,7 +11,7 @@
 import json
 import math
 from collections import defaultdict
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from itertools import pairwise
 
 from app.features.territory.paint import Cellophane
@@ -46,7 +46,7 @@ def _fix_identity(fix: WalkFix) -> tuple:
     return (fix.client_seq, fix.chain_index, fix.at, fix.lat, fix.lng)
 
 
-def _chain_features(segments: list[Segment]) -> list[dict[str, object]]:
+def _chain_features(segments: Sequence[Segment]) -> list[dict[str, object]]:
     grouped: dict[int, list[Segment]] = defaultdict(list)
     for segment in segments:
         if segment.chain_index < 0:

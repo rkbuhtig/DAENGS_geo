@@ -104,8 +104,8 @@ def test_dropout_preserves_endpoints_and_accuracy_outliers_reach_canonical_filte
     assert len(noisy.fixes) < len(perfect.fixes)
     assert noisy.fixes[0].at == perfect.fixes[0].at
     assert noisy.fixes[-1].at == perfect.fixes[-1].at
-    assert computed.quality.rejected_low_accuracy > 0
-    assert computed.quality.jump_breaks > 0
+    assert computed.trail.quality.rejected_low_accuracy > 0
+    assert computed.trail.quality.jump_breaks > 0
 
 
 @pytest.mark.parametrize(

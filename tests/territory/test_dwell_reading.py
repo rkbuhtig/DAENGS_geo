@@ -89,7 +89,9 @@ def _sheet(walk_id: str, stop_s: int, radius_u: float, *, at: datetime = START,
         for i in range(1, steps + 1):
             push(far - i * SPEED_MPS)
 
-    segs = compute_facts("w", "d", at, fixes[-1].at + timedelta(seconds=1), fixes).segments
+    segs = compute_facts(
+        "w", "d", at, fixes[-1].at + timedelta(seconds=1), fixes
+    ).trail.segments
     return paint_sheet(walk_id, at, segs, radius_u, NARROW_STEP)
 
 

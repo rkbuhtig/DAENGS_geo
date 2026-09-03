@@ -49,7 +49,7 @@ def _sheet(walk_id: str, at: datetime, offset_m: float):
         for i in range(61)
     ]
     segs = compute_facts("w", "d", fixes[0].at, fixes[-1].at + timedelta(seconds=1),
-                         fixes).segments
+                         fixes).trail.segments
     return paint_sheet(walk_id, at, segs, RADIUS_U, NARROW_STEP)
 
 
@@ -126,7 +126,7 @@ def test_spec_picks_the_brush_generation_by_fingerprint():
                 WalkFix(client_seq=1, chain_index=0, at=old.at + timedelta(seconds=1),
                         lat=lat0, lng=lng0, accuracy_m=3.0, is_mock=False),
             ],
-        ).segments,
+        ).trail.segments,
         RADIUS_U,
         other_profile,
     )
@@ -154,7 +154,7 @@ def test_missing_generation_is_an_error_not_an_empty_map():
     only_other = paint_sheet(
         "other",
         at,
-        compute_facts("w", "d", at, at + timedelta(seconds=2), fixes).segments,
+        compute_facts("w", "d", at, at + timedelta(seconds=2), fixes).trail.segments,
         RADIUS_U,
         other_profile,
     )
@@ -225,7 +225,7 @@ def test_sheets_from_another_grid_are_never_mixed_in():
         for i in range(61)
     ]
     segs = compute_facts("w", "d", fixes[0].at, fixes[-1].at + timedelta(seconds=1),
-                         fixes).segments
+                         fixes).trail.segments
     other = paint_sheet("other-grid", at, segs, 15.0, NARROW_STEP)
     assert select([good, other], _spec()) == [good]
 

@@ -166,7 +166,7 @@ def truth_dwell(track, region: Region) -> float:
     ]
     ended = clean[-1].at + timedelta(seconds=1)
     computed = compute_facts("truth", "spike", STARTED, ended, clean)
-    return dwell_by_region(region_encounters(computed.segments, [region])).get(region.id, 0.0)
+    return dwell_by_region(region_encounters(computed.trail.segments, [region])).get(region.id, 0.0)
 
 
 def one_trial(side: float, jitter: float, seed: int) -> dict:
@@ -178,12 +178,12 @@ def one_trial(side: float, jitter: float, seed: int) -> dict:
     fixes = to_fixes(track, rng, jitter)
     ended = fixes[-1].at + timedelta(seconds=1)
     computed = compute_facts("trial", "spike", STARTED, ended, fixes)
-    exact = dwell_by_region(region_encounters(computed.segments, [region])).get(region.id, 0.0)
+    exact = dwell_by_region(region_encounters(computed.trail.segments, [region])).get(region.id, 0.0)
 
     row = {"side": side, "jitter": jitter, "seed": seed, "truth": truth, "exact": exact,
-           "segments": len(computed.segments)}
+           "segments": len(computed.trail.segments)}
     for radius in RADII:
-        visits = cell_visits(computed.segments, radius)
+        visits = cell_visits(computed.trail.segments, radius)
         row[f"w{int(radius)}"] = region_dwell_from_cells(visits, region, radius, weighted=True)
         row[f"c{int(radius)}"] = region_dwell_from_cells(visits, region, radius, weighted=False)
         row[f"n{int(radius)}"] = len(visits)
@@ -255,7 +255,7 @@ def scene(side: float, jitter: float, seed: int) -> dict:
     fixes = to_fixes(track, rng, jitter)
     ended = fixes[-1].at + timedelta(seconds=1)
     computed = compute_facts("scene", "spike", STARTED, ended, fixes)
-    exact = dwell_by_region(region_encounters(computed.segments, [region])).get(region.id, 0.0)
+    exact = dwell_by_region(region_encounters(computed.trail.segments, [region])).get(region.id, 0.0)
 
     project = _projector(region.ring[0][0], region.ring[0][1])
     ring = [project(la, ln) for la, ln in region.ring]
@@ -265,7 +265,7 @@ def scene(side: float, jitter: float, seed: int) -> dict:
 
     grids = {}
     for radius in RADII:
-        visits = cell_visits(computed.segments, radius)
+        visits = cell_visits(computed.trail.segments, radius)
         cells = []
         for visit in visits:
             samples = [inverse_mercator(mx, my)

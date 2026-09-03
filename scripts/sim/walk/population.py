@@ -12,7 +12,7 @@ import math
 from dataclasses import dataclass
 
 from app.features.territory.paint import NARROW_STEP, Cellophane, paint_sheet, paint_spec
-from app.features.walk.facts import ComputedFacts, compute_facts
+from app.features.walk.facts import CanonicalWalkComputation, compute_facts
 from scripts.sim.walk.kinematics import integrate_motion
 from scripts.sim.walk.population_truth import PopulationTruth
 from scripts.sim.walk.sensor import (
@@ -31,7 +31,7 @@ class PopulationWalkObservation:
     """제품이 받을 수 있는 한 산책의 관측·canonical·공간장."""
 
     observed: ObservedWalk
-    computed: ComputedFacts
+    computed: CanonicalWalkComputation
     sheet: Cellophane
 
     def __post_init__(self) -> None:
@@ -45,7 +45,7 @@ class PopulationWalkObservation:
 
     @property
     def accepted_segment_s(self) -> float:
-        return math.fsum(segment.dt for segment in self.computed.segments)
+        return math.fsum(segment.dt for segment in self.computed.trail.segments)
 
 
 @dataclass(frozen=True)
@@ -132,7 +132,7 @@ def observe_population_with_sensor(
             list(observed.fixes),
         )
         sheet = paint_sheet(
-            session_id, observed.started_at, computed.segments, radius_u, NARROW_STEP
+            session_id, observed.started_at, computed.trail.segments, radius_u, NARROW_STEP
         )
         walks.append(PopulationWalkObservation(observed, computed, sheet))
     return PopulationObservation(truth.generator_version, run_id, tuple(walks))

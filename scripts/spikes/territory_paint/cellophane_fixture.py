@@ -41,8 +41,8 @@ def fixture_parts(radius_u: float = RADIUS_U):
         for row in route()
     ]
     computed = compute_facts(SESSION_ID, "fixture-dog", START, fixes[-1].at, fixes)
-    sheet = paint_sheet(SESSION_ID, START, computed.segments, radius_u, NARROW_STEP)
-    return sheet, computed.segments
+    sheet = paint_sheet(SESSION_ID, START, computed.trail.segments, radius_u, NARROW_STEP)
+    return sheet, computed.trail.segments
 
 
 def build_fixture(radius_u: float = RADIUS_U) -> dict[str, object]:

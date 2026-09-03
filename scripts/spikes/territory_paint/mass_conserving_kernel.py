@@ -114,7 +114,7 @@ def paint(fixes: list[WalkFix], radius_u: float, *, normalise: bool) -> dict[Cel
     computed = compute_facts("w", "d", START, fixes[-1].at + timedelta(seconds=1), fixes)
     step = max(min(radius_u, NARROW_STEP.bands[0]) / 2.0, 1.5)
     field: dict[Cell, float] = {}
-    for seg in computed.segments:
+    for seg in computed.trail.segments:
         pieces = max(1, math.ceil(seg.dist / step))
         share = seg.dt / pieces
         for index in range(pieces):

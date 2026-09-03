@@ -29,9 +29,9 @@ CanonicalTrail [TRANSIENT]
   └─ canonical quality evidence
 ```
 
-`CanonicalTrail`은 현재 `compute_facts()`가 만드는 `ComputedFacts.segments`·`gaps`와 품질 결과에
-이미 존재하는 개념의 이름이다. 이 결정은 곧바로 클래스 이름이나 HTTP 계약을 바꾸라는 뜻이
-아니다. 후속 리팩터링은 현재 결과가 바이트 단위로 같음을 먼저 잠근 뒤 이 경계를 드러낸다.
+`CanonicalTrail`은 원래 `compute_facts()`가 만들던 `ComputedFacts.segments`·`gaps`와 품질 결과에
+이미 존재하던 개념의 이름이다. 구현은 이를 `CanonicalWalkComputation.trail`로 드러내되 HTTP·
+DB 계약은 바꾸지 않고 기존 결과가 같음을 회귀 테스트로 잠근다.
 
 `Segment` 끝점과 `GapSpan`에는 좌표와 시각이 있으므로 CanonicalTrail은 raw와 같은 민감 구간에
 있다. DB·캐시·이벤트 버스·로그에 영구 보관하지 않고 finalize 트랜잭션 밖으로 수명을 늘리지
@@ -40,6 +40,10 @@ CanonicalTrail [TRANSIENT]
 `accepted_fixes`는 더 좁다. MeasurementReceipt의 분포를 만드는 데 필요한 전용 transient
 입력이지 모든 소비자가 받을 공용 필드가 아니다. 새 소비자는 Segment와 gap으로 답할 수 없는
 이유를 증명하지 못하면 accepted fix 열을 직접 받지 않는다.
+
+현재 Trail Context는 산책 중간 시각에 가장 가까운 accepted fix의 위치를 사용한다. 이 동작을
+보존하기 위해 producer가 `midpoint_sample` 한 점만 CanonicalTrail에 복사한다. Context 소비자에
+전체 accepted fix 열을 넘기거나, 한 점짜리 산책의 문맥 위치를 잃지는 않는다.
 
 ## 결정 2 — 공통 canonical validity와 소비자별 eligibility를 분리한다
 

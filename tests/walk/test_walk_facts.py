@@ -28,6 +28,20 @@ def test_same_input_same_facts():
     assert a.model_dump() == b.model_dump()
 
 
+def test_canonical_trail_is_narrow_and_keeps_raw_receipt_input_separate():
+    fixes = walk_then_stop_then_walk()
+    result = compute(fixes)
+
+    assert result.trail.session_id == result.facts.session_id
+    assert result.trail.dog_id == result.facts.dog_id
+    assert result.trail.calculation_version == result.facts.calculation_version
+    assert isinstance(result.trail.segments, tuple)
+    assert isinstance(result.trail.gaps, tuple)
+    assert not hasattr(result.trail, "accepted_fixes")
+    assert result.receipt_input.received_fixes == tuple(fixes)
+    assert len(result.receipt_input.accepted_fixes) == result.facts.fix_count
+
+
 def test_walk_stop_walk_boundaries():
     r = compute(walk_then_stop_then_walk())
     f = r.facts
@@ -41,15 +55,15 @@ def test_walk_stop_walk_boundaries():
 def test_low_accuracy_is_rejected_unknown_is_not():
     fixes = [walk_fix(0, 0), walk_fix(5, 7, accuracy=80.0), walk_fix(10, 14, accuracy=None), walk_fix(15, 21)]
     r = compute(fixes, 15)
-    assert r.quality.rejected_low_accuracy == 1
-    assert r.quality.unknown_accuracy == 1
+    assert r.trail.quality.rejected_low_accuracy == 1
+    assert r.trail.quality.unknown_accuracy == 1
     assert r.facts.fix_count == 3               # 80m 짜리만 빠졌다
 
 
 def test_jump_breaks_do_not_accumulate():
     fixes = [walk_fix(0, 0), walk_fix(5, 7), walk_fix(10, 500), walk_fix(15, 507)]      # 10초에 493m 튐
     r = compute(fixes, 15)
-    assert r.quality.jump_breaks == 1
+    assert r.trail.quality.jump_breaks == 1
     assert r.facts.distance_m == 14             # 7m + (튐 제외) + 7m
     assert r.facts.duration_s == 10             # 튐 구간의 5초는 어디에도 없다
 
@@ -59,7 +73,7 @@ def test_time_going_backwards_is_rejected():
     fixes.append(WalkFix(client_seq=6000, at=fixes[1].at, lat=fixes[1].lat,
                          lng=fixes[1].lng, accuracy_m=10.0))  # 같은 시각의 별도 관측
     r = compute(fixes, 10)
-    assert r.quality.rejected_out_of_order == 1
+    assert r.trail.quality.rejected_out_of_order == 1
     assert r.facts.distance_m == 7
 
 
@@ -80,7 +94,7 @@ def test_short_pause_is_not_a_stop():
 
 def test_collection_gap_is_not_a_stop():
     r = compute([walk_fix(0, 0), walk_fix(600, 0)], 600)
-    assert r.quality.gap_breaks == 1
+    assert r.trail.quality.gap_breaks == 1
     assert r.facts.stop_count == 0
     assert r.facts.stop_s == 0
 
@@ -93,25 +107,25 @@ def test_pause_resume_chain_is_never_joined_as_movement():
         walk_fix(35, 87, chain_index=1),
         walk_fix(40, 94, chain_index=1),
     ], 40)
-    assert r.quality.explicit_breaks == 1
+    assert r.trail.quality.explicit_breaks == 1
     assert r.facts.distance_m == 14
     assert r.facts.moving_s == 10
-    assert len(r.segments) == 2
-    assert [s.chain_index for s in r.segments] == [0, 1]
+    assert len(r.trail.segments) == 2
+    assert [s.chain_index for s in r.trail.segments] == [0, 1]
 
 
 def test_fixes_outside_session_are_rejected_and_break_segments():
     fixes = [walk_fix(-60, 0), walk_fix(0, 0), walk_fix(60, 10), walk_fix(120, 20)]
     r = compute(fixes, 60)
-    assert r.quality.rejected_before_start == 1
-    assert r.quality.rejected_after_end == 1
+    assert r.trail.quality.rejected_before_start == 1
+    assert r.trail.quality.rejected_after_end == 1
     assert r.facts.duration_s == 60
 
 
 def test_mock_origin_is_visible_in_facts_and_quality():
     r = compute([walk_fix(0, 0, is_mock=True), walk_fix(5, 7, is_mock=True)], 5)
     assert r.facts.evidence_origin == "mock"
-    assert r.quality.mock_fixes == 2
+    assert r.trail.quality.mock_fixes == 2
 
 
 def test_stop_event_keeps_time_and_spatial_anchor():

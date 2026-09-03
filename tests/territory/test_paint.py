@@ -44,7 +44,7 @@ def _straight_walk(day: int, offset_m: float, lat0: float, lng0: float, length_m
                              at=START + timedelta(days=day, seconds=i),
                              lat=lat, lng=lng, accuracy_m=3.0, is_mock=False))
     ended = fixes[-1].at + timedelta(seconds=1)
-    return compute_facts("w", "d", fixes[0].at, ended, fixes).segments
+    return compute_facts("w", "d", fixes[0].at, ended, fixes).trail.segments
 
 
 # ---- 붓 단면 -------------------------------------------------------------------------
@@ -241,7 +241,7 @@ def _dwell_walk(offset_m: float, lat0: float, lng0: float, seconds: int):
         for i in range(seconds + 1)
     ]
     ended = fixes[-1].at + timedelta(seconds=1)
-    return compute_facts("w", "d", fixes[0].at, ended, fixes).segments
+    return compute_facts("w", "d", fixes[0].at, ended, fixes).trail.segments
 
 
 def test_occupancy_and_peak_answer_different_questions():

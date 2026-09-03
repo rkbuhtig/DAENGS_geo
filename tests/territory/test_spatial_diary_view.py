@@ -124,7 +124,7 @@ async def _seal_walk(
     await store.append_fixes(db, session_id, fixes)
     loaded = await store.load_fixes_ordered(db, session_id)
     computed = compute_facts(session_id, DOG_ID, started_at, ended_at, loaded)
-    request = trail_context_request(computed)
+    request = trail_context_request(computed.facts, computed.trail)
     captured_at = ended_at + timedelta(seconds=1)
     context = _context(
         session_id,
@@ -135,15 +135,16 @@ async def _seal_walk(
         status=status,
     )
     capsule = build_capsule_artifacts(
-        computed,
-        loaded,
+        computed.facts,
+        computed.trail,
+        computed.receipt_input,
         context,
         sealed_at=captured_at + timedelta(seconds=1),
     )
     await store.finalize(
         db,
         computed.facts,
-        computed.quality,
+        computed.trail.quality,
         computed.events,
         capsule=capsule,
     )

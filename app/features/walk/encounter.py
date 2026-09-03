@@ -10,6 +10,7 @@
 
 import math
 import statistics
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import date, datetime
 
@@ -95,7 +96,7 @@ def _offset(seg: Segment, t: float) -> float:
 
 
 def _stop_facts(
-    events: list[MotionEventOccurrence],
+    events: Sequence[MotionEventOccurrence],
     project,
     fx: float,
     fy: float,
@@ -122,8 +123,8 @@ def _stop_facts(
 
 def compute_encounters(
     session_id: str,
-    segments: list[Segment],
-    events: list[MotionEventOccurrence],
+    segments: Sequence[Segment],
+    events: Sequence[MotionEventOccurrence],
     candidates: list[FacilityCandidate],
 ) -> list[FacilityEncounter]:
     if not segments or not candidates:

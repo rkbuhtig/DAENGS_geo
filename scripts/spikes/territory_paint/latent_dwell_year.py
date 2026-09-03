@@ -338,7 +338,7 @@ def load_sheets(path: str, persona: str, radius_u: float, profile) -> list:
         started = fixes[0].at
         computed = compute_facts(walk["walk_id"], "spike", started,
                                  fixes[-1].at + timedelta(seconds=1), fixes)
-        sheets.append(paint_sheet(walk["walk_id"], started, computed.segments,
+        sheets.append(paint_sheet(walk["walk_id"], started, computed.trail.segments,
                                   radius_u, profile))
     return sheets
 

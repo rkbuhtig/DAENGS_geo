@@ -119,10 +119,10 @@ async def _seal_walk(db):
     await store.finalize(
         db,
         computed.facts,
-        computed.quality,
+        computed.trail.quality,
         computed.events,
         observations=observations,
-        capsule=capsule_for(computed, loaded),
+        capsule=capsule_for(computed),
     )
     await db.commit()
 

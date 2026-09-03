@@ -181,7 +181,7 @@ def build_spatial_diary_ui_fixture() -> dict[str, object]:
         session_id = f"ui-walk-{index:02d}"
         fixes = _walk_fixes(route, started_at)
         computed = compute_facts(session_id, participants[0], started_at, fixes[-1].at, fixes)
-        sheet = paint_sheet(session_id, started_at, computed.segments, _RADIUS_U, NARROW_STEP)
+        sheet = paint_sheet(session_id, started_at, computed.trail.segments, _RADIUS_U, NARROW_STEP)
         paint_fps.add(sheet.paint_fp)
         started_by_session[session_id] = started_at
         participants_by_session[session_id] = participants
@@ -192,7 +192,7 @@ def build_spatial_diary_ui_fixture() -> dict[str, object]:
                 "participants": list(participants),
                 "precipitation": precipitation,
                 "daylight": daylight,
-                "source_segment_s": round(sum(segment.dt for segment in computed.segments), 8),
+                "source_segment_s": round(sum(segment.dt for segment in computed.trail.segments), 8),
                 "occupancy_mass_s": round(sum(sheet.occupancy.values()), 8),
                 "cells": _cell_payload(sheet),
             }

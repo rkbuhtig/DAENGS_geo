@@ -80,7 +80,7 @@ def segments_for(path: list, rng: random.Random):
     if len(fixes) < 2:
         return []
     ended = fixes[-1].at + timedelta(seconds=1)
-    return compute_facts("paint", "spike", BASE, ended, fixes).segments
+    return compute_facts("paint", "spike", BASE, ended, fixes).trail.segments
 
 
 def main(argv: list[str] | None = None) -> int:

@@ -104,9 +104,9 @@ def test_no_segment_ever_crosses_a_break():
     """
     for gap in (10.0, 50.0, 200.0, 1000.0):
         computed = _split_walk(gap)
-        assert len(computed.segments) == 2 * LEG_M
-        assert len({s.chain_index for s in computed.segments}) == 2
-        for seg in computed.segments:
+        assert len(computed.trail.segments) == 2 * LEG_M
+        assert len({s.chain_index for s in computed.trail.segments}) == 2
+        for seg in computed.trail.segments:
             ax, bx = _x_of(seg.a), _x_of(seg.b)
             first = ax <= LEG_M + 1e-6 and bx <= LEG_M + 1e-6
             second = ax >= LEG_M + gap - 1e-6 and bx >= LEG_M + gap - 1e-6
@@ -122,14 +122,14 @@ def test_a_forged_bridging_segment_would_fill_the_gap():
     """
     gap = 200.0
     computed = _split_walk(gap)
-    left_end = max(computed.segments, key=lambda s: _x_of(s.b))
-    right_start = min(computed.segments, key=lambda s: _x_of(s.a))
+    left_end = max(computed.trail.segments, key=lambda s: _x_of(s.b))
+    right_start = min(computed.trail.segments, key=lambda s: _x_of(s.a))
     forged = Segment(a=left_end.b, b=right_start.a, dt=1.0, dist=gap,
                      offset_m=left_end.offset_m, moving=True,
                      chain_index=left_end.chain_index)
 
-    honest = paint_sheet("honest", START, computed.segments, RADIUS_U, NARROW_STEP)
-    bridged = paint_sheet("forged", START, [*computed.segments, forged],
+    honest = paint_sheet("honest", START, computed.trail.segments, RADIUS_U, NARROW_STEP)
+    bridged = paint_sheet("forged", START, [*computed.trail.segments, forged],
                           RADIUS_U, NARROW_STEP)
     holes = _gap_cells(gap)
     assert len(holes & set(honest.occupancy)) < len(holes) / 2
@@ -145,14 +145,14 @@ def test_every_break_reason_splits_the_chain():
         "accuracy": _split_walk(30.0, explicit_chain=False, bad_accuracy=True),
     }
     for why, computed in cases.items():
-        chains = {s.chain_index for s in computed.segments}
+        chains = {s.chain_index for s in computed.trail.segments}
         assert len(chains) == 2, f"{why} 가 연속을 안 끊었다: chain {chains}"
 
 
 def test_both_sides_are_still_painted():
     """공백이 있다고 양쪽 관측까지 잃으면 안 된다 — 끊는 것과 버리는 것은 다르다."""
     computed = _split_walk(200.0)
-    sheet = paint_sheet("w", START, computed.segments, RADIUS_U, NARROW_STEP)
+    sheet = paint_sheet("w", START, computed.trail.segments, RADIUS_U, NARROW_STEP)
     assert hex_cell(*_at(LEG_M / 2), RADIUS_U) in sheet.occupancy          # 앞 구간
     assert hex_cell(*_at(LEG_M + 200 + LEG_M / 2), RADIUS_U) in sheet.occupancy  # 뒤 구간
 
@@ -161,7 +161,7 @@ def test_a_wide_gap_leaves_a_hole_in_the_paint():
     """붓이 닿지 못할 만큼 넓은 공백은 지도에서도 비어 있다."""
     gap = 200.0
     computed = _split_walk(gap)
-    sheet = paint_sheet("w", START, computed.segments, RADIUS_U, NARROW_STEP)
+    sheet = paint_sheet("w", START, computed.trail.segments, RADIUS_U, NARROW_STEP)
     painted = _gap_cells(gap) & set(sheet.occupancy)
     assert len(painted) < len(_gap_cells(gap)) / 2, "넓은 공백이 메워졌다"
 
@@ -177,16 +177,16 @@ def test_a_narrow_gap_is_visually_bridged_by_brush_width():
     """
     narrow = NARROW_STEP.reach_m                       # 20m
     computed = _split_walk(narrow)                     # 도달 × 1 — 확실히 만난다
-    sheet = paint_sheet("w", START, computed.segments, RADIUS_U, NARROW_STEP)
+    sheet = paint_sheet("w", START, computed.trail.segments, RADIUS_U, NARROW_STEP)
     assert _gap_cells(narrow) <= set(sheet.occupancy)
     # 그래도 chain 은 둘이다 — 시각적 연결과 자료의 연결은 별개다
-    assert len({s.chain_index for s in computed.segments}) == 2
+    assert len({s.chain_index for s in computed.trail.segments}) == 2
 
 
 def _unbroken(gap_m: float, radius_u: float, profile) -> bool:
     """공백 구간의 셀이 하나도 안 빠지고 칠해졌나 — 화면에서 이어져 보이나."""
     computed = _split_walk(gap_m)
-    sheet = paint_sheet("w", START, computed.segments, radius_u, profile)
+    sheet = paint_sheet("w", START, computed.trail.segments, radius_u, profile)
     return _gap_cells(gap_m, radius_u) <= set(sheet.occupancy)
 
 
@@ -238,7 +238,7 @@ def test_stack_keeps_the_hole_across_sheets():
     gap = 200.0
     sheets = [
         paint_sheet(f"w{i}", START + timedelta(days=i),
-                    _split_walk(gap).segments, RADIUS_U, NARROW_STEP)
+                   _split_walk(gap).trail.segments, RADIUS_U, NARROW_STEP)
         for i in range(5)
     ]
     canvas = stack(sheets)
@@ -262,6 +262,6 @@ def test_region_encounter_does_not_merge_across_a_break():
         corners.append((lat, lng))
     wide = Region(id="park", version=1, ring=tuple(corners))
 
-    found = region_encounters(computed.segments, [wide])
+    found = region_encounters(computed.trail.segments, [wide])
     assert len(found) == 2, f"공백 양쪽이 한 번의 진입으로 합쳐졌다: {len(found)}건"
     assert [e.occurrence_index for e in found] == [0, 1]

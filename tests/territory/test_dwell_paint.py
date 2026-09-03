@@ -91,7 +91,7 @@ def _walk(stop_s: float, radius_u: float, *, jitter_m: float = 0.0, seed: int = 
         push(LEG_M / 2 + i * SPEED_MPS)
 
     computed = compute_facts("w", "d", START, fixes[-1].at + timedelta(seconds=1), fixes)
-    return computed, paint_sheet("w", START, computed.segments, radius_u, NARROW_STEP)
+    return computed, paint_sheet("w", START, computed.trail.segments, radius_u, NARROW_STEP)
 
 
 def _metres_from_stop(cell, radius_u: float) -> float:
@@ -124,7 +124,7 @@ def _median(values) -> float:
 def test_standing_still_still_makes_segments():
     """정지 구간이 Segment 로 남아야 칠할 것이 있다. `moving=False` 는 표시지 삭제가 아니다."""
     computed, _ = _walk(stop_s=60, radius_u=COARSE)
-    still = [s for s in computed.segments if not s.moving]
+    still = [s for s in computed.trail.segments if not s.moving]
     assert still, "정지 Segment 가 하나도 없다 — 어딘가에서 버리고 있다"
     assert sum(s.dt for s in still) >= 55, "정지 시간이 Segment 로 안 남았다"
 

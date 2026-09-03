@@ -25,6 +25,7 @@
 
 import math
 from collections import defaultdict
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from itertools import pairwise
@@ -150,7 +151,7 @@ def _edge_crossings(
 
 
 def region_encounters(
-    segments: list[Segment],
+    segments: Sequence[Segment],
     regions: list[Region],
     stop_windows: list[tuple[datetime, datetime]] | None = None,
 ) -> list[RegionEncounter]:
@@ -170,7 +171,7 @@ def region_encounters(
 
 
 def _encounters_for(
-    segments: list[Segment],
+    segments: Sequence[Segment],
     region: Region,
     project,
     windows: list[tuple[datetime, datetime]],
@@ -237,7 +238,9 @@ def _encounters_for(
 # ---- approx: 셀 방문 기록 × 폴리곤 ---------------------------------------------------
 
 
-def cell_visits(segments: list[Segment], radius_u: float, step_m: float = 0.0) -> list[CellVisit]:
+def cell_visits(
+    segments: Sequence[Segment], radius_u: float, step_m: float = 0.0
+) -> list[CellVisit]:
     """세그먼트 열 → 셀별 체류. purge 전에 만들어 두는 층이다.
 
     세그먼트를 `step_m` 간격으로 잘라 각 조각의 시간을 그 지점의 셀에 준다. 중점 하나로

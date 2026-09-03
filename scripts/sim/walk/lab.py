@@ -30,7 +30,7 @@ def build_lab_payload(artifacts: ScenarioArtifacts) -> dict[str, object]:
             "missing_sample_count": sum(row["observed_fix"] is None for row in trace_samples),
             "delivery_event_count": len(artifacts.delivery["events"]),
             "facts": artifacts.computed.facts.model_dump(mode="json"),
-            "quality": artifacts.computed.quality.to_dict(),
+            "quality": artifacts.computed.trail.quality.to_dict(),
         },
         "trace": artifacts.trace,
         "delivery": artifacts.delivery,

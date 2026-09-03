@@ -41,6 +41,7 @@ research/2026-08-27-latent-dwell-synthesis.md) `finalize` 는 원좌표를 지�
 
 import math
 import statistics
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
@@ -127,7 +128,7 @@ def _percentile(ordered: list[float], q: float) -> float:
     return ordered[low] * (high - k) + ordered[high] * (k - low)
 
 
-def moving_speed_profile(segments: list[Segment]) -> MovingSpeedProfile | None:
+def moving_speed_profile(segments: Sequence[Segment]) -> MovingSpeedProfile | None:
     """이동으로 분류된 구간의 속도 분포. 표본이 모자라면 None."""
     speeds = sorted(s.dist / s.dt for s in segments if s.moving and s.dt > 0)
     if len(speeds) < MIN_SPEED_SAMPLES:
@@ -176,7 +177,7 @@ def _gap_observation(session_id: str, gap: GapSpan) -> MicroObservation:
 
 
 def extract_observations(
-    session_id: str, segments: list[Segment], gaps: list[GapSpan] = ()
+    session_id: str, segments: Sequence[Segment], gaps: Sequence[GapSpan] = ()
 ) -> list[MicroObservation]:
     """후보 구간을 뽑는다. 문턱은 하나뿐이고 그게 곧 선언한 탐색 범위다.
 
