@@ -2,7 +2,7 @@
 status: proposed
 implementation: working-skeleton
 last_verified: 2026-09-03
-depends-on: territory-paint.md, contracts/walk-record.md, contracts/walk-capsule.md
+depends-on: territory-paint.md, contracts/walk-record.md, contracts/walk-capsule.md, decisions/2026-09-03-canonical-trail-consumer-boundary.md
 ---
 # 점령지 게임 — 산책 접촉, 사진 서명, 영역 형성
 
@@ -13,7 +13,7 @@ depends-on: territory-paint.md, contracts/walk-record.md, contracts/walk-capsule
 ## 한 문장
 
 **검증된 산책으로 접근한 점령지만 후보가 되고, 같은 세션에서 앱 카메라로 촬영한 강아지
-사진이 비동기 판정을 통과하면 해당 점령지에 강아지의 발도장이 남는다.**
+사진이 비동기 판정을 통과하면 해당 점령지에 세션의 대표 강아지 ID로 발도장이 남는다.**
 
 이 문장이 풀려는 문제는 단순하다. GPS가 증명하는 것은 계정의 휴대폰이 어떤 공간을
 지났다는 사실이지, 등록된 강아지가 그 산책 전체를 함께했다는 사실이 아니다. 반대로 사진
@@ -30,6 +30,12 @@ depends-on: territory-paint.md, contracts/walk-record.md, contracts/walk-capsule
 → 반복 방문과 실제 연결 경로
 → 현재 규칙으로 읽은 영역
 ```
+
+점령의 장기 주체를 개·보호자·가구 중 무엇으로 할지는 아직 미정이다. 다만 첫 계약이 그 결정을
+막지 않으면서 현재 단일 `dog_id` 산책과 이어지도록 [결정 #84](../../decisions/2026-09-03-canonical-trail-consumer-boundary.md)는
+`claiming_pet_id` 하나를 가계약으로 정했다. v0에서는 세션의 `dog_id`와 같고, 강아지 수가
+점령 기회나 강도를 늘리지 않는다. 권한을 가진 보호자 계정은 actor이지 장기 claimant로 확정된
+것이 아니다.
 
 ## 점령 게임에서는 `anchor`라는 말을 쓰지 않는다
 
@@ -107,7 +113,7 @@ depends-on: territory-paint.md, contracts/walk-record.md, contracts/walk-capsule
 | 촬영 | `WalkCapture` | 앱 카메라가 세션 중 촬영했다 | 사진에 강아지가 있다 |
 | 판정 | `CaptureAssessment` | 모델이 사진에서 강아지를 보았거나 기권했다 | 등록된 바로 그 강아지다 |
 | 증언 | `TerritorySiteAttestation` | 사용자가 이 접촉을 강아지 산책으로 서명했다 | 산책 전체가 인증됐다 |
-| 상태 | `DogTerritorySiteState` | 현 게임 정책에서 발견·점령·정착 상태다 | 영구 불변 사실이다 |
+| 상태 | `TerritorySiteClaimState` | 현 게임 정책에서 대표 pet의 발견·점령·정착 상태다 | 영구 불변 사실이나 가구 소유 결정이다 |
 | 영역 | `TerritoryProjection` | 현재 점령지와 연결 증거를 규칙으로 읽은 결과다 | 셀로판 원판 자체다 |
 
 VLM의 역할은 좁다. 우선 질문은 **“사진에서 강아지로 판단할 수 있는 대상이 충분히
@@ -132,13 +138,13 @@ WalkCapture / Assessment       그 순간 사진에 강아지가 보이는가
         +
 TerritorySiteAttestation       사용자가 어느 기회에 서명했는가
         ↓
-DogTerritorySiteState          게임 정책의 현재 상태
+TerritorySiteClaimState        게임 정책의 현재 상태
         ↓
 TerritoryProjection            지도와 보상 표현
 ```
 
 Cellophane은 산책별 공간 증거이고, 점령지 점령은 그 증거를 참조하는 별도 소비자다. 게임
-밸런스가 바뀌어도 과거 Cellophane과 Attestation을 덮어쓰지 않고 `DogTerritorySiteState`와
+밸런스가 바뀌어도 과거 Cellophane과 Attestation을 덮어쓰지 않고 `TerritorySiteClaimState`와
 `TerritoryProjection`을 다시 계산할 수 있어야 한다.
 
 연속적인 색 번짐은 UI 표현으로 만들 수 있다. 그러나 화면에서 이어져 보이는 색이 걷지 않은
@@ -228,7 +234,7 @@ start
    └─ Capsule seal 후 raw fix purge
 → 늦은 사진 업로드·판정 재시도
 → 봉인된 encounter와 capture를 대조
-→ TerritorySiteAttestation / DogTerritorySiteState 갱신
+→ TerritorySiteAttestation / TerritorySiteClaimState 갱신
 ```
 
 이렇게 하면 사진 판정 때문에 산책 종료가 실패하지 않고, raw fix를 계속 보관하지 않아도 늦은
@@ -376,13 +382,13 @@ CaptureAssessment
 
 TerritorySiteAttestation
   attestation_id
-  dog_id
+  claiming_pet_id
   session_id
   site_id
   capture_id
 
-DogTerritorySiteState
-  dog_id
+TerritorySiteClaimState
+  claiming_pet_id
   site_id
   projected_state
   policy_version
@@ -432,6 +438,7 @@ DogTerritorySiteState
 - 점령 강화에는 사진 재인증이 필요한가, 반복 산책 접촉만으로 충분한가?
 - 공용 시즌 경쟁에 들어가기 위한 더 강한 증거는 무엇인가?
 - `unknown`·`건축물` 대표 시설과 커버리지 구멍을 어떻게 다루는가?
+- 단일 `claiming_pet_id` 가계약을 보호자·가구·팀 중 어떤 장기 claimant로 바꿀 것인가?
 
 ## 채택할 때도 한 결정으로 닫지 않는다
 

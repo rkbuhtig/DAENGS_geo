@@ -73,6 +73,7 @@ backlog.md           갈래에 안 붙는 미결
 - [결정 #81 — 부정적 공간 주장 자격](decisions/2026-09-01-negative-spatial-claim-eligibility.md) — `not_observed`는 평가 방법이 있는 drift `not_suspected`일 때만 허용한다
 - [결정 #82 — Pin Attestation 정정](decisions/2026-09-01-spatial-diary-attestation-correction.md) — 최초 Offer 응답과 Pin identity는 보존하고 현재 의미만 append-only correction head로 바꾼다
 - [결정 #83 — Context Plane v0](decisions/2026-09-01-context-plane-v0.md) — 날씨·프로필·측정 재료를 typed Atom·Facet·Lens로 분리하고 개인의 속마음은 registry 밖에 둔다
+- [결정 #84 — CanonicalTrail consumer boundary](decisions/2026-09-03-canonical-trail-consumer-boundary.md) — canonical 산책 증거는 finalize 중 한 번만 만들고 일기·점령은 각자 자격과 수명으로 소비한다. 점령 v0는 단일 `claiming_pet_id` 가계약
 
 ## 계약
 - [반려견 프로필](contracts/dog-profile.md) — 외부에서 받는 형태 + 가상 페르소나 8마리 (축: 지도 위 난점)
@@ -85,6 +86,7 @@ backlog.md           갈래에 안 붙는 미결
 - [Memory Place biography](contracts/memory-place-biography.md) — 장소 identity·membership과 노출·관측 가능성·부정적 공간 주장 자격
 - [Pin Attestation correction](contracts/pin-attestation-correction.md) — 사용자 의미 정정 chain과 최초 응답·현재 projection의 권위 분리
 - [Walk Journal Projection](contracts/walk-journal-projection.md) — Capsule 사실·문맥·Pin에서 재생성하는 한 산책의 결정론적 일기
+- [CanonicalTrail consumers](contracts/canonical-trail-consumers.md) — transient canonical 입력, 소비자별 eligibility, 점령 `claiming_pet_id` 가계약
 - [Published Journal Snapshot](contracts/published-journal-snapshot.md) — 사용자가 확정한 제목·요약·대표 Pin과 원본 정책 영수증을 보존하는 비공개 불변본
 - [Context Plane v0](contracts/context-plane.md) — 닫힌 capability·typed Atom·파생 Facet·목적 Lens와 fingerprint/evidence 경계
 - [연속 원 field와 Hex 비교](research/2026-08-31-continuous-hex-comparison.md) — 30회 산책의 4·8·12u 왜곡·질량 영역·수집 간격 측정
