@@ -47,8 +47,8 @@ class PlaceCapabilityInput(PlanningModel):
 class PlaceDiscoveryPlanningData(PlanningModel):
     """공통 capability 봉투의 ``data``가 될 수 있는 Place planning 조각.
 
-    검색 결과와 presentation assembler가 아직 없으므로 이 계약은 그것들이 준비됐다고
-    가장하지 않는다. 검증된 lens와 사용자 refinement 신호까지만 공개한다.
+    검증된 lens와 사용자 refinement 신호까지만 공개한다. 검색과 presentation은 별도
+    assembly 서비스가 이 값을 입력으로 받아 실행하므로 planning 자체와 섞지 않는다.
     """
 
     contract_version: Literal["place-discovery-planning-v1"] = "place-discovery-planning-v1"
