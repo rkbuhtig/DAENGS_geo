@@ -7,11 +7,12 @@ import com.daengs.geo.journey.JourneyRepository
 import com.daengs.geo.location.GeoPoint
 import com.daengs.geo.location.LocationSample
 import com.daengs.geo.location.LocationSource
+import com.daengs.geo.map.features.journey.PlaceJourneyController
+import com.daengs.geo.map.features.journey.PlaceJourneyState
 import com.daengs.geo.map.features.places.PlaceDiscoveryController
 import com.daengs.geo.map.features.places.PlaceDiscoveryState
 import com.daengs.geo.map.features.places.PlaceOriginMode
-import com.daengs.geo.map.features.journey.PlaceJourneyController
-import com.daengs.geo.map.features.journey.PlaceJourneyState
+import com.daengs.geo.map.shell.MapPurpose
 import com.daengs.geo.place.DogSearchContext
 import com.daengs.geo.place.PlaceKey
 import com.daengs.geo.place.PlaceKind
@@ -32,7 +33,6 @@ import kotlinx.coroutines.launch
 
 data class MapLayerPreferences(
     val showTrail: Boolean = true,
-    val showTerritory: Boolean = false,
 )
 
 private data class PlaceSearchIntent(
@@ -58,6 +58,7 @@ data class MapUiState(
     val journey: PlaceJourneyState = PlaceJourneyState(),
     val trail: TrailSnapshot = TrailSnapshot(),
     val layers: MapLayerPreferences = MapLayerPreferences(),
+    val mapPurpose: MapPurpose = MapPurpose.PLACE_SEARCH,
     val territoryCells: List<TerritoryCell> = emptyList(),
     val currentTerritoryCell: TerritoryCell? = null,
     val statusMessage: String? = null,
@@ -178,6 +179,18 @@ class MapViewModel(
 
     fun retryPlaceSearch() = placeDiscovery.retry()
 
+    fun showPlaceSearchMap() {
+        _uiState.update {
+            it.copy(mapPurpose = MapPurpose.PLACE_SEARCH, currentTerritoryCell = null)
+        }
+    }
+
+    fun showWalkMap() {
+        _uiState.update {
+            it.copy(mapPurpose = MapPurpose.WALK, currentTerritoryCell = null)
+        }
+    }
+
     /** A first-class entry point that still uses the one canonical Place discovery session. */
     fun openHospitalPlaces() {
         searchPlacesAtCurrentOrigin(listOf(PlaceKind.HOSPITAL))
@@ -188,6 +201,7 @@ class MapViewModel(
         kinds: List<PlaceKind>,
         preferParking: Boolean = false,
     ) {
+        showPlaceSearchMap()
         val intent = PlaceSearchIntent(kinds, preferParking)
         val origin = _uiState.value.deviceLocation
         if (origin != null) {
@@ -203,6 +217,7 @@ class MapViewModel(
         kinds: List<PlaceKind>,
         preferParking: Boolean = false,
     ) {
+        showPlaceSearchMap()
         locateForPlaceDiscovery(PlaceSearchIntent(kinds, preferParking))
     }
 
@@ -226,6 +241,7 @@ class MapViewModel(
         kinds: List<PlaceKind>,
         preferParking: Boolean = false,
     ) {
+        showPlaceSearchMap()
         val discovery = _uiState.value.placeDiscovery
         val pinned = discovery.origin?.takeIf { discovery.originMode == PlaceOriginMode.PINNED }
         if (pinned == null) {
@@ -240,6 +256,7 @@ class MapViewModel(
         kinds: List<PlaceKind>,
         preferParking: Boolean = false,
     ) {
+        showPlaceSearchMap()
         val origin = _uiState.value.cameraCandidate
         if (origin == null) {
             _uiState.update { it.copy(statusMessage = "지도를 이동한 뒤 이 지역을 검색해주세요.") }
@@ -310,10 +327,10 @@ class MapViewModel(
 
     fun toggleTerritory() {
         _uiState.update { state ->
-            val enabled = !state.layers.showTerritory
+            val entering = state.mapPurpose != MapPurpose.TERRITORY
             state.copy(
-                layers = state.layers.copy(showTerritory = enabled),
-                currentTerritoryCell = if (enabled) {
+                mapPurpose = if (entering) MapPurpose.TERRITORY else MapPurpose.WALK,
+                currentTerritoryCell = if (entering) {
                     state.feedSample?.let { territoryRepository.cellAt(it.point) }
                 } else {
                     null
@@ -376,7 +393,7 @@ class MapViewModel(
                 deviceLocation = location.deviceLocation,
                 locationFeed = location.feed,
                 currentTerritoryCell = if (
-                    state.layers.showTerritory &&
+                    state.mapPurpose == MapPurpose.TERRITORY &&
                     location.feedSample != null
                 ) {
                     territoryRepository.cellAt(location.feedSample.point)

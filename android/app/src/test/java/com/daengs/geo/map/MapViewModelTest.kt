@@ -11,6 +11,7 @@ import com.daengs.geo.location.LocationUpdateConfig
 import com.daengs.geo.map.features.places.PlaceOriginMode
 import com.daengs.geo.map.layers.trail.TrackingState
 import com.daengs.geo.map.layers.trail.TrailSnapshot
+import com.daengs.geo.map.shell.MapPurpose
 import com.daengs.geo.place.DogSearchContext
 import com.daengs.geo.place.DogSize
 import com.daengs.geo.place.PlaceKey
@@ -317,6 +318,28 @@ class MapViewModelTest {
         viewModel.toggleTerritory()
 
         assertNotNull(viewModel.uiState.value.currentTerritoryCell)
+        assertEquals(MapPurpose.TERRITORY, viewModel.uiState.value.mapPurpose)
+    }
+
+    @Test
+    fun `map purpose is exclusive and leaving territory clears its preview`() = runTest {
+        val source = FakeLocationSource(fix = fix(37.5665, 126.9780))
+        val viewModel = viewModel(source)
+        viewModel.onAppForeground()
+        viewModel.useDeviceLocation()
+        advanceUntilIdle()
+
+        assertEquals(MapPurpose.PLACE_SEARCH, viewModel.uiState.value.mapPurpose)
+        viewModel.showWalkMap()
+        assertEquals(MapPurpose.WALK, viewModel.uiState.value.mapPurpose)
+
+        viewModel.toggleTerritory()
+        assertEquals(MapPurpose.TERRITORY, viewModel.uiState.value.mapPurpose)
+        assertNotNull(viewModel.uiState.value.currentTerritoryCell)
+
+        viewModel.showPlaceSearchMap()
+        assertEquals(MapPurpose.PLACE_SEARCH, viewModel.uiState.value.mapPurpose)
+        assertNull(viewModel.uiState.value.currentTerritoryCell)
     }
 
     @Test
