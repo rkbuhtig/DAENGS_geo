@@ -60,6 +60,7 @@ class GeminiIntentProposer:
             + "\nGemini adapter 출력에서는 intent를 평면 필드로 쓴다. intent_type에 맞는 "
             "kind, purpose_id, capability_id와 value, concept_id, activity_id, object_id 중 하나만 채워라. "
             "evidence는 quote와 확신할 때만 start/end로 출력하라. 각 interpretation에 search_mode를 출력하고, "
+            "required_target proposal이 하나라도 있으면 search_mode는 반드시 directed_search다. "
             "open_discovery일 때만 search_mode_quote와 선택적인 search_mode_start/end를 출력하라. "
             "proposed이면 reason은 none, abstained이면 실제 abstention reason을 출력하라. "
             "세부 사유를 고를 수 없으면 abstained와 unspecified를 출력하라.",

@@ -395,7 +395,7 @@ function renderCandidateDetail(lens) {
 
   const previewBox = document.createElement('div'); previewBox.className = 'box';
   const previewTitle = document.createElement('b'); previewTitle.textContent = 'gate preview'; previewBox.append(previewTitle);
-  const counts = confirmation ? confirmation.candidate_counts : execution.candidate_counts;
+  const counts = confirmed ? confirmed.candidate_counts : execution.candidate_counts;
   const countDetail = document.createElement('small');
   countDetail.textContent = '후보 ' + counts.initial_candidate_count +
     (counts.initial_candidate_count_truncated ? '+' : '') + ' → ' +

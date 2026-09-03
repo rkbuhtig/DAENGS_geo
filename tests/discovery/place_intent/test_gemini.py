@@ -39,6 +39,23 @@ async def test_gemini_interactions_request_is_stateless_and_structured() -> None
         assert payload["store"] is False
         assert "반려견 동반 장소 검색" in payload["system_instruction"]
         assert "buy와 dog_toy는 둘 다 hypothetical" in payload["system_instruction"]
+        assert (
+            '"추천해줘"나 "골라줘"라는 동사만으로 open_discovery를 만들지 마라'
+            in payload["system_instruction"]
+        )
+        assert (
+            "required_target proposal이 하나라도 있으면 search_mode는 반드시 directed_search"
+            in payload["system_instruction"]
+        )
+        assert "semantic.proximity를 만들지 마라" in payload["system_instruction"]
+        assert (
+            "goal·preference·negated·excluded·hypothetical·relational proposal만 있고"
+            in payload["system_instruction"]
+        )
+        assert (
+            "두 개 이상의 명시적 장소 대안을 고민하면"
+            in payload["system_instruction"]
+        )
         output_format = payload["response_format"]
         assert output_format["type"] == "text"
         assert output_format["mime_type"] == "application/json"
@@ -63,6 +80,14 @@ async def test_gemini_interactions_request_is_stateless_and_structured() -> None
         }
         assert proposal["properties"]["activity_id"]["enum"] == ["play", "buy"]
         assert proposal["properties"]["object_id"]["enum"] == ["dog_toy"]
+        assert proposal["properties"]["concept_id"]["enum"] == [
+            "semantic.quiet",
+            "semantic.cheap",
+            "semantic.dog_interest",
+        ]
+        mode_description = interpretation["properties"]["search_mode"]["description"]
+        assert "명시적 place target이 있으면" in mode_description
+        assert "goal/preference/negative/hypothetical만으로는" in mode_description
         assert "intent" not in proposal["properties"]
         serialized_schema = json.dumps(output_format["schema"])
         assert "$ref" not in serialized_schema
