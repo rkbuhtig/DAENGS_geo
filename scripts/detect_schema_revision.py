@@ -82,23 +82,25 @@ def main() -> int:
     engine = create_engine(settings.database_url.replace("+asyncpg", "+psycopg"))
     try:
         with engine.connect() as connection:
+
             def present(marker: LegacyMarker) -> bool:
                 if marker.table is None:
                     raise AssertionError("데이터 전용 리비전은 detect 가 묻지 않는다")
-                if marker.column is not None:
-                    return bool(
-                        connection.execute(
-                            EXISTS_COLUMN, {"table": marker.table, "column": marker.column}
+                for table in (marker.table, *marker.table_aliases):
+                    if marker.column is not None:
+                        exists = connection.execute(
+                            EXISTS_COLUMN, {"table": table, "column": marker.column}
                         ).scalar()
-                    )
-                if marker.constraint is not None:
-                    return bool(
-                        connection.execute(
+                    elif marker.constraint is not None:
+                        exists = connection.execute(
                             EXISTS_CONSTRAINT,
-                            {"table": marker.table, "constraint": marker.constraint},
+                            {"table": table, "constraint": marker.constraint},
                         ).scalar()
-                    )
-                return bool(connection.execute(EXISTS_TABLE, {"table": marker.table}).scalar())
+                    else:
+                        exists = connection.execute(EXISTS_TABLE, {"table": table}).scalar()
+                    if exists:
+                        return True
+                return False
 
             detection = detect(present)
 

@@ -19,7 +19,7 @@
 | [session-engine-draft](session-engine-draft.md) | exploring | draft | 초기 start/locations/finish 흐름과 소비자 아이디어. 구현 현황은 Android README/계약이 더 최신 |
 | [session-continuity-and-dwell](session-continuity-and-dwell.md) | exploring | partial | 이미 있는 pause/chain/unfinished-session 위에서 세션 연속성·복구·체류·territory 의미를 정리 |
 | [territory-paint](territory-paint.md) | exploring | working-skeleton | 산책 점을 붓으로 지도를 칠한다. 산책 한 번 = 셀로판 한 장, 조건으로 골라 겹친다. §A(영구 형태)는 [결정 #69](../../decisions/2026-08-26-walk-permanent-spatial-form.md) 로 닫혔고 §B·§C 는 열려 있다 |
-| [territory-anchor-game](territory-anchor-game.md) | proposed | none | 검증된 산책의 앵커 접촉 → 세션 내 촬영 → 비동기 VLM 판정 → 발도장·연결망·영역 형성 가설 |
+| [territory-site-game](territory-site-game.md) | proposed | working-skeleton | 검증된 산책의 점령지 접촉 → 세션 내 촬영 → 비동기 VLM 판정 → 발도장·연결망·영역 형성 가설. 중립 점령지 읽기만 구현됨 |
 | [cellophane-statistical-layer](cellophane-statistical-layer.md) | exploring | working-skeleton | **싸인펜 생성 연산 → 산책별 셀로판 표본 → z축 적층 → 통계 질의**를 분리한다. 방문률·총 시간·방문당 체류·두 이용 분포의 통계 코어는 구현됐고, 50·80·95% 영역과 Raw/Adjusted 집 편향, 실험 B/C는 열려 있다 |
 | [continuous-brush-reference](continuous-brush-reference.md) | exploring | working-skeleton | 같은 canonical Segment를 연속 원 field와 Hex Cellophane에 넣는 독립 비교 기준선 |
 | [simulator-core](simulator-core.md) | exploring | working-skeleton | latent truth와 제품 관측을 분리한 결정론적 산책·센서 시뮬레이터 |
@@ -32,7 +32,7 @@
 | [loop-and-balance](loop-and-balance.md) | parked | none | 3단 루프 · 케어 밸런스. 데이터 수집 전에는 결정하지 않음 |
 
 `territory-paint`는 서버가 확정한 `Segment[]`를 소비해 공간을 칠하는 갈래다. 셀 격자는
-`app/geo/cells.py`로 `anchors.py`·Android `LocalHexCellIndexer`와 공유한다. 무엇을 영구히
+`app/geo/cells.py`로 `territory_sites.py`·Android `LocalHexCellIndexer`와 공유한다. 무엇을 영구히
 남길지는 [결정 #69](../../decisions/2026-08-26-walk-permanent-spatial-form.md)가 산책별 셀 맵으로
 닫았다(칸마다 `occupancy`와 `peak`, 겹치기는 질의지 저장이 아니다). 남은 §B·§C는 그 위에서
 무엇을 어떻게 읽을지다.

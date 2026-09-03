@@ -63,7 +63,7 @@ start / fixes / finish
 
 ```text
 app/
-├── api/                         Place v2·정적 지도·anchor HTTP 표면
+├── api/                         Place v2·정적 지도 HTTP 표면
 ├── context_plane/               typed Atom·Facet·Lens·registry
 ├── core/                        설정·DB·clock·스키마 판별
 ├── discovery/place_intent/      intent compiler·lens·dev lab

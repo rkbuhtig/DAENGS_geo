@@ -1,10 +1,10 @@
 ---
 status: proposed
-implementation: none
+implementation: working-skeleton
 last_verified: 2026-09-03
 depends-on: territory-paint.md, contracts/walk-record.md, contracts/walk-capsule.md
 ---
-# 점령 앵커 게임 — 산책 접촉, 사진 서명, 영역 형성
+# 점령지 게임 — 산책 접촉, 사진 서명, 영역 형성
 
 > 이 문서는 채택된 제품 결정이나 구현 계약이 아니다. 점령 권위, 사진 판정, 영역 형성의
 > 가설을 한 갈래에 모으고 무엇을 측정해야 채택할 수 있는지 적는 초안이다. 반경·시간·횟수와
@@ -12,8 +12,8 @@ depends-on: territory-paint.md, contracts/walk-record.md, contracts/walk-capsule
 
 ## 한 문장
 
-**검증된 산책으로 접근한 점령 앵커만 후보가 되고, 같은 세션에서 앱 카메라로 촬영한 강아지
-사진이 비동기 판정을 통과하면 해당 앵커에 강아지의 발도장이 남는다.**
+**검증된 산책으로 접근한 점령지만 후보가 되고, 같은 세션에서 앱 카메라로 촬영한 강아지
+사진이 비동기 판정을 통과하면 해당 점령지에 강아지의 발도장이 남는다.**
 
 이 문장이 풀려는 문제는 단순하다. GPS가 증명하는 것은 계정의 휴대폰이 어떤 공간을
 지났다는 사실이지, 등록된 강아지가 그 산책 전체를 함께했다는 사실이 아니다. 반대로 사진
@@ -22,30 +22,39 @@ depends-on: territory-paint.md, contracts/walk-record.md, contracts/walk-capsule
 
 ```text
 검증된 산책 경로
-→ 점령 앵커 접촉
+→ 점령지 접촉
 → 이번 세션의 서명 가능 후보
 → 앱 안에서 강아지 촬영
 → 비동기 사진 판정
-→ 앵커 발도장
+→ 점령지 발도장
 → 반복 방문과 실제 연결 경로
 → 현재 규칙으로 읽은 영역
 ```
 
-## 같은 `anchor`라는 말 둘을 분리한다
+## 점령 게임에서는 `anchor`라는 말을 쓰지 않는다
 
-산책 갈래에는 이미 행동 책갈피가 있다. 이 문서의 점령 앵커와 권위가 다르다.
+산책 갈래에는 이미 Behavior Anchor라는 행동 책갈피가 있다. 점령 게임의 지점은 권위와
+생명주기가 전혀 다르므로 `Territory Site`라고 부른다.
 
 | 이름 | 뜻 | identity |
 |---|---|---|
 | Behavior Anchor | 사용자가 행동 의미를 남긴 시간 책갈피 | 산책 속 시각·window |
-| Territory Anchor | 지도에 미리 존재하는 중립 점령 지점 | 안정적인 공간 참조 |
+| Territory Site | 지도에 미리 존재하는 중립 점령 지점 | 안정적인 `site_id` |
 
-코드와 계약에서도 bare `anchor`보다 `behavior_anchor`와 `territory_anchor`처럼 풀어 쓴다.
-한쪽은 사용자가 생성하는 증언이고, 다른 쪽은 모든 사용자에게 공통인 게임판의 지점이다.
+`anchor`를 수식어로 구분해 계속 쓰지 않는다. 한쪽은 사용자가 생성하는 시간 책갈피이고,
+다른 쪽은 모든 사용자에게 공통인 게임판의 장소다. 점령 게임 코드·DB·HTTP에서는 후자를
+`territory_site` / `TerritorySite`로 통일한다.
+
+구현 경계도 이 차이를 따른다. `features.walk`는 산책 세션·fix·검증된 사실만 소유하고,
+점령 게임은 그 사실을 소비하는 `features.territory.game`에 둔다. 지금 구현된 것은 중립
+점령지를 거리순으로 읽는 앱 API(`/territory/sites/nearby`)와 원천을 검수하는 dev
+표면(`/dev/territory-sites`)뿐이다. 10m 접촉 판정, 촬영, VLM, 소유 상태는 이 초안이
+채택되기 전까지 구현 계약이 아니다. 앱 조회의 `radius_m`은 지도 선로딩 범위이며 10m 접촉
+판정 반경과 다른 개념이다.
 
 ## 이미 있는 게임판
 
-현재 `anchor` 테이블은 전국보안등정보표준데이터의 좌표를 육각 셀당 하나씩 결정론적으로
+현재 `territory_site` 테이블은 전국보안등정보표준데이터의 좌표를 육각 셀당 하나씩 결정론적으로
 선별한 중립 지점이다. 아래 설치 형태 분포는 2026-09-03 반경 115 로컬 적재본 480,144개의
 기준선이다.
 
@@ -56,7 +65,7 @@ depends-on: territory-paint.md, contracts/walk-record.md, contracts/walk-capsule
 | 전용주 | 45,746 |
 | 건축물 | 3,075 |
 
-원본 보안등은 도심에서 지나치게 조밀하므로 `anchor-hex:140:q:r` 셀마다 하나만 남기는
+원본 보안등은 도심에서 지나치게 조밀하므로 `territory-site:hex-v1:140:q:r`마다 하나만 남기는
 1차 밀도 실험을 한다. 서울 위도에서 반지름 140 Web Mercator 단위는 실제 약 111m이고
 이웃 셀 중심 간격은 약 192m다. 다만 선택점은 셀 중심이 아니라 실제 원천 좌표다.
 140은 결정값이 아니라 촬영을 동반하는 산책에서 점령 간격이 너무 잦지 않은지 검증하기 위한
@@ -70,8 +79,8 @@ depends-on: territory-paint.md, contracts/walk-record.md, contracts/walk-capsule
 
 | 지표 | 반경 115 | 반경 140 미리보기 | 변화 |
 |---|---:|---:|---:|
-| 전국 앵커 수 | 480,144 | 362,309 | -24.5% |
-| 서울 표본 bbox 앵커 수 | 756 | 491 | -35.1% |
+| 전국 점령지 수 | 480,144 | 362,309 | -24.5% |
+| 서울 표본 bbox 점령지 수 | 756 | 491 | -35.1% |
 | 서울 표본 최근접 거리 P50 | 110.8m | 133.1m | +22.3m |
 | 서울 표본 최근접 거리 P90 | 142.5m | 178.7m | +36.2m |
 
@@ -80,11 +89,11 @@ depends-on: territory-paint.md, contracts/walk-record.md, contracts/walk-capsule
 
 이 지점을 곧바로 사용자가 찾아가야 할 목적지로 보지 않는다. 전봇대·건축물 좌표는 차도,
 사유지, 접근하기 불편한 곳에 있을 수 있다. 게임은 안전한 보행 경로로 주변을 지난 사실을
-받아 앵커에 스냅해야 하며, 정확한 설비 위치로 이동하라고 안내하지 않는다.
+받아 점령지에 스냅해야 하며, 정확한 설비 위치로 이동하라고 안내하지 않는다.
 
-외부 identity는 DB의 `BIGSERIAL anchor.id`나 원본 보안등 식별자보다 격자 버전·반경이
-포함된 `cell`의 안정 참조를 우선 검토한다. 재적재나 DB 재구축이 게임 기록의 identity를
-바꾸면 안 된다. 현재는 게임 셀과 대표 보안등 좌표를 `Anchor` 한 행에 함께 두며, 대표 시설의
+외부 identity는 DB의 `BIGSERIAL territory_site.id`나 원본 보안등 식별자가 아니라 격자
+버전·반경이 포함된 `site_id`다. 재적재나 DB 재구축이 게임 기록의 identity를 바꾸면 안 된다.
+현재는 게임 셀과 대표 보안등 좌표를 `TerritorySite` 한 행에 함께 두며, 대표 시설의
 독립적인 교체 이력이나 생명주기가 실제 요구사항이 되기 전에는 별도 엔티티로 분리하지 않는다.
 
 ## 권위 사다리
@@ -94,12 +103,12 @@ depends-on: territory-paint.md, contracts/walk-record.md, contracts/walk-capsule
 | 단계 | 객체 후보 | 말할 수 있는 것 | 말할 수 없는 것 |
 |---|---|---|---|
 | 측정 | `WalkSegment` | 휴대폰이 이 구간을 이동했다 | 강아지가 함께 걸었다 |
-| 접촉 | `TerritoryAnchorEncounter` | 이 세션이 앵커 근처를 지났다 | 앵커를 점령했다 |
+| 접촉 | `TerritorySiteEncounter` | 이 세션이 점령지 근처를 지났다 | 점령지를 점령했다 |
 | 촬영 | `WalkCapture` | 앱 카메라가 세션 중 촬영했다 | 사진에 강아지가 있다 |
 | 판정 | `CaptureAssessment` | 모델이 사진에서 강아지를 보았거나 기권했다 | 등록된 바로 그 강아지다 |
-| 증언 | `AnchorAttestation` | 사용자가 이 접촉을 강아지 산책으로 서명했다 | 산책 전체가 인증됐다 |
-| 상태 | `DogAnchorState` | 현 게임 정책에서 발견·점령·정착 상태다 | 영구 불변 사실이다 |
-| 영역 | `TerritoryProjection` | 현재 앵커와 연결 증거를 규칙으로 읽은 결과다 | 셀로판 원판 자체다 |
+| 증언 | `TerritorySiteAttestation` | 사용자가 이 접촉을 강아지 산책으로 서명했다 | 산책 전체가 인증됐다 |
+| 상태 | `DogTerritorySiteState` | 현 게임 정책에서 발견·점령·정착 상태다 | 영구 불변 사실이다 |
+| 영역 | `TerritoryProjection` | 현재 점령지와 연결 증거를 규칙으로 읽은 결과다 | 셀로판 원판 자체다 |
 
 VLM의 역할은 좁다. 우선 질문은 **“사진에서 강아지로 판단할 수 있는 대상이 충분히
 보이는가”**다. 품종·개체 identity·건강·감정·목줄 여부를 이 판정에서 추론하지 않는다.
@@ -117,19 +126,19 @@ WalkFacts / canonical Segment[]
         ↓
 산책별 Cellophane              어디를 어떻게 걸었는가
         ↓
-TerritoryAnchorEncounter       어떤 점령 기회를 얻었는가
+TerritorySiteEncounter         어떤 점령 기회를 얻었는가
         +
 WalkCapture / Assessment       그 순간 사진에 강아지가 보이는가
         +
-AnchorAttestation              사용자가 어느 기회에 서명했는가
+TerritorySiteAttestation       사용자가 어느 기회에 서명했는가
         ↓
-DogAnchorState                 게임 정책의 현재 상태
+DogTerritorySiteState          게임 정책의 현재 상태
         ↓
 TerritoryProjection            지도와 보상 표현
 ```
 
-Cellophane은 산책별 공간 증거이고, 앵커 점령은 그 증거를 참조하는 별도 소비자다. 게임
-밸런스가 바뀌어도 과거 Cellophane과 Attestation을 덮어쓰지 않고 `DogAnchorState`와
+Cellophane은 산책별 공간 증거이고, 점령지 점령은 그 증거를 참조하는 별도 소비자다. 게임
+밸런스가 바뀌어도 과거 Cellophane과 Attestation을 덮어쓰지 않고 `DogTerritorySiteState`와
 `TerritoryProjection`을 다시 계산할 수 있어야 한다.
 
 연속적인 색 번짐은 UI 표현으로 만들 수 있다. 그러나 화면에서 이어져 보이는 색이 걷지 않은
@@ -152,10 +161,10 @@ WalkCapture
 - capture 당시 위치와 accuracy
 - media_hash
 - source = in_app_camera
-- purpose = territory_anchor_claim
+- purpose = territory_site_claim
 ```
 
-필드 이름과 보관 범위는 계약을 만들 때 다시 줄인다. 촬영 당시 원좌표는 앵커 접촉과 매칭한
+필드 이름과 보관 범위는 계약을 만들 때 다시 줄인다. 촬영 당시 원좌표는 점령지 접촉과 매칭한
 뒤 raw fix와 같은 수명으로 삭제할 수 있어야 한다. 사진을 일기에도 쓰는 경우에는 점령 증거와
 일기 매체의 보관·공개 수명을 별도로 둔다.
 
@@ -163,10 +172,10 @@ WalkCapture
 
 - 산책 상태가 `RECORDING`일 때만 점령용 촬영을 받는다.
 - 명시적 일시정지, debug replay, mock 위치에서는 점령 촬영을 닫는다.
-- 한 사진은 같은 세션의 유효한 앵커 접촉 하나에만 붙는다.
-- 여러 앵커가 후보면 canonical 경로에 가장 가까운 유효 앵커를 서버가 고른다.
+- 한 사진은 같은 세션의 유효한 점령지 접촉 하나에만 붙는다.
+- 여러 점령지가 후보면 canonical 경로에 가장 가까운 유효 점령지를 서버가 고른다.
 - GPS accuracy가 나쁘다고 접촉 반경이나 점령량을 넓히지 않는다.
-- 촬영 시각과 앵커 접촉 window가 충분히 가까워야 한다.
+- 촬영 시각과 점령지 접촉 window가 충분히 가까워야 한다.
 - 사진이 없는 접촉은 발견 기록일 수 있지만 점령은 아니다.
 
 접촉 반경, 촬영 허용 window, 산책당 촬영 수는 아직 정하지 않는다.
@@ -206,8 +215,8 @@ captured_local
 ## finalize와 늦은 사진의 경계
 
 현재 서버는 finish에서 canonical 파생과 Capsule을 봉인한 뒤 raw fix를 삭제한다. 사진 업로드나
-VLM 판정이 늦어질 수 있으므로, finalize 전에 그 산책이 통과한 앵커와 접촉 시간 window를
-`TerritoryAnchorEncounter`로 봉인해야 한다.
+VLM 판정이 늦어질 수 있으므로, finalize 전에 그 산책이 통과한 점령지와 접촉 시간 window를
+`TerritorySiteEncounter`로 봉인해야 한다.
 
 ```text
 start
@@ -215,11 +224,11 @@ start
 → capture 사건과 사진 업로드 시도
 → finish
    ├─ WalkFacts / Cellophane
-   ├─ TerritoryAnchorEncounter[]
+   ├─ TerritorySiteEncounter[]
    └─ Capsule seal 후 raw fix purge
 → 늦은 사진 업로드·판정 재시도
 → 봉인된 encounter와 capture를 대조
-→ AnchorAttestation / DogAnchorState 갱신
+→ TerritorySiteAttestation / DogTerritorySiteState 갱신
 ```
 
 이렇게 하면 사진 판정 때문에 산책 종료가 실패하지 않고, raw fix를 계속 보관하지 않아도 늦은
@@ -227,7 +236,7 @@ start
 
 ## 게임 상태 가설
 
-첫 버전은 점령 앵커 하나만으로 즉시 보상을 주고, 영역망은 뒤에 붙인다.
+첫 버전은 점령지 하나만으로 즉시 보상을 주고, 영역망은 뒤에 붙인다.
 
 ```text
 미발견
@@ -235,22 +244,22 @@ start
 → 서명 가능    현재 세션의 촬영 window 안
 → 점령됨       유효한 사진 증언이 붙음
 → 정착됨       서로 다른 날의 재방문·재인증
-→ 핵심 앵커    최근에도 반복 방문한 생활권 거점
+→ 핵심 점령지  최근에도 반복 방문한 생활권 거점
 ```
 
 `발견됨` 이후 단계의 횟수와 최근성은 projection 정책이다. Attestation을 덮어쓰거나 삭제해
 단계를 표현하지 않는다.
 
-### 1차 — 앵커 발도장
+### 1차 — 점령지 발도장
 
 ```text
-산책으로 앵커 발견
+산책으로 점령지 발견
 → 산책 중 사진 한 장
-→ 가까운 앵커 하나에 발도장
+→ 가까운 점령지 하나에 발도장
 → 종료 화면에서 발견과 점령을 따로 표시
 ```
 
-사진을 찍지 않아도 산책 기록과 Cellophane, 앵커 발견은 남는다. 촬영은 점령 게임의 선택적
+사진을 찍지 않아도 산책 기록과 Cellophane, 점령지 발견은 남는다. 촬영은 점령 게임의 선택적
 행동이지 산책 기록의 선행 조건이 아니다.
 
 ### 2차 — 반복 방문과 강화
@@ -258,21 +267,21 @@ start
 같은 날 사진 여러 장보다 서로 다른 날짜의 방문을 더 강한 근거로 본다. 새 영역 탐험과 익숙한
 장소 재방문을 별도 보상으로 보여 주고 하나의 총점으로 접지 않는다.
 
-### 3차 — 점령 앵커 연결망
+### 3차 — 점령지 연결망
 
-두 점령 앵커 사이를 실제 accepted 산책 구간이 연결했을 때만 간선 증거를 만든다. 앵커 좌표를
+두 점령지 사이를 실제 accepted 산책 구간이 연결했을 때만 간선 증거를 만든다. 점령지 좌표를
 직선으로 이어 걷지 않은 공간을 연결하지 않는다. 여러 산책의 간선을 누적할 수 있으므로 한
 산책의 시작점과 종료점이 같을 필요가 없다.
 
 ### 4차 — 포위와 내부 해금
 
 누적 연결망에 유효한 사이클이 생겨도 내부를 자동 점령하지 않는다. 포위는 다음 산책의 보너스
-앵커나 미션을 해금하는 규칙이다. 내부 앵커는 다시 직접 방문하고 사진으로 서명해야 한다.
+점령지나 미션을 해금하는 규칙이다. 내부 점령지는 다시 직접 방문하고 사진으로 서명해야 한다.
 
 ```text
-점령 앵커와 실제 간선으로 사이클 완성
-→ 내부 앵커·미션 해금
-→ 내부 앵커 직접 방문·서명
+점령지와 실제 간선으로 사이클 완성
+→ 내부 점령지·미션 해금
+→ 내부 점령지 직접 방문·서명
 → 점령률과 반복 조건 충족
 → 영역 배지 또는 현재 영역 상태
 ```
@@ -286,7 +295,7 @@ start
 활동을 읽는 시즌 projection으로 분리한다.
 
 ```text
-개인 지도     우리 강아지가 이 앵커에 발도장을 남긴 역사
+개인 지도     우리 강아지가 이 점령지에 발도장을 남긴 역사
 공용 시즌 지도 최근 반복 활동으로 계산한 현재 대표견
 ```
 
@@ -295,11 +304,11 @@ start
 ## 산책 화면 초안
 
 사용자가 전봇대를 찾느라 화면을 계속 보게 만들지 않는다. 평소에는 촬영 버튼으로 보이고,
-유효한 앵커 접촉이 생기면 가벼운 진동과 함께 `발도장 찍기` 상태로 바뀐다.
+유효한 점령지 접촉이 생기면 가벼운 진동과 함께 `발도장 찍기` 상태로 바뀐다.
 
 ```text
 평상시       산책 사진 촬영
-앵커 접촉    발도장 찍기 + 가벼운 진동
+점령지 접촉  발도장 찍기 + 가벼운 진동
 촬영 직후    사진 저장됨 · 확인 중
 판정 성공    말매의 발도장이 확인됐어요
 판정 기권    사진을 확인하기 어려워요
@@ -310,7 +319,7 @@ start
 않는다.
 
 ```text
-새 앵커 발견       8
+새 점령지 발견     8
 발도장 확인         2
 사진 확인 중         1
 ```
@@ -320,17 +329,17 @@ start
 
 ## 안전·개인정보·악용 경계
 
-- 앵커 원천점으로 직접 이동하거나 차도·사유지에 접근하라고 안내하지 않는다.
+- 점령지 원천점으로 직접 이동하거나 차도·사유지에 접근하라고 안내하지 않는다.
 - 걷는 중 화면 주시를 보상하지 않는다. 접근 알림과 촬영은 짧고 선택적이어야 한다.
-- 공개 지도에는 이미 고정된 앵커 위치만 표시하고 실제 촬영 좌표·정확한 시각·원경로는
+- 공개 지도에는 이미 고정된 점령지 위치만 표시하고 실제 촬영 좌표·정확한 시각·원경로는
   공개하지 않는다.
-- 반복된 개인 Cellophane과 앵커 방문 이력은 생활권을 드러내는 민감 정보다.
+- 반복된 개인 Cellophane과 점령지 방문 이력은 생활권을 드러내는 민감 정보다.
 - 사진에는 사람 얼굴, 차량번호, 집 주변 배경이 함께 들어갈 수 있다. 외부 VLM 전송,
   공급자 학습 사용 여부, 원본 보관 기간과 삭제 표면을 채택 전에 정한다.
 - 동일 사진 재사용은 `media_hash` 등으로 제한할 수 있지만, 화면 재촬영과 다른 강아지를
   완벽히 막는다고 주장하지 않는다.
 - 돈·상품·강한 PvP가 붙으면 현재 증거 등급으로 충분한지 다시 결정한다.
-- 앵커 밀도와 공공데이터 커버리지는 지역마다 다르다. 도시 사용자의 우위를 그대로 점수로
+- 점령지 밀도와 공공데이터 커버리지는 지역마다 다르다. 도시 사용자의 우위를 그대로 점수로
   만들지 않는다.
 
 `unknown`과 `건축물` 원천을 그대로 점령 후보로 쓸지도 미정이다. 실제 accepted 산책 접촉을
@@ -341,14 +350,13 @@ start
 아래 이름은 논의를 위한 자리이며 아직 DB/API 계약이 아니다.
 
 ```text
-TerritoryAnchorRef
-  source
-  cell
+TerritorySite
+  site_id
 
-TerritoryAnchorEncounter
+TerritorySiteEncounter
   encounter_id
   session_id
-  anchor_ref
+  site_id
   entered_at / exited_at
   min_distance_m
   quality summary
@@ -366,16 +374,16 @@ CaptureAssessment
   model / policy version
   assessed_at
 
-AnchorAttestation
+TerritorySiteAttestation
   attestation_id
   dog_id
   session_id
-  anchor_ref
+  site_id
   capture_id
 
-DogAnchorState
+DogTerritorySiteState
   dog_id
-  anchor_ref
+  site_id
   projected_state
   policy_version
 ```
@@ -388,16 +396,16 @@ DogAnchorState
 
 ### 게임판과 산책
 
-- 실제 산책 한 번이 접촉하는 앵커 수의 분포
+- 실제 산책 한 번이 접촉하는 점령지 수의 분포
 - 지역·도시 밀도별 접촉 기회의 편차
 - 같은 경로 반복 시 접촉 재현율
-- GPS accuracy·dropout·drift가 잘못된 앵커 접촉을 만드는 비율
-- 안전한 경로에서 촬영 가능한 앵커 비율
+- GPS accuracy·dropout·drift가 잘못된 점령지 접촉을 만드는 비율
+- 안전한 경로에서 촬영 가능한 점령지 비율
 
 ### 촬영 경험
 
 - 산책당 촬영 시도와 완료 비율
-- 앵커 알림부터 촬영까지 걸린 시간과 이동 거리
+- 점령지 알림부터 촬영까지 걸린 시간과 이동 거리
 - 촬영 때문에 산책 흐름이 끊겼다고 느끼는 비율
 - 촬영 실패 뒤 사용자가 근처에서 재시도할 수 있는 시간
 - 사진 0장·1장·여러 장 사용자군의 다음 산책 유지율
@@ -415,26 +423,26 @@ DogAnchorState
 
 - 접촉 반경은 고정인가, 품질이 나쁘면 제외만 하는가?
 - 촬영과 접촉 사이 시간·경로 offset을 얼마까지 허용하는가?
-- 앵커에 접근하기 전에 찍은 사진도 같은 window면 인정하는가?
-- 산책당 점령 가능한 앵커 수를 제한하는가?
-- 한 사진을 가장 가까운 앵커에 자동 귀속할지 사용자에게 보여 줄지?
+- 점령지에 접근하기 전에 찍은 사진도 같은 window면 인정하는가?
+- 산책당 점령 가능한 점령지 수를 제한하는가?
+- 한 사진을 가장 가까운 점령지에 자동 귀속할지 사용자에게 보여 줄지?
 - 기기 내 객체 탐지가 필수인가, 서버 VLM만으로 첫 실험을 시작하는가?
 - VLM이 기권하면 재촬영만 허용할지 사용자 증언을 보존할지?
 - 사진 원본을 점령 증거와 일기 매체 중 어디에 얼마나 오래 보관하는가?
 - 점령 강화에는 사진 재인증이 필요한가, 반복 산책 접촉만으로 충분한가?
 - 공용 시즌 경쟁에 들어가기 위한 더 강한 증거는 무엇인가?
-- `unknown`·`건축물` 앵커와 커버리지 구멍을 어떻게 다루는가?
+- `unknown`·`건축물` 대표 시설과 커버리지 구멍을 어떻게 다루는가?
 
 ## 채택할 때도 한 결정으로 닫지 않는다
 
 이 갈래가 충분히 측정되면 최소 세 결정으로 나눈다.
 
-1. **점령 권위** — 세션 내 사진 증언이 앵커 점령에 필요한가, Encounter와 Attestation의
+1. **점령 권위** — 세션 내 사진 증언이 점령지 점령에 필요한가, Encounter와 Attestation의
    수명은 무엇인가.
 2. **촬영·판정 처리** — 기기 저장, 업로드, 비동기 VLM, 기권·재시도와 finalize 경계는
    무엇인가.
 3. **영역 projection** — 반복 방문, 연결망, 사이클과 시즌 상태를 어떤 정책으로 읽는가.
 
 그 전에는 root README·`overview.md`·공개 계약에 현재 제품 기능처럼 올리지 않는다. 측정
-spike가 필요하면 `scripts/spikes/territory_anchor_game/`, 날짜가 박힌 결과는 `docs/research/`에
+spike가 필요하면 `scripts/spikes/territory_site_game/`, 날짜가 박힌 결과는 `docs/research/`에
 두고 이 문서에서 연결한다.

@@ -1,6 +1,6 @@
 <!doctype html>
 <meta charset="utf-8">
-<title>DAENGS 점령 앵커 — 전봇대 분포</title>
+<title>DAENGS 점령지 — 적재 검수</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
   :root { --ink:#1a1a1a; --line:#d8d8d8; }
@@ -25,12 +25,12 @@
 
 <div id="map"></div>
 <div class="hud">
-  <h1>점령 앵커 · 전봇대</h1>
+  <h1>점령지 · 대표 시설 검수</h1>
   <div class="row"><span class="muted">화면 안</span><b id="n">–</b></div>
   <div class="row"><span class="muted">줌</span><b id="z">–</b></div>
   <div class="row" id="trunc" style="display:none"><span class="warn">상한 도달</span><b class="warn">일부만</b></div>
   <hr>
-  <label class="muted">설치형태</label>
+  <label class="muted">대표 시설 설치형태</label>
   <select id="kind">
     <option value="">전체</option>
     <option value="한전주">한전주 (진짜 전봇대)</option>
@@ -44,7 +44,7 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-// 전봇대 SVG. 색은 설치형태별 — 한전주(진짜 전봇대)만 도드라지게 둔다.
+// 앱에서는 모두 전봇대 모양이다. 색과 시설 종류는 이 검수 화면에서만 원천을 살피는 정보다.
 const COLOR = {'한전주':'#c2410c', '전용주':'#0369a1', '건축물':'#6d28d9', 'unknown':'#4b5563'};
 function poleIcon(kind) {
   const c = COLOR[kind] || COLOR.unknown;
@@ -82,11 +82,13 @@ async function refresh() {
   const kind = $('kind').value;
   if (kind) q.set('kind', kind);
 
-  const data = await (await fetch('/anchor/search?' + q)).json();
+  const response = await fetch('/dev/territory-sites/search?' + q);
+  if (!response.ok) throw new Error(`점령지 조회 실패: ${response.status}`);
+  const data = await response.json();
   layer.clearLayers();
-  for (const a of data.results) {
-    L.marker([a.lat, a.lng], {icon: poleIcon(a.kind)})
-      .bindPopup(`<b>${a.kind}</b><br>${a.cell}<br>${a.lat.toFixed(5)}, ${a.lng.toFixed(5)}`)
+  for (const site of data.sites) {
+    L.marker([site.lat, site.lng], {icon: poleIcon(site.kind)})
+      .bindPopup(`<b>${site.kind}</b><br>${site.site_id}<br>${site.lat.toFixed(5)}, ${site.lng.toFixed(5)}`)
       .addTo(layer);
   }
   $('n').textContent = data.count.toLocaleString();
@@ -98,6 +100,6 @@ map.on('moveend zoomend', debounced);
 $('kind').addEventListener('change', refresh);
 
 // 첫 조회는 레이아웃이 잡힌 뒤에. 컨테이너 크기가 0인 채로 부르면 bbox 가 비어
-// 결과 0건이 나오고, 그게 "이 동네엔 앵커가 없다"로 읽힌다.
+// 결과 0건이 나오고, 그게 "이 동네엔 점령지가 없다"로 읽힌다.
 window.addEventListener('load', () => { map.invalidateSize(); refresh(); });
 </script>

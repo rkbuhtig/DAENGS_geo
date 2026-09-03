@@ -107,7 +107,7 @@ Paint v2 부터 각 stamp 의 가중치 합을 1 로 정규화한다. 따라서 
 `BrushProfile` 이 붓 단면이다. 현재 후보는 계단/연속 × `3·8·20` / `10·15·20`, 그리고 대조군인
 이진. 측정 결과 **`3·8·20` 이 갈라내고 `10·15·20` 은 심이 넓어 가장자리를 못 잡는다.**
 
-`app/geo/cells.py` — 앱·서버·적재가 공유하는 육각 격자. `anchors.py` 와 Android
+`app/geo/cells.py` — 앱·서버·적재가 공유하는 육각 격자. `territory_sites.py` 와 Android
 `LocalHexCellIndexer` 가 같은 축좌표를 쓴다. 그 주장은 이제
 `docs/contracts/hex-grid-golden.json` 을 **양쪽 테스트가 함께 읽어** 지킨다.
 

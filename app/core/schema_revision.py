@@ -27,12 +27,15 @@ class LegacyMarker:
     table: str | None = None      # None = 스키마를 안 바꾸는 리비전. 판별에서 투명하다
     column: str | None = None
     constraint: str | None = None
+    table_aliases: tuple[str, ...] = ()  # 뒤 리비전에서 rename 된 경우의 현재 이름
 
     def __post_init__(self) -> None:
         if self.column is not None and self.constraint is not None:
             raise ValueError("a marker cannot be both a column and a constraint")
         if self.table is None and (self.column is not None or self.constraint is not None):
             raise ValueError("a column or constraint marker requires a table")
+        if self.table is None and self.table_aliases:
+            raise ValueError("table aliases require a table")
 
     @property
     def detectable(self) -> bool:
@@ -63,7 +66,7 @@ LEGACY_MARKERS: tuple[LegacyMarker, ...] = (
     LegacyMarker("0010", "010_walk_encounter_occurrence.sql", "walk_encounter",
                  "occurrence_version"),
     LegacyMarker("0011", "011_walk_fix_chain.sql", "walk_fix", "chain_index"),
-    LegacyMarker("0012", "011_anchor.sql", "anchor"),
+    LegacyMarker("0012", "011_anchor.sql", "anchor", table_aliases=("territory_site",)),
     # 0013 부터는 alembic 도입 **뒤에** 만든 변경이다. 이관 전 DB 에 있을 수 없으니 판별에는
     # 안 걸리지만, 지표를 같이 넣어야 HEAD 가 최신 리비전을 가리키고 판별이 "여기까지 왔다"를
     # 정직하게 말한다. 지표 없이 리비전만 늘면 up_to_date 가 뒤처진 DB 를 최신이라고 한다.
@@ -129,6 +132,7 @@ LEGACY_MARKERS: tuple[LegacyMarker, ...] = (
         "place_intent_lab_attempt",
         "displayed_result_count",
     ),
+    LegacyMarker("0032", "0032_territory_site.py", "territory_site", "site_id"),
 )
 
 HEAD = LEGACY_MARKERS[-1].revision

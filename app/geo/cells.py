@@ -1,6 +1,6 @@
 """육각 셀 격자 — 앱·서버·적재가 공유하는 하나의 공간 ID 체계. 순수함수.
 
-`app/ingest/anchors.py` 가 앵커를 솎을 때 쓰던 수학을 여기로 올린다. 같은 개념의 해석은
+`app/ingest/territory_sites.py` 가 점령지를 솎을 때 쓰던 수학을 여기로 올린다. 같은 개념의 해석은
 한 곳이어야 한다(결정 #52). Android `LocalHexCellIndexer` 도 같은 투영·축좌표를 쓰므로
 셀 id 는 세 곳에서 같은 값이다 — 그 주장은 `docs/contracts/hex-grid-golden.json` 을
 양쪽 테스트가 함께 읽어 지킨다.
@@ -34,9 +34,9 @@ EARTH_R = 6_378_137.0
 # 이 버전의 값을 고정하고, 셀로판(`paint.Cellophane`)이 이 버전을 달고 다닌다.
 GRID_VERSION = "hex-v1"
 
-# anchors.py 가 앵커를 솎는 1차 밀도 실험값(격자 단위).
+# territory_sites.py 가 점령지를 솎는 1차 밀도 실험값(격자 단위).
 # 위도 37.5° 에서 실제 반지름 111m, 이웃 셀 중심 간격 192m다.
-ANCHOR_RADIUS_U = 140.0
+TERRITORY_SITE_RADIUS_U = 140.0
 
 Cell = tuple[int, int]
 
@@ -99,7 +99,7 @@ def _round_axial(q: float, r: float) -> Cell:
     return rx, rz
 
 
-def hex_cell(lat: float, lng: float, radius_u: float = ANCHOR_RADIUS_U) -> Cell:
+def hex_cell(lat: float, lng: float, radius_u: float = TERRITORY_SITE_RADIUS_U) -> Cell:
     """좌표 → 셀 축좌표. 결정론 — 같은 좌표는 언제나 같은 셀이다."""
     x, y = mercator(lat, lng)
     return _round_axial(
@@ -108,18 +108,20 @@ def hex_cell(lat: float, lng: float, radius_u: float = ANCHOR_RADIUS_U) -> Cell:
     )
 
 
-def hex_center(q: int, r: int, radius_u: float = ANCHOR_RADIUS_U) -> tuple[float, float]:
-    """셀 → 투영 평면(격자 단위) 중심. anchors.py 가 '중심 우선' 선별에 쓰는 값이다."""
+def hex_center(q: int, r: int, radius_u: float = TERRITORY_SITE_RADIUS_U) -> tuple[float, float]:
+    """셀 → 투영 평면(격자 단위) 중심. 점령지의 '중심 우선' 선별에 쓰는 값이다."""
     return (radius_u * math.sqrt(3) * (q + r / 2), radius_u * 1.5 * r)
 
 
-def hex_center_latlng(q: int, r: int, radius_u: float = ANCHOR_RADIUS_U) -> tuple[float, float]:
+def hex_center_latlng(
+    q: int, r: int, radius_u: float = TERRITORY_SITE_RADIUS_U
+) -> tuple[float, float]:
     x, y = hex_center(q, r, radius_u)
     return inverse_mercator(x, y)
 
 
 def hex_boundary_latlng(
-    q: int, r: int, radius_u: float = ANCHOR_RADIUS_U
+    q: int, r: int, radius_u: float = TERRITORY_SITE_RADIUS_U
 ) -> list[tuple[float, float]]:
     """셀 6꼭짓점. Android PolygonOverlay 가 요구하는 시계방향이다."""
     cx, cy = hex_center(q, r, radius_u)
@@ -132,11 +134,11 @@ def hex_boundary_latlng(
     return ring
 
 
-def cell_id(cell: Cell, radius_u: float = ANCHOR_RADIUS_U) -> str:
+def cell_id(cell: Cell, radius_u: float = TERRITORY_SITE_RADIUS_U) -> str:
     """반지름이 id 에 들어간다 — 반지름이 다르면 다른 격자고, 섞이면 안 된다."""
-    # 지금은 게임 셀과 그 셀에서 고른 보안등을 Anchor 한 행에 함께 둔다. 점령 상태의
+    # 지금은 게임 셀과 그 셀에서 고른 보안등을 TerritorySite 한 행에 함께 둔다. 점령 상태의
     # 안정적인 식별자는 원본 시설이 아니라 이 셀 id 다. 대표 시설의 독립적인 교체 이력이나
-    # 생명주기가 실제 요구사항이 되기 전에는 논리 앵커/현실 랜드마크를 별도 엔티티로 쪼개지 않는다.
+    # 생명주기가 실제 요구사항이 되기 전에는 게임 지점/현실 시설을 별도 엔티티로 쪼개지 않는다.
     return f"hex:{round(radius_u)}:{cell[0]}:{cell[1]}"
 
 
