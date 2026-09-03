@@ -92,6 +92,8 @@ def test_lab_html_authors_a_route_and_renders_all_three_time_layers():
     assert "renderDiaryRoute()" in HTML
     assert "nearest_geometry_to_start_m" in HTML
     assert "앞뒤 거리만 자르면 루프·왕복" in HTML
+    assert "metrics.gap_count" in HTML
+    assert "정확한 경계 교차점은 내부점 양자화의 예외" in HTML
 
 
 def test_lab_can_exchange_the_versioned_scenario_json():

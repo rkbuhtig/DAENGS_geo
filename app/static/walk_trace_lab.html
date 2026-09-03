@@ -222,8 +222,8 @@
             <select id="diary-route-profile">
               <option value="canonical-detail">보호 없음 — 비교 기준</option>
               <option value="trim-60m">앞뒤 경로 60m 절단</option>
-              <option value="zone-60m-q5-s5" selected>공간 60m + 5m 양자화·단순화</option>
-              <option value="zone-100m-q10-s8">공간 100m + 10m 양자화·8m 단순화</option>
+              <option value="zone-60m-q5-s5" selected>공간 60m + 내부점 5m 양자화·단순화</option>
+              <option value="zone-100m-q10-s8">공간 100m + 내부점 10m 양자화·8m 단순화</option>
             </select>
           </label>
           <div class="diary-note" id="diary-route-note">실험 결과는 저장 계약이 아닙니다. 보호권은 시작·종료 좌표 주변의 모든 재방문을 잘라 별도 조각으로 표시합니다.</div>
@@ -232,9 +232,9 @@
           <div class="metric"><span>표시 점</span><strong id="m-diary-points">—</strong></div>
           <div class="metric"><span>JSON 크기</span><strong id="m-diary-bytes">—</strong></div>
           <div class="metric"><span>남은 거리</span><strong id="m-diary-distance">—</strong></div>
-          <div class="metric"><span>외부 경로 P95 오차</span><strong id="m-diary-error">—</strong></div>
+          <div class="metric"><span>시간대응 P95 오차</span><strong id="m-diary-error">—</strong></div>
           <div class="metric"><span>시작점 최근접</span><strong id="m-diary-start">—</strong></div>
-          <div class="metric"><span>표시 조각</span><strong id="m-diary-fragments">—</strong></div>
+          <div class="metric"><span>표시 조각 / 단절</span><strong id="m-diary-fragments">—</strong></div>
         </div>
         <div class="timeline-head"><span>캡처 시간축 — 한 칸이 truth sample 하나</span><span id="timeline-caption">실행 전</span></div>
         <div id="timeline" role="listbox" aria-label="GPS 표본 시간축"></div>
@@ -535,11 +535,11 @@ function renderDiarySummary() {
   $('m-diary-distance').textContent=`${metrics.retained_distance_pct}%`;
   $('m-diary-error').textContent=`${metrics.fidelity_p95_m}m`;
   $('m-diary-start').textContent=`${metrics.nearest_geometry_to_start_m}m`;
-  $('m-diary-fragments').textContent=metrics.visible_fragment_count;
+  $('m-diary-fragments').textContent=`${metrics.visible_fragment_count} / ${metrics.gap_count}`;
   $('diary-route-note').textContent=candidate.profile.endpoint_protection==='path_trim'
     ? '앞뒤 거리만 자르면 루프·왕복 중간의 시작점 재방문은 그대로 남을 수 있습니다.'
     : candidate.profile.endpoint_protection==='spatial_mask'
-      ? '보호권과 교차하는 모든 구간을 잘라 조각을 분리합니다. 그래도 반복된 결손의 중심을 추론할 수 있어 익명화는 아닙니다.'
+      ? '보호권과 교차하는 모든 구간을 잘라 조각을 분리합니다. 정확한 경계 교차점은 내부점 양자화의 예외이며, 반복된 결손의 중심도 추론할 수 있어 익명화는 아닙니다.'
       : 'CanonicalTrail 세부 선입니다. 비교 기준일 뿐 저장 후보가 아닙니다.';
 }
 

@@ -9,8 +9,10 @@ from datetime import UTC, datetime, timedelta
 from app.features.walk.facts import compute_facts
 from app.features.walk.models import WalkFix
 from app.geo.cells import EARTH_R
+from scripts.spikes.walk_diary_route import projector as diary_route
 from scripts.spikes.walk_diary_route.projector import (
     EXPERIMENT_PROFILES,
+    DiaryRouteProfile,
     build_diary_route_experiment,
     project_candidate,
 )
@@ -90,6 +92,73 @@ def test_path_trim_consumes_the_requested_distance_across_canonical_fragments():
 
     first_point = candidate["fragments"][0]["points"][0]
     assert first_point["lng"] > _fix(0, 59, 0).lng
+
+
+def test_simplification_keeps_collinear_speed_band_transitions():
+    trail, started_at = _trail(
+        [(0, 0, 0), (10, 0, 0), (30, 0, 0), (70, 0, 0), (110, 0, 0),
+         (130, 0, 0), (140, 0, 0)]
+    )
+    profile = DiaryRouteProfile("speed-transition", "none", 0, 0, 5)
+
+    candidate = project_candidate(trail, started_at, profile)
+    bands = candidate["fragments"][0]["speed_bands"]
+
+    assert {"relative_slow", "relative_mid", "relative_fast"} <= set(bands)
+    assert candidate["metrics"]["speed_band_change_count"] >= 2
+    assert candidate["metrics"]["output_vertex_count"] > 2
+
+
+def test_unavailable_route_has_no_fabricated_zero_fidelity():
+    trail, started_at = _trail([(0, 0, 0), (80, 0, 0)])
+
+    candidate = project_candidate(trail, started_at, _profile("zone-60m-q5-s5"))
+
+    assert candidate["status"] == "unavailable"
+    assert candidate["metrics"]["fidelity_sample_count"] == 0
+    assert candidate["metrics"]["fidelity_p95_m"] is None
+    assert candidate["metrics"]["fidelity_max_m"] is None
+
+
+def test_candidate_distinguishes_canonical_breaks_from_endpoint_redaction():
+    trail, started_at = _trail(
+        [(0, 0, 0), (80, 0, 0), (80, 80, 1), (160, 80, 1)]
+    )
+
+    candidate = project_candidate(trail, started_at, _profile("zone-60m-q5-s5"))
+
+    assert {gap["kind"] for gap in candidate["gaps"]} == {
+        "canonical_chain_break",
+        "endpoint_redaction",
+    }
+
+
+def test_exact_privacy_intersections_are_declared_quantization_exceptions():
+    trail, started_at = _trail([(0, 0, 0), (100, 100, 0), (200, 100, 0)])
+
+    candidate = project_candidate(trail, started_at, _profile("zone-60m-q5-s5"))
+
+    assert candidate["profile"]["quantization_scope"] == (
+        "interior_vertices_except_exact_privacy_intersections"
+    )
+    assert candidate["metrics"]["off_grid_privacy_boundary_vertex_count"] > 0
+
+
+def test_fidelity_mapping_does_not_rescan_the_whole_route_for_every_point(monkeypatch):
+    trail, started_at = _trail([(float(index), 0, 0) for index in range(200)])
+    calls = 0
+    original = diary_route._point_segment_distance
+
+    def counted(*args):
+        nonlocal calls
+        calls += 1
+        return original(*args)
+
+    monkeypatch.setattr(diary_route, "_point_segment_distance", counted)
+
+    project_candidate(trail, started_at, _profile("canonical-detail"))
+
+    assert calls < len(trail.segments) * 4
 
 
 def test_experiment_payload_is_explicitly_non_persistent_and_json_safe():

@@ -20,14 +20,16 @@ research: ../../research/2026-09-03-walk-diary-route-privacy.md
 
 - `canonical-detail`: 비교 기준. 저장 후보가 아니다.
 - `trim-60m`: 앞뒤의 누적 경로 거리만 자른다. 루프·왕복의 중간 재방문을 못 가린다.
-- `zone-60m-q5-s5`: 시작·종료점 반경 60m와 교차하는 모든 선을 자른 뒤 조각을 분리한다.
-- `zone-100m-q10-s8`: 더 큰 보호권과 더 거친 표시를 비교한다.
+- `zone-60m-q5-s5`: 시작·종료점 반경 60m와 교차하는 모든 선을 자른 뒤 조각을 분리하고,
+  보호권 경계가 아닌 내부점을 5m 단위로 양자화한다.
+- `zone-100m-q10-s8`: 더 큰 보호권과 10m 내부점 양자화를 비교한다.
 
 수치는 제품 기본값이 아니다. 두 반경은 작동 모양과 정보 손실을 비교하는 실험점이다. 상대
 속도색도 한 세션 안의 분포를 보기 위한 실험값이며 행동 분류나 강아지 간 비교가 아니다.
 
-Lab은 표시 점·JSON 바이트·남은 거리·P95 선 오차·시작점 최근접 거리·표시 조각 수를 함께
-보여 준다. 보호권 때문에 전부 사라진 결과는 빈 산책으로 만들지 않고 `unavailable`로 둔다.
+Lab은 표시 점·JSON 바이트·남은 거리·같은 chain·경과 시각 구간의 P95 선 오차·시작점
+최근접 거리·표시 조각/단절 수를 함께 보여 준다. 보호권 때문에 전부 사라진 결과는 빈 산책으로
+만들지 않고 `unavailable`로 둔다.
 
 ## 살아 있는 후보 계약
 
@@ -42,7 +44,11 @@ WalkDiaryRoute candidate
     source_chain_index
     points[lat, lng, elapsed_offset]
     speed_band_per_edge
-  gaps[] = canonical gap | endpoint redaction | unavailable
+  gaps[]
+    kind = canonical_gap | canonical_chain_break | endpoint_redaction
+    source_chain_index
+    from_elapsed_s
+    to_elapsed_s
 ```
 
 - Canonical gap, accuracy 거부, jump, pause chain을 직선으로 잇지 않는다.
@@ -50,6 +56,8 @@ WalkDiaryRoute candidate
 - 보호권 중심 좌표는 저장물에 싣지 않는다. Lab에만 비교를 위해 나타난다.
 - 절대 시각 대신 세션 시작 기준 경과 시간을 우선한다.
 - 좌표 양자화와 Douglas–Peucker 단순화는 용량·표시 디테일 축소이지 익명화가 아니다.
+  원형 보호권을 정확히 자르며 생기는 경계 교차점은 격자 밖에 있을 수 있으므로 별도 예외로
+  계수하고 profile에 양자화 범위를 명시한다.
 - 이 선으로 Cellophane 통계나 권위 있는 점령 접촉을 판정하지 않는다.
 
 ## 아직 닫힌 부분
