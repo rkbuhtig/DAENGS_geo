@@ -91,6 +91,26 @@ cellophane.geojson  기존 canonical Paint 결과
 계산값은 그대로이고 도착 사건만 바뀐다. sensor/fault만 바꾸면 truth는 그대로이고 관측부터
 달라진다. 이 분리가 이후 Android replay source와 서버 업로드 adapter의 기준선이다.
 
+## 지도 저작 Lab
+
+CLI 계약을 바꾸지 않고 `dev_console` 뒤에서 시나리오를 지도에 그려 실행할 수 있다.
+
+```powershell
+$env:DAENGS_DEV_CONSOLE="true"
+uv run uvicorn app.main:app --reload
+# http://127.0.0.1:8000/walk-trace-lab
+```
+
+화면은 한 번의 요청에서만 계산하고 서버 파일이나 DB를 쓰지 않는다. 지도 클릭 경로를 첫 점
+기준 east/north 미터로 바꾸고, 움직임·센서·명시적 fault·delivery를 조립해 PR 1의 동일한
+`build_scenario_from_spec()`을 호출한다. 결과 지도는 truth와 GPS 관측, canonical Cellophane을
+겹치고 아래 시간축은 누락·정확도 저하·좌표 튐과 전달 사건을 같은 `sample_id`로 읽는다.
+
+예제나 불러온 JSON은 원 계약 그대로 먼저 실행한다. 화면 값을 바꾼 뒤 재실행하면 UI가
+지원하는 명시적 항목으로 새 계약을 만들며, 자동 저장하지 않는다. `JSON 저장`으로 얻은 파일은
+다시 CLI `--spec` 또는 Lab 입력으로 쓸 수 있다. 이 표면은 Android replay나 제품 Spatial
+Diary UI가 아니다.
+
 ## 셀로판 모집단 fixture
 
 단일 산책의 싸인펜 검증과 여러 산책의 z축 검증을 섞지 않도록 30회 모집단은 별도 builder가
