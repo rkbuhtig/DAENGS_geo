@@ -21,6 +21,8 @@ Trace              같은 sample ID의 truth ↔ observed 대응
 Delivery           앱 도착 지연·배치·역순·중복
     ↓ 기존 production 순수함수
 compute_facts → observations → paint_sheet → Cellophane GeoJSON
+    ↓ 같은 motion의 Perfect 기준군과 짝 비교
+Evaluation         Sensor → CanonicalTrail → Cellophane → Delivery 영수증
 ```
 
 ## 진실의 층
@@ -85,11 +87,21 @@ trace.json          sensor 간격별 truth ↔ observed sample 대응과 fault �
 delivery.json       capture와 분리된 앱 도착 순서·지연·batch·duplicate
 derived.json        facts, curve, 관측, 구간별 파생 속도
 cellophane.geojson  기존 canonical Paint 결과
+evaluation.json     같은 motion의 Perfect 기준군 대비 층별 정량 영수증
 ```
 
-같은 scenario는 위 여덟 출력을 다시 만든다. delivery만 바꾸면 `walk-export`와 canonical
+같은 scenario는 위 아홉 출력을 다시 만든다. delivery만 바꾸면 `walk-export`와 canonical
 계산값은 그대로이고 도착 사건만 바뀐다. sensor/fault만 바꾸면 truth는 그대로이고 관측부터
 달라진다. 이 분리가 이후 Android replay source와 서버 업로드 adapter의 기준선이다.
+
+`evaluation.json`은 같은 route·motion·표본 간격을 Perfect 센서/무결함/중립 delivery로 다시
+실행한 기준군과 후보군을 짝 비교한다. Sensor의 fix 보존율·위치 오차·명시적 fault 귀속,
+CanonicalTrail의 truth 거리/시간 오차와 hold 겹침 배분 거리·Perfect 대비 차이,
+Cellophane support IoU·누락/누출 셀·질량 보존, Delivery의 지연·역순·중복·sample ID
+정합성을 한 영수증에 남긴다. hold 경계를 가로지르는 표본 구간은 Perfect에서도 실제
+이동을 일부 배분할 수 있으므로 원시 값을 거짓 거리로 부르지 않는다. 수치 metric은
+관찰값이며 사후 제품 합격선으로 만들지 않는다. pass/fail은 유한값, 질량 보존, delivery 참조
+정합성과 delivery가 캡처/canonical을 바꾸지 않는다는 명백한 불변식에만 둔다.
 
 ## 지도 저작 Lab
 
@@ -105,11 +117,30 @@ uv run uvicorn app.main:app --reload
 기준 east/north 미터로 바꾸고, 움직임·센서·명시적 fault·delivery를 조립해 PR 1의 동일한
 `build_scenario_from_spec()`을 호출한다. 결과 지도는 truth와 GPS 관측, canonical Cellophane을
 겹치고 아래 시간축은 누락·정확도 저하·좌표 튐과 전달 사건을 같은 `sample_id`로 읽는다.
+지도 아래 Perfect 비교 영수증은 네 층의 손실을 나란히 보여 주되 soft metric을 색으로
+합격/불합격 판정하지 않는다.
 
 예제나 불러온 JSON은 원 계약 그대로 먼저 실행한다. 화면 값을 바꾼 뒤 재실행하면 UI가
 지원하는 명시적 항목으로 새 계약을 만들며, 자동 저장하지 않는다. `JSON 저장`으로 얻은 파일은
 다시 CLI `--spec` 또는 Lab 입력으로 쓸 수 있다. 이 표면은 Android replay나 제품 Spatial
 Diary UI가 아니다.
+
+## Android replay 어댑터
+
+같은 scenario의 observed capture를 Android에서 반복하려면 별도 어댑터를 실행한다.
+
+```powershell
+uv run python -m scripts.sim.walk.android_replay `
+  --spec scripts/sim/walk/examples/sniff-and-go.json `
+  --out C:/dev/walk-replay/sniff-and-go
+```
+
+`android-replay.json`은 좌표·상대 capture 시각·accuracy·mock과 chain control을 보존해 이후
+APP debug `TraceLocationSource`가 읽을 계약이다. `android-route.gpx`는 Android Studio Location
+입력용이고 missing/chain 경계에서 track segment를 끊는다. `--play`는 같은 capture 시간축을
+배속해 AVD에 `adb emu geo fix`를 보낸다. GPX/ADB가 accuracy·mock·pause/resume·delivery를 전부
+표현한다고 주장하지 않으며, 정확한 손실과 APP/DEV 경계는
+[`android-replay-adapter.md`](./android-replay-adapter.md)에 둔다.
 
 ## 셀로판 모집단 fixture
 

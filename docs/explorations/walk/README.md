@@ -23,6 +23,7 @@
 | [cellophane-statistical-layer](cellophane-statistical-layer.md) | exploring | working-skeleton | **싸인펜 생성 연산 → 산책별 셀로판 표본 → z축 적층 → 통계 질의**를 분리한다. 방문률·총 시간·방문당 체류·두 이용 분포의 통계 코어는 구현됐고, 50·80·95% 영역과 Raw/Adjusted 집 편향, 실험 B/C는 열려 있다 |
 | [continuous-brush-reference](continuous-brush-reference.md) | exploring | working-skeleton | 같은 canonical Segment를 연속 원 field와 Hex Cellophane에 넣는 독립 비교 기준선 |
 | [simulator-core](simulator-core.md) | exploring | working-skeleton | latent truth와 제품 관측을 분리한 결정론적 산책·센서 시뮬레이터 |
+| [android-replay-adapter](android-replay-adapter.md) | exploring | working-skeleton | 같은 observed capture를 Android replay JSON·GPX·ADB 시간축으로 변환하는 손실 명시 어댑터 |
 | [cellophane-device-replay](cellophane-device-replay.md) | exploring | working-skeleton | Android export를 canonical Paint 경로에 재생하는 로컬·비커밋 검증 절차 |
 | [repeated-dwell-area](repeated-dwell-area.md) | exploring | draft | **반복 체류 영역의 조작적 정의.** 의미어 없이 — 국소 적분 · 산책당 · 경로 대비. M2 이후 M3 의 첫 일은 문턱을 고르는 것이 아니라 **문턱을 걸 수 있는 지표를 찾는 것**이다 |
 | [evidence-layer](evidence-layer.md) | exploring | draft | **원시 행동 → 판단 가능한 상태.** 사람과 AI 가 같은 근거 계약을 다른 표현으로 읽는다. 지도는 그 인간용 투영이고 맨 마지막이다 |

@@ -44,6 +44,8 @@ def test_lab_payload_keeps_truth_observation_delivery_and_canonical_layers_disti
     assert payload["diary_route_experiment"]["semantics"]["persistence"] == (
         "forbidden_experiment_only"
     )
+    assert payload["evaluation"]["format"] == "walk-trace-evaluation-v1"
+    assert payload["evaluation"]["hard_invariants_passed"] is True
     assert payload["cellophane"]["type"] == "FeatureCollection"
     assert payload["summary"]["truth_sample_count"] > payload["summary"]["observed_fix_count"]
     assert payload["summary"]["delivery_event_count"] > payload["summary"]["observed_fix_count"]
@@ -98,6 +100,8 @@ def test_lab_html_authors_a_route_and_renders_all_three_time_layers():
 
 def test_lab_can_exchange_the_versioned_scenario_json():
     assert "JSON.stringify(payload,null,2)" in HTML
+    assert "Perfect 기준군 비교 영수증" in HTML
+    assert "renderEvaluation()" in HTML
     assert 'id="import-file"' in HTML
     assert "JSON.parse(await file.text())" in HTML
     assert "await runScenario(spec)" in HTML
