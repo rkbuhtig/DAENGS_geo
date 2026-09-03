@@ -46,7 +46,8 @@ def test_perfect_control_exposes_sampling_bias_without_inventing_a_threshold():
     assert evaluation["sensor"]["fix_retention"] == 1
     assert evaluation["sensor"]["position_error_m"]["max"] < 0.001
     assert evaluation["canonical"]["accepted_time_vs_perfect"] == 1
-    assert evaluation["canonical"]["excess_false_distance_vs_perfect_m"] == 0
+    assert evaluation["canonical"]["distance_allocated_over_hold_m"] > 0
+    assert evaluation["canonical"]["distance_allocated_over_hold_vs_perfect_m"] == 0
     assert evaluation["cellophane"]["support_iou_vs_perfect"] == 1
     assert evaluation["delivery"]["duplicate_event_count"] == 0
     assert evaluation["delivery"]["out_of_capture_order_event_count"] == 0
@@ -57,12 +58,7 @@ def test_perfect_control_exposes_sampling_bias_without_inventing_a_threshold():
 
 def test_authored_faults_are_attributed_across_sensor_canonical_and_field_layers():
     example = (
-        Path(__file__).parents[2]
-        / "scripts"
-        / "sim"
-        / "walk"
-        / "examples"
-        / "sniff-and-go.json"
+        Path(__file__).parents[2] / "scripts" / "sim" / "walk" / "examples" / "sniff-and-go.json"
     )
     spec = WalkTraceScenarioSpec.model_validate_json(example.read_text(encoding="utf-8"))
     evaluation = evaluate_scenario(build_scenario_from_spec(spec))
@@ -74,8 +70,8 @@ def test_authored_faults_are_attributed_across_sensor_canonical_and_field_layers
     assert faults["single-spike"]["accepted_sample_count"] == 1
     assert evaluation["sensor"]["position_error_m"]["max"] > 200
     assert evaluation["canonical"]["quality"]["jump_breaks"] > 0
-    assert evaluation["canonical"]["false_distance_during_hold_m"] > 0
-    assert evaluation["canonical"]["excess_false_distance_vs_perfect_m"] > 0
+    assert evaluation["canonical"]["distance_allocated_over_hold_m"] > 0
+    assert evaluation["canonical"]["distance_allocated_over_hold_vs_perfect_m"] > 0
     assert evaluation["cellophane"]["support_iou_vs_perfect"] < 1
     assert evaluation["cellophane"]["mass_conserved"] is True
 
@@ -89,9 +85,7 @@ def test_delivery_faults_only_change_the_delivery_receipt():
                     "base_latency_s": 0.25,
                     "batch_size": 3,
                     "reverse_within_batch": True,
-                    "delay_windows": [
-                        {"id": "offline", "start_s": 15, "end_s": 25, "delay_s": 60}
-                    ],
+                    "delay_windows": [{"id": "offline", "start_s": 15, "end_s": 25, "delay_s": 60}],
                     "duplicate_at_s": [10],
                 }
             )

@@ -96,8 +96,10 @@ evaluation.json     같은 motion의 Perfect 기준군 대비 층별 정량 영�
 
 `evaluation.json`은 같은 route·motion·표본 간격을 Perfect 센서/무결함/중립 delivery로 다시
 실행한 기준군과 후보군을 짝 비교한다. Sensor의 fix 보존율·위치 오차·명시적 fault 귀속,
-CanonicalTrail의 truth 거리/시간 오차와 hold 중 거짓 거리, Cellophane support IoU·누락/누출
-셀·질량 보존, Delivery의 지연·역순·중복·sample ID 정합성을 한 영수증에 남긴다. 수치 metric은
+CanonicalTrail의 truth 거리/시간 오차와 hold 겹침 배분 거리·Perfect 대비 차이,
+Cellophane support IoU·누락/누출 셀·질량 보존, Delivery의 지연·역순·중복·sample ID
+정합성을 한 영수증에 남긴다. hold 경계를 가로지르는 표본 구간은 Perfect에서도 실제
+이동을 일부 배분할 수 있으므로 원시 값을 거짓 거리로 부르지 않는다. 수치 metric은
 관찰값이며 사후 제품 합격선으로 만들지 않는다. pass/fail은 유한값, 질량 보존, delivery 참조
 정합성과 delivery가 캡처/canonical을 바꾸지 않는다는 명백한 불변식에만 둔다.
 
