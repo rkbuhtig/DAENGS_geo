@@ -13,6 +13,7 @@
 
 | 갈래 | status | implementation | 한 줄 |
 |---|---|---|---|
+| [storyboard-and-regions](storyboard-and-regions.md) | exploring | none | 시작·이동·Pin·종료를 이미지 흐름으로 읽는다. 지역 구간은 챕터 후보, 게임 성과는 별도 근거로 다루며 보관·편집·나레이션 경계를 탐색 |
 | [memory-engine](memory-engine.md) | exploring | none | **왜 반복 체류 검출에서 기억 엔진으로 옮겼나.** M2 부정 결과 → 미시/거시 분리 → 공간적 일기장 → Walk Capsule 까지의 사슬. 원칙 10개는 아직 결정 아님 |
 | [micro-judgment](micro-judgment.md) | exploring | none | **미시 판정층 — 결정 #7 의 확장.** 관측→통계→룰→escalation 4층. 룰은 발언 가능성을 판정하고, LLM 은 의미적 애매함만 받으며 출력은 편집층 전용. 문턱값은 실패 지도를 그린 뒤 |
 | [behavior-anchor](behavior-anchor.md) | exploring | none | **행동 책갈피.** 일기를 쓰는 행위가 증언(attested)이 되고, 사건 단위 확정 문장은 증언에서만 나온다. 선택이지 전제가 아님 — 안 눌러도 전부 동작 |
