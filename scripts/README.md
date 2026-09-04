@@ -52,6 +52,13 @@ git grep -n 'scripts/spikes/<갈래>'   # app · tests · docs · android 전부
 새 갈래의 스파이크는 새 폴더를 만든다. 갈래 없이 스파이크를 추가하지 않는다 — 소속이
 없으면 지울 시점도 없기 때문이고, 그게 이 폴더가 쌓인 이유였다.
 
+`spikes/storyboard_and_regions`는 [산책 스토리보드와 동네 구간](../docs/explorations/walk/storyboard-and-regions.md)
+갈래의 로컬 실험이다. 합성 산책과 SGIS·상가·공원·하천 snapshot으로 자동 재생 HTML을 만든다.
+기본 재생성은 네트워크를 쓰지 않고, 자료 수집에만 명시적인 `--fetch`가 필요하다.
+원본 자료·인증키·산출물은 저장소 밖에 둔다.
+[실행 방법](spikes/storyboard_and_regions/README.md)과
+[실측 결과](../docs/research/2026-09-04-storyboard-regions-spike.md)를 참고한다.
+
 ## `verify/` — 스파이크가 아니다
 
 산책 관통 검증 넷은 한 세트다. `walk_fixture.py` 가 좌표의 유일한 원천이고,
