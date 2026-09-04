@@ -20,7 +20,8 @@
 | [session-engine-draft](session-engine-draft.md) | exploring | draft | 초기 start/locations/finish 흐름과 소비자 아이디어. 구현 현황은 Android README/계약이 더 최신 |
 | [session-continuity-and-dwell](session-continuity-and-dwell.md) | exploring | partial | 이미 있는 pause/chain/unfinished-session 위에서 세션 연속성·복구·체류·territory 의미를 정리 |
 | [territory-paint](territory-paint.md) | exploring | working-skeleton | 산책 점을 붓으로 지도를 칠한다. 산책 한 번 = 셀로판 한 장, 조건으로 골라 겹친다. §A(영구 형태)는 [결정 #69](../../decisions/2026-08-26-walk-permanent-spatial-form.md) 로 닫혔고 §B·§C 는 열려 있다 |
-| [territory-site-game](territory-site-game.md) | proposed | working-skeleton | 검증된 산책의 점령지 접촉 → 세션 내 촬영 → 비동기 VLM 판정 → 발도장·연결망·영역 형성 가설. 중립 점령지 읽기만 구현됨 |
+| [territory-site-game](territory-site-game.md) | proposed | working-skeleton | 검증된 산책 접촉 → 세션 내 촬영 → 비동기 VLM 판정 → 사용자 증언 → 유효 점령의 권위·안전 가설. 중립 점령지 읽기만 구현됨 |
+| [territory-season-scoring](territory-season-scoring.md) | proposed | none | 현재 점령 상태를 정기 정산해 점령 점수를 누적하고, 단일 정산의 최대 동시 점령량을 정복 기록으로 따로 랭킹화한 뒤 시즌마다 초기화 |
 | [cellophane-statistical-layer](cellophane-statistical-layer.md) | exploring | working-skeleton | **싸인펜 생성 연산 → 산책별 셀로판 표본 → z축 적층 → 통계 질의**를 분리한다. 방문률·총 시간·방문당 체류·두 이용 분포의 통계 코어는 구현됐고, 50·80·95% 영역과 Raw/Adjusted 집 편향, 실험 B/C는 열려 있다 |
 | [continuous-brush-reference](continuous-brush-reference.md) | exploring | working-skeleton | 같은 canonical Segment를 연속 원 field와 Hex Cellophane에 넣는 독립 비교 기준선 |
 | [simulator-core](simulator-core.md) | exploring | working-skeleton | latent truth와 제품 관측을 분리한 결정론적 산책·센서 시뮬레이터 |
@@ -33,6 +34,11 @@
 | [walk-diary-route](walk-diary-route.md) | exploring | dev-lab-spike | **단일 산책의 순서 있는 일기 선.** 앞뒤 거리 절단의 재방문 노출을 확인했고 공간 보호·단절·양자화 후보를 Lab에서 비교한다. 결정 #85에 따라 서버 영속은 아직 닫혀 있다 |
 | [drawn-region](drawn-region.md) | parked | working | 사용자가 면을 그리고 그 안의 체류를 잰다. 붓 모델로 대체 — 5배 규칙은 남는다 |
 | [loop-and-balance](loop-and-balance.md) | parked | none | 3단 루프 · 케어 밸런스. 데이터 수집 전에는 결정하지 않음 |
+
+`territory-site-game`은 점령지에 접근하고 강아지 사진으로 서명해 **현재 점령을 바꾸기까지의
+증거 경계**를 맡는다. `territory-season-scoring`은 그 현재 상태만 정기적으로 읽어 점령 점수의
+합계와 정복 최고 기록을 만드는 **온라인 시즌 점수판**을 맡는다. 현재 온라인 가설은 연결망이나
+포위 계산을 요구하지 않으며, 그것들은 개인형·후속 게임 후보로 보류한다.
 
 `territory-paint`는 서버가 확정한 `Segment[]`를 소비해 공간을 칠하는 갈래다. 셀 격자는
 `app/geo/cells.py`로 `territory_sites.py`·Android `LocalHexCellIndexer`와 공유한다. 무엇을 영구히
