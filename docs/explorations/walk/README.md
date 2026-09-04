@@ -6,6 +6,11 @@
 [2026-09-04 인수인계](../../research/2026-09-04-walk-personalization-handoff.md)를 먼저 읽는다.
 실제 스토리보드 실험과 아직 미구현인 행동 프로필 구상을 구분하고, 로컬 데이터 복구 방법을 안내한다.
 
+**산책 중 GPS 재생·점령지 접근 UX 작업**은 별도의
+[APP GPS·점령지 Lab 설계와 인수인계](../../research/2026-09-04-walk-territory-lab-handoff.md)를 읽는다.
+문서는 개인 Geo에 보관하지만 구현은 APP의 `feat/walk-territory-lab`에 있으며,
+Geo `android/` 구현이나 제품 소유권 저장 완료로 읽지 않는다.
+
 수집 코어는 탐색이 아니라 사실 계약이다 — [`contracts/walk-record.md`](../../contracts/walk-record.md),
 `app/features/walk/models.py`, `tests/test_walk_contract.py`. `WalkFacts` 자체에는 의미를 섞지 않는다.
 다만 finalize 뒤에는 Capsule·Context Plane·Spatial Diary가 그 사실을 별도 수명과 권위 경계에서

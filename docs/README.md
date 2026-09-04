@@ -49,6 +49,8 @@ backlog.md           갈래에 안 붙는 미결
 제품 범위에서 빠졌다면 `status: parked`, `implementation: working-skeleton`이 될 수 있다.
 
 ## 주제
+
+- [2026-09-04 APP GPS·점령지 Lab 설계와 인수인계](research/2026-09-04-walk-territory-lab-handoff.md) — debug 재생 격리, 도착/액션/소유 표시 분리, 반경 UX, 코드 지도, 다른 PC 실행과 미완료 검증. 문서는 Geo, 구현은 APP feature 브랜치
 - [2026-09-04 세션 인수인계 — 여기서 이어 읽기](research/2026-09-04-walk-personalization-handoff.md) — 스토리보드 실험에서 행동 프로필로 이어진 배경, 구현/제안 구분, PC 이동 시 파일·재현 절차, 다음 세션 시작 문구
 - [행동 Pin 기반 프로필·개인화](explorations/walk/behavior-profile-and-personalization.md) — 구조화된 행동 증언의 상황별 요약, 근거 장면 회수, 다음 산책 제안 후보. 귀속·분모·정정/삭제·Context 경계를 포함한 상세 설계
 - [공급자 조립 현황](provider-assembly.md) — 현재 선택·폴백·교체 지점·검증 로그

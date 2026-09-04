@@ -4,6 +4,10 @@ implementation: working-skeleton
 ---
 # Walk trace Android replay adapter
 
+> 후속 소비자 기록 (2026-09-04): APP의 `feat/walk-territory-lab`에 단일 chain JSON을 읽는
+> debug 재생·접근 UX 실험이 구현됐다. [설계와 인수인계](../../research/2026-09-04-walk-territory-lab-handoff.md)에
+> 지원 범위와 미완료 검증을 구분해 기록했다. 아래 어댑터의 범위와 Geo/APP 코드 소유권은 그대로다.
+
 `walk-trace-scenario-v1`의 **observed capture**를 Android 쪽에서 반복 사용할 수 있는 형태로
 바꾼다. 새 GPS 생성기나 제품 수집 경로가 아니라 Geo Lab과 Android 검증 사이의 얇은 어댑터다.
 
