@@ -54,6 +54,7 @@ backlog.md           갈래에 안 붙는 미결
 - [지도 제공사](explorations/map-provider/README.md)
 - [문화시설](explorations/facility/README.md) — 기반층을 실제로 쓸 수 있게. 병원과 달리 조건 편집의 오른쪽 항이 있다
 - [산책](explorations/walk/README.md) — 수집 코어는 사실 계약, Capsule·Spatial Diary는 그 사실을 별도 권위 경계에서 소비
+- [산책 스토리보드와 동네 구간](explorations/walk/storyboard-and-regions.md) — 시작·이동·Pin·종료의 시각적 흐름, 지역 구간과 챕터 선택, 점령 게임과 공유할 공간 정보의 경계
 - [싸인펜·셀로판·통계층](explorations/walk/cellophane-statistical-layer.md) — 한 산책의 시간 공간장, 산책별 z축 보존, 방문률·체류·공간 이용 분포를 서로 다른 연산으로 분리
 - [반복 체류 영역 — 조작적 정의](explorations/walk/repeated-dwell-area.md) — 의미를 안 붙인 채로 "여러 산책에서 반복해 주변보다 우세한 자리" 를 못 박는다
 - [판단 가능한 상태로 — Evidence 층](explorations/walk/evidence-layer.md) — 원시 행동을 저장하는 게 목적이 아니라 사람과 AI 가 같은 근거를 읽고 판단하게 만드는 것. 지도는 맨 마지막
