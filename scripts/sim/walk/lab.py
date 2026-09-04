@@ -12,6 +12,7 @@ from starlette.concurrency import run_in_threadpool
 from scripts.sim.walk.bundle import ScenarioArtifacts, build_scenario_from_spec
 from scripts.sim.walk.evaluation import evaluate_scenario
 from scripts.sim.walk.spec import WalkTraceScenarioSpec
+from scripts.spikes.walk_diary_route.projector import build_diary_route_experiment
 
 router = APIRouter(prefix="/walk-trace-lab", tags=["walk-trace-lab"])
 
@@ -38,6 +39,9 @@ def build_lab_payload(artifacts: ScenarioArtifacts) -> dict[str, object]:
         "derived": artifacts.derived,
         "evaluation": evaluate_scenario(artifacts),
         "cellophane": json.loads(artifacts.cellophane_geojson),
+        "diary_route_experiment": build_diary_route_experiment(
+            artifacts.computed.trail, artifacts.computed.facts.started_at
+        ),
     }
 
 

@@ -38,6 +38,12 @@ def test_lab_payload_keeps_truth_observation_delivery_and_canonical_layers_disti
     assert payload["scenario"]["format"] == "walk-trace-scenario-v1"
     assert payload["trace"]["format"] == "walk-trace-v1"
     assert payload["delivery"]["format"] == "walk-delivery-v1"
+    assert payload["diary_route_experiment"]["format"] == (
+        "walk-diary-route-experiment-v1"
+    )
+    assert payload["diary_route_experiment"]["semantics"]["persistence"] == (
+        "forbidden_experiment_only"
+    )
     assert payload["evaluation"]["format"] == "walk-trace-evaluation-v1"
     assert payload["evaluation"]["hard_invariants_passed"] is True
     assert payload["cellophane"]["type"] == "FeatureCollection"
@@ -84,6 +90,12 @@ def test_lab_html_authors_a_route_and_renders_all_three_time_layers():
     assert "수용 이동거리" in HTML
     assert "수용 구간시간" in HTML
     assert "실제 움직임 → GPS 관측 → 앱 전달" in HTML
+    assert "selectedDiaryCandidate()" in HTML
+    assert "renderDiaryRoute()" in HTML
+    assert "nearest_geometry_to_start_m" in HTML
+    assert "앞뒤 거리만 자르면 루프·왕복" in HTML
+    assert "metrics.gap_count" in HTML
+    assert "정확한 경계 교차점은 내부점 양자화의 예외" in HTML
 
 
 def test_lab_can_exchange_the_versioned_scenario_json():

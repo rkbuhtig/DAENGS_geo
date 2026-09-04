@@ -29,6 +29,7 @@
 | [evidence-layer](evidence-layer.md) | exploring | draft | **원시 행동 → 판단 가능한 상태.** 사람과 AI 가 같은 근거 계약을 다른 표현으로 읽는다. 지도는 그 인간용 투영이고 맨 마지막이다 |
 | [experience-scenario](experience-scenario.md) | exploring | draft | 저녁 산책 직전 화면 한 장. 셀로판이 기록·해석·행동 중 **어떤 가치를 만드는지** 가장 싼 형태로 검증한다. 금지 목록과 판정 기준이 여기 있다 |
 | [speed-colored-trail](speed-colored-trail.md) | parked | none | **속도에 따른 세 단계 잉크색 동선.** 로컬 UX 방향은 GO지만 체류와 의미를 분리하고, 실제 속도 문턱·dev 시각화·장시간 렌더링 검증 전에는 구현하지 않는다 |
+| [walk-diary-route](walk-diary-route.md) | exploring | dev-lab-spike | **단일 산책의 순서 있는 일기 선.** 앞뒤 거리 절단의 재방문 노출을 확인했고 공간 보호·단절·양자화 후보를 Lab에서 비교한다. 결정 #85에 따라 서버 영속은 아직 닫혀 있다 |
 | [drawn-region](drawn-region.md) | parked | working | 사용자가 면을 그리고 그 안의 체류를 잰다. 붓 모델로 대체 — 5배 규칙은 남는다 |
 | [loop-and-balance](loop-and-balance.md) | parked | none | 3단 루프 · 케어 밸런스. 데이터 수집 전에는 결정하지 않음 |
 
