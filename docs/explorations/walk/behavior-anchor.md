@@ -14,6 +14,11 @@ depends-on: memory-engine.md, micro-judgment.md
 > 실제 응답을 append-only Attestation으로 남기고, 시스템 Offer와 직접 책갈피를 서로 다른
 > elicitation 경로로 보존하는 경계를 채택했다. 행동 아이콘·어휘·Android UI는 계속 열려 있다.
 
+> **2026-09-04 후속 탐색.** [행동 프로필·개인화](behavior-profile-and-personalization.md)는
+> 실제로 남긴 구조화된 행동 증언을 여러 산책에 걸쳐 읽는 소비자 후보를 다룬다. 현재 head,
+> dog/owner 귀속, 기록 선택 편향과 삭제를 보존하면서 프로필 설명부터 검증한다는 구상이다.
+> 이 후속 문서가 행동 어휘·자동 행동 확정·학습 모델을 채택한 것은 아니다.
+
 프레이밍이 절반이다. 이건 어노테이션 기능이 아니다.
 
     "AI 정확도를 높이기 위해 행동을 라벨링해 주세요"   → 아무도 안 한다
