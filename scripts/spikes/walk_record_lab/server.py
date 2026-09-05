@@ -13,6 +13,7 @@ from scripts.sim.walk.lab import router as trace_router
 from scripts.spikes.storyboard_and_regions.sources import service_key
 from scripts.spikes.walk_record_lab.context import ContextReader
 from scripts.spikes.walk_record_lab.core import Experiment, prepare, summarize
+from scripts.spikes.walk_record_lab.selection import select
 
 ROOT = Path(__file__).resolve().parents[3]
 
@@ -51,8 +52,9 @@ def create_app(cache: Path, key: str = ""):
             try:
                 artifacts, entries = prepare(experiment)
                 reader = ContextReader(cache, key)
-                contexts, metrics = reader.contexts(entries, experiment.policy, experiment.fetch)
-                result = summarize(experiment, artifacts, entries, contexts)
+                selection = select(artifacts, entries, experiment.selection, experiment.reference_walks)
+                contexts, metrics = reader.selected_contexts(selection, experiment.fetch)
+                result = summarize(experiment, artifacts, entries, contexts, selection)
                 result["queries"] = metrics
                 return result
             except ValueError:

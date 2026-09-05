@@ -9,6 +9,7 @@ from pathlib import Path
 from scripts.spikes.storyboard_and_regions.sources import service_key
 from scripts.spikes.walk_record_lab.context import ContextReader
 from scripts.spikes.walk_record_lab.core import Experiment, prepare, summarize
+from scripts.spikes.walk_record_lab.selection import select
 
 
 def cases():
@@ -21,7 +22,8 @@ def cases():
             {"id": "toilet-1", "at_s": 100, "code": "excretion"},
             {"id": "bark-1", "at_s": 170, "code": "barking"},
             {"id": "memo-1", "at_s": 180, "code": "note", "note": "잠깐 쉬었다. (합성)"}]
-    for name in ("normal", "gap", "delay", "pinless", "memo-only", "deleted", "repeat"):
+    for name in ("normal", "gap", "delay", "pinless", "memo-only", "deleted", "repeat",
+                 "profile-change"):
         spec, entries = deepcopy(base), deepcopy(taps)
         spec["session_id"] = "record-lab-"+name
         if name == "gap":
@@ -41,8 +43,17 @@ def cases():
             entries = entries[1:]
         if name == "repeat":
             spec["started_at"] = "2026-09-04T18:30:00+09:00"
-        for policy in ("common", "behavior"):
-            yield name+"-"+policy, Experiment(scenario=spec, taps=entries, policy=policy)
+        references = []
+        if name == "profile-change":
+            entries = []
+            references = [{"walk_id": f"past-{i}", "pet_id": spec["dog_id"],
+                           "started_at": f"2026-09-0{i}T18:00:00+09:00",
+                           "median_speed_mps": 3} for i in (1, 2, 3)]
+            spec["started_at"] = "2026-09-05T18:00:00+09:00"
+        for minimum in (3, 4):
+            yield name+f"-min{minimum}", Experiment(
+                scenario=spec, taps=entries, policy="common", selection={"minimum": minimum},
+                reference_walks=references)
 
 
 def main():
@@ -57,9 +68,9 @@ def main():
     report = []
     for name, experiment in cases():
         artifacts, entries = prepare(experiment)
-        contexts, metrics = ContextReader(args.cache_dir, key).contexts(
-            entries, experiment.policy, args.fetch)
-        result = summarize(experiment, artifacts, entries, contexts)
+        selection = select(artifacts, entries, experiment.selection, experiment.reference_walks)
+        contexts, metrics = ContextReader(args.cache_dir, key).selected_contexts(selection, args.fetch)
+        result = summarize(experiment, artifacts, entries, contexts, selection)
         result["queries"] = metrics
         bundle = {"format": "walk-record-lab-bundle-v1",
                   "experiment": experiment.model_dump(mode="json"), "result": result}
@@ -69,6 +80,10 @@ def main():
                        "rejected": sum(not e["accepted"] for e in entries),
                        "scenes": len(result["scenes"]),
                        "context_rows": sum(bool(c["facts"]) for c in contexts.values()),
+                       "selected_anchors": len(selection["anchors"]),
+                       "minimum_met": selection["minimum_met"],
+                       "longest_unread_m": selection["longest_unread_m"],
+                       "selection_reasons": [a["reasons"] for a in selection["anchors"]],
                        "queries": metrics, "result_revision": result["result_revision"]})
     (args.out / "report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
     print(json.dumps(report, indent=2))

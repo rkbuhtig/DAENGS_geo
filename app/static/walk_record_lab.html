@@ -16,18 +16,22 @@
 <section class="panel"><div class="bar"><h2>1. 가상 산책 기록</h2>
 <select id="preset" aria-label="시나리오"><option value="normal">짧은 동네 산책</option><option value="gap">GPS 공백·정확도 저하</option><option value="delay">전달 지연·역순·중복</option><option value="empty">핀 없는 산책</option><option value="memo">메모만 있는 산책</option><option value="repeat">같은 경로의 다음 산책</option></select>
 <button id="new">시나리오 시작</button><button id="demo">예시 행동·메모 채우기</button><button id="import">JSON 불러오기</button><input id="file" type="file" accept="application/json" hidden><button id="export">실험 JSON 저장</button></div>
-<div class="route-grid"><div><svg id="map" viewBox="0 0 800 350" role="img" aria-label="수용 경로와 기록 위치"></svg><small>실선: 수용된 GPS 구간 · 초록 원: 기록 · 주황 원: 현재 전달된 GPS. 배경은 축척도이며 도로 지도가 아닙니다.</small></div>
+<div class="route-grid"><div><svg id="map" viewBox="0 0 800 350" role="img" aria-label="수용 경로와 기록 위치"></svg><small>실선: 수용된 GPS 구간 · 초록 원: 기록 · 보라 사각형: 환경 조회 · 주황 원: 현재 전달된 GPS. 배경은 축척도이며 도로 지도가 아닙니다.</small></div>
 <div><div class="bar"><button id="play">▶ 재생</button><label>속도 <select id="speed"><option>1</option><option selected>10</option><option>30</option></select>배</label><strong id="time"></strong></div>
 <input id="clock" type="range" min="0" max="300" value="0" step="1" aria-label="산책 경과 시간"><p id="gps-state"></p>
 <div class="bar"><button data-code="sniffing">킁킁</button><button data-code="excretion">배설</button><button data-code="barking">짖기</button><button data-code="note">특별한 순간</button></div>
 <p class="muted">시간을 옮겨 장면을 기록할 수 있어요. 행동 핀은 도착한 GPS가 15초 이내·정확도 50m 이내일 때만 저장됩니다. 메모는 위치 없이도 남길 수 있어요.</p></div></div>
 <div id="entries"></div></section>
 <section class="panel"><h2>2. 산책 종료 후 비교</h2><div class="bar">
-<label>환경 정책 <select id="policy"><option value="behavior">행동별: 배설은 시간·거리 중심</option><option value="common">공통: 모든 행동에 공간 배경</option></select></label>
+<select id="policy" hidden><option value="common">우선순위 초안</option><option value="behavior">이전 입력 호환</option></select>
+<label>최소 목표 <input id="minimum" type="number" min="1" max="8" value="4" style="width:65px">구간</label>
+<label>구간 간격 <input id="separation" type="number" min="20" max="500" value="100" style="width:80px">m</label>
+<label>허용 빈 거리 <input id="max-gap" type="number" min="50" max="2000" value="300" style="width:80px">m</label>
 <label>장면 수 <input id="limit" type="number" min="2" max="20" value="5" style="width:65px"></label>
 <label><input id="fetch" type="checkbox">없는 공공데이터 캐시 실제 조회</label>
 <button id="finish" class="primary">산책 종료 · 결과 만들기</button><button id="archive">비교 목록에 현재 산책 저장</button></div>
-<p class="muted">조회는 종료 버튼을 눌렀을 때만 실행합니다. 이후 수정·삭제는 캐시로 다시 계산합니다. 장면은 시간순으로 고르게 선택하며 중요도 추정은 하지 않습니다.</p>
+<p class="muted">액션 핀 → 평소 대비 이동 변화 → 세션 속도 변화 → 가장 큰 빈 거리 구간 순으로 선택합니다. 최소 목표 달성 후에도 긴 빈 구간을 보충하며 최대 8구간입니다. 실제 조회는 종료 버튼에서만 실행합니다.</p>
+<div id="selection-summary"></div><div id="selection-steps"></div>
 <div id="metrics"></div><details><summary>GPS 위치 검증 · 평가에만 사용하는 정답 비교</summary><p>GPS가 보고한 정확도가 좋아도 실제 위치가 튈 수 있습니다. 아래 오차는 GPS 수집 시점의 합성 정답과 비교한 값이며, 핀 좌표를 정답으로 교체하지 않습니다.</p><pre id="diagnostics"></pre></details></section>
 <div class="columns"><section class="panel"><h2>기록만</h2><div id="plain">종료 후 표시됩니다.</div></section><section class="panel"><h2>환경 추가</h2><div id="enriched">종료 후 표시됩니다.</div></section><section class="panel"><h2>장면 편집</h2><div id="scenes">종료 후 표시됩니다.</div></section></div>
 <section class="panel"><h2>산책 기록 프로필</h2><div id="profile"></div><details><summary>반복 산책 비교 · 이 브라우저에 저장</summary><p>같은 산책 ID는 덮어씁니다. 기록을 수정하면 저장된 해당 산책도 갱신됩니다. 합성 자료이며 실제 행동 빈도가 아닙니다.</p><div id="history"></div><button id="clear-history">비교 목록 비우기</button></details></section>
@@ -42,7 +46,7 @@ const state={scenario:null,taps:[],result:null,time:0,playing:false,finished:fal
 try{state.history=JSON.parse(localStorage.getItem('walk-record-lab-history-v1')||'[]')}catch{}
 const message=s=>$('status').textContent=s;
 const stamp=t=>`${Math.floor(t/60)}:${String(Math.floor(t%60)).padStart(2,'0')}`;
-function requestBody(fetch=false){return {scenario:state.scenario,taps:state.taps,policy:$('policy').value,scene_limit:Number($('limit').value),fetch}}
+function requestBody(fetch=false){return {scenario:state.scenario,taps:state.taps,policy:$('policy').value,scene_limit:Number($('limit').value),fetch,selection:{minimum:Number($('minimum').value),separation_m:Number($('separation').value),max_unread_m:Number($('max-gap').value)},reference_walks:state.references||state.history.map(w=>w.movement).filter(w=>w&&w.median_speed_mps).slice(-100)}}
 async function run(fetch=false){
  if(state.busy)return false;state.busy=true;const controls=Array.from(document.querySelectorAll('button,select,input')).map(node=>[node,node.disabled]);controls.forEach(([node])=>node.disabled=true);
  try{message(fetch?'남은 행동 핀의 주변 자료를 조회 중입니다.':'기록과 결과 계산 중');
@@ -53,7 +57,7 @@ async function run(fetch=false){
  }catch(e){message(e.message);return false}finally{state.busy=false;controls.forEach(([node,disabled])=>node.disabled=disabled)}
 }
 async function fresh(){
- state.playing=false;if($('preset').value==='repeat'&&state.scenario){state.scenario=structuredClone(state.scenario);state.scenario.session_id=crypto.randomUUID();state.scenario.started_at=new Date(new Date(state.scenario.started_at).getTime()+86400000).toISOString();state.taps=state.taps.map(t=>({...t,id:crypto.randomUUID()}));state.time=0;state.finished=false;await run();return}const base=await (await fetch('/walk-trace-lab/example')).json();
+ state.playing=false;state.references=null;if($('preset').value==='repeat'&&state.scenario){state.scenario=structuredClone(state.scenario);state.scenario.session_id=crypto.randomUUID();state.scenario.started_at=new Date(new Date(state.scenario.started_at).getTime()+86400000).toISOString();state.taps=state.taps.map(t=>({...t,id:crypto.randomUUID()}));state.time=0;state.finished=false;await run();return}const base=await (await fetch('/walk-trace-lab/example')).json();
  base.session_id=crypto.randomUUID();base.started_at=new Date().toISOString();base.origin={lat:37.48928,lng:127.0545};
  base.sensor={kind:'perfect',sample_interval_s:5,accuracy_m:3};base.faults=[];base.delivery={};
  const preset=$('preset').value;
@@ -78,17 +82,20 @@ function draw(){
  const pos=f=>{let p=xy(f);return [30+(p[0]-minx)*scale,320-(p[1]-miny)*scale]};let svg='';
  for(const segment of trace.derived.segments){const a=bySeq.get(segment.from_client_seq),b=bySeq.get(segment.to_client_seq);if(!a||!b)continue;const p=pos(a),q=pos(b);svg+=`<line x1="${p[0]}" y1="${p[1]}" x2="${q[0]}" y2="${q[1]}" stroke="#8aa299" stroke-width="3"/>`}
  for(const e of state.result.entries.filter(e=>e.accepted&&e.location)){const p=pos(e.location);svg+=`<circle cx="${p[0]}" cy="${p[1]}" r="7" fill="#235e4b"><title>${esc(e.label)} ${stamp(e.elapsed_s)}</title></circle>`}
- const current=currentFix();if(current){const p=pos(current.fix);svg+=`<circle cx="${p[0]}" cy="${p[1]}" r="9" fill="#d28b36" stroke="white" stroke-width="2"/>`}$('map').innerHTML=svg;
+ for(const a of state.result.selection?.anchors||[]){const p=pos(a.location);svg+=`<rect x="${p[0]-8}" y="${p[1]-8}" width="16" height="16" fill="none" stroke="#6356ac" stroke-width="2"><title>환경 조회 ${esc(a.id)}</title></rect>`}const current=currentFix();if(current){const p=pos(current.fix);svg+=`<circle cx="${p[0]}" cy="${p[1]}" r="9" fill="#d28b36" stroke="white" stroke-width="2"/>`}$('map').innerHTML=svg;
 }
 function render(){
  const r=state.result;renderClock();
  $('entries').innerHTML=r.entries.map(e=>`<div class="entry"><strong>${stamp(e.elapsed_s)} · ${esc(e.label)}</strong> ${esc(e.note||'')} ${e.accepted?'':`<span class="warn">저장 거절: ${esc(e.location_status)}</span>`}<div class="bar"><button data-edit="${esc(e.id)}">수정</button><button data-delete="${esc(e.id)}">삭제</button></div></div>`).join('')||'<p class="muted">아직 기록이 없습니다.</p>';
  const card=(row,context=false)=>`<div class="entry"><small>${row.elapsed_s==null?'':stamp(row.elapsed_s)}</small><p>${esc(row.text)}</p>${context&&row.context?`<small>${esc(row.routine)}</small>${row.context.facts.map(f=>`<p>${esc(f)}</p>`).join('')}<details><summary>조회 근거 · ${esc(row.context.status)}</summary><pre>${esc(JSON.stringify(row.context,null,2))}</pre></details>`:''}</div>`;
  $('plain').innerHTML=state.finished?(r.rows.map(row=>card(row)).join('')||'<p>행동·메모 기록 없이 산책을 마쳤어요.</p>'):'종료 후 표시됩니다.';
- $('enriched').innerHTML=state.finished?(r.rows.map(row=>card(row,true)).join('')||'<p>선별 조회할 행동 핀이 없습니다.</p>'):'종료 후 표시됩니다.';
+ $('enriched').innerHTML=state.finished?r.rows.map(row=>card(row,true)).join('')+'<h3>선택한 환경 구간</h3>'+((r.environment_rows||[]).map(row=>card(row,true)).join('')||'<p>유효한 경로 구간이 없습니다.</p>'):'종료 후 표시됩니다.';
  $('scenes').innerHTML=state.finished?r.scenes.map(row=>card(row,true)).join('')+`<small>편집에서 제외된 기록 ${r.omitted_entry_ids.length}개. 원본 기록은 유지됩니다.</small>`:'종료 후 표시됩니다.';
  $('metrics').textContent=state.finished?`상가 조회 중심 ${r.queries.commerce_anchors}곳 · 이번에 수집한 질의 ${r.queries.query_groups_fetched}개 · ${r.queries.mode}`:'';
  $('diagnostics').textContent=JSON.stringify(r.evaluation_only||{},null,2);
+ const selection=r.selection,reasons={action:'액션 핀',profile_change:'평소 대비 이동 변화',session_speed:'세션 속도 변화',distance_fill:'거리 보충'};
+ $('selection-summary').textContent=selection?`선택 ${selection.anchors.length}/${selection.settings.minimum}구간 목표 · ${selection.minimum_met?'최소 목표 달성':'구별 가능한 유효 경로 부족'} · 최대 빈 거리 ${selection.longest_unread_m}m (${selection.coverage_met?'기준 충족':'예산·간격 조건으로 미충족'}) · ${selection.reference_status==='available'?'과거 산책 '+selection.reference_walk_ids.length+'개 비교':'과거 이동 기준 부족: 2순위 건너뜀'}`:'';
+ $('selection-steps').innerHTML=selection?selection.anchors.map((a,i)=>`<p><strong>${i+1}. ${Math.round(a.route_m)}m</strong> · ${a.reasons.map(x=>reasons[x]).join(' + ')} · ${stamp(a.elapsed_s)}</p>`).join('')+`<details><summary>선택 순서·보충 전 빈 구간·보류 후보</summary><pre>${esc(JSON.stringify(selection,null,2))}</pre></details>`:'';
  $('profile').innerHTML=Object.entries(r.profile.counts).map(([code,c])=>`<span class="badge">${labels[code]} 기록 ${c.entry_count}개 · ${c.recorded_walk_count}개 산책</span>`).join(' ')+'<p class="muted">현재 산책 기준 · 실제 행동 횟수나 성격 점수가 아닙니다.</p>';
  renderHistory();
 }
@@ -99,14 +106,14 @@ document.querySelectorAll('[data-code]').forEach(b=>b.onclick=async()=>{state.pl
  $('play').onclick=()=>{state.playing=!state.playing;renderClock()};$('clock').oninput=()=>{state.time=Number($('clock').value);renderClock()};
  setInterval(()=>{if(!state.playing||state.busy)return;state.time=Math.min(Number($('clock').max),state.time+.2*Number($('speed').value));if(state.time>=Number($('clock').max))state.playing=false;renderClock()},200);
  $('finish').onclick=async()=>{state.playing=false;state.finished=true;await run($('fetch').checked)};
- $('policy').onchange=()=>run();$('limit').onchange=()=>run();$('new').onclick=fresh;
+ for(const id of ['policy','limit','minimum','separation','max-gap'])$(id).onchange=()=>run();$('new').onclick=fresh;
  $('demo').onclick=async()=>{const end=Number($('clock').max);state.taps=[{code:'sniffing',fraction:.28},{code:'excretion',fraction:.46},{code:'barking',fraction:.78},{code:'note',fraction:.83,note:'잠깐 쉬었다. (합성 메모)'}].map(t=>({id:crypto.randomUUID(),at_s:Math.floor(end*t.fraction),code:t.code,note:t.note||''}));state.playing=false;await run()};
  $('take-route').onclick=async()=>{try{const spec=$('gps').contentWindow.buildSpec();spec.session_id=crypto.randomUUID();state.scenario=spec;state.taps=[];state.time=0;state.finished=false;state.playing=false;await run()}catch{message('GPS 편집기 로딩 후 경로를 확인해주세요.')}};
  function download(value){const url=URL.createObjectURL(new Blob([JSON.stringify(value,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='walk-record-experiment.json';a.click();URL.revokeObjectURL(url)}
  $('export').onclick=()=>download({format:'walk-record-lab-bundle-v1',experiment:requestBody(false),result:state.result,history:state.history});
- $('import').onclick=()=>$('file').click();$('file').onchange=async()=>{try{const value=JSON.parse(await $('file').files[0].text()),exp=value.experiment||(value.format==='walk-trace-scenario-v1'?{scenario:value,taps:[]}:value);if(!exp.scenario||!Array.isArray(exp.taps))throw Error();state.scenario=exp.scenario;state.taps=exp.taps;state.time=0;state.finished=false;state.playing=false;$('policy').value=exp.policy||'behavior';$('limit').value=exp.scene_limit||5;await run()}catch{message('유효한 실험 또는 GPS 시나리오 JSON이 아닙니다.')}finally{$('file').value=''}};
+ $('import').onclick=()=>$('file').click();$('file').onchange=async()=>{try{const value=JSON.parse(await $('file').files[0].text()),exp=value.experiment||(value.format==='walk-trace-scenario-v1'?{scenario:value,taps:[]}:value);if(!exp.scenario||!Array.isArray(exp.taps))throw Error();state.references=exp.reference_walks||null;$('minimum').value=exp.selection?.minimum||4;$('separation').value=exp.selection?.separation_m||100;$('max-gap').value=exp.selection?.max_unread_m||300;state.scenario=exp.scenario;state.taps=exp.taps;state.time=0;state.finished=false;state.playing=false;$('policy').value=exp.policy||'behavior';$('limit').value=exp.scene_limit||5;await run()}catch{message('유효한 실험 또는 GPS 시나리오 JSON이 아닙니다.')}finally{$('file').value=''}};
  function saveHistory(){localStorage.setItem('walk-record-lab-history-v1',JSON.stringify(state.history));renderHistory()}
- function archive(){const r=state.result;if(!r)return;const id=r.trace.scenario.session_id;state.history=state.history.filter(w=>w.id!==id);state.history.push({id,profile:r.profile,entries:r.entries.filter(e=>e.accepted&&e.kind==='behavior'),revision:r.source_revision});saveHistory()}
+ function archive(){const r=state.result;if(!r)return;const id=r.trace.scenario.session_id;state.history=state.history.filter(w=>w.id!==id);state.history.push({id,profile:r.profile,entries:r.entries.filter(e=>e.accepted&&e.kind==='behavior'),revision:r.source_revision,movement:r.selection?.movement_summary});saveHistory()}
  function updateSaved(){if(state.history.some(w=>w.id===state.result.trace.scenario.session_id))archive()}
  function renderHistory(){const counts={};for(const code of ['sniffing','excretion','barking'])counts[code]=state.history.filter(w=>w.profile.counts[code].entry_count>0).length;
  const sites=[];for(const walk of state.history)for(const entry of walk.entries||[]){if(!entry.location)continue;let site=sites.find(s=>s.code===entry.behavior_code&&Math.hypot((s.lat-entry.location.lat)*111195,(s.lng-entry.location.lng)*111195*Math.cos(s.lat*Math.PI/180))<=50);if(!site){site={code:entry.behavior_code,lat:entry.location.lat,lng:entry.location.lng,walks:new Set()};sites.push(site)}site.walks.add(walk.id)}

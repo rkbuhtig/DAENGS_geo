@@ -15,6 +15,16 @@ class ContextReader:
         self.requests = 0
         self.receipts = {}
 
+    def selected_contexts(self, selection, fetch=False):
+        anchors = [{"id": a["id"], "accepted": True, "kind": "behavior",
+                    "behavior_code": "sniffing", "location": a["location"]}
+                   for a in selection["anchors"]]
+        contexts, metrics = self.contexts(anchors, "common", fetch)
+        for anchor in selection["anchors"]:
+            for entry_id in anchor["entry_ids"]:
+                contexts[entry_id] = contexts[anchor["id"]]
+        return contexts, metrics
+
     def read(self, source, params, fetch):
         signature = (source, fingerprint(params))
         if signature in self.receipts:

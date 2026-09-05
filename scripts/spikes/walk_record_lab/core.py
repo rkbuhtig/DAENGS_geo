@@ -12,6 +12,7 @@ from scripts.sim.walk.bundle import ScenarioArtifacts, build_scenario_from_spec
 from scripts.sim.walk.lab import build_lab_payload
 from scripts.sim.walk.spec import WalkTraceScenarioSpec
 from scripts.spikes.storyboard_and_regions.sources import fingerprint
+from scripts.spikes.walk_record_lab.selection import ReferenceWalk, SelectionPolicy
 
 LABELS = {"sniffing": "킁킁", "excretion": "배설", "barking": "짖기", "note": "특별한 순간"}
 
@@ -38,6 +39,8 @@ class Experiment(BaseModel):
     policy: Literal["common", "behavior"] = "behavior"
     scene_limit: int = Field(default=5, ge=2, le=20)
     fetch: bool = False
+    selection: SelectionPolicy = Field(default_factory=SelectionPolicy)
+    reference_walks: list[ReferenceWalk] = Field(default_factory=list, max_length=100)
 
     @model_validator(mode="after")
     def unique_ids(self):
@@ -93,7 +96,7 @@ def prepare(experiment: Experiment):
     return artifacts, entries
 
 
-def summarize(experiment, artifacts, entries, contexts):
+def summarize(experiment, artifacts, entries, contexts, selection=None):
     live = [e for e in entries if e["accepted"]]
     counts = Counter(e["behavior_code"] for e in live if e["kind"] == "behavior")
     facts = artifacts.computed.facts.model_dump(mode="json")
@@ -105,12 +108,22 @@ def summarize(experiment, artifacts, entries, contexts):
                      "text": text, "context": context,
                      "routine": f'산책 {int(entry["elapsed_s"]//60)}분 경과 · 수용 이동거리 '
                                 f'{entry["accepted_distance_m"]}m'})
+    environment_rows = []
+    for anchor in (selection or {}).get("anchors", []):
+        environment_rows.append({
+            "entry_id": None, "anchor_id": anchor["id"], "elapsed_s": anchor["elapsed_s"],
+            "text": f'경로 {round(anchor["route_m"])}m 주변',
+            "context": contexts.get(anchor["id"], {"status": "not_requested", "facts": []}),
+            "routine": "자동 환경 조회 · 행동 기록 아님", "reasons": anchor["reasons"]})
+    scene_rows = sorted(rows + [r for r, a in zip(environment_rows,
+                        (selection or {}).get("anchors", [])) if not a["entry_ids"]],
+                        key=lambda r: r["elapsed_s"])
     # Even spacing is a comparison baseline, not a significance ranking.
     budget = max(0, experiment.scene_limit-2)
-    selected = (list(range(len(rows))) if len(rows) <= budget else
-                sorted({round(i*(len(rows)-1)/max(1, budget-1)) for i in range(budget)}))
+    selected = (list(range(len(scene_rows))) if len(scene_rows) <= budget else
+                sorted({round(i*(len(scene_rows)-1)/max(1, budget-1)) for i in range(budget)}))
     scenes = [{"text": "산책 시작", "entry_id": None}]
-    scenes += [rows[i] for i in selected]
+    scenes += [scene_rows[i] for i in selected]
     scenes += [{"text": f'산책 종료 · 수용 이동거리 {round(facts["moving_distance_m"])}m',
                 "entry_id": None}]
     revision = fingerprint({"scenario": artifacts.scenario, "entries": live})
@@ -136,10 +149,13 @@ def summarize(experiment, artifacts, entries, contexts):
         "evaluation_only": {"anchor_errors": diagnostics,
                             "note": "Truth at GPS capture time; never used for context or profile"},
         "source_revision": revision, "entries": entries, "rows": rows, "scenes": scenes,
+        "selection": selection, "environment_rows": environment_rows,
         "result_revision": fingerprint({"source_revision": revision, "contexts": contexts,
                                         "policy": experiment.policy,
-                                        "scene_limit": experiment.scene_limit}),
-        "omitted_entry_ids": [r["entry_id"] for i, r in enumerate(rows) if i not in selected],
+                                        "scene_limit": experiment.scene_limit,
+                                        "selection": selection}),
+        "omitted_entry_ids": [r["entry_id"] for i, r in enumerate(scene_rows)
+                              if i not in selected and r["entry_id"] is not None],
         "profile": {"name": "산책 기록 프로필", "walk_count": 1,
                     "counts": {code: {"entry_count": counts[code],
                                       "recorded_walk_count": int(counts[code] > 0)}
