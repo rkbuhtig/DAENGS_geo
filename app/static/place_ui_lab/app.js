@@ -11,8 +11,23 @@ let searchMode='normal', appliedQuery='';
 const categoryIcons=['☕','🍽','🐾','🛍','✂','🏠','✚','💊','🧭','🎡','🏡','🏨','🛏','🏛','🖼','🎭','🎫','⋯'];
 const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const identity = (hit) => JSON.stringify([hit.place.key.source,hit.place.key.ref]);
-const label = () => categories.find(([kind]) => kind === state.kind)[1];
-const group = () => fixtures?.cases[`${state.region}-${state.dog}${state.parking?'_parking':''}`]?.groups.find(g=>g.kind===state.kind);
+const label = () => state.kind==='all'?'전체보기':categories.find(([kind]) => kind === state.kind)[1];
+const group = () => {
+  const groups=fixtures?.cases[`${state.region}-${state.dog}${state.parking?'_parking':''}`]?.groups;
+  if(state.kind!=='all')return groups?.find(g=>g.kind===state.kind);
+  if(!groups)return undefined;
+  const results=groups.flatMap(g=>g.results).sort((a,b)=>{
+    if(state.parking){
+      const band=Math.floor(a.place.distance_m/500)-Math.floor(b.place.distance_m/500);
+      if(band)return band;
+      const parking=Number(b.place.facts.parking===true)-Number(a.place.facts.parking===true);
+      if(parking)return parking;
+    }
+    return a.place.distance_m-b.place.distance_m;
+  });
+  return {kind:'all',results,truncated:groups.some(g=>g.truncated)};
+};
+const hitKind = hit => categories.find(([kind])=>kind===hit.place.match?.kind)?.[1] || label();
 const hits = () => state.scenario==='results' ? (group()?.results ?? []).filter(hit=>state.mode!=='proposed'||!appliedQuery||`${hit.place.name} ${hit.place.facts.address||''}`.toLocaleLowerCase().includes(appliedQuery.toLocaleLowerCase())) : [];
 const distanceLabel = d => d < 1000 ? `${d}m` : `${(d/1000).toFixed(1)}km`;
 const tone = value => ({compatible:'success',incompatible:'error',unknown:'warning'}[value] || 'muted');
@@ -41,10 +56,10 @@ function renderCards() {
   if(state.scenario==='error') return '<div class="message error">서버에 닿지 못했어요. 잠시 뒤 다시 시도해 주세요.<button type="button" id="retry">다시 시도</button></div>';
   if(!g) return `<div class="message">${label()} 응답은 이 검토판에 수집하지 않았습니다. 카페 또는 음식점을 선택하세요.</div>`;
   if(!hits().length) return `<div class="message">이 반경에서 ${label()} 결과를 찾지 못했습니다.</div>`;
-  return `<p class="count">${hits().length}곳${g.truncated?' · 서버 한도에서 잘림':''}</p><div class="cards">${hits().map((hit,index)=>{
+  return `${state.kind==='all'?'<p class="all-scope">전체 종류 · 이 검토판은 카페·음식점 표본만 포함</p>':''}<p class="count">${hits().length}곳${g.truncated?' · 서버 한도에서 잘림':''}</p><div class="cards">${hits().map((hit,index)=>{
     const p=hit.place,f=p.facts,e=hit.evaluations?.dog_access;
     if(state.mode==='proposed')return drawerCard(hit,index);
-    return `<article class="card${identity(hit)===state.selected?' selected':''}" tabindex="0" data-index="${index}" aria-label="${escapeHtml(p.name)} 선택"><h3>${escapeHtml(p.name)}</h3><p class="meta">${label()} · ${distanceLabel(p.distance_m)}</p><p class="${f.parking===true?'success':f.parking===false?'muted':'warning'}">${f.parking===true?'주차 가능':f.parking===false?'주차 불가':'주차 정보 없음'}</p>${e?`<p class="${tone(e.state)}">${escapeHtml(accessText(e))}</p>`:''}${restrictionHtml(hit)}${f.hours_text?`<p class="hours">영업시간 ${escapeHtml(f.hours_text)}</p>`:''}${f.address?`<p class="address">${escapeHtml(f.address)}</p>`:''}<button class="wide-button" type="button" data-demo="길찾기는 네이티브 앱에서 확인합니다. 이 검토판은 외부 경로 API를 호출하지 않습니다.">길찾기</button>${f.phone?'<button class="wide-button secondary" type="button" data-demo="전화 연결은 검토판에서 실행하지 않습니다.">전화하기</button>':''}</article>`;
+    return `<article class="card${identity(hit)===state.selected?' selected':''}" tabindex="0" data-index="${index}" aria-label="${escapeHtml(p.name)} 선택"><h3>${escapeHtml(p.name)}</h3><p class="meta">${hitKind(hit)} · ${distanceLabel(p.distance_m)}</p><p class="${f.parking===true?'success':f.parking===false?'muted':'warning'}">${f.parking===true?'주차 가능':f.parking===false?'주차 불가':'주차 정보 없음'}</p>${e?`<p class="${tone(e.state)}">${escapeHtml(accessText(e))}</p>`:''}${restrictionHtml(hit)}${f.hours_text?`<p class="hours">영업시간 ${escapeHtml(f.hours_text)}</p>`:''}${f.address?`<p class="address">${escapeHtml(f.address)}</p>`:''}<button class="wide-button" type="button" data-demo="길찾기는 네이티브 앱에서 확인합니다. 이 검토판은 외부 경로 API를 호출하지 않습니다.">길찾기</button>${f.phone?'<button class="wide-button secondary" type="button" data-demo="전화 연결은 검토판에서 실행하지 않습니다.">전화하기</button>':''}</article>`;
   }).join('')}</div>`;
 }
 function drawerCard(hit,index){
@@ -56,7 +71,7 @@ function drawerCard(hit,index){
   return `<article class="card drawer-card${identity(hit)===state.selected?' selected':''}" data-index="${index}">
     <details class="facility-drawer">
       <summary aria-label="${escapeHtml(p.name)} 동반 조건" aria-controls="conditions-${index}">
-        <h3>${escapeHtml(p.name)}</h3><p class="meta">${label()} · ${distanceLabel(p.distance_m)}</p>
+        <h3>${escapeHtml(p.name)}</h3><p class="meta">${hitKind(hit)} · ${distanceLabel(p.distance_m)}</p>
         <span class="registration ${status}" role="img" aria-label="${registration}"><span class="paw-icon">${paw}<span class="status-mark" aria-hidden="true">${allowed===true?'✓':allowed===false?'×':'?'}</span></span><span class="registration-label" aria-hidden="true">${registration}</span></span>
         <svg class="drawer-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
       </summary>
@@ -137,7 +152,7 @@ function toast(message){$('toast').textContent=message;$('toast').hidden=false;c
 document.addEventListener('click',event=>{
   const demo=event.target.closest('[data-demo]');if(demo)toast(demo.dataset.demo);
   const kind=event.target.closest('[data-kind]');if(kind){state.kind=kind.dataset.kind;state.selected=null;render();const row=$('categories'),chip=row.querySelector(`[data-kind="${state.kind}"]`);row.scrollLeft+=chip.getBoundingClientRect().left-row.getBoundingClientRect().left-16;}
-  const mode=event.target.closest('[data-mode]');if(mode){state.mode=mode.dataset.mode;const selectedIndex=hits().findIndex(h=>identity(h)===state.selected);render();if(selectedIndex>=0)select(selectedIndex,true);}
+  const mode=event.target.closest('[data-mode]');if(mode){state.mode=mode.dataset.mode;if(state.mode==='current'&&state.kind==='all')state.kind='cafe';const selectedIndex=hits().findIndex(h=>identity(h)===state.selected);render();if(selectedIndex>=0)select(selectedIndex,true);}
 });
 ['region','dog','scenario'].forEach(id=>$(id).addEventListener('change',()=>{state[id]=$(id).value;state.selected=null;render();}));
 $('parking').addEventListener('click',()=>{state.parking=!state.parking;render();});
@@ -157,6 +172,7 @@ function renderSearchTools(){
     $('top-categories').append($('categories'));
     $('filter-parking').append($('parking').parentElement);
     $('categories').querySelectorAll('button').forEach((button,index)=>{button.innerHTML=`<span class="category-icon" aria-hidden="true">${categoryIcons[index]}</span><span>${escapeHtml(categories[index][1])}</span>`;});
+    $('categories').insertAdjacentHTML('afterbegin',`<button class="chip" type="button" data-kind="all" aria-pressed="${state.kind==='all'}"><span class="category-icon" aria-hidden="true">▦</span><span>전체보기</span></button>`);
   }else{
     panel.insertBefore($('categories'),$('coverage'));
     panel.insertBefore($('parking').parentElement,$('coverage'));
@@ -194,9 +210,19 @@ $('active-filters').addEventListener('click',event=>{
   if(key==='query'){appliedQuery='';if(searchMode==='normal')$('search-query').value='';}
   if(key){$('search-feedback').textContent='';render();}
 });
-new ResizeObserver(()=>{
+// UI contract v1: IDs, never display names, identify selected profiles.
+const profileSelection={version:1,selectedDogIds:[]};
+$('profile-picker').addEventListener('change',()=>{
+  profileSelection.selectedDogIds=[...document.querySelectorAll('[data-profile]:checked')].map(input=>input.value);
+  const names={ 'demo-bori':'보리', 'demo-choco':'초코' };
+  $('profile-selection').textContent=profileSelection.selectedDogIds.map(id=>names[id]).join(' · ')||'선택 ▾';
+});
+const layoutObserver=new ResizeObserver(()=>{
   document.querySelector('.map-area').style.top=state.mode==='proposed'?`${37+$('search-tools').offsetHeight}px`:'';
-}).observe($('search-tools'));
+  $('map').style.height=state.mode==='proposed'?`${Math.max(80,document.querySelector('.panel').offsetTop-document.querySelector('.map-area').offsetTop)}px`:'';
+});
+layoutObserver.observe($('search-tools'));
+layoutObserver.observe(document.querySelector('.panel'));
 fetch('fixtures.json').then(response=>{if(!response.ok)throw Error('fixture response');return response.json();}).then(data=>{
   fixtures=data;$('capture-info').textContent=`2026-09-05 수집 · ${Object.keys(data.cases).length}개 응답 · 운영 서버 추가 호출 없음`;render();
 }).catch(()=>{$('capture-info').textContent='응답 파일을 읽지 못했습니다. HTTP 서버로 이 폴더를 열어 주세요.';$('results').innerHTML='<div class="message error">검토 데이터를 불러오지 못했습니다.</div>';});

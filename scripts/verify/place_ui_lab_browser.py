@@ -44,6 +44,21 @@ def main():
         expect(page.locator(".card.selected .restrictions")).to_have_count(0)
         page.get_by_role("button", name="제한사항 보완안", exact=True).click()
         expect(page.locator('#ai-toggle')).to_have_attribute('aria-pressed', 'false')
+        assert page.locator('#categories').evaluate(
+            "el => getComputedStyle(el).gridTemplateRows.split(' ').length"
+        ) == 2
+        page.locator('[data-kind="all"]').click()
+        expect(page.locator('.all-scope')).to_contain_text('카페·음식점 표본만')
+        page.locator('#profile-picker summary').click()
+        page.locator('[value="demo-bori"]').check()
+        page.locator('[value="demo-choco"]').check()
+        expect(page.locator('#profile-selection')).to_have_text('보리 · 초코')
+        expect(page.locator('.card')).to_have_count(14)
+        page.locator('#profile-picker summary').click()
+        page.locator('[data-kind="etc"]').click()
+        expect(page.locator('#results')).to_contain_text('수집하지 않았습니다')
+        page.locator('[data-kind="cafe"]').click()
+        expect(page.locator('#profile-selection')).to_have_text('보리 · 초코')
         page.locator('#search-query').fill('구욱희씨')
         expect(page.locator('.card')).to_have_count(14)
         page.locator('#ai-toggle').click()
