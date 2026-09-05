@@ -51,12 +51,37 @@ select { width: 100%; border: 1px solid var(--border); border-radius: 10px; padd
 .bottom-stack { position: absolute; bottom: 12px; left: 12px; right: 12px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
 .moment-dock { display: flex; gap: 6px; width: 100%; }
 .moment-dock button { flex: 1; padding: 8px 3px; min-height: 44px; border-radius: 12px; background: white; color: #d9787d; font-size: 11px; }
-.territory-card { width: 100%; max-width: 320px; border-radius: 18px; padding: 12px; background: white; box-shadow: 0 3px 12px #5b443817; }
+.territory-card { width: 100%; max-width: 360px; border-radius: 22px; padding: 14px 16px; background: #fffffff5; box-shadow: 0 8px 30px #5b443812; }
 .territory-card small { font-size: 11px; color: var(--muted); }
 .territory-card h2 { font-size: 14px; margin: 5px 0; }
 .territory-card p { font-size: 12px; line-height: 1.5; margin: 5px 0; }
 #representative { color: var(--muted); }
-.claim-buttons { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; margin-top: 8px; }
+.claim-buttons { display: flex; gap: 8px; margin-top: 10px; }
+.claim-buttons:has(button:not([hidden])) { min-height: 46px; }
+.claim-buttons:not(:has(button:not([hidden]))) { display: none; }
+.claim-buttons .pink-button { flex: 1; background: #4a3b36; border-radius: 14px; font-size: 14px; min-height: 46px; }
+.claim-buttons .secondary-photo { flex: 0 0 48px; background: #f7eeea; color: #705b52; font-size: 19px; padding: 8px; }
+.target-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.target-heading h2 { font-size: 13px; margin: 0; }
+.target-heading #owner { font-size: 10px; margin: 0; white-space: nowrap; color: #806e64; }
+#guidance { color: #806e64; font-size: 11px; margin: 5px 0 0; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.playing .round-primary { width: 40px; height: 40px; background: #ffffffd9; color: #7e7269; font-size: 16px; }
+.playing #recording-control { display: flex; align-items: center; gap: 6px; }
+.playing #recording-control > small { margin: 0; font-size: 10px; color: #82776f; }
+.playing .primary-row { gap: 18px; }
+.playing .primary-row .round-small { width: 36px; height: 36px; font-size: 20px; background: #ffffffd9; box-shadow: none; }
+.playing .map-caption { display: none; }
+.target-label { position: absolute; transform: translate(-50%, -100%); text-align: center; pointer-events: none; background: #fffef8; border: 1px solid #e5dbd0; border-radius: 12px; padding: 7px 12px; white-space: nowrap; box-shadow: 0 4px 14px #4a3b3610; }
+.target-label::after { content: ''; position: absolute; bottom: -5px; left: calc(50% - 4px); width: 8px; height: 8px; background: #fffef8; transform: rotate(45deg); border-right: 1px solid #e5dbd0; border-bottom: 1px solid #e5dbd0; }
+.target-label strong { display: block; font-size: 12px; }
+.target-label span { display: block; font-size: 10px; color: #8b7e73; margin-top: 3px; }
+.target-label.ready { border-color: #bad3bf; }
+.target-label.ready strong { color: #398052; }
+.territory-stamp { opacity: .85; }
+.claim-burst { transform-box: fill-box; transform-origin: center; animation: claim-burst 1.1s ease-out; }
+@keyframes claim-burst { from { opacity: .9; transform: scale(.7); } to { opacity: 0; transform: scale(1.5); } }
+@media (prefers-reduced-motion: reduce) { .claim-burst { animation: none; } }
 .pink-button { background: var(--pink); color: white; border-radius: 20px; padding: 11px 16px; font-size: 12px; font-weight: 700; min-height: 40px; }
 .status-pill { border-radius: 16px; padding: 8px 12px; background: #ffffffed; font-size: 11px; line-height: 1.4; margin: 0; max-width: 100%; }
 .status-pill.error { color: var(--error); }
@@ -105,8 +130,8 @@ select { width: 100%; border: 1px solid var(--border); border-radius: 10px; padd
 .landscape .walk-top { right: auto; }
 .landscape .hud { left: auto; right: 12px; top: 12px; transform: none; }
 .landscape .map-caption { top: 64px; }
-.landscape .bottom-stack { align-items: flex-start; right: auto; width: 260px; }
-.landscape .territory-card { position: absolute; left: calc(var(--surface-width, 800px) - 336px); bottom: 0; width: 300px; }
+.landscape .bottom-stack { flex-direction: row; align-items: flex-end; justify-content: space-between; width: auto; }
+.landscape .territory-card { position: static; width: 340px; max-width: 60%; }
 .landscape .territory-card h2 { margin: 3px 0; }
 .landscape .territory-card p { margin: 3px 0; }
 .landscape .claim-buttons { flex-direction: row; flex-wrap: wrap; }

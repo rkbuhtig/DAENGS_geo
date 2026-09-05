@@ -18,10 +18,17 @@ const state = {
   claims: new Claims(), session: null, serial: 0, pet: null, recording: false,
   visible: false, target: 'A', position: { x: 60, y: 350 }, trail: [],
   seconds: 0, meters: 0, jobs: [], camera: null, overlay: null, generation: 0,
-  moments: [], notice: null,
+  moments: [], notice: null, feedback: null,
 };
 const timers = new Set();
 let previousFocus = null;
+let feedbackTimer = null;
+
+function celebrate(message, siteId) {
+  clearTimeout(feedbackTimer);
+  state.feedback = {message, siteId};
+  feedbackTimer = setTimeout(() => { state.feedback = null; render(); }, 2400);
+}
 
 function distance(siteId = state.target) {
   const site = places[siteId];
@@ -53,9 +60,9 @@ function guidance() {
   if (state.jobs.some(job => job.attempt === current && job.conflict)) return '점유가 변경돼 확정 보류 · 온라인 충돌 정책 미정';
   if (current?.photo === 'PENDING' || current?.photo === 'RETRY_PENDING') return photoLabels[current.photo];
   if (readiness() !== 'READY') return `${Math.round(distance())}m · 가까이 가면 영역표시할 수 있어요`;
-  if (current?.photo === 'VERIFIED') return '이번 산책에서 이미 인증한 장소예요';
+  if (current?.photo === 'VERIFIED') return '발자국을 남겼어요 · 다음 장소로 걸어볼까요?';
   if (current?.photo === 'REJECTED') return '사진이 부적합해요 · 같은 장소에서 다시 촬영해 주세요';
-  if (current) return '사진을 찍어 같은 영역표시를 인증할 수 있어요';
+  if (current) return '사진으로 우리 강아지의 영역을 인증해 주세요';
   return {
     GRANTED: '점령 준비 · 영역표시할 수 있어요',
     PHOTO_REQUIRED: '인증된 영역이에요 · 탈취에는 사진 인증이 필요해요',
@@ -70,11 +77,15 @@ function renderMap() {
   $('markers').innerHTML = state.visible && $('board').value === 'ready' ? Object.entries(places).map(([id, p]) => {
     const owner = state.claims.sites.get(id).occupancy;
     const color = !owner ? '#8f968e' : owner.certification === 'VERIFIED' ? '#4e9b70' : '#c98b32';
-    const ring = readiness() === 'READY' ? '#4e9b70' : '#8f968e';
+    const ring = readiness(id) === 'READY' ? '#4e9b70' : '#a99c8e';
+    const progress = readiness(id) === 'READY' ? 1 : readiness(id) === 'UNAVAILABLE' ? 0 : Math.max(0, .9 - distance(id) / 100);
     const label = owner ? `${names[owner.pet]} · ${owner.certification === 'VERIFIED' ? '인증' : '미인증'}` : '미점유';
     return `<g class="marker" data-site="${id}" tabindex="0" role="button" aria-label="${id} ${p.label}, ${label}" transform="translate(${p.x},${p.y})">` +
-      (id === state.target ? `<circle r="40" fill="${ring}18" stroke="${ring}" stroke-dasharray="4 4"/>` : '') +
-      `<circle r="13" fill="${color}" stroke="white" stroke-width="3"/><text text-anchor="middle" y="4" font-size="11" fill="white">${id}</text><text text-anchor="middle" y="-22" font-size="10" fill="#4a3b36">${label}</text></g>`;
+      (id === state.target ? `<circle r="40" fill="${ring}12" stroke="${ring}55"/><circle r="40" fill="none" stroke="${ring}" stroke-width="3" stroke-dasharray="${progress * 251.3} 251.3" transform="rotate(-90)"/>` : '') +
+      (state.feedback?.siteId === id ? `<circle class="claim-burst" r="42" fill="none" stroke="#4e9b70" stroke-width="3"/>` : '') +
+      (owner ? `<g class="territory-stamp" transform="translate(-22,17) rotate(-18)"><ellipse cy="5" rx="6" ry="5" fill="${color}"/><g fill="${color}"><circle cx="-6" cy="-3" r="2.5"/><circle cx="0" cy="-6" r="2.5"/><circle cx="6" cy="-3" r="2.5"/></g></g>` : '') +
+      `<circle r="15" fill="white" stroke="${color}" stroke-width="2"/><path d="M0 -9V9M-6 -5H6M-4 -1H4" stroke="${color}" stroke-width="2" fill="none"/>` +
+      (id !== state.target ? `<text text-anchor="middle" y="-24" font-size="10" fill="#75665c">${id} · ${label}</text>` : '') + '</g>';
   }).join('') : '';
 }
 
@@ -100,6 +111,7 @@ function renderJobs() {
 }
 
 function render() {
+  $('phone').classList.toggle('playing', state.visible && !!state.session);
   $('toggle').textContent = state.visible ? '점령지 숨기기' : '점령지 보기';
   $('toggle').setAttribute('aria-pressed', String(state.visible));
   $('territory-card').hidden = !state.visible;
@@ -116,8 +128,21 @@ function render() {
   $('guidance').textContent = guidance();
   $('mark').disabled = !boardReady || readiness() !== 'READY' || !!attempt() || disposition(state.claims.sites.get(state.target), state.pet) !== 'GRANTED';
   $('mark').textContent = attempt() ? '영역표시 완료' : '⌖ 영역표시';
+  $('mark').hidden = $('mark').disabled;
   $('photograph').disabled = !canPhoto();
   $('photograph').textContent = attempt()?.photo === 'REJECTED' ? '다시 촬영' : '영역표시 인증 촬영';
+  $('photograph').hidden = $('photograph').disabled;
+  $('photograph').classList.toggle('secondary-photo', !$('mark').disabled);
+  if (!$('mark').disabled) $('photograph').innerHTML = '<svg aria-hidden="true" width="22" height="20" viewBox="0 0 24 22" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 5l2-3h4l2 3h4v14H4V5z" stroke-linejoin="round"/><circle cx="12" cy="11" r="3.5"/></svg>';
+  $('photograph').setAttribute('aria-label', attempt()?.photo === 'REJECTED' ? '다시 촬영' : '영역표시 인증 촬영');
+  $('photograph').title = '영역표시 인증 촬영';
+  $('notice').hidden = state.visible && !!state.session && !state.notice;
+  $('target-label').hidden = !state.visible || !boardReady;
+  $('target-label').classList.toggle('ready', readiness() === 'READY');
+  $('target-state').textContent = readiness() === 'READY' ? '영역 안에 들어왔어요' : readiness() === 'UNAVAILABLE' ? '현재 위치 확인 중' : '조금 더 가까이';
+  if (owner?.pet === state.pet) $('target-state').textContent = `${names[owner.pet]}의 발자국`;
+  if (state.feedback?.siteId === state.target) $('target-state').textContent = state.feedback.message;
+  $('target-distance').textContent = `${Math.round(distance())}m · ${owner ? names[owner.pet] + (owner.certification === 'VERIFIED' ? '의 인증 영역' : ' · 미인증') : '아직 비어 있는 장소'}`;
   $('notice').textContent = state.notice || (readiness() === 'UNAVAILABLE' && state.session ? '정확한 현재 위치를 확인하고 있어요' : state.recording ? '산책을 기록하고 있어요' : '함께 걷는 강아지를 선택해 주세요');
   $('notice').classList.toggle('error', readiness() === 'UNAVAILABLE' && !!state.session);
   $('state-inspector').replaceChildren();
@@ -139,7 +164,7 @@ function renderClock() {
 }
 function move(near) {
   const p = places[$('target').value];
-  const next = near ? {x:p.x + 8, y:p.y + 4} : {x:40, y:350};
+  const next = near ? {x:p.x + 28, y:p.y + 8} : {x:40, y:350};
   if (state.recording) {
     state.meters += Math.hypot(state.position.x - next.x, state.position.y - next.y) / 2;
     state.trail.push(next);
@@ -163,7 +188,14 @@ function evaluate(job, outcome) {
   const timer = setTimeout(() => {
     timers.delete(timer);
     if (state.generation !== generation) return;
-    try { state.claims.resolve(job.attempt, job.capture, outcome === 'DELAY' ? 'ACCEPTED' : outcome); }
+    try {
+      const before = state.claims.sites.get(job.attempt.siteId).occupancy;
+      state.claims.resolve(job.attempt, job.capture, outcome === 'DELAY' ? 'ACCEPTED' : outcome);
+      if (job.attempt.photo === 'VERIFIED') celebrate(
+        before && before.pet !== job.attempt.pet ? `${names[job.attempt.pet]}가 ${job.attempt.siteId} 영역을 차지했어요!` : `${names[job.attempt.pet]}의 ${job.attempt.siteId} 발자국, 인증 완료!`,
+        job.attempt.siteId,
+      );
+    }
     catch (e) { job.conflict = e.message; }
     render();
   }, outcome === 'DELAY' ? 15000 : 2000);
@@ -177,9 +209,40 @@ function layout() {
   $('rotate').textContent = landscape ? '세로 보기' : '가로 보기';
   $('size-label').textContent = landscape ? '844 × 390 기준' : '390 × 844 기준';
   $('phone').style.setProperty('--surface-width', `${$('walk-surface').clientWidth}px`);
+  fitMap();
+}
+
+/** Frame the live position and target inside the space left by the actual overlays.
+ * Coordinates and distance rules stay unchanged; this is a camera transform only. */
+function fitMap() {
+  const surface = $('walk-surface').getBoundingClientRect();
+  const w = surface.width, h = surface.height;
+  if (!w || !h) return;
+  const top = Math.max($('hud').getBoundingClientRect().bottom, $('walk-top').getBoundingClientRect().bottom) - surface.top + 68;
+  let bottom = $('bottom-stack').getBoundingClientRect().top - surface.top - 22;
+  let left = 45, right = w - 45;
+  if (document.querySelector('.workspace').classList.contains('landscape') && state.visible && state.recording) {
+    const card = $('territory-card').getBoundingClientRect();
+    const controls = $('primary-row').getBoundingClientRect();
+    if (controls.left - card.right > 150) {
+      left = card.right - surface.left + 24;
+      right = controls.left - surface.left - 24;
+      bottom = h - 18;
+    }
+  }
+  const target = state.visible && $('board').value === 'ready' ? places[state.target] : state.position;
+  const spanX = Math.abs(target.x - state.position.x), spanY = Math.abs(target.y - state.position.y);
+  const scale = Math.max(.15, Math.min(1, (right - left) / (spanX + 85), Math.max(35, bottom - top) / (spanY + 100)));
+  const midX = (target.x + state.position.x) / 2, midY = (target.y + state.position.y) / 2;
+  const originX = midX - (left + right) / 2 / scale, originY = midY - (top + bottom) / 2 / scale;
+  $('map').setAttribute('viewBox', `${originX} ${originY} ${w / scale} ${h / scale}`);
+  const halfLabel = $('target-label').getBoundingClientRect().width / 2 + 8;
+  $('target-label').style.left = `${Math.max(halfLabel, Math.min(w - halfLabel, (target.x - originX) * scale))}px`;
+  $('target-label').style.top = `${(target.y - originY) * scale - 40 * scale - 10}px`;
 }
 
 $('reset').onclick = () => {
+  clearTimeout(feedbackTimer); state.feedback = null;
   state.generation++; timers.forEach(clearTimeout); timers.clear();
   Object.assign(state, {claims:new Claims(), session:null, serial:0, pet:null, recording:false, visible:false, target:'A', position:{x:60,y:350}, trail:[], seconds:0, meters:0, jobs:[], camera:null, moments:[], notice:null});
   setOverlay(null); $('target').value = 'A'; $('gps').value = 'good'; $('board').value = 'ready';
@@ -222,6 +285,7 @@ $('markers').onkeydown = event => {
 $('mark').onclick = () => {
   if ($('mark').disabled) return;
   state.claims.mark(state.session, state.pet, state.target, readiness() === 'READY'); render();
+  celebrate(`${names[state.pet]}의 발자국을 남겼어요!`, state.target); render();
 };
 $('photograph').onclick = () => {
   if (!canPhoto()) return;

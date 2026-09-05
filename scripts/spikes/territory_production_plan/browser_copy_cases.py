@@ -23,6 +23,19 @@ def check_app_copy(page, output, expect):
           if (overlap(rect('hud'), rect('walk-top'))) errors.push('HUD overlaps top controls');
           if (document.documentElement.scrollWidth > innerWidth) errors.push('page horizontal overflow');
           if (document.getElementById('phone').scrollWidth > document.getElementById('phone').clientWidth) errors.push('phone horizontal overflow');
+          if (document.getElementById('phone').classList.contains('playing')) {
+            const obstacles = ['walk-top', 'hud', 'territory-card', 'primary-row', 'notice'].filter(visible).map(rect);
+            const targetId = document.getElementById('target').value;
+            const marker = document.querySelector('[data-site="' + targetId + '"]');
+            const subjects = [['player', rect('player')]];
+            if (marker) subjects.push(['target marker', marker.getBoundingClientRect()]);
+            if (visible('target-label')) subjects.push(['target label', rect('target-label')]);
+            for (const [name, r] of subjects) {
+              if (r.left < surface.left || r.right > surface.right || r.top < surface.top || r.bottom > surface.bottom) errors.push(name + ' outside map');
+              if (obstacles.some(o => overlap(r, o))) errors.push(name + ' hidden by controls');
+            }
+            if (!document.querySelector('.workspace').classList.contains('landscape') && rect('bottom-stack').height / surface.height > .28) errors.push('game occupies over 28% of portrait map');
+          }
           return errors;
         }""")
         assert not problems, problems
@@ -45,6 +58,9 @@ def check_app_copy(page, output, expect):
     shot("ready")
     page.locator("#mark").click()
     expect(page.locator("#owner")).to_have_text("보리 · 미인증")
+    expect(page.locator("#target-state")).to_contain_text("발자국을 남겼어요")
+    expect(page.locator("#mark")).to_be_hidden()
+    layout_check()
     page.locator("#photograph").click()
     expect(page.locator("#walk-surface")).to_have_attribute("inert", "")
     shot("camera")
@@ -100,10 +116,14 @@ def check_app_copy(page, output, expect):
     expect(page.locator(f'[data-capture="{capture}"]')).to_contain_text("인증 완료", timeout=5000)
     page.locator("#close-jobs").click()
     expect(page.locator("#owner")).to_have_text("두부 · 인증")
+    expect(page.locator("#target-state")).to_contain_text("영역을 차지했어요")
+    expect(page.locator("#photograph")).to_be_hidden()
+    layout_check()
     shot("takeover")
 
     page.locator("#target").select_option("B")
     page.locator("#near").click()
+    layout_check()
     page.locator("#mark").click()
     expect(page.locator("#owner")).to_have_text("두부 · 미인증")
     for mode in ["loading", "empty", "error"]:
@@ -166,3 +186,16 @@ def check_app_copy(page, output, expect):
     page.wait_for_timeout(2200)  # Cross the cancelled verdict's 2-second deadline.
     expect(page.locator("#photo-strip")).to_be_hidden()
     expect(page.locator("#owner")).to_have_text("미점유")
+    page.locator("#start").click()
+    page.locator("#toggle").click()
+    for width in [320, 390, 1440]:
+        page.set_viewport_size({"width": width, "height": 1050})
+        if width == 1440:
+            page.locator("#rotate").click()
+        for target in ["A", "B", "C"]:
+            page.locator("#target").select_option(target)
+            for movement in ["far", "near"]:
+                page.locator(f"#{movement}").click()
+                layout_check()
+            if target == "B":
+                shot(f"visible-b-{width}")
