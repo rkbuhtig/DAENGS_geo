@@ -12,6 +12,7 @@ Optional --screenshots writes desktop/mobile captures outside the repository.
 import argparse
 from pathlib import Path
 
+
 def main():
     # uv supplies this script-only dependency when the browser check is executed.
     from playwright.sync_api import expect, sync_playwright
