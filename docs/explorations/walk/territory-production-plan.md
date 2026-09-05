@@ -1,6 +1,6 @@
 ---
 status: exploring
-implementation: none
+implementation: draft
 last_verified: 2026-09-05
 depends-on: territory-site-game.md, territory-season-scoring.md, ../mobile-shell/map-purpose-display-policy.md, ../../contracts/canonical-trail-consumers.md
 ---
@@ -8,8 +8,39 @@ depends-on: territory-site-game.md, territory-season-scoring.md, ../mobile-shell
 
 2026-09-05 작업 대화에서 합의한 제작 방향과 작업 순서를 기록한다. 기획의 큰 틀은 이
 계획을 기준으로 닫고, 지도에서 플레이 가능한 한 사이클을 먼저 만든다. 이 문서의
-`implementation: none`은 아래 제작 묶음이 아직 구현되지 않았다는 뜻이며, 기존 지도·산책·
-사진 판정 기반 코드의 부재를 뜻하지 않는다. API·DB 필드의 최종 계약은 각 구현 PR에서 정한다.
+`implementation: draft`는 1·2단계 기반과 로컬 지도 연결을 작성했고 촬영·온라인 연결이
+남아 있다는 뜻이다. API·DB 필드의 최종 계약은 각 구현 PR에서 정한다.
+
+## 구현 진행 — 2026-09-05
+
+1단계 모델·액션·판정 기반은 아래 PR에서 확인한다. 머지·배포 상태는 링크 대상 PR에서
+읽고, 검증 결과는 해당 단계 작업 시점의 기록으로 남긴다.
+
+| 저장소 | PR | 구현·검증 범위 |
+|---|---|---|
+| APP | [#139](https://github.com/SAJOYO/DAENGS_APP/pull/139) | 공유 점유·접근·시도 모델, 메모리 액션/사진 판정 페이크. Kotlin 2.2.10/JDK 21 컴파일 및 JVM 테스트 6개 통과 |
+| Dev | [#249](https://github.com/SAJOYO/DAENGS_dev/pull/249) | DB·HTTP와 독립인 점유 판정 함수. 새 규칙 및 기존 사진 판정 테스트 42개, 변경 파일 Ruff lint/format 통과 |
+
+양쪽은 동일한 20단계 TSV 시나리오를 실행하며 파일 SHA256 일치를 확인했다. 미인증 점유,
+같은 시도의 인증 강화·재촬영·재시도, 여러 장소 점령, 동일 세션 중복, 새 세션의 인증 탈취를
+검증한다. 미인증 점유 간 무사진 경쟁은 `POLICY_UNDECIDED`로 남겼다.
+
+1단계에서는 기존 장소 조회·산책 추적·방문 인증 API를 바꾸지 않았고, DB·실제 카메라·온라인 공유·시즌은
+후속 단계다. 1단계 검증 당시 APP은 Android SDK가 없어 전체 Gradle 빌드를 실행하지 않았다. SDK 없이 새
+도메인 테스트를 재현하는 스크립트와 실제 연결 지점을 APP 문서에 남겼다.
+
+**2단계 지도 연결:** [APP #140](https://github.com/SAJOYO/DAENGS_APP/pull/140).
+서비스의 실제 세션 ID·참여견과 현재 위치를 연결하고, debug 빌드에서 점유 표시·대상 범위·
+Pin 영역표시를 제공한다. 점유는 메모리 페이크이며 대표견은 첫 참여견을 기본값으로 표시한다.
+사진을 요구하는 영역의 탈취는 아직 안내만 한다. 화면의 접근 판정은 로컬 피드백이며
+온라인 canonical 접촉 인증을 대신하지 않는다.
+
+2026-09-05 로컬 Gradle 실행으로 타겟 테스트 47개(실패/skip 0)와 `assembleDebug` 통과를
+확인했다. 실제 보행·진동·기기 배치는 연결된 기기가 없어 미검증이다. 상세 체험 절차는
+[APP 연결 문서](https://github.com/SAJOYO/DAENGS_APP/blob/6d2025d/docs/territory-map-actions.md)를 본다.
+
+다음 작업은 **3단계 실제 촬영과 페이크 사진 판정**이다. 같은 점령 시도에 사진을 붙여
+미인증 점유를 강화하고, 새 세션의 인증 탈취까지 한 사이클을 이어간다.
 
 ## 1. 제작 기준이 되는 게임 규칙
 
