@@ -5,6 +5,7 @@
 """Read-only profile evaluation probes against sibling DAENGS_dev/app checkouts.
 
 Run with uv run scripts/verify/place_profile_audit.py. No API, auth or DB access.
+Requires sibling DAENGS_dev and DAENGS_app checkouts only when executed.
 Synthetic probes describe current behavior; they are not multi-dog acceptance tests.
 """
 
@@ -13,15 +14,23 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-workspace = Path(__file__).resolve().parents[3]
-sys.path.insert(0, str(workspace / "DAENGS_dev/backend/src"))
-
-from daengs_place.place.contracts import PetAccessFacts, RestrictionChip, RestrictionFacts
-from daengs_place.place.evaluations import evaluate_dog_access
-from daengs_place.place.restriction_projection import project
-
 
 def main():
+    workspace = Path(__file__).resolve().parents[3]
+    backend_src = workspace / "DAENGS_dev/backend/src"
+    fixture_path = workspace / "DAENGS_app/app/src/debug/assets/place_search_lab.json"
+    if not (backend_src / "daengs_place").is_dir():
+        raise SystemExit(
+            f"Required sibling DAENGS_dev checkout is missing: {backend_src / 'daengs_place'}"
+        )
+    if not fixture_path.is_file():
+        raise SystemExit(f"Required sibling DAENGS_app fixture is missing: {fixture_path}")
+
+    sys.path.insert(0, str(backend_src))
+    from daengs_place.place.contracts import PetAccessFacts, RestrictionChip, RestrictionFacts
+    from daengs_place.place.evaluations import evaluate_dog_access
+    from daengs_place.place.restriction_projection import project
+
     probes = {}
     for weight in (9, 10, 11):
         probes[f"weight_{weight}_max_10"] = evaluate_dog_access(
@@ -47,7 +56,6 @@ def main():
             dog_age_years=2,
         ).model_dump()
 
-    fixture_path = workspace / "DAENGS_app/app/src/debug/assets/place_search_lab.json"
     fixture = json.loads(fixture_path.read_text(encoding="utf-8"))
     places = {}
     for name, response in fixture["cases"].items():
