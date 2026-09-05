@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DAENGS · 산책 게임 앱 화면 검토</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="app-copy.css">
+</head>
+<body>
+  <header class="lab-header"><strong>DAENGS <span>WALK UI LAB</span></strong><a href="index.html">판정 실험 ↗</a></header>
+  <main class="workspace">
+    <aside class="controls">
+      <p class="eyebrow">ANDROID → WEB</p>
+      <h1>산책 지도에<br>영역표시를 더하다.</h1>
+      <p class="intro">앱의 산책 화면 배치 위에서 게임을 켜고 꺼 보세요. 위치와 판정은 이 조작판에서 바꿉니다.</p>
+      <label for="preset">시작 장면</label>
+      <select id="preset"><option value="neutral">빈 장소에 접근</option><option value="rival">두부의 인증 영역 탈취</option><option value="unverified">두부의 미인증 영역</option></select>
+      <button id="reset" class="control-button">선택 장면으로 새 연습</button>
+      <label for="target">이동할 장소</label>
+      <select id="target"><option value="A">A · 골목 전봇대</option><option value="B">B · 공원 입구</option><option value="C">C · 산책길 보안등</option></select>
+      <div class="control-row"><button id="near" class="control-button">가까이 이동</button><button id="far" class="control-button">멀리 이동</button></div>
+      <label for="gps">위치 상태</label>
+      <select id="gps"><option value="good">정확한 현재 위치</option><option value="stale">10초 넘은 위치</option><option value="mock">모의 위치</option><option value="denied">위치 권한 없음</option><option value="inaccurate">GPS 오차 30m</option></select>
+      <label for="board">장소 조회</label>
+      <select id="board"><option value="ready">조회 완료</option><option value="loading">조회 중</option><option value="empty">장소 없음</option><option value="error">조회 실패</option></select>
+      <label for="verdict">다음 사진의 페이크 판정</label>
+      <select id="verdict"><option value="ACCEPTED">성공 · 2초</option><option value="REJECTED">부적합 · 2초</option><option value="RETRYABLE_FAILURE">통신 장애 · 2초</option><option value="DELAY">성공 · 15초 지연</option></select>
+      <p class="note">새 연습은 점유와 대기열을 초기화합니다. 산책 종료 후 다시 시작하면 같은 점유를 유지한 채 새 세션이 됩니다.</p>
+    </aside>
+
+    <section class="preview-area">
+      <div class="preview-caption"><span>산책 화면 + 게임 연결</span><span id="size-label">390 × 844</span></div>
+      <!-- Frame/status/gesture structure follows place_ui_lab at 7aee8c8. -->
+      <div class="phone" id="phone">
+        <div class="status-bar" aria-hidden="true"><span>9:41</span><span>▰ ▰ ▰</span></div>
+        <div id="photo-strip" class="photo-strip" hidden><button id="open-jobs"></button></div>
+        <section class="walk-surface" id="walk-surface" aria-label="산책 지도 화면">
+          <svg id="map" viewBox="0 0 390 740" preserveAspectRatio="xMidYMid slice" role="group" aria-label="합성 산책 지도">
+            <defs><pattern id="blocks" width="90" height="100" patternUnits="userSpaceOnUse"><rect x="8" y="8" width="68" height="78" rx="10" fill="#e7dfd2"/><path d="M0 96H90M86 0V100" stroke="#fffdf6" stroke-width="12"/></pattern></defs>
+            <rect width="390" height="740" fill="#f2eee5"/><rect width="390" height="740" fill="url(#blocks)"/>
+            <path d="M330 -20Q180 210 315 400T285 770" stroke="#d0e3e4" stroke-width="68" fill="none"/>
+            <path d="M10 580Q80 280 210 10M-20 255Q120 310 410 230M-20 470L410 435" stroke="#d8e5ce" stroke-width="30" fill="none"/>
+            <path d="M10 580Q80 280 210 10M-20 255Q120 310 410 230M-20 470L410 435" stroke="#fffdf8" stroke-width="15" fill="none"/>
+            <text x="20" y="220" fill="#8e8b7d" font-size="11">골목 산책길</text><text x="282" y="375" fill="#7e9695" font-size="10">동네 하천</text>
+            <polyline id="trail" fill="none" stroke="#e88d91" stroke-width="6" stroke-linecap="round"/>
+            <g id="markers"></g>
+            <g id="player"><circle r="23" fill="#e88d9125"/><circle r="14" fill="white" stroke="#e88d91" stroke-width="3"/><text text-anchor="middle" y="5" font-size="18">🐕</text></g>
+          </svg>
+          <div class="walk-top" id="walk-top">
+            <button id="home" class="round-small" aria-label="홈">⌂</button>
+            <button id="toggle" class="floating" aria-pressed="false">점령지 보기</button>
+            <button id="rotate" class="floating">가로 보기</button>
+          </div>
+          <div class="hud" id="hud"><div><small>산책 시간</small><strong id="elapsed">00:00</strong></div><div><small>이동 거리</small><strong id="distance">0 m</strong></div><b>☀ 24°</b></div>
+          <span class="map-caption">합성 지도 · 위치 조작은 왼쪽 패널</span>
+          <div class="bottom-stack" id="bottom-stack">
+            <div class="moment-dock" id="moment-dock" hidden><button data-moment="탐색">⌕ 탐색</button><button data-moment="배변·마킹">⌖ 배변·마킹</button><button data-moment="교류">♡ 교류</button><button data-moment="특별한 순간">☆ 특별한 순간</button></div>
+            <section class="territory-card" id="territory-card" hidden aria-label="점령 대상">
+              <small>점령 연습 · 임시 영역표시</small>
+              <h2 id="site-title">점령지를 선택해 주세요</h2>
+              <p id="owner"></p><p id="representative"></p>
+              <p id="guidance" role="status"></p>
+              <div class="claim-buttons"><button id="mark" class="pink-button">⌖ 영역표시</button><button id="photograph" class="pink-button">영역표시 인증 촬영</button></div>
+            </section>
+            <p class="status-pill" id="notice" role="status">함께 걷는 강아지를 선택해 주세요</p>
+            <div class="primary-row" id="primary-row">
+              <button id="locate" class="round-small" aria-label="내 위치">◎</button>
+              <section id="ready-card" class="ready-card"><h2>산책을 시작할까요?</h2><div class="dog-picker"><label><input type="checkbox" name="pet" value="p1" checked> 🐕 보리</label><label><input type="checkbox" name="pet" value="p2"> 🐶 두부</label></div><small>대표견 · 첫 참여견</small><button id="start" class="pink-button">산책 시작</button></section>
+              <div id="recording-control" hidden><button id="pause" class="round-primary" aria-label="잠시 멈춤">Ⅱ</button><small>잠시 멈춤</small></div>
+            </div>
+          </div>
+        </section>
+        <div class="gesture-bar" aria-hidden="true"></div>
+        <div class="screen-overlay" id="pause-screen" hidden role="dialog" aria-modal="true" aria-label="산책 일시정지"><section class="modal-card"><h2>잠시 쉬고 있어요</h2><p>사진 확인은 계속 진행돼요.</p><button id="resume" class="pink-button">산책 계속</button><button id="finish" class="control-button">산책 종료</button></section></div>
+        <div class="screen-overlay" id="result-screen" hidden role="dialog" aria-modal="true" aria-label="산책 결과"><section class="modal-card"><h2>산책 완료!</h2><p id="result-text"></p><p>사진 확인은 종료 후에도 계속돼요.</p><button id="next-walk" class="pink-button">다음 산책 준비</button></section></div>
+        <div class="camera-screen" id="camera" hidden role="dialog" aria-modal="true" aria-label="영역표시 인증 촬영">
+          <div class="camera-top"><button id="cancel-camera" aria-label="촬영 취소">←</button><strong>영역표시 인증</strong></div>
+          <p id="camera-context"></p><div class="camera-preview"><span>🐕</span><p>강아지와 현장이 함께 나오게</p><small>샘플 미리보기 · 실제 카메라 아님</small></div>
+          <p id="camera-error" role="status"></p><p class="camera-note">사진 저장 후 산책을 계속할 수 있어요</p><button id="shutter" class="pink-button">샘플 촬영하고 산책 계속</button>
+        </div>
+        <div class="screen-overlay" id="jobs-screen" hidden role="dialog" aria-modal="true" aria-label="사진 인증 목록"><section class="modal-card"><button id="close-jobs" class="close-button" aria-label="사진 목록 닫기">×</button><h2>사진 인증 연습</h2><div id="jobs"></div></section></div>
+      </div>
+      <p class="preview-footnote">Compose 구조·치수·색상 대응 · Kotlin / CameraX 실행 화면은 아닙니다.</p>
+    </section>
+
+    <aside class="inspector">
+      <p class="eyebrow">화면 확인</p><h2>산책은 그대로,<br>점령지만 켜고 끄기.</h2>
+      <ol><li>보리와 산책 시작</li><li>상단 ‘점령지 보기’</li><li>가까이 이동 → Pin 영역표시</li><li>인증 촬영 → 지도 복귀</li><li>확인 중에도 이동하거나 표시 숨기기</li></ol>
+      <p class="note">두부의 인증 영역 장면에서는 사진 없이 탈취할 수 없습니다. 부적합은 현장 재촬영, 통신 장애는 같은 사진으로 재시도합니다.</p>
+      <dl id="state-inspector"></dl><p id="contract-tests" class="note">공통 계약 확인 중…</p>
+      <details><summary>옮긴 코드와 남은 확인</summary><p class="note">시설 검색 웹 검토판 #232의 프레임·상태바·색상 토큰을 사용합니다. 산책 배치는 APP WalkScreen, TerritoryActionCard, TerritoryCaptureDialog를 기준으로 대응합니다.</p><p class="note">안드로이드 지도·폰트·카메라·실제 보행·진동은 기기 확인이 필요합니다. 날씨·지도·반려견은 합성 값입니다.</p></details>
+    </aside>
+  </main>
+  <script type="module" src="app-copy.mjs"></script>
+</body>
+</html>

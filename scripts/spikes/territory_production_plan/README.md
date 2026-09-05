@@ -1,5 +1,9 @@
 # 영역표시 플레이 실험
 
+**앱 화면을 보고 싶으면 [산책 게임 웹 카피](app-copy.md)**를 연다. 기존 시설 검색 웹 검토판의
+프레임·색상과 실제 `WalkScreen.kt` 배치에 게임을 연결한 `app-copy.html`이다.
+이 문서의 `index.html`은 판정과 조작을 독립적으로 확인하는 실험으로 유지한다.
+
 소속: [산책 점령 게임 제작 계획](../../../../docs/explorations/walk/territory-production-plan.md).
 실제 기기가 없을 때 3단계의 지도·촬영·비동기 판정을 조작하며 확인하는 로컬 스파이크다.
 기존 `walk_trace_lab.html`의 위치/상태 조작 방식과 `storyboard_and_regions/viewer.html`의

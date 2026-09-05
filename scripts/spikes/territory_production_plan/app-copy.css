@@ -1,0 +1,134 @@
+/* Frame + palette adapted from place_ui_lab/style.css @ 7aee8c8 (Geo PR #232).
+   Walk controls follow APP WalkScreen.kt @ 2e14d0d; see app-copy.md for deviations. */
+:root {
+  --pink: #e88d91; --pink-soft: #fbe4e0; --cream: #fdf4f0;
+  --ink: #4a3b36; --muted: #a79089; --border: #eedcd5;
+  --success: #4e9b70; --warning: #97621a; --error: #c45e5e;
+  font-family: Arial, 'Malgun Gothic', sans-serif;
+  color: var(--ink); background: #faf8f6; font-synthesis: none;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; }
+button, select, input { font: inherit; color: inherit; }
+button { cursor: pointer; border: 0; background: transparent; }
+button:disabled { cursor: not-allowed; opacity: .42; }
+button:focus-visible, select:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid #a05c65; outline-offset: 2px; }
+a { color: inherit; }
+.lab-header { height: 78px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 42px; background: white; }
+.lab-header strong { font-size: 23px; letter-spacing: -1px; }
+.lab-header span { display: inline-block; margin-left: 20px; padding-left: 20px; border-left: 1px solid var(--border); font-size: 10px; letter-spacing: 2px; color: #8b7770; }
+.lab-header a { font-size: 12px; }
+.workspace { max-width: 1320px; margin: auto; display: grid; grid-template-columns: minmax(210px, 270px) 440px minmax(210px, 280px); gap: 36px; padding: 32px; align-items: start; }
+.controls, .inspector { padding-top: 24px; min-width: 0; }
+.eyebrow { font-size: 11px; letter-spacing: 1px; color: #997e73; font-weight: 700; margin: 0 0 16px; }
+h1 { font-size: 33px; line-height: 1.4; letter-spacing: -1.8px; margin: 0 0 18px; }
+h2 { font-size: 18px; line-height: 1.5; margin: 0 0 10px; }
+.intro, .note, .preview-footnote { font-size: 12px; line-height: 1.8; color: #8b7770; }
+.controls label { font-size: 12px; font-weight: 700; margin: 18px 0 8px; display: block; }
+select { width: 100%; border: 1px solid var(--border); border-radius: 10px; padding: 11px; background: white; font-size: 12px; }
+.control-button { padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: white; font-size: 12px; }
+.controls > .control-button { width: 100%; margin-top: 8px; }
+.control-row { display: flex; gap: 8px; margin-top: 8px; }
+.control-row > * { flex: 1; }
+.preview-area { width: 440px; min-width: 0; }
+.preview-caption { display: flex; justify-content: space-between; padding: 0 25px 13px; font-size: 11px; color: #998077; }
+.preview-caption span:first-child { color: var(--ink); font-weight: 700; }
+.phone { width: 390px; height: 844px; margin: auto; border: 6px solid #493d38; border-radius: 39px; overflow: hidden; position: relative; background: var(--cream); box-shadow: 0 25px 65px #674f3820, 0 0 0 1px #bcb0a9; display: flex; flex-direction: column; }
+.status-bar { height: 37px; flex-shrink: 0; padding: 12px 22px 0; display: flex; justify-content: space-between; font-size: 11px; font-weight: 700; background: #f2eee5; }
+.gesture-bar { height: 24px; flex-shrink: 0; background: #f2eee5; position: relative; }
+.gesture-bar::after { content: ''; width: 100px; height: 4px; border-radius: 4px; background: #493d38; position: absolute; bottom: 8px; left: calc(50% - 50px); }
+.walk-surface { flex: 1; min-height: 0; position: relative; overflow: hidden; background: #f2eee5; }
+#map { position: absolute; width: 100%; height: 100%; inset: 0; }
+.walk-top { position: absolute; top: 12px; left: 12px; right: 12px; display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.round-small { width: 44px; height: 44px; border-radius: 50%; background: white; font-size: 23px; flex-shrink: 0; box-shadow: 0 3px 12px #5b443817; }
+.floating { background: white; border-radius: 14px; padding: 10px 13px; box-shadow: 0 3px 12px #5b443817; font-size: 12px; font-weight: 600; min-height: 40px; }
+.hud { position: absolute; top: 64px; left: 50%; transform: translateX(-50%); display: flex; gap: 14px; align-items: center; padding: 10px 14px; border-radius: 16px; background: white; white-space: nowrap; box-shadow: 0 3px 12px #5b443817; }
+.hud small { display: block; font-size: 10px; color: var(--muted); margin-bottom: 3px; }
+.hud strong { font-size: 18px; }
+.hud b { border-left: 1px solid var(--border); padding-left: 14px; font-size: 13px; }
+.map-caption { position: absolute; top: 134px; left: 12px; font-size: 9px; color: #7f796d; pointer-events: none; }
+.bottom-stack { position: absolute; bottom: 12px; left: 12px; right: 12px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.moment-dock { display: flex; gap: 6px; width: 100%; }
+.moment-dock button { flex: 1; padding: 8px 3px; min-height: 44px; border-radius: 12px; background: white; color: #d9787d; font-size: 11px; }
+.territory-card { width: 100%; max-width: 320px; border-radius: 18px; padding: 12px; background: white; box-shadow: 0 3px 12px #5b443817; }
+.territory-card small { font-size: 11px; color: var(--muted); }
+.territory-card h2 { font-size: 14px; margin: 5px 0; }
+.territory-card p { font-size: 12px; line-height: 1.5; margin: 5px 0; }
+#representative { color: var(--muted); }
+.claim-buttons { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; margin-top: 8px; }
+.pink-button { background: var(--pink); color: white; border-radius: 20px; padding: 11px 16px; font-size: 12px; font-weight: 700; min-height: 40px; }
+.status-pill { border-radius: 16px; padding: 8px 12px; background: #ffffffed; font-size: 11px; line-height: 1.4; margin: 0; max-width: 100%; }
+.status-pill.error { color: var(--error); }
+.primary-row { display: flex; align-items: center; gap: 14px; justify-content: center; max-width: 100%; }
+.ready-card { background: white; border-radius: 18px; padding: 14px; max-width: 278px; }
+.ready-card h2 { font-size: 17px; }
+.dog-picker { display: flex; gap: 10px; margin-bottom: 8px; }
+.dog-picker label { font-size: 12px; }
+.dog-picker input { accent-color: var(--pink); }
+.ready-card small { display: block; color: var(--muted); font-size: 10px; margin: 8px 0; }
+#recording-control { text-align: center; }
+#recording-control > small { display: block; font-size: 11px; margin-top: 6px; }
+.round-primary { width: 72px; height: 72px; border-radius: 50%; background: var(--pink); color: white; font-size: 26px; font-weight: bold; }
+.photo-strip { flex-shrink: 0; background: white; border-bottom: 1px solid var(--border); }
+.photo-strip button { width: 100%; font-size: 11px; min-height: 38px; text-align: left; padding: 8px 16px; }
+.screen-overlay { position: absolute; inset: 37px 0 24px; background: #4a3b3655; display: grid; place-items: center; padding: 20px; z-index: 5; }
+.modal-card { width: 100%; max-width: 340px; max-height: 100%; overflow: auto; border-radius: 22px; padding: 24px; background: var(--cream); position: relative; }
+.modal-card p { font-size: 12px; line-height: 1.6; }
+.modal-card > button:not(.close-button) { display: block; width: 100%; margin-top: 12px; }
+.close-button { position: absolute; right: 6px; top: 6px; width: 40px; height: 40px; font-size: 22px; }
+.camera-screen { position: absolute; inset: 37px 0 24px; z-index: 6; padding: 16px; overflow: auto; background: var(--cream); }
+.camera-top { display: flex; align-items: center; gap: 12px; }
+.camera-top button { width: 40px; height: 40px; font-size: 24px; }
+.camera-screen p { font-size: 12px; line-height: 1.6; }
+.camera-preview { aspect-ratio: 3/4; background: linear-gradient(#dbe6d2, #ede4d0); border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-direction: column; border: 1px solid #c7c9b7; }
+.camera-preview > span { font-size: 110px; }
+.camera-preview small { font-size: 10px; color: #6f7468; }
+.camera-screen > .pink-button { width: 100%; }
+#camera-error { color: var(--error); }
+.job { padding: 12px 0; border-bottom: 1px solid var(--border); font-size: 12px; line-height: 1.6; }
+.job button { margin-top: 8px; }
+.preview-footnote { text-align: center; font-size: 10px; }
+.inspector { font-size: 12px; line-height: 1.9; }
+.inspector ol { padding-left: 20px; }
+.inspector li { margin: 12px 0; }
+.inspector dl { border-top: 1px solid var(--border); padding-top: 16px; }
+.inspector dt { color: #8b7770; font-size: 11px; }
+.inspector dd { margin: 0 0 10px; font-weight: bold; overflow-wrap: anywhere; }
+.marker { cursor: pointer; }
+.marker:focus { outline: none; }
+.marker:focus circle { stroke: #a05c65; stroke-width: 4px; }
+.workspace.landscape { grid-template-columns: 250px minmax(0, 1fr); max-width: 1260px; }
+.landscape .preview-area { width: 100%; }
+.landscape .phone { width: min(844px, 100%); height: 390px; border-radius: 28px; }
+.landscape .inspector { grid-column: 2; }
+.landscape .walk-top { right: auto; }
+.landscape .hud { left: auto; right: 12px; top: 12px; transform: none; }
+.landscape .map-caption { top: 64px; }
+.landscape .bottom-stack { align-items: flex-start; right: auto; width: 260px; }
+.landscape .territory-card { position: absolute; left: calc(var(--surface-width, 800px) - 336px); bottom: 0; width: 300px; }
+.landscape .territory-card h2 { margin: 3px 0; }
+.landscape .territory-card p { margin: 3px 0; }
+.landscape .claim-buttons { flex-direction: row; flex-wrap: wrap; }
+.landscape .claim-buttons button { padding: 8px 11px; font-size: 11px; }
+.landscape .camera-screen { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; }
+.landscape .camera-preview { grid-column: 1; grid-row: 2 / span 4; aspect-ratio: auto; min-height: 180px; }
+.landscape .camera-preview > span { font-size: 65px; }
+.landscape .camera-screen > .pink-button { align-self: end; }
+@media (max-width: 1120px) {
+  .workspace { grid-template-columns: 250px 440px; justify-content: center; gap: 24px; }
+  .inspector { grid-column: 1 / -1; padding-top: 0; }
+  .workspace.landscape { display: flex; flex-direction: column; }
+  .landscape .controls { width: 100%; }
+}
+@media (max-width: 740px) {
+  .lab-header { height: 60px; padding: 0 16px; }
+  .lab-header strong { font-size: 18px; }
+  .lab-header span { font-size: 8px; padding-left: 10px; margin-left: 10px; }
+  .workspace { display: flex; flex-direction: column; padding: 20px 10px; gap: 22px; }
+  .preview-area { order: -1; width: 100%; }
+  .phone { width: min(390px, 100%); }
+  .controls, .inspector { width: 100%; padding: 0 10px; }
+  .preview-caption { padding-left: 12px; padding-right: 12px; }
+  h1 { font-size: 27px; }
+}

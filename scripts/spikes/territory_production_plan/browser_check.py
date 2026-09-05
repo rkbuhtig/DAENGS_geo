@@ -22,6 +22,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--channel", default=None)
     parser.add_argument(
+        "--app-copy", action="store_true", help="Check the Android walk screen copy"
+    )
+    parser.add_argument(
         "--output", type=Path, default=Path(tempfile.gettempdir()) / "territory-play-lab"
     )
     args = parser.parse_args()
@@ -38,6 +41,15 @@ def main() -> None:
             browser = playwright.chromium.launch(channel=args.channel, headless=True)
             page = browser.new_page(viewport={"width": 1440, "height": 1100})
             page.on("pageerror", lambda error: errors.append(str(error)))
+            if args.app_copy:
+                from browser_copy_cases import check_app_copy
+
+                page.goto(f"{url}/app-copy.html")
+                check_app_copy(page, args.output, expect)
+                assert not errors, errors
+                browser.close()
+                print(f"PASS: walk app copy UI and layout checks. Screenshots: {args.output}")
+                return
             page.goto(url)
             expect(page.locator("html")).to_have_attribute("data-tests", "passed")
             expect(page.locator("#mark")).to_be_disabled()
