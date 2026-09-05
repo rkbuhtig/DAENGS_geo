@@ -44,6 +44,13 @@ def main():
         expect(page.locator(".card.selected .restrictions")).to_have_count(0)
         page.get_by_role("button", name="제한사항 보완안", exact=True).click()
         expect(page.locator('#ai-toggle')).to_have_attribute('aria-pressed', 'false')
+        expect(page.locator('#search-mode-note')).not_to_be_visible()
+        expect(page.locator('.panel-title')).not_to_be_visible()
+        expect(page.locator('#result-total')).to_have_text('카페 14곳')
+        page.select_option('#result-sort', 'parking')
+        expect(page.locator('#parking')).to_have_attribute('aria-pressed', 'true')
+        page.select_option('#result-sort', 'distance')
+        expect(page.locator('.filter-line #profile-picker')).to_be_visible()
         assert page.locator('#categories').evaluate(
             "el => getComputedStyle(el).gridTemplateRows.split(' ').length"
         ) == 2

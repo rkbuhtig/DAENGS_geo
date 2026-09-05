@@ -166,6 +166,12 @@ function renderSearchTools(){
   const proposed=state.mode==='proposed';
   document.querySelector('.phone').classList.toggle('search-layout',proposed);
   $('search-tools').hidden=!proposed;
+  $('result-heading').hidden=!proposed;
+  const resultLabel=state.kind==='all'?'전체':label();
+  const ready=state.scenario==='results'||state.scenario==='empty';
+  $('result-total').innerHTML=`${escapeHtml(resultLabel)} <strong>${ready?(group()?`${hits().length}곳`:'미수집'):'—'}</strong>`;
+  $('result-sort').value=state.parking?'parking':'distance';
+  $('result-sort').disabled=!ready||!group();
   if(!proposed){$('filter-sheet').hidden=true;$('filter-toggle').setAttribute('aria-expanded','false');}
   const panel=document.querySelector('.panel');
   if(proposed){
@@ -185,7 +191,7 @@ $('ai-toggle').addEventListener('click',()=>{
   $('ai-toggle').setAttribute('aria-pressed',String(ai));$('search-form').classList.toggle('ai-mode',ai);
   $('search-query').placeholder=ai?'원하는 동반 조건을 말해보세요':'장소명·주소 검색';
   $('search-query').setAttribute('aria-label',ai?'AI 검색 요청':'장소명·주소 검색');
-  $('search-mode-note').textContent=ai?'AI 조건 검색 · 예시 체험 (실제 AI 호출 없음)':'일반 검색 · 선택 지역의 저장된 장소에서 검색';
+  $('search-mode-note').hidden=!ai;$('search-mode-note').textContent=ai?'AI 조건 검색 · 예시 체험 (실제 AI 호출 없음)':'';
   $('ai-example').hidden=!ai;$('search-feedback').textContent='';$('search-query').focus();
 });
 $('ai-example').addEventListener('click',()=>{$('search-query').value='대형견과 갈 카페, 주차 우선';$('search-query').focus();});
@@ -202,6 +208,7 @@ $('search-query').addEventListener('search',()=>{if(searchMode==='normal'&&!$('s
 $('filter-toggle').addEventListener('click',()=>setFiltersOpen($('filter-sheet').hidden));
 ['filter-close','filter-done'].forEach(id=>$(id).addEventListener('click',()=>setFiltersOpen(false)));
 $('filter-sheet').addEventListener('keydown',event=>{if(event.key==='Escape')setFiltersOpen(false);});
+$('result-sort').addEventListener('change',()=>{state.parking=$('result-sort').value==='parking';render();});
 $('filter-dog').addEventListener('change',()=>{state.dog=$('filter-dog').value;$('dog').value=state.dog;render();});
 $('active-filters').addEventListener('click',event=>{
   const key=event.target.closest('[data-clear-filter]')?.dataset.clearFilter;
@@ -215,7 +222,7 @@ const profileSelection={version:1,selectedDogIds:[]};
 $('profile-picker').addEventListener('change',()=>{
   profileSelection.selectedDogIds=[...document.querySelectorAll('[data-profile]:checked')].map(input=>input.value);
   const names={ 'demo-bori':'보리', 'demo-choco':'초코' };
-  $('profile-selection').textContent=profileSelection.selectedDogIds.map(id=>names[id]).join(' · ')||'선택 ▾';
+  $('profile-selection').textContent=profileSelection.selectedDogIds.map(id=>names[id]).join(' · ')||'반려견 ▾';
 });
 const layoutObserver=new ResizeObserver(()=>{
   document.querySelector('.map-area').style.top=state.mode==='proposed'?`${37+$('search-tools').offsetHeight}px`:'';
