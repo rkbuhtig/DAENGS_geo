@@ -73,3 +73,18 @@ def test_unlocated_note_does_not_acquire_a_route_position():
     artifacts, entries = prepare(exp)
     result = export_storyboard(artifacts, entries, select(artifacts, entries, exp.selection, []), {})
     assert next(s for s in result.scenes if "note" in s.reasons).route is None
+
+
+def test_live_builder_accepts_observations_without_a_scenario_or_truth():
+    from datetime import UTC, datetime, timedelta
+
+    from app.features.storyboard.scenes import build_storyboard
+
+    start = datetime(2026, 9, 5, tzinfo=UTC)
+    result = build_storyboard("real-session", start, start+timedelta(minutes=1), 0,
+        [{"id": "memo", "accepted": True, "kind": "note", "label": "특별한 순간",
+          "note": "위치 없는 기록", "elapsed_s": 20, "accepted_distance_m": 0,
+          "location": None}], {"anchors": []}, {})
+    assert result.synthetic is False
+    assert [s.id for s in result.scenes] == ["start", "entry:memo", "end"]
+    assert result.scenes[1].route is None
