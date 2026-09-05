@@ -7,11 +7,13 @@ const centers = {gangnam:[37.4979,127.0276],seongsu:[37.5446,127.0559],haeundae:
 const reasons = {size_allowed:'크기 등급 허용',size_exceeded:'크기 등급 초과',weight_allowed:'무게 제한 허용',weight_exceeded:'무게 제한 초과',weight_boundary_unknown:'미만·이하 경계 확인 필요',dog_disallowed:'개 입장 불가',missing_dog_size:'개 크기 미상',missing_dog_weight:'개 무게 미상',missing_restriction:'시설 제한 정보 없음'};
 const state = {mode:'current',region:'gangnam',dog:'large',kind:'cafe',parking:false,scenario:'results',selected:null};
 let fixtures;
+let searchMode='normal', appliedQuery='';
+const categoryIcons=['☕','🍽','🐾','🛍','✂','🏠','✚','💊','🧭','🎡','🏡','🏨','🛏','🏛','🖼','🎭','🎫','⋯'];
 const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const identity = (hit) => JSON.stringify([hit.place.key.source,hit.place.key.ref]);
 const label = () => categories.find(([kind]) => kind === state.kind)[1];
 const group = () => fixtures?.cases[`${state.region}-${state.dog}${state.parking?'_parking':''}`]?.groups.find(g=>g.kind===state.kind);
-const hits = () => state.scenario==='results' ? (group()?.results ?? []) : [];
+const hits = () => state.scenario==='results' ? (group()?.results ?? []).filter(hit=>state.mode!=='proposed'||!appliedQuery||`${hit.place.name} ${hit.place.facts.address||''}`.toLocaleLowerCase().includes(appliedQuery.toLocaleLowerCase())) : [];
 const distanceLabel = d => d < 1000 ? `${d}m` : `${(d/1000).toFixed(1)}km`;
 const tone = value => ({compatible:'success',incompatible:'error',unknown:'warning'}[value] || 'muted');
 function accessText(evaluation) {
@@ -110,6 +112,7 @@ function render() {
   $('mode-label').textContent=state.mode==='current'?'현재 Android 표시':'실험 · 제한사항 보완안';
   document.querySelectorAll('[data-mode]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.mode===state.mode));
   $('categories').innerHTML=categories.map(([kind,name])=>`<button class="chip" type="button" data-kind="${kind}" aria-pressed="${kind===state.kind}" ${state.scenario==='loading'?'disabled':''}>${name}</button>`).join('');
+  renderSearchTools();
   $('parking').setAttribute('aria-pressed',state.parking);$('parking').disabled=state.scenario==='loading';
   $('sort-label').textContent=state.parking?'500m 구간 안에서 주차 우선':'가까운 순';
   const g=group(),visible=hits(),evaluated=visible.map(h=>h.evaluations?.dog_access).filter(Boolean);
@@ -140,9 +143,57 @@ document.addEventListener('click',event=>{
 $('parking').addEventListener('click',()=>{state.parking=!state.parking;render();});
 $('my-location').addEventListener('click',()=>toast('위치는 선택한 지역의 고정 좌표입니다. 기기 GPS를 사용하지 않습니다.'));
 $('brand').addEventListener('click',e=>e.preventDefault());
-function example(region,name){state.region=region;state.kind='cafe';state.scenario='results';state.dog='large';state.parking=false;['region','dog','scenario'].forEach(id=>$(id).value=state[id]);state.selected=null;render();select(hits().findIndex(h=>h.place.name===name),true);}
+function example(region,name){appliedQuery='';$('search-feedback').textContent='';state.region=region;state.kind='cafe';state.scenario='results';state.dog='large';state.parking=false;['region','dog','scenario'].forEach(id=>$(id).value=state[id]);state.selected=null;render();select(hits().findIndex(h=>h.place.name===name),true);}
 $('outdoor-example').addEventListener('click',()=>example('gangnam','정다방 카페'));
 $('rooftop-example').addEventListener('click',()=>example('seongsu','구욱희씨'));
+function setFiltersOpen(open){$('filter-sheet').hidden=!open;$('filter-toggle').setAttribute('aria-expanded',String(open));if(open)$('filter-dog').focus();else $('filter-toggle').focus();}
+function renderSearchTools(){
+  const proposed=state.mode==='proposed';
+  document.querySelector('.phone').classList.toggle('search-layout',proposed);
+  $('search-tools').hidden=!proposed;
+  if(!proposed){$('filter-sheet').hidden=true;$('filter-toggle').setAttribute('aria-expanded','false');}
+  const panel=document.querySelector('.panel');
+  if(proposed){
+    $('top-categories').append($('categories'));
+    $('filter-parking').append($('parking').parentElement);
+    $('categories').querySelectorAll('button').forEach((button,index)=>{button.innerHTML=`<span class="category-icon" aria-hidden="true">${categoryIcons[index]}</span><span>${escapeHtml(categories[index][1])}</span>`;});
+  }else{
+    panel.insertBefore($('categories'),$('coverage'));
+    panel.insertBefore($('parking').parentElement,$('coverage'));
+  }
+  $('filter-dog').value=state.dog;
+  $('active-filters').innerHTML='<span class="filter-tag">3km</span>'+(state.dog!=='baseline'?`<button type="button" data-clear-filter="dog" aria-label="반려견 조건 해제">${state.dog==='large'?'대형견':'소형견'} ×</button>`:'')+(state.parking?'<button type="button" data-clear-filter="parking" aria-label="주차 우선 해제">주차 우선 ×</button>':'')+(appliedQuery?`<button type="button" data-clear-filter="query" aria-label="검색어 해제">${escapeHtml(appliedQuery)} ×</button>`:'');
+}
+$('ai-toggle').addEventListener('click',()=>{
+  searchMode=searchMode==='normal'?'ai':'normal';const ai=searchMode==='ai';
+  $('ai-toggle').setAttribute('aria-pressed',String(ai));$('search-form').classList.toggle('ai-mode',ai);
+  $('search-query').placeholder=ai?'원하는 동반 조건을 말해보세요':'장소명·주소 검색';
+  $('search-query').setAttribute('aria-label',ai?'AI 검색 요청':'장소명·주소 검색');
+  $('search-mode-note').textContent=ai?'AI 조건 검색 · 예시 체험 (실제 AI 호출 없음)':'일반 검색 · 선택 지역의 저장된 장소에서 검색';
+  $('ai-example').hidden=!ai;$('search-feedback').textContent='';$('search-query').focus();
+});
+$('ai-example').addEventListener('click',()=>{$('search-query').value='대형견과 갈 카페, 주차 우선';$('search-query').focus();});
+$('search-form').addEventListener('submit',event=>{
+  event.preventDefault();const query=$('search-query').value.trim();
+  if(searchMode==='ai'){
+    if(query!=='대형견과 갈 카페, 주차 우선'){$('search-feedback').textContent='초안에서는 위 예시 문장만 체험할 수 있어요. 기존 검색 조건은 유지됩니다.';return;}
+    appliedQuery='';state.kind='cafe';state.dog='large';$('dog').value='large';state.parking=true;
+    $('search-feedback').textContent='예시 조건 적용: 카페 · 대형견 · 주차 우선. 실제 동반 제한은 카드에서 확인하세요.';
+  }else{appliedQuery=query;$('search-feedback').textContent=query?'선택 지역의 저장된 장소명·주소에서 검색했어요.':'';}
+  state.scenario='results';$('scenario').value='results';state.selected=null;render();
+});
+$('search-query').addEventListener('search',()=>{if(searchMode==='normal'&&!$('search-query').value){appliedQuery='';render();}});
+$('filter-toggle').addEventListener('click',()=>setFiltersOpen($('filter-sheet').hidden));
+['filter-close','filter-done'].forEach(id=>$(id).addEventListener('click',()=>setFiltersOpen(false)));
+$('filter-sheet').addEventListener('keydown',event=>{if(event.key==='Escape')setFiltersOpen(false);});
+$('filter-dog').addEventListener('change',()=>{state.dog=$('filter-dog').value;$('dog').value=state.dog;render();});
+$('active-filters').addEventListener('click',event=>{
+  const key=event.target.closest('[data-clear-filter]')?.dataset.clearFilter;
+  if(key==='dog'){state.dog='baseline';$('dog').value='baseline';}
+  if(key==='parking')state.parking=false;
+  if(key==='query'){appliedQuery='';if(searchMode==='normal')$('search-query').value='';}
+  if(key){$('search-feedback').textContent='';render();}
+});
 fetch('fixtures.json').then(response=>{if(!response.ok)throw Error('fixture response');return response.json();}).then(data=>{
   fixtures=data;$('capture-info').textContent=`2026-09-05 수집 · ${Object.keys(data.cases).length}개 응답 · 운영 서버 추가 호출 없음`;render();
 }).catch(()=>{$('capture-info').textContent='응답 파일을 읽지 못했습니다. HTTP 서버로 이 폴더를 열어 주세요.';$('results').innerHTML='<div class="message error">검토 데이터를 불러오지 못했습니다.</div>';});

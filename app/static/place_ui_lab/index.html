@@ -30,6 +30,25 @@
       <div class="preview-caption"><span id="mode-label">현재 Android 표시</span><span>390 × 844 기준</span></div>
       <div class="phone">
         <div class="status-bar" aria-hidden="true"><span>9:41</span><span>▰ ▰ ▰</span></div>
+        <section id="search-tools" class="search-tools" aria-label="시설 검색 도구" hidden>
+          <form id="search-form" class="search-form">
+            <input id="search-query" type="search" placeholder="장소명·주소 검색" aria-label="장소명·주소 검색" autocomplete="off">
+            <button id="ai-toggle" type="button" aria-label="AI 조건 검색 전환" aria-pressed="false" title="AI 조건 검색">🤖</button>
+            <button class="search-submit" type="submit" aria-label="검색 실행">↑</button>
+          </form>
+          <div id="search-mode-note" class="search-mode-note">일반 검색 · 선택 지역의 저장된 장소에서 검색</div>
+          <button id="ai-example" class="ai-example" type="button" hidden>예시: 대형견과 갈 카페, 주차 우선</button>
+          <div id="top-categories"></div>
+          <div class="filter-line"><div id="active-filters" aria-label="적용 조건"></div><button id="filter-toggle" type="button" aria-expanded="false" aria-controls="filter-sheet">조건 ⚙</button></div>
+          <div id="search-feedback" role="status"></div>
+        </section>
+        <section id="filter-sheet" class="filter-sheet" aria-label="직접 조건 선택" hidden>
+          <div class="filter-heading"><strong>검색 조건</strong><button id="filter-close" type="button" aria-label="조건 닫기">×</button></div>
+          <label for="filter-dog">반려견</label><select id="filter-dog"><option value="baseline">조건 없음</option><option value="small">소형견 · 5kg · 3세</option><option value="large">대형견 · 30kg · 3세</option></select>
+          <p class="note">반경 3km · 저장된 응답 기준</p><div id="filter-parking"></div>
+          <p class="note">실내 동반 등 추가 조건은 각 시설 카드를 펼쳐 확인하세요.</p>
+          <button id="filter-done" class="wide-button" type="button">완료</button>
+        </section>
         <div class="map-area">
           <svg id="map" viewBox="0 0 390 370" role="group" aria-label="시설 좌표 배치도"></svg>
           <button class="float home" type="button" data-demo="홈 이동은 이 검토판의 범위 밖입니다.">← 홈</button>
