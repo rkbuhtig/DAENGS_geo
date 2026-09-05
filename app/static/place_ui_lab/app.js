@@ -41,8 +41,34 @@ function renderCards() {
   if(!hits().length) return `<div class="message">이 반경에서 ${label()} 결과를 찾지 못했습니다.</div>`;
   return `<p class="count">${hits().length}곳${g.truncated?' · 서버 한도에서 잘림':''}</p><div class="cards">${hits().map((hit,index)=>{
     const p=hit.place,f=p.facts,e=hit.evaluations?.dog_access;
+    if(state.mode==='proposed')return drawerCard(hit,index);
     return `<article class="card${identity(hit)===state.selected?' selected':''}" tabindex="0" data-index="${index}" aria-label="${escapeHtml(p.name)} 선택"><h3>${escapeHtml(p.name)}</h3><p class="meta">${label()} · ${distanceLabel(p.distance_m)}</p><p class="${f.parking===true?'success':f.parking===false?'muted':'warning'}">${f.parking===true?'주차 가능':f.parking===false?'주차 불가':'주차 정보 없음'}</p>${e?`<p class="${tone(e.state)}">${escapeHtml(accessText(e))}</p>`:''}${restrictionHtml(hit)}${f.hours_text?`<p class="hours">영업시간 ${escapeHtml(f.hours_text)}</p>`:''}${f.address?`<p class="address">${escapeHtml(f.address)}</p>`:''}<button class="wide-button" type="button" data-demo="길찾기는 네이티브 앱에서 확인합니다. 이 검토판은 외부 경로 API를 호출하지 않습니다.">길찾기</button>${f.phone?'<button class="wide-button secondary" type="button" data-demo="전화 연결은 검토판에서 실행하지 않습니다.">전화하기</button>':''}</article>`;
   }).join('')}</div>`;
+}
+function drawerCard(hit,index){
+  const p=hit.place,f=p.facts,allowed=f.pet_access?.allowed;
+  const registration=allowed===true?'동반 가능 등록':allowed===false?'동반 불가 등록':'동반 여부 확인 필요';
+  const status=allowed===true?'yes':allowed===false?'no':'unknown';
+  const paw='<svg viewBox="0 0 32 32" aria-hidden="true"><ellipse cx="8" cy="10" rx="3.5" ry="4.5"/><ellipse cx="15" cy="6" rx="3.5" ry="4.5"/><ellipse cx="23" cy="10" rx="3.5" ry="4.5"/><path d="M7 24c0-5 5-11 9-11s9 6 9 11c0 7-6 3-9 3s-9 4-9-3Z"/></svg>';
+  const source=p.key.source==='kcisa'?'공공데이터 · KCISA':p.key.source;
+  return `<article class="card drawer-card${identity(hit)===state.selected?' selected':''}" data-index="${index}">
+    <details class="facility-drawer">
+      <summary aria-label="${escapeHtml(p.name)} 동반 조건" aria-controls="conditions-${index}">
+        <h3>${escapeHtml(p.name)}</h3><p class="meta">${label()} · ${distanceLabel(p.distance_m)}</p>
+        <span class="registration ${status}" role="img" aria-label="${registration}"><span class="paw-icon">${paw}<span class="status-mark" aria-hidden="true">${allowed===true?'✓':allowed===false?'×':'?'}</span></span><span class="registration-label" aria-hidden="true">${registration}</span></span>
+        <svg class="drawer-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+      </summary>
+      <div class="drawer-body" id="conditions-${index}">
+        <h4>동반 조건</h4>${restrictionHtml(hit)}
+        <p>허용 크기: ${escapeHtml(f.pet_access?.raw?.size || '정보 없음')}</p>
+        ${hit.evaluations?.dog_access?`<p class="${tone(hit.evaluations.dog_access.state)}">${escapeHtml(accessText(hit.evaluations.dog_access))}</p>`:''}
+        <p class="source-date">${escapeHtml(source)} · ${escapeHtml(p.classifications?.[0]?.as_of || '날짜 미상')} 기준<br>현재 동반 정책은 방문 전 확인해 주세요.</p>
+        <div class="visit-info"><p>${f.parking===true?'주차 가능':f.parking===false?'주차 불가':'주차 정보 없음'}</p>${f.hours_text?`<p class="hours">영업시간 ${escapeHtml(f.hours_text)}</p>`:''}${f.address?`<p class="address">${escapeHtml(f.address)}</p>`:''}</div>
+        ${f.phone?'<button class="wide-button" type="button" data-demo="전화 연결은 검토판에서 실행하지 않습니다.">전화로 확인</button>':''}
+        <button class="wide-button secondary" type="button" data-demo="길찾기는 네이티브 앱에서 확인합니다. 이 검토판은 외부 경로 API를 호출하지 않습니다.">길찾기</button>
+      </div>
+    </details>
+  </article>`;
 }
 function renderMap() {
   const center=centers[state.region], ns='http://www.w3.org/2000/svg';
@@ -95,6 +121,11 @@ function render() {
   document.querySelectorAll('.card').forEach(card=>{
     card.addEventListener('click',()=>select(Number(card.dataset.index)));
     card.addEventListener('keydown',e=>{if(e.target===card&&(e.key==='Enter'||e.key===' ')){e.preventDefault();select(Number(card.dataset.index));}});
+  });
+  document.querySelectorAll('.facility-drawer').forEach(drawer=>{
+    drawer.addEventListener('toggle',()=>{
+      if(drawer.open)document.querySelectorAll('.facility-drawer').forEach(other=>{if(other!==drawer)other.open=false;});
+    });
   });
   $('retry')?.addEventListener('click',()=>{state.scenario='results';$('scenario').value='results';render();});
 }

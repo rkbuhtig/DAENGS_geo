@@ -43,6 +43,18 @@ def main():
         expect(page.locator(".card.selected")).to_contain_text("입장 조건상 가능")
         expect(page.locator(".card.selected .restrictions")).to_have_count(0)
         page.get_by_role("button", name="제한사항 보완안", exact=True).click()
+        expect(page.locator(".facility-drawer[open]")).to_have_count(0)
+        expect(page.locator(".card.selected .drawer-body")).not_to_be_visible()
+        expect(page.locator(".card.selected .registration-label")).not_to_be_visible()
+        expect(page.locator(".card.selected .registration")).to_have_attribute(
+            "aria-label", "동반 가능 등록"
+        )
+        if args.screenshots:
+            args.screenshots.mkdir(parents=True, exist_ok=True)
+            page.screenshot(path=str(args.screenshots / "place-ui-collapsed.png"), full_page=True)
+        page.locator(".card.selected summary").click()
+        expect(page.locator(".card.selected .drawer-body")).to_be_visible()
+        expect(page.locator(".card.selected .registration-label")).to_be_visible()
         expect(page.locator(".card.selected")).to_contain_text("루프탑 외 입장 불가")
         expect(page.locator(".card.selected")).to_contain_text("크기·체중 조건상 가능")
         assert page.locator(".panel").evaluate("panel => panel.scrollTop") == 0
@@ -50,7 +62,11 @@ def main():
             args.screenshots.mkdir(parents=True, exist_ok=True)
             page.screenshot(path=str(args.screenshots / "place-ui-desktop.png"), full_page=True)
         page.locator(".map-marker").first.click()
-        expect(page.locator(".card").first).to_have_class("card selected")
+        expect(page.locator(".card").first).to_have_class("card drawer-card selected")
+        page.locator(".card").first.locator("summary").click()
+        expect(page.locator(".facility-drawer[open]")).to_have_count(1)
+        page.locator(".card").first.locator("summary").press("Enter")
+        expect(page.locator(".facility-drawer[open]")).to_have_count(0)
         for scenario in ("loading", "empty", "error", "permission"):
             page.select_option("#scenario", scenario)
             expect(page.locator(".card")).to_have_count(0)
@@ -77,6 +93,7 @@ def main():
         page.set_viewport_size({"width": 390, "height": 844})
         page.locator("#rooftop-example").click()
         page.get_by_role("button", name="제한사항 보완안", exact=True).click()
+        page.locator(".card.selected summary").click()
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
         if args.screenshots:
             page.screenshot(path=str(args.screenshots / "place-ui-mobile.png"), full_page=True)
