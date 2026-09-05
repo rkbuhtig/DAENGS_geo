@@ -194,6 +194,9 @@ $('active-filters').addEventListener('click',event=>{
   if(key==='query'){appliedQuery='';if(searchMode==='normal')$('search-query').value='';}
   if(key){$('search-feedback').textContent='';render();}
 });
+new ResizeObserver(()=>{
+  document.querySelector('.map-area').style.top=state.mode==='proposed'?`${37+$('search-tools').offsetHeight}px`:'';
+}).observe($('search-tools'));
 fetch('fixtures.json').then(response=>{if(!response.ok)throw Error('fixture response');return response.json();}).then(data=>{
   fixtures=data;$('capture-info').textContent=`2026-09-05 수집 · ${Object.keys(data.cases).length}개 응답 · 운영 서버 추가 호출 없음`;render();
 }).catch(()=>{$('capture-info').textContent='응답 파일을 읽지 못했습니다. HTTP 서버로 이 폴더를 열어 주세요.';$('results').innerHTML='<div class="message error">검토 데이터를 불러오지 못했습니다.</div>';});
