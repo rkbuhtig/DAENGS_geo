@@ -1,5 +1,8 @@
 # 산책 기록 → 선택적 공간 배경 → 결과 비교 lab
 
+app으로 전달할 장면은 분석 후 **app 장면 JSON 저장**으로 내보낸다.
+[장면 후보 v1 계약과 다섯 고정 예시](../../../docs/contracts/walk-storyboard-candidates-v1.md)를 참고한다.
+
 > **현재 정책:** [우선순위 초안](../../../docs/research/2026-09-05-priority-context-draft.md).
 > 최소 목표 4구간을 액션 → 과거 이동 대비 변화 → 세션 속도 변화 → 거리 보충으로 채운다.
 > 현재 서버는 배설을 포함한 액션을

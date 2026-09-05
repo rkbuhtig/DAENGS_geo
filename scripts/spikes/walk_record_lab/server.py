@@ -14,6 +14,7 @@ from scripts.spikes.storyboard_and_regions.sources import service_key
 from scripts.spikes.walk_record_lab.context import ContextReader
 from scripts.spikes.walk_record_lab.core import Experiment, prepare, summarize
 from scripts.spikes.walk_record_lab.selection import select
+from scripts.spikes.walk_record_lab.storyboard_contract import export_storyboard
 
 ROOT = Path(__file__).resolve().parents[3]
 
@@ -56,6 +57,8 @@ def create_app(cache: Path, key: str = ""):
                 contexts, metrics = reader.selected_contexts(selection, experiment.fetch)
                 result = summarize(experiment, artifacts, entries, contexts, selection)
                 result["queries"] = metrics
+                result["storyboard_candidates"] = export_storyboard(
+                    artifacts, entries, selection, contexts).model_dump(mode="json")
                 return result
             except ValueError:
                 raise HTTPException(422, "Invalid scenario or tap time; check walk duration") from None
