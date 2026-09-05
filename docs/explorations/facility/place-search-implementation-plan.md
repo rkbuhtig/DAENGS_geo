@@ -5,7 +5,7 @@
 ### 1단계 작업 기록 (2026-09-05)
 
 - 앱 최신 dev 기준점: `2102ff7`. 작업 브랜치: `feat/place-search-ui-lab`.
-- 앱 draft PR: [DAENGS_APP #143](https://github.com/SAJOYO/DAENGS_APP/pull/143).
+- 앱 PR (병합됨): [DAENGS_APP #143](https://github.com/SAJOYO/DAENGS_APP/pull/143).
 - debug 전용 `PlaceSearchLabActivity`에서 저장 응답으로 검색창·2행 카테고리·프로필 자리·
   결과 헤더·서랍식 카드를 검토한다. 운영 진입점은 유지한다.
 - 입력/적용 조건/선택/펼침 상태 분리, 제한 JSON 보존, 기존 MapHost 선택 연결을 구현했다.
@@ -109,7 +109,7 @@ flowchart LR
 
 #### 첫 연결 구현 기록 (2026-09-05)
 
-- 앱 PR #143에 ConnectedPlaceSearchScreen을 추가해 기존 운영 ViewModel/Coordinator/
+- 후속 앱 PR [#145](https://github.com/SAJOYO/DAENGS_APP/pull/145)에 ConnectedPlaceSearchScreen을 추가해 기존 운영 ViewModel/Coordinator/
   Repository에 새 UI를 연결했다. PlaceSearchLabViewModel은 fixture 검토 용도로 유지한다.
 - debug 전용 PlaceSearchLiveActivity는 개발 API·성수 고정 좌표·프로필 없음으로 실제
   단일 업종 조회를 한다. PlacesRoute(useConnectedSearch=true)로 실제 위치 흐름에도 연결 가능하다.
