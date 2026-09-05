@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ko"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>산책 기록 실험실</title>
+<style>
+:root{font:15px/1.6 system-ui,sans-serif;color:#243b38;background:#f2f5ef}*{box-sizing:border-box}body{margin:0}main{max-width:1400px;margin:auto;padding:28px}h1{margin:0;font-size:29px}h2{font-size:19px;margin:0 0 12px}h3{font-size:16px}p{margin:8px 0}.muted,small{color:#61716c}.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:12px 0}.panel{background:white;border:1px solid #d9e2d8;border-radius:16px;padding:20px;margin:16px 0}button,select,input,textarea{font:inherit;border:1px solid #b8cabe;border-radius:8px;padding:8px;background:white;color:inherit}button{cursor:pointer}button:hover{background:#e8f0e5}button.primary{background:#235e4b;color:white}button:disabled{opacity:.45;cursor:wait}textarea{width:100%;min-height:72px}input[type=range]{width:100%;padding:0}iframe{width:100%;height:680px;border:0}svg{width:100%;height:270px;background:#f3f6f2;border-radius:10px}.columns{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.columns>.panel{min-width:0}.entry{border-top:1px solid #dce4d9;padding:12px 0;overflow-wrap:anywhere}.badge{display:inline-block;background:#e7eee1;border-radius:20px;padding:3px 10px}.warn{color:#96511d}pre{font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere}details{margin:10px 0}#status{position:sticky;top:0;background:#e7eee1;padding:10px;border-radius:8px;z-index:2}a{color:#235e4b}.route-grid{display:grid;grid-template-columns:1.5fr 1fr;gap:20px}label{display:inline-flex;gap:6px;align-items:center}@media(max-width:900px){.columns,.route-grid{grid-template-columns:1fr}main{padding:14px}}dialog{border:1px solid #b8cabe;border-radius:16px;width:min(500px,90vw)}dialog::backdrop{background:#1236}
+</style>
+<main>
+<span class="badge">합성 산책 · 실제 주변 자료 · 로컬 실험</span>
+<h1>어떤 기록이 산책을 다시 떠올리게 할까?</h1>
+<p class="muted">킁킁 · 배설 · 짖기와 메모를 남기고, 같은 산책의 세 가지 결과를 비교해보세요.</p>
+<p id="status" role="status">실험 준비 중</p>
+<details class="panel"><summary>기존 GPS lab에서 경로와 센서 조건 편집하기</summary>
+<p>지도에서 경로를 편집한 뒤 아래 버튼으로 가져오세요. 현재 기록은 새 시나리오로 교체됩니다.</p>
+<iframe id="gps" src="/walk-trace-lab" title="GPS 경로 편집기"></iframe>
+<button id="take-route">편집한 경로 가져오기</button></details>
+<section class="panel"><div class="bar"><h2>1. 가상 산책 기록</h2>
+<select id="preset" aria-label="시나리오"><option value="normal">짧은 동네 산책</option><option value="gap">GPS 공백·정확도 저하</option><option value="delay">전달 지연·역순·중복</option><option value="empty">핀 없는 산책</option><option value="memo">메모만 있는 산책</option><option value="repeat">같은 경로의 다음 산책</option></select>
+<button id="new">시나리오 시작</button><button id="demo">예시 행동·메모 채우기</button><button id="import">JSON 불러오기</button><input id="file" type="file" accept="application/json" hidden><button id="export">실험 JSON 저장</button></div>
+<div class="route-grid"><div><svg id="map" viewBox="0 0 800 350" role="img" aria-label="수용 경로와 기록 위치"></svg><small>실선: 수용된 GPS 구간 · 초록 원: 기록 · 주황 원: 현재 전달된 GPS. 배경은 축척도이며 도로 지도가 아닙니다.</small></div>
+<div><div class="bar"><button id="play">▶ 재생</button><label>속도 <select id="speed"><option>1</option><option selected>10</option><option>30</option></select>배</label><strong id="time"></strong></div>
+<input id="clock" type="range" min="0" max="300" value="0" step="1" aria-label="산책 경과 시간"><p id="gps-state"></p>
+<div class="bar"><button data-code="sniffing">킁킁</button><button data-code="excretion">배설</button><button data-code="barking">짖기</button><button data-code="note">특별한 순간</button></div>
+<p class="muted">시간을 옮겨 장면을 기록할 수 있어요. 행동 핀은 도착한 GPS가 15초 이내·정확도 50m 이내일 때만 저장됩니다. 메모는 위치 없이도 남길 수 있어요.</p></div></div>
+<div id="entries"></div></section>
+<section class="panel"><h2>2. 산책 종료 후 비교</h2><div class="bar">
+<label>환경 정책 <select id="policy"><option value="behavior">행동별: 배설은 시간·거리 중심</option><option value="common">공통: 모든 행동에 공간 배경</option></select></label>
+<label>장면 수 <input id="limit" type="number" min="2" max="20" value="5" style="width:65px"></label>
+<label><input id="fetch" type="checkbox">없는 공공데이터 캐시 실제 조회</label>
+<button id="finish" class="primary">산책 종료 · 결과 만들기</button><button id="archive">비교 목록에 현재 산책 저장</button></div>
+<p class="muted">조회는 종료 버튼을 눌렀을 때만 실행합니다. 이후 수정·삭제는 캐시로 다시 계산합니다. 장면은 시간순으로 고르게 선택하며 중요도 추정은 하지 않습니다.</p>
+<div id="metrics"></div><details><summary>GPS 위치 검증 · 평가에만 사용하는 정답 비교</summary><p>GPS가 보고한 정확도가 좋아도 실제 위치가 튈 수 있습니다. 아래 오차는 GPS 수집 시점의 합성 정답과 비교한 값이며, 핀 좌표를 정답으로 교체하지 않습니다.</p><pre id="diagnostics"></pre></details></section>
+<div class="columns"><section class="panel"><h2>기록만</h2><div id="plain">종료 후 표시됩니다.</div></section><section class="panel"><h2>환경 추가</h2><div id="enriched">종료 후 표시됩니다.</div></section><section class="panel"><h2>장면 편집</h2><div id="scenes">종료 후 표시됩니다.</div></section></div>
+<section class="panel"><h2>산책 기록 프로필</h2><div id="profile"></div><details><summary>반복 산책 비교 · 이 브라우저에 저장</summary><p>같은 산책 ID는 덮어씁니다. 기록을 수정하면 저장된 해당 산책도 갱신됩니다. 합성 자료이며 실제 행동 빈도가 아닙니다.</p><div id="history"></div><button id="clear-history">비교 목록 비우기</button></details></section>
+<details class="panel"><summary>실험의 근거와 한계</summary><p>행동·경로는 합성입니다. 주변 상가는 등록 자료이며 방문이나 혼잡도를 뜻하지 않습니다. 공원은 강남구 제공 자료의 대표점, 하천은 표준데이터의 시점 좌표만 비교합니다. 조회 실패·부분 수집·캐시 없음은 시설이 없다는 뜻이 아닙니다. 메모는 행동 프로필에 포함되지 않습니다.</p><p>SGIS 경계나 하천 형상 파일 없이 실행합니다. 기존 스토리보드의 지역 구간 구분은 이번 실험에 포함되지 않습니다. API 키와 DB 정보는 브라우저나 내보내기 파일에 전달되지 않습니다.</p></details>
+<dialog id="editor"><form id="edit-form"><h2 id="edit-title">기록 수정</h2><select id="edit-code"><option value="sniffing">킁킁</option><option value="excretion">배설</option><option value="barking">짖기</option></select><textarea id="edit-note" maxlength="2000" placeholder="기억하고 싶은 순간"></textarea><div class="bar"><button type="submit" class="primary">저장</button><button type="button" id="cancel">취소</button></div></form></dialog>
+</main>
+<script>
+'use strict';
+const $=id=>document.getElementById(id), labels={sniffing:'킁킁',excretion:'배설',barking:'짖기',note:'특별한 순간'};
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const state={scenario:null,taps:[],result:null,time:0,playing:false,finished:false,busy:false,editing:null,history:[]};
+try{state.history=JSON.parse(localStorage.getItem('walk-record-lab-history-v1')||'[]')}catch{}
+const message=s=>$('status').textContent=s;
+const stamp=t=>`${Math.floor(t/60)}:${String(Math.floor(t%60)).padStart(2,'0')}`;
+function requestBody(fetch=false){return {scenario:state.scenario,taps:state.taps,policy:$('policy').value,scene_limit:Number($('limit').value),fetch}}
+async function run(fetch=false){
+ if(state.busy)return false;state.busy=true;const controls=Array.from(document.querySelectorAll('button,select,input')).map(node=>[node,node.disabled]);controls.forEach(([node])=>node.disabled=true);
+ try{message(fetch?'남은 행동 핀의 주변 자료를 조회 중입니다.':'기록과 결과 계산 중');
+ const response=await window.fetch('/record-lab/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(requestBody(fetch))});
+ const result=await response.json();if(!response.ok)throw Error(typeof result.detail==='string'?result.detail:'입력 형식이나 시나리오를 확인해주세요.');
+ state.result=result;$('clock').max=result.trace.derived.truth_duration_s;state.time=Math.min(state.time,Number($('clock').max));
+ render();updateSaved();message('계산 완료 · 합성 산책입니다.');return true;
+ }catch(e){message(e.message);return false}finally{state.busy=false;controls.forEach(([node,disabled])=>node.disabled=disabled)}
+}
+async function fresh(){
+ state.playing=false;if($('preset').value==='repeat'&&state.scenario){state.scenario=structuredClone(state.scenario);state.scenario.session_id=crypto.randomUUID();state.scenario.started_at=new Date(new Date(state.scenario.started_at).getTime()+86400000).toISOString();state.taps=state.taps.map(t=>({...t,id:crypto.randomUUID()}));state.time=0;state.finished=false;await run();return}const base=await (await fetch('/walk-trace-lab/example')).json();
+ base.session_id=crypto.randomUUID();base.started_at=new Date().toISOString();base.origin={lat:37.48928,lng:127.0545};
+ base.sensor={kind:'perfect',sample_interval_s:5,accuracy_m:3};base.faults=[];base.delivery={};
+ const preset=$('preset').value;
+ if(preset==='gap')base.faults=[{kind:'dropout',id:'gap',start_s:45,end_s:80},{kind:'accuracy',id:'poor',start_s:120,end_s:140,accuracy_m:85}];
+ if(preset==='delay')base.delivery={base_latency_s:1,batch_size:3,reverse_within_batch:true,duplicate_at_s:[20],delay_windows:[{id:'late',start_s:30,end_s:80,delay_s:45}]};
+ state.scenario=base;state.taps=preset==='memo'?[{id:crypto.randomUUID(),at_s:60,code:'note',note:'잠깐 쉬며 같이 사진을 남겼다. (합성 메모)'}]:[];
+ state.time=0;state.finished=false;await run();
+}
+function currentFix(){
+ if(!state.result)return null;const events=state.result.trace.delivery.events.filter(e=>e.delivered_elapsed_s<=state.time).sort((a,b)=>b.captured_elapsed_s-a.captured_elapsed_s);
+ if(!events.length)return null;const event=events[0],sample=state.result.trace.trace.samples.find(s=>s.sample_id===event.sample_id);
+ return {fix:sample.observed_fix,age:state.time-event.captured_elapsed_s};
+}
+function renderClock(){
+ $('clock').value=state.time;$('time').textContent=stamp(state.time);$('play').textContent=state.playing?'Ⅱ 일시 정지':'▶ 재생';
+ const current=currentFix();$('gps-state').textContent=current?`도착한 최신 GPS: ${current.age.toFixed(1)}초 전 · 정확도 ${current.fix.accuracy_m}m`:'아직 도착한 GPS가 없습니다.';draw();
+}
+function draw(){
+ if(!state.result)return;const trace=state.result.trace,fixes=trace.trace.samples.filter(s=>s.observed_fix).map(s=>s.observed_fix),bySeq=new Map(fixes.map(f=>[f.client_seq,f]));
+ const origin=state.scenario.origin,xy=f=>[(f.lng-origin.lng)*Math.cos(origin.lat*Math.PI/180)*111195,(f.lat-origin.lat)*111195];
+ const points=fixes.map(xy);if(!points.length)return;let xs=points.map(p=>p[0]),ys=points.map(p=>p[1]);const minx=Math.min(...xs),miny=Math.min(...ys),scale=Math.min(740/Math.max(1,Math.max(...xs)-minx),290/Math.max(1,Math.max(...ys)-miny));
+ const pos=f=>{let p=xy(f);return [30+(p[0]-minx)*scale,320-(p[1]-miny)*scale]};let svg='';
+ for(const segment of trace.derived.segments){const a=bySeq.get(segment.from_client_seq),b=bySeq.get(segment.to_client_seq);if(!a||!b)continue;const p=pos(a),q=pos(b);svg+=`<line x1="${p[0]}" y1="${p[1]}" x2="${q[0]}" y2="${q[1]}" stroke="#8aa299" stroke-width="3"/>`}
+ for(const e of state.result.entries.filter(e=>e.accepted&&e.location)){const p=pos(e.location);svg+=`<circle cx="${p[0]}" cy="${p[1]}" r="7" fill="#235e4b"><title>${esc(e.label)} ${stamp(e.elapsed_s)}</title></circle>`}
+ const current=currentFix();if(current){const p=pos(current.fix);svg+=`<circle cx="${p[0]}" cy="${p[1]}" r="9" fill="#d28b36" stroke="white" stroke-width="2"/>`}$('map').innerHTML=svg;
+}
+function render(){
+ const r=state.result;renderClock();
+ $('entries').innerHTML=r.entries.map(e=>`<div class="entry"><strong>${stamp(e.elapsed_s)} · ${esc(e.label)}</strong> ${esc(e.note||'')} ${e.accepted?'':`<span class="warn">저장 거절: ${esc(e.location_status)}</span>`}<div class="bar"><button data-edit="${esc(e.id)}">수정</button><button data-delete="${esc(e.id)}">삭제</button></div></div>`).join('')||'<p class="muted">아직 기록이 없습니다.</p>';
+ const card=(row,context=false)=>`<div class="entry"><small>${row.elapsed_s==null?'':stamp(row.elapsed_s)}</small><p>${esc(row.text)}</p>${context&&row.context?`<small>${esc(row.routine)}</small>${row.context.facts.map(f=>`<p>${esc(f)}</p>`).join('')}<details><summary>조회 근거 · ${esc(row.context.status)}</summary><pre>${esc(JSON.stringify(row.context,null,2))}</pre></details>`:''}</div>`;
+ $('plain').innerHTML=state.finished?(r.rows.map(row=>card(row)).join('')||'<p>행동·메모 기록 없이 산책을 마쳤어요.</p>'):'종료 후 표시됩니다.';
+ $('enriched').innerHTML=state.finished?(r.rows.map(row=>card(row,true)).join('')||'<p>선별 조회할 행동 핀이 없습니다.</p>'):'종료 후 표시됩니다.';
+ $('scenes').innerHTML=state.finished?r.scenes.map(row=>card(row,true)).join('')+`<small>편집에서 제외된 기록 ${r.omitted_entry_ids.length}개. 원본 기록은 유지됩니다.</small>`:'종료 후 표시됩니다.';
+ $('metrics').textContent=state.finished?`상가 조회 중심 ${r.queries.commerce_anchors}곳 · 이번에 수집한 질의 ${r.queries.query_groups_fetched}개 · ${r.queries.mode}`:'';
+ $('diagnostics').textContent=JSON.stringify(r.evaluation_only||{},null,2);
+ $('profile').innerHTML=Object.entries(r.profile.counts).map(([code,c])=>`<span class="badge">${labels[code]} 기록 ${c.entry_count}개 · ${c.recorded_walk_count}개 산책</span>`).join(' ')+'<p class="muted">현재 산책 기준 · 실제 행동 횟수나 성격 점수가 아닙니다.</p>';
+ renderHistory();
+}
+function openEditor(tap){state.playing=false;state.editing={...tap};$('edit-title').textContent=labels[tap.code];$('edit-code').hidden=tap.code==='note';$('edit-note').hidden=tap.code!=='note';$('edit-note').value=tap.note||'';$('edit-code').value=tap.code==='note'?'sniffing':tap.code;$('editor').showModal()}
+document.querySelectorAll('[data-code]').forEach(b=>b.onclick=async()=>{state.playing=false;const tap={id:crypto.randomUUID(),at_s:state.time,code:b.dataset.code,note:''};if(tap.code==='note'){openEditor(tap);return}state.taps.push(tap);if(!await run())state.taps.pop()});
+ $('entries').onclick=async e=>{const id=e.target.dataset.delete||e.target.dataset.edit;if(!id)return;const tap=state.taps.find(t=>t.id===id);if(e.target.dataset.edit){openEditor(tap);return}const before=state.taps;state.taps=state.taps.filter(t=>t.id!==id);if(!await run())state.taps=before};
+ $('edit-form').onsubmit=async e=>{e.preventDefault();const tap={...state.editing};if(tap.code==='note'){tap.note=$('edit-note').value.trim();if(!tap.note)return}else tap.code=$('edit-code').value;const before=state.taps;state.taps=state.taps.filter(t=>t.id!==tap.id).concat(tap);$('editor').close();if(!await run())state.taps=before};$('cancel').onclick=()=>$('editor').close();
+ $('play').onclick=()=>{state.playing=!state.playing;renderClock()};$('clock').oninput=()=>{state.time=Number($('clock').value);renderClock()};
+ setInterval(()=>{if(!state.playing||state.busy)return;state.time=Math.min(Number($('clock').max),state.time+.2*Number($('speed').value));if(state.time>=Number($('clock').max))state.playing=false;renderClock()},200);
+ $('finish').onclick=async()=>{state.playing=false;state.finished=true;await run($('fetch').checked)};
+ $('policy').onchange=()=>run();$('limit').onchange=()=>run();$('new').onclick=fresh;
+ $('demo').onclick=async()=>{const end=Number($('clock').max);state.taps=[{code:'sniffing',fraction:.28},{code:'excretion',fraction:.46},{code:'barking',fraction:.78},{code:'note',fraction:.83,note:'잠깐 쉬었다. (합성 메모)'}].map(t=>({id:crypto.randomUUID(),at_s:Math.floor(end*t.fraction),code:t.code,note:t.note||''}));state.playing=false;await run()};
+ $('take-route').onclick=async()=>{try{const spec=$('gps').contentWindow.buildSpec();spec.session_id=crypto.randomUUID();state.scenario=spec;state.taps=[];state.time=0;state.finished=false;state.playing=false;await run()}catch{message('GPS 편집기 로딩 후 경로를 확인해주세요.')}};
+ function download(value){const url=URL.createObjectURL(new Blob([JSON.stringify(value,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='walk-record-experiment.json';a.click();URL.revokeObjectURL(url)}
+ $('export').onclick=()=>download({format:'walk-record-lab-bundle-v1',experiment:requestBody(false),result:state.result,history:state.history});
+ $('import').onclick=()=>$('file').click();$('file').onchange=async()=>{try{const value=JSON.parse(await $('file').files[0].text()),exp=value.experiment||(value.format==='walk-trace-scenario-v1'?{scenario:value,taps:[]}:value);if(!exp.scenario||!Array.isArray(exp.taps))throw Error();state.scenario=exp.scenario;state.taps=exp.taps;state.time=0;state.finished=false;state.playing=false;$('policy').value=exp.policy||'behavior';$('limit').value=exp.scene_limit||5;await run()}catch{message('유효한 실험 또는 GPS 시나리오 JSON이 아닙니다.')}finally{$('file').value=''}};
+ function saveHistory(){localStorage.setItem('walk-record-lab-history-v1',JSON.stringify(state.history));renderHistory()}
+ function archive(){const r=state.result;if(!r)return;const id=r.trace.scenario.session_id;state.history=state.history.filter(w=>w.id!==id);state.history.push({id,profile:r.profile,entries:r.entries.filter(e=>e.accepted&&e.kind==='behavior'),revision:r.source_revision});saveHistory()}
+ function updateSaved(){if(state.history.some(w=>w.id===state.result.trace.scenario.session_id))archive()}
+ function renderHistory(){const counts={};for(const code of ['sniffing','excretion','barking'])counts[code]=state.history.filter(w=>w.profile.counts[code].entry_count>0).length;
+ const sites=[];for(const walk of state.history)for(const entry of walk.entries||[]){if(!entry.location)continue;let site=sites.find(s=>s.code===entry.behavior_code&&Math.hypot((s.lat-entry.location.lat)*111195,(s.lng-entry.location.lng)*111195*Math.cos(s.lat*Math.PI/180))<=50);if(!site){site={code:entry.behavior_code,lat:entry.location.lat,lng:entry.location.lng,walks:new Set()};sites.push(site)}site.walks.add(walk.id)}
+ $('history').innerHTML=`<p>저장된 합성 산책 ${state.history.length}개</p>`+Object.entries(counts).map(([code,n])=>`<p>${labels[code]} 기록이 남은 산책 ${n}개</p>`).join('')+sites.filter(s=>s.walks.size>1).map(s=>`<p>약 50m 이내의 주변에서 ${labels[s.code]} 기록이 서로 다른 ${s.walks.size}개 산책에 남았어요.</p>`).join('')+'<small>주변 묶음은 첫 기록 기준 50m의 실험 규칙이며 장소 동일성을 확정하지 않습니다.</small>'}
+ $('archive').onclick=archive;$('clear-history').onclick=()=>{state.history=[];saveHistory()};
+ (async()=>{const config=await(await fetch('/record-lab/config')).json();$('fetch').disabled=!config.can_fetch;await fresh()})().catch(e=>message(e.message));
+</script></html>
