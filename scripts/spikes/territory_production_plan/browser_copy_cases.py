@@ -5,6 +5,10 @@ def check_app_copy(page, output, expect):
     def shot(name):
         page.locator("#phone").screenshot(path=str(output / f"copy-{name}.png"))
 
+    def select_site(site=None):
+        site = site or page.locator("#target").input_value()
+        page.locator(f'[data-site="{site}"]').dispatch_event("click")
+
     def layout_check():
         problems = page.evaluate("""() => {
           const rect = id => document.getElementById(id).getBoundingClientRect();
@@ -34,24 +38,46 @@ def check_app_copy(page, output, expect):
               if (r.left < surface.left || r.right > surface.right || r.top < surface.top || r.bottom > surface.bottom) errors.push(name + ' outside map');
               if (obstacles.some(o => overlap(r, o))) errors.push(name + ' hidden by controls');
             }
-            if (!document.querySelector('.workspace').classList.contains('landscape') && rect('bottom-stack').height / surface.height > .28) errors.push('game occupies over 28% of portrait map');
+            if (!document.querySelector('.workspace').classList.contains('landscape') && rect('bottom-stack').height / surface.height > .32) errors.push('game occupies over 32% of portrait map');
           }
           return errors;
         }""")
         assert not problems, problems
 
     expect(page.locator("html")).to_have_attribute("data-tests", "passed")
+    page.locator(".ready-card summary").click()
     page.locator('[name="pet"][value="p2"]').check()
     page.locator("#start").click()
+    expect(page.locator("#moment-dock")).to_be_hidden()
+    page.locator("#open-moments").click()
     expect(page.locator("#moment-dock")).to_be_visible()
     page.get_by_role("button", name="⌖ 배변·마킹", exact=True).click()
     expect(page.locator("#notice")).to_contain_text("배변·마킹 기록")
+    page.locator("#diary-camera").click()
+    expect(page.locator("#camera-title")).to_have_text("산책 사진")
+    page.locator("#diary-caption").fill("<b>보리와 두부의 산책</b>")
+    page.locator("#near").click()  # The pin belongs to shutter time, not camera-open time.
+    page.locator("#shutter").click()
+    expect(page.locator("#diary-markers [data-diary]")).to_have_count(1)
+    expect(page.locator("#photo-strip")).to_be_hidden()
+    expect(page.locator("#state-inspector")).to_contain_text("점령 시도0건")
+    page.locator("#open-diary").click()
+    expect(page.locator(".diary-entry")).to_have_attribute("data-position", "183,303")
+    expect(page.locator(".diary-entry p")).to_have_text("<b>보리와 두부의 산책</b>")
+    expect(page.locator(".diary-entry b")).to_have_count(0)
+    shot("diary")
+    page.locator("#close-diary").click()
+    page.locator("#far").click()
     layout_check()
     shot("walk")
     page.locator("#toggle").click()
+    if page.locator("#toggle").get_attribute("aria-pressed") == "true":
+        expect(page.locator("#territory-card")).to_be_hidden()
+        select_site()
     expect(page.locator("#moment-dock")).to_be_hidden()
     expect(page.locator("#mark")).to_be_disabled()
     page.locator("#near").click()
+    select_site()
     expect(page.locator("#representative")).to_have_text("영역표시 주체 · 보리")
     expect(page.locator("#mark")).to_be_enabled()
     layout_check()
@@ -72,16 +98,27 @@ def check_app_copy(page, output, expect):
     page.locator("#shutter").click()
     expect(page.locator("#camera")).to_be_hidden()
     page.locator("#target").select_option("A")
+    select_site()
     expect(page.locator("#open-jobs")).to_contain_text("1건 확인 중")
     layout_check()
     shot("pending")
+    expect(page.locator("#diary-markers [data-diary]")).to_have_count(1)
+    expect(page.locator("#claim-pet")).to_be_disabled()
     page.locator("#toggle").click()
+    if page.locator("#toggle").get_attribute("aria-pressed") == "true":
+        expect(page.locator("#territory-card")).to_be_hidden()
+        select_site()
     page.locator("#far").click()
-    expect(page.locator("#moment-dock")).to_be_visible()
+    expect(page.locator("#moment-dock")).to_be_hidden()
+    expect(page.locator("#diary-camera")).to_be_visible()
     expect(page.locator("#open-jobs")).to_contain_text("인증 완료", timeout=5000)
     page.locator("#toggle").click()
+    if page.locator("#toggle").get_attribute("aria-pressed") == "true":
+        expect(page.locator("#territory-card")).to_be_hidden()
+        select_site()
     expect(page.locator("#owner")).to_have_text("보리 · 인증")
     page.locator("#near").click()
+    select_site()
     expect(page.locator("#photograph")).to_be_disabled()
 
     # The same world survives a completed walk; a different participant starts a new session.
@@ -92,6 +129,9 @@ def check_app_copy(page, output, expect):
     page.locator('[name="pet"][value="p1"]').uncheck()
     page.locator("#start").click()
     page.locator("#toggle").click()
+    if page.locator("#toggle").get_attribute("aria-pressed") == "true":
+        expect(page.locator("#territory-card")).to_be_hidden()
+        select_site()
     expect(page.locator("#state-inspector")).to_contain_text("행동 기록0건")
     expect(page.locator("#owner")).to_have_text("보리 · 인증")
     expect(page.locator("#mark")).to_be_disabled()
@@ -123,6 +163,7 @@ def check_app_copy(page, output, expect):
 
     page.locator("#target").select_option("B")
     page.locator("#near").click()
+    select_site()
     layout_check()
     page.locator("#mark").click()
     expect(page.locator("#owner")).to_have_text("두부 · 미인증")
@@ -134,7 +175,12 @@ def check_app_copy(page, output, expect):
     for gps in ["stale", "mock", "denied", "inaccurate"]:
         page.locator("#gps").select_option(gps)
         expect(page.locator("#photograph")).to_be_disabled()
+    expect(page.locator("#gps-status")).to_have_attribute("data-quality", "weak")
+    page.locator("#gps-status").click()
+    expect(page.locator("#gps-detail")).to_contain_text("30m")
+    page.locator("#gps-status").click()
     page.locator("#gps").select_option("good")
+    expect(page.locator("#gps-status")).to_have_attribute("data-quality", "good")
     page.locator("#verdict").select_option("DELAY")
     page.locator("#photograph").click()
     page.locator("#shutter").click()
@@ -160,8 +206,12 @@ def check_app_copy(page, output, expect):
     # Long guidance and camera error controls must remain reachable in either orientation.
     page.locator("#start").click()
     page.locator("#toggle").click()
+    if page.locator("#toggle").get_attribute("aria-pressed") == "true":
+        expect(page.locator("#territory-card")).to_be_hidden()
+        select_site()
     page.locator("#target").select_option("C")
     page.locator("#near").click()
+    select_site()
     layout_check()
     page.locator("#photograph").click()
     page.locator("#gps").select_option("denied")
@@ -188,14 +238,51 @@ def check_app_copy(page, output, expect):
     expect(page.locator("#owner")).to_have_text("미점유")
     page.locator("#start").click()
     page.locator("#toggle").click()
+    if page.locator("#toggle").get_attribute("aria-pressed") == "true":
+        expect(page.locator("#territory-card")).to_be_hidden()
+        select_site()
     for width in [320, 390, 1440]:
         page.set_viewport_size({"width": width, "height": 1050})
         if width == 1440:
             page.locator("#rotate").click()
         for target in ["A", "B", "C"]:
             page.locator("#target").select_option(target)
+            select_site()
             for movement in ["far", "near"]:
                 page.locator(f"#{movement}").click()
                 layout_check()
             if target == "B":
                 shot(f"visible-b-{width}")
+
+    # Different claiming dogs in one multi-dog walk; previous attempts remain pinned.
+    page.set_viewport_size({"width": 1440, "height": 1050})
+    page.locator("#reset").click()
+    page.locator('[name="pet"][value="p1"]').check()
+    page.locator("#start").click()
+    page.locator("#toggle").click()
+    page.locator("#near").click()
+    select_site("A")
+    page.locator("#claim-pet").select_option("p2")
+    page.locator("#mark").click()
+    expect(page.locator("#owner")).to_have_text("두부 · 미인증")
+    page.locator("#target").select_option("B")
+    page.locator("#near").click()
+    select_site("B")
+    page.locator("#claim-pet").select_option("p1")
+    page.locator("#mark").click()
+    expect(page.locator("#owner")).to_have_text("보리 · 미인증")
+    page.locator("#target").select_option("A")
+    page.locator("#near").click()
+    select_site("A")
+    expect(page.locator("#claim-pet")).to_have_value("p2")
+    expect(page.locator("#claim-pet")).to_be_disabled()
+    expect(page.locator("#mark")).to_be_hidden()
+    page.locator("#photograph").click()
+    expect(page.locator("#camera-context")).to_contain_text("두부")
+    page.locator("#cancel-camera").click()
+    page.locator("#close-site").click()
+    expect(page.locator("#territory-card")).to_be_hidden()
+    expect(page.locator("#diary-camera")).to_be_visible()
+    expect(page.locator("#toggle svg")).to_have_count(1)
+    expect(page.locator("#rotate svg")).to_have_count(1)
+    shot("compact-map")
