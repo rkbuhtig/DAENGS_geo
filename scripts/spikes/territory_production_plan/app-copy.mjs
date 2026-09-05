@@ -43,6 +43,7 @@ function readiness(siteId = state.target) {
   });
 }
 function attempt(siteId = state.target) { return state.claims.attempt(state.session, siteId); }
+function walkPhase() { return !state.session ? 'browsing' : state.recording ? 'walking' : 'paused'; }
 function claimingPet(siteId = state.target) { return attempt(siteId)?.pet || state.pet; }
 function diaryReady() { return state.recording && !!state.session && !['stale', 'mock', 'denied'].includes($('gps').value); }
 function canPhoto(siteId = state.target) {
@@ -83,8 +84,8 @@ function renderMap() {
     const progress = readiness(id) === 'READY' ? 1 : readiness(id) === 'UNAVAILABLE' ? 0 : Math.max(0, .9 - distance(id) / 100);
     const label = owner ? `${names[owner.pet]} · ${owner.certification === 'VERIFIED' ? '인증' : '미인증'}` : '미점유';
     return `<g class="marker" data-site="${id}" tabindex="0" role="button" aria-label="${id} ${p.label}, ${label}" transform="translate(${p.x},${p.y})">` +
-      (id === state.selectedSite ? `<circle r="40" fill="${ring}12" stroke="${ring}55"/><circle r="40" fill="none" stroke="${ring}" stroke-width="3" stroke-dasharray="${progress * 251.3} 251.3" transform="rotate(-90)"/>` : '') +
-      (state.feedback?.siteId === id ? `<circle class="claim-burst" r="42" fill="none" stroke="#4e9b70" stroke-width="3"/>` : '') +
+      (id === state.selectedSite && state.recording ? `<circle r="40" fill="${ring}12" stroke="${ring}55"/><circle r="40" fill="none" stroke="${ring}" stroke-width="3" stroke-dasharray="${progress * 251.3} 251.3" transform="rotate(-90)"/>` : '') +
+      (state.recording && state.feedback?.siteId === id ? `<circle class="claim-burst" r="42" fill="none" stroke="#4e9b70" stroke-width="3"/>` : '') +
       (owner ? `<g class="territory-stamp" transform="translate(-22,17) rotate(-18)"><ellipse cy="5" rx="6" ry="5" fill="${color}"/><g fill="${color}"><circle cx="-6" cy="-3" r="2.5"/><circle cx="0" cy="-6" r="2.5"/><circle cx="6" cy="-3" r="2.5"/></g></g>` : '') +
       `<circle r="15" fill="white" stroke="${color}" stroke-width="2"/><path d="M0 -9V9M-6 -5H6M-4 -1H4" stroke="${color}" stroke-width="2" fill="none"/>` +
       (id !== state.selectedSite ? `<text text-anchor="middle" y="-24" font-size="10" fill="#75665c">${id} · ${label}</text>` : '') + '</g>';
@@ -142,6 +143,9 @@ function render() {
   $('toggle').setAttribute('aria-label', state.visible ? '점령지 숨기기' : '점령지 보기');
   $('toggle').title = $('toggle').getAttribute('aria-label');
   $('toggle').setAttribute('aria-pressed', String(state.visible));
+  $('territory-card').dataset.phase = walkPhase();
+  $('territory-actions').hidden = walkPhase() !== 'walking';
+  $('site-paused').hidden = walkPhase() !== 'paused';
   $('territory-card').hidden = !state.visible || !state.selectedSite || $('board').value !== 'ready';
   $('moment-dock').hidden = !state.momentsOpen || !state.recording;
   $('open-moments').setAttribute('aria-expanded', String(state.momentsOpen));
@@ -154,13 +158,17 @@ function render() {
   petSelect.disabled = !!attempt() || !state.recording;
   renderGps(); renderDiary();
   $('ready-card').hidden = !!state.session;
-  $('recording-control').hidden = !state.recording;
+  $('recording-control').hidden = !state.session;
+  $('pause').setAttribute('aria-label', state.recording ? '잠시 멈춤' : '산책 재개 메뉴');
+  $('pause').lastElementChild.textContent = state.recording ? '쉼' : '재개';
   $('start').disabled = !document.querySelector('input[name="pet"]:checked') || $('gps').value === 'denied';
   document.querySelectorAll('[data-moment]').forEach(button => { button.disabled = readiness() === 'UNAVAILABLE'; });
   const owner = state.claims.sites.get(state.target).occupancy;
   const boardReady = $('board').value === 'ready';
   $('site-title').textContent = boardReady ? `${state.target} · ${places[state.target].label}` : '주변 점령지';
   $('owner').textContent = !boardReady ? '' : !owner ? '미점유' : `${names[owner.pet]} · ${owner.certification === 'VERIFIED' ? '인증' : '미인증'}`;
+  $('site-occupant').textContent = owner ? `점유자 ${names[owner.pet]}네 · 점유 강아지 ${names[owner.pet]}` : '아직 아무도 점유하지 않은 장소예요';
+  $('site-occupant').hidden = state.recording;
   $('representative').textContent = claimingPet() ? `영역표시 주체 · ${names[claimingPet()]}` : '함께 걷는 강아지를 선택해 주세요';
   $('guidance').textContent = guidance();
   $('mark').disabled = !boardReady || readiness() !== 'READY' || !!attempt() || disposition(state.claims.sites.get(state.target), claimingPet()) !== 'GRANTED';
@@ -178,7 +186,8 @@ function render() {
   $('target-label').classList.toggle('ready', readiness() === 'READY');
   $('target-state').textContent = readiness() === 'READY' ? '영역 안에 들어왔어요' : readiness() === 'UNAVAILABLE' ? '현재 위치 확인 중' : '조금 더 가까이';
   if (owner?.pet === claimingPet()) $('target-state').textContent = `${names[owner.pet]}의 발자국`;
-  if (state.feedback?.siteId === state.target) $('target-state').textContent = state.feedback.message;
+  if (state.recording && state.feedback?.siteId === state.target) $('target-state').textContent = state.feedback.message;
+  if (!state.recording) $('target-state').textContent = owner ? `${names[owner.pet]}의 ${owner.certification === 'VERIFIED' ? '인증' : '미인증'} 영역` : '미점유 장소';
   $('target-distance').textContent = `${Math.round(distance())}m · ${owner ? names[owner.pet] + (owner.certification === 'VERIFIED' ? '의 인증 영역' : ' · 미인증') : '아직 비어 있는 장소'}`;
   $('notice').textContent = state.notice || (!boardReady ? {loading:'주변 점령지를 찾고 있어요', empty:'주변에 점령지가 없어요', error:'장소 조회에 실패했어요 · 다시 조회해 주세요'}[$('board').value] : '');
   $('notice').classList.toggle('error', readiness() === 'UNAVAILABLE' && !!state.session);
@@ -297,6 +306,7 @@ $('start').onclick = () => {
   state.recording = true; state.seconds = 0; state.meters = 0; state.trail = [state.position]; state.moments = []; state.notice = null;
   render();
 };
+$('browse-paused').onclick = () => { setOverlay(null); render(); };
 $('pause').onclick = () => { state.recording = false; render(); setOverlay('pause-screen'); };
 $('resume').onclick = () => { state.recording = true; setOverlay(null); render(); };
 $('finish').onclick = () => { $('result-text').textContent = `${state.participants.map(p => names[p]).join(', ')}와 ${Math.round(state.meters)}m · 행동 ${state.moments.length}건`; setOverlay('result-screen'); };

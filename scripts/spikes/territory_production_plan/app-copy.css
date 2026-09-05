@@ -179,3 +179,5 @@ select { width: 100%; border: 1px solid var(--border); border-radius: 10px; padd
 .diary-entry small { font-size: 10px; color: #806e64; }
 .landscape .primary-row { margin-left: auto; flex-shrink: 0; }
 .landscape .moment-dock { position: absolute; right: 0; bottom: 60px; width: 280px; }
+
+#site-occupant, #site-paused { font-size: 11px; color: #806e64; margin: 8px 0 0; line-height: 1.6; }

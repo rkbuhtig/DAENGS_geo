@@ -61,9 +61,9 @@
             <div class="moment-dock" id="moment-dock" hidden><button data-moment="탐색">⌕ 탐색</button><button data-moment="배변·마킹">⌖ 배변·마킹</button><button data-moment="교류">♡ 교류</button><button data-moment="특별한 순간">☆ 특별한 순간</button></div>
             <section class="territory-card" id="territory-card" hidden aria-label="점령 대상">
               <div class="target-heading"><h2 id="site-title">점령지를 선택해 주세요</h2><p id="owner"></p><button id="close-site" aria-label="점령지 선택 닫기">×</button></div>
-              <div class="claim-pet-row"><label for="claim-pet">영역표시할 강아지</label><select id="claim-pet"></select></div><p id="representative" class="sr-only"></p>
+              <p id="site-occupant"></p><div id="territory-actions"><div class="claim-pet-row"><label for="claim-pet">영역표시할 강아지</label><select id="claim-pet"></select></div><p id="representative" class="sr-only"></p>
               <p id="guidance" role="status"></p>
-              <div class="claim-buttons"><button id="mark" class="pink-button">⌖ 영역표시</button><button id="photograph" class="pink-button">영역표시 인증 촬영</button></div>
+              <div class="claim-buttons"><button id="mark" class="pink-button">⌖ 영역표시</button><button id="photograph" class="pink-button">영역표시 인증 촬영</button></div></div><p id="site-paused" hidden>산책을 재개하면 영역표시할 수 있어요</p>
             </section>
             <p class="status-pill" id="notice" role="status">함께 걷는 강아지를 선택해 주세요</p>
             <section id="ready-card" class="ready-card"><h2>산책을 시작할까요?</h2><details><summary>함께 걷는 강아지</summary><div class="dog-picker"><label><input type="checkbox" name="pet" value="p1" checked> 🐕 보리</label><label><input type="checkbox" name="pet" value="p2"> 🐶 두부</label></div></details><button id="start" class="pink-button">산책 시작</button></section>
@@ -77,7 +77,7 @@
           </div>
         </section>
         <div class="gesture-bar" aria-hidden="true"></div>
-        <div class="screen-overlay" id="pause-screen" hidden role="dialog" aria-modal="true" aria-label="산책 일시정지"><section class="modal-card"><h2>잠시 쉬고 있어요</h2><p>사진 확인은 계속 진행돼요.</p><button id="resume" class="pink-button">산책 계속</button><button id="finish" class="control-button">산책 종료</button></section></div>
+        <div class="screen-overlay" id="pause-screen" hidden role="dialog" aria-modal="true" aria-label="산책 일시정지"><section class="modal-card"><h2>잠시 쉬고 있어요</h2><p>사진 확인은 계속 진행돼요.</p><button id="browse-paused" class="control-button">지도 둘러보기</button><button id="resume" class="pink-button">산책 계속</button><button id="finish" class="control-button">산책 종료</button></section></div>
         <div class="screen-overlay" id="result-screen" hidden role="dialog" aria-modal="true" aria-label="산책 결과"><section class="modal-card"><h2>산책 완료!</h2><p id="result-text"></p><p>사진 확인은 종료 후에도 계속돼요.</p><button id="next-walk" class="pink-button">다음 산책 준비</button></section></div>
         <div class="camera-screen" id="camera" hidden role="dialog" aria-modal="true" aria-label="영역표시 인증 촬영">
           <div class="camera-top"><button id="cancel-camera" aria-label="촬영 취소">←</button><strong id="camera-title">영역표시 인증</strong></div>
@@ -94,7 +94,7 @@
     <aside class="inspector">
       <p class="eyebrow">화면 확인</p><h2>산책은 그대로,<br>점령지만 켜고 끄기.</h2>
       <ol><li>보리와 산책 시작</li><li>상단 전봇대 아이콘으로 표시 켜기</li><li>지도 전봇대 선택 → 가까이 이동 → 강아지 선택·영역표시</li><li>점령지에서 인증 촬영 → 지도 복귀</li><li>하단 사진 → 산책 사진 Pin·일기 확인</li></ol>
-      <p class="note">두부의 인증 영역 장면에서는 사진 없이 탈취할 수 없습니다. 부적합은 현장 재촬영, 통신 장애는 같은 사진으로 재시도합니다.</p>
+      <p class="note">점유자 이름은 합성 예시입니다. 시작 전에는 점유 정보만 둘러볼 수 있어요. 두부의 인증 영역 장면에서는 사진 없이 탈취할 수 없습니다. 부적합은 현장 재촬영, 통신 장애는 같은 사진으로 재시도합니다.</p>
       <dl id="state-inspector"></dl><p id="contract-tests" class="note">공통 계약 확인 중…</p>
       <details><summary>옮긴 코드와 남은 확인</summary><p class="note">시설 검색 웹 검토판 #232의 프레임·상태바·색상 토큰을 사용합니다. 산책 배치는 APP WalkScreen, TerritoryActionCard, TerritoryCaptureDialog를 기준으로 대응합니다.</p><p class="note">안드로이드 지도·폰트·카메라·실제 보행·진동은 기기 확인이 필요합니다. 날씨·지도·반려견은 합성 값입니다.</p></details>
     </aside>
