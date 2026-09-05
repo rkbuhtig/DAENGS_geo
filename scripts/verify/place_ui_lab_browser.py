@@ -12,10 +12,10 @@ Optional --screenshots writes desktop/mobile captures outside the repository.
 import argparse
 from pathlib import Path
 
-from playwright.sync_api import expect, sync_playwright
-
-
 def main():
+    # uv supplies this script-only dependency when the browser check is executed.
+    from playwright.sync_api import expect, sync_playwright
+
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--browser-path", required=True)
     parser.add_argument("--url", default="http://127.0.0.1:8765/")
