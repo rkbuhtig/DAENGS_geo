@@ -1,5 +1,8 @@
 # geo → app 장면 후보 계약 v1
 
+> 새 생성 결과는 [v2](walk-storyboard-candidates-v2.md)를 따른다. 이 문서와 다섯 v1 fixture는
+> 이전 저장본/클라이언트의 호환 기준으로 유지한다. lab의 새 JSON 내보내기는 v2다.
+
 > 이 문서의 최초 연결은 lab JSON 교환이다. 이후 동일 bundle을 운영 분석 API에서도
 > 사용하도록 연결했다. [실데이터 이식](walk-storyboard-live.md)과
 > [공간 일기 제작 계획](../explorations/walk/diary-storyboard-plan.md)에서 최신 연결 상태를 확인한다.

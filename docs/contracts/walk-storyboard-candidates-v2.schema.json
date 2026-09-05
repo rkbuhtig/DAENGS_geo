@@ -1,0 +1,400 @@
+{
+  "$defs": {
+    "EntryReference": {
+      "additionalProperties": false,
+      "properties": {
+        "entry_id": {
+          "maxLength": 100,
+          "minLength": 1,
+          "title": "Entry Id",
+          "type": "string"
+        },
+        "revision": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Revision"
+        },
+        "pet_id": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Pet Id"
+        }
+      },
+      "required": [
+        "entry_id",
+        "revision",
+        "pet_id"
+      ],
+      "title": "EntryReference",
+      "type": "object"
+    },
+    "Fact": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "walk",
+            "action",
+            "note",
+            "movement",
+            "environment",
+            "coverage"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "text": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 20,
+          "title": "Source Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "text",
+        "source_ids"
+      ],
+      "title": "Fact",
+      "type": "object"
+    },
+    "RouteRange": {
+      "additionalProperties": false,
+      "properties": {
+        "start_m": {
+          "minimum": 0,
+          "title": "Start M",
+          "type": "number"
+        },
+        "end_m": {
+          "minimum": 0,
+          "title": "End M",
+          "type": "number"
+        },
+        "block_id": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Block Id"
+        }
+      },
+      "required": [
+        "start_m",
+        "end_m",
+        "block_id"
+      ],
+      "title": "RouteRange",
+      "type": "object"
+    },
+    "SceneV2": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 100,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "revision": {
+          "maxLength": 100,
+          "minLength": 1,
+          "title": "Revision",
+          "type": "string"
+        },
+        "started_at": {
+          "format": "date-time",
+          "title": "Started At",
+          "type": "string"
+        },
+        "ended_at": {
+          "format": "date-time",
+          "title": "Ended At",
+          "type": "string"
+        },
+        "route": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RouteRange"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reasons": {
+          "items": {
+            "enum": [
+              "session_boundary",
+              "action",
+              "note",
+              "profile_change",
+              "session_speed",
+              "distance_fill",
+              "observation_gap"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Reasons",
+          "type": "array"
+        },
+        "title": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "facts": {
+          "items": {
+            "$ref": "#/$defs/Fact"
+          },
+          "maxItems": 40,
+          "minItems": 1,
+          "title": "Facts",
+          "type": "array"
+        },
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/Source"
+          },
+          "maxItems": 20,
+          "minItems": 1,
+          "title": "Sources",
+          "type": "array"
+        },
+        "entry": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EntryReference"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "revision",
+        "started_at",
+        "ended_at",
+        "route",
+        "reasons",
+        "title",
+        "facts",
+        "sources",
+        "entry"
+      ],
+      "title": "SceneV2",
+      "type": "object"
+    },
+    "SelectionSummary": {
+      "additionalProperties": false,
+      "properties": {
+        "minimum_target": {
+          "maximum": 8,
+          "minimum": 1,
+          "title": "Minimum Target",
+          "type": "integer"
+        },
+        "selected_count": {
+          "maximum": 8,
+          "minimum": 0,
+          "title": "Selected Count",
+          "type": "integer"
+        },
+        "minimum_met": {
+          "title": "Minimum Met",
+          "type": "boolean"
+        },
+        "shortfall_reason": {
+          "anyOf": [
+            {
+              "const": "insufficient_distinct_valid_route",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Shortfall Reason"
+        },
+        "coverage_met": {
+          "title": "Coverage Met",
+          "type": "boolean"
+        },
+        "longest_unread_m": {
+          "minimum": 0,
+          "title": "Longest Unread M",
+          "type": "number"
+        },
+        "max_unread_m": {
+          "exclusiveMinimum": 0,
+          "title": "Max Unread M",
+          "type": "number"
+        },
+        "max_anchors": {
+          "const": 8,
+          "default": 8,
+          "title": "Max Anchors",
+          "type": "integer"
+        },
+        "deferred_action_count": {
+          "minimum": 0,
+          "title": "Deferred Action Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "minimum_target",
+        "selected_count",
+        "minimum_met",
+        "shortfall_reason",
+        "coverage_met",
+        "longest_unread_m",
+        "max_unread_m",
+        "deferred_action_count"
+      ],
+      "title": "SelectionSummary",
+      "type": "object"
+    },
+    "Source": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 100,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "provider": {
+          "maxLength": 100,
+          "minLength": 1,
+          "title": "Provider",
+          "type": "string"
+        },
+        "status": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Status",
+          "type": "string"
+        },
+        "captured_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Captured At"
+        },
+        "url": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Url"
+        }
+      },
+      "required": [
+        "id",
+        "provider",
+        "status",
+        "captured_at",
+        "url"
+      ],
+      "title": "Source",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "format": {
+      "const": "walk-storyboard-candidates-v2",
+      "default": "walk-storyboard-candidates-v2",
+      "title": "Format",
+      "type": "string"
+    },
+    "session_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Session Id",
+      "type": "string"
+    },
+    "source_revision": {
+      "maxLength": 100,
+      "minLength": 1,
+      "title": "Source Revision",
+      "type": "string"
+    },
+    "synthetic": {
+      "title": "Synthetic",
+      "type": "boolean"
+    },
+    "scenes": {
+      "items": {
+        "$ref": "#/$defs/SceneV2"
+      },
+      "maxItems": 250,
+      "minItems": 1,
+      "title": "Scenes",
+      "type": "array"
+    },
+    "selection": {
+      "$ref": "#/$defs/SelectionSummary"
+    }
+  },
+  "required": [
+    "session_id",
+    "source_revision",
+    "synthetic",
+    "scenes",
+    "selection"
+  ],
+  "title": "StoryboardBundleV2",
+  "type": "object"
+}
