@@ -1,5 +1,13 @@
 # Place v2 검색 계약
 
+이 문서는 **DAENGS_geo의 웹·Android 실험 및 Geo 서비스 구현 기준**이다.
+아래 단일 반려견 `conditions` 설명을 최신 DAENGS_app·DAENGS_dev 계약 전체로 해석하지 않는다.
+
+App·Dev에 추가된 `dogs[]` 값 스냅샷·개별 평가·응답 echo 계약은
+[반려견 선택 계약 v2](../explorations/facility/place-search-profile-contract.md)를 따른다.
+구현 PR과 검증 범위는 [시설 검색 최신 현황](../explorations/facility/place-search-session-decisions.md)에 기록한다.
+해당 확장이 Geo 서비스에도 구현됐다는 뜻은 아니다.
+
 `POST /v2/places/search`는 웹과 Android가 함께 사용하는 장소 발견의 유일한 HTTP 입구다.
 기존 `GET /places/search`, `GET /pharmacy/search`, `GET /facility/search`는 소비자 전환 뒤
 제거했고, 병원도 이 계약의 `hospital` kind로만 찾는다.

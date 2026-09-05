@@ -2,6 +2,13 @@
 
 **담당: 사용자.**
 
+## 시설 검색 UI·프로필 작업 길잡이
+
+- [합의·구현·리뷰 최신 현황](place-search-session-decisions.md): 이번 기획의 보관 위치, 앱/서버 PR, 리뷰 후 확정 동작, 미검증 범위.
+- [구현 계획](place-search-implementation-plan.md): 단계별 범위와 체크리스트.
+- [웹 UI 검토판](place-ui-web.md), [프로필 선택 계약 v2](place-search-profile-contract.md).
+- [실제 API 연결 검증](place-search-live-verification.md): 합성 프로필로 수행한 당시 공개 서버 검증.
+
 기반층(`facility`)은 [문화시설 기반·의료 오버레이 제안](../../decisions/2026-08-24-culture-base-medical-overlay.md)에서
 왔다. 데이터 층과 필드 병합은 유지하지만 `/facility` 를 제품 최상위로 두는 phase 2는
 [결정 #65](../../decisions/2026-08-26-place-first-discovery.md)의 `Place` 축으로 대체됐다.
