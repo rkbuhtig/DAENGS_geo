@@ -1,0 +1,336 @@
+{
+  "format": "walk-storyboard-candidates-v1",
+  "session_id": "geo-storyboard-movement",
+  "source_revision": "c668fbfd727b8785db7fd8b2bbb76b67da9b9a32af39e380562a1a6a28b2526c",
+  "synthetic": true,
+  "scenes": [
+    {
+      "id": "scene-cf445bb4bb40f296e141bac4",
+      "revision": "a43138c688340a8d79c250e6d2572cc0c309357ddf90e9319a89a507e98db143",
+      "started_at": "2026-09-05T09:00:00Z",
+      "ended_at": "2026-09-05T09:00:00Z",
+      "route": null,
+      "reasons": [
+        "session_boundary"
+      ],
+      "title": "산책 시작",
+      "facts": [
+        {
+          "id": "scene-cf445bb4bb40f296e141bac4:fact",
+          "kind": "walk",
+          "text": "산책 시작 기록",
+          "source_ids": [
+            "local-walk"
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "id": "local-walk",
+          "provider": "walk-observation",
+          "status": "known",
+          "captured_at": null,
+          "url": null
+        }
+      ]
+    },
+    {
+      "id": "scene-d55b130f7361305593a8df8b",
+      "revision": "e2069bdcee6f2faa64df078096585761bab8d384e9ff083154f298ca6fbca8a0",
+      "started_at": "2026-09-05T09:05:20Z",
+      "ended_at": "2026-09-05T09:05:20Z",
+      "route": {
+        "start_m": 299.6642752716184,
+        "end_m": 299.6642752716184,
+        "block_id": 0
+      },
+      "reasons": [
+        "session_speed"
+      ],
+      "title": "이동 속도가 달라진 구간",
+      "facts": [
+        {
+          "id": "scene-d55b130f7361305593a8df8b:fact",
+          "kind": "walk",
+          "text": "산책 경로 300m 부근의 관측 지점이에요.",
+          "source_ids": [
+            "local-walk"
+          ]
+        },
+        {
+          "id": "scene-d55b130f7361305593a8df8b:environment:0",
+          "kind": "environment",
+          "text": "늘벗근린공원 대표점에서 약 138m (강남구 제공 자료·공원 내부 판정 아님)",
+          "source_ids": [
+            "environment-parks"
+          ]
+        },
+        {
+          "id": "scene-d55b130f7361305593a8df8b:movement:0",
+          "kind": "movement",
+          "text": "관측 구간 300~340초의 평균 속도 0.00m/s · 비교 기준 1.00m/s",
+          "source_ids": [
+            "local-walk"
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "id": "local-walk",
+          "provider": "walk-observation",
+          "status": "known",
+          "captured_at": null,
+          "url": null
+        },
+        {
+          "id": "environment-commerce",
+          "provider": "commerce",
+          "status": "known",
+          "captured_at": "2026-09-05T11:57:24.345095Z",
+          "url": "https://www.data.go.kr/data/15012005/openapi.do"
+        },
+        {
+          "id": "environment-parks",
+          "provider": "parks",
+          "status": "known",
+          "captured_at": "2026-09-05T10:29:40.257986Z",
+          "url": "https://www.data.go.kr/data/15012890/standard.do"
+        },
+        {
+          "id": "environment-rivers",
+          "provider": "rivers",
+          "status": "known",
+          "captured_at": "2026-09-05T10:29:40.567549Z",
+          "url": "https://www.data.go.kr/data/15139206/standard.do"
+        }
+      ]
+    },
+    {
+      "id": "scene-09b9ebf2d8f3b1b1098abc5a",
+      "revision": "33937dfbf4e01b91ce6db18103c54cd86ff80fec1e142d0fe6fe1c13484b9460",
+      "started_at": "2026-09-05T09:08:45Z",
+      "ended_at": "2026-09-05T09:08:45Z",
+      "route": {
+        "start_m": 484.4573200182407,
+        "end_m": 484.4573200182407,
+        "block_id": 0
+      },
+      "reasons": [
+        "distance_fill"
+      ],
+      "title": "경로 484m 주변",
+      "facts": [
+        {
+          "id": "scene-09b9ebf2d8f3b1b1098abc5a:fact",
+          "kind": "walk",
+          "text": "산책 경로 484m 부근의 관측 지점이에요.",
+          "source_ids": [
+            "local-walk"
+          ]
+        },
+        {
+          "id": "scene-09b9ebf2d8f3b1b1098abc5a:environment:0",
+          "kind": "environment",
+          "text": "배밭근린공원 대표점에서 약 127m (강남구 제공 자료·공원 내부 판정 아님)",
+          "source_ids": [
+            "environment-parks"
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "id": "local-walk",
+          "provider": "walk-observation",
+          "status": "known",
+          "captured_at": null,
+          "url": null
+        },
+        {
+          "id": "environment-commerce",
+          "provider": "commerce",
+          "status": "known",
+          "captured_at": "2026-09-05T11:57:23.973174Z",
+          "url": "https://www.data.go.kr/data/15012005/openapi.do"
+        },
+        {
+          "id": "environment-parks",
+          "provider": "parks",
+          "status": "known",
+          "captured_at": "2026-09-05T10:29:40.257986Z",
+          "url": "https://www.data.go.kr/data/15012890/standard.do"
+        },
+        {
+          "id": "environment-rivers",
+          "provider": "rivers",
+          "status": "known",
+          "captured_at": "2026-09-05T10:29:40.567549Z",
+          "url": "https://www.data.go.kr/data/15139206/standard.do"
+        }
+      ]
+    },
+    {
+      "id": "scene-73ab70c03979a97120c7273b",
+      "revision": "0c9942fc404fab1f6b397f5f3be61436c8259a87ac779a66fbc3621e4c810b69",
+      "started_at": "2026-09-05T09:11:55Z",
+      "ended_at": "2026-09-05T09:11:55Z",
+      "route": {
+        "start_m": 674.2446855347843,
+        "end_m": 674.2446855347843,
+        "block_id": 0
+      },
+      "reasons": [
+        "distance_fill"
+      ],
+      "title": "경로 674m 주변",
+      "facts": [
+        {
+          "id": "scene-73ab70c03979a97120c7273b:fact",
+          "kind": "walk",
+          "text": "산책 경로 674m 부근의 관측 지점이에요.",
+          "source_ids": [
+            "local-walk"
+          ]
+        },
+        {
+          "id": "scene-73ab70c03979a97120c7273b:environment:0",
+          "kind": "environment",
+          "text": "좌표 반경 125m에서 수집된 등록 상가: 교육 2곳 · 시설관리·임대 1곳 · 부동산 1곳",
+          "source_ids": [
+            "environment-commerce"
+          ]
+        },
+        {
+          "id": "scene-73ab70c03979a97120c7273b:environment:1",
+          "kind": "environment",
+          "text": "개포서근린공원 대표점에서 약 146m (강남구 제공 자료·공원 내부 판정 아님)",
+          "source_ids": [
+            "environment-parks"
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "id": "local-walk",
+          "provider": "walk-observation",
+          "status": "known",
+          "captured_at": null,
+          "url": null
+        },
+        {
+          "id": "environment-commerce",
+          "provider": "commerce",
+          "status": "known",
+          "captured_at": "2026-09-05T11:57:24.547943Z",
+          "url": "https://www.data.go.kr/data/15012005/openapi.do"
+        },
+        {
+          "id": "environment-parks",
+          "provider": "parks",
+          "status": "known",
+          "captured_at": "2026-09-05T10:29:40.257986Z",
+          "url": "https://www.data.go.kr/data/15012890/standard.do"
+        },
+        {
+          "id": "environment-rivers",
+          "provider": "rivers",
+          "status": "known",
+          "captured_at": "2026-09-05T10:29:40.567549Z",
+          "url": "https://www.data.go.kr/data/15139206/standard.do"
+        }
+      ]
+    },
+    {
+      "id": "scene-44acd45c4ec4485c40eb7a6d",
+      "revision": "f32de20661033b17963e241c8372631d7c66df31c7ce36e4353a8faabc0d4a78",
+      "started_at": "2026-09-05T09:15:05Z",
+      "ended_at": "2026-09-05T09:15:05Z",
+      "route": {
+        "start_m": 864.032051051328,
+        "end_m": 864.032051051328,
+        "block_id": 0
+      },
+      "reasons": [
+        "distance_fill"
+      ],
+      "title": "경로 864m 주변",
+      "facts": [
+        {
+          "id": "scene-44acd45c4ec4485c40eb7a6d:fact",
+          "kind": "walk",
+          "text": "산책 경로 864m 부근의 관측 지점이에요.",
+          "source_ids": [
+            "local-walk"
+          ]
+        },
+        {
+          "id": "scene-44acd45c4ec4485c40eb7a6d:environment:0",
+          "kind": "environment",
+          "text": "개포서근린공원 대표점에서 약 100m (강남구 제공 자료·공원 내부 판정 아님)",
+          "source_ids": [
+            "environment-parks"
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "id": "local-walk",
+          "provider": "walk-observation",
+          "status": "known",
+          "captured_at": null,
+          "url": null
+        },
+        {
+          "id": "environment-commerce",
+          "provider": "commerce",
+          "status": "known",
+          "captured_at": "2026-09-05T11:57:24.547943Z",
+          "url": "https://www.data.go.kr/data/15012005/openapi.do"
+        },
+        {
+          "id": "environment-parks",
+          "provider": "parks",
+          "status": "known",
+          "captured_at": "2026-09-05T10:29:40.257986Z",
+          "url": "https://www.data.go.kr/data/15012890/standard.do"
+        },
+        {
+          "id": "environment-rivers",
+          "provider": "rivers",
+          "status": "known",
+          "captured_at": "2026-09-05T10:29:40.567549Z",
+          "url": "https://www.data.go.kr/data/15139206/standard.do"
+        }
+      ]
+    },
+    {
+      "id": "scene-c4883fd5e9c5f69cba00f39e",
+      "revision": "9c04b08343edf0db0872ec7938ac66ad0229f4fcfbe5cd4bdd06c04da2b065cf",
+      "started_at": "2026-09-05T09:17:20Z",
+      "ended_at": "2026-09-05T09:17:20Z",
+      "route": null,
+      "reasons": [
+        "session_boundary"
+      ],
+      "title": "산책 마무리",
+      "facts": [
+        {
+          "id": "scene-c4883fd5e9c5f69cba00f39e:fact",
+          "kind": "walk",
+          "text": "수용 이동거리 999m",
+          "source_ids": [
+            "local-walk"
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "id": "local-walk",
+          "provider": "walk-observation",
+          "status": "known",
+          "captured_at": null,
+          "url": null
+        }
+      ]
+    }
+  ]
+}
