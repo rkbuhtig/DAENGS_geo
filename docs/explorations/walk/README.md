@@ -2,12 +2,16 @@
 
 **담당: 사용자.**
 
+**공간 일기 작업을 이어갈 때는 [제작·재개 계획](diary-storyboard-plan.md)을 먼저 읽는다.**
+킁킁·배설·짖기와 메모, 실제 산책 장면 분석, 보호자 검토까지의 구현 상태와
+운영 확인·AI 일기 계약·후속 실험의 순서 및 완료 기준을 모았다.
+
 산책 점령 게임 제작은 [2026-09-05 제작 계획](territory-production-plan.md)을 먼저 읽는다.
 사진 없는 점유와 인증 우선권을 반영한 최신 작업 기준이며, 첫 묶음은 지도·촬영·페이크 판정이다.
 
-다른 컴퓨터/새 대화에서 이 작업을 이어받을 때는
-[2026-09-04 인수인계](../../research/2026-09-04-walk-personalization-handoff.md)를 먼저 읽는다.
-실제 스토리보드 실험과 아직 미구현인 행동 프로필 구상을 구분하고, 로컬 데이터 복구 방법을 안내한다.
+초기 스토리보드 실험과 행동 프로필 구상의 경위, 당시 로컬 데이터 복구 방법은
+[2026-09-04 인수인계](../../research/2026-09-04-walk-personalization-handoff.md)에 보존한다.
+현재 구현과 다음 순서는 위 공간 일기 제작·재개 계획을 기준으로 읽는다.
 
 수집 코어는 탐색이 아니라 사실 계약이다 — [`contracts/walk-record.md`](../../contracts/walk-record.md),
 `app/features/walk/models.py`, `tests/test_walk_contract.py`. `WalkFacts` 자체에는 의미를 섞지 않는다.
@@ -20,6 +24,7 @@
 
 | 갈래 | status | implementation | 한 줄 |
 |---|---|---|---|
+| [diary-storyboard-plan](diary-storyboard-plan.md) | exploring | working-skeleton | 공간 일기 재개 기준. 결정 이유·실제 산책 분석과 검토 구현·운영 확인·AI 생성 계약·단계별 완료 기준 |
 | [territory-production-plan](territory-production-plan.md) | exploring | draft | 미인증 점유·인증 우선권·세션당 장소별 한 번을 기준으로 앱 한 사이클 → 온라인 공유 → 시즌·실제 판정 제작. 1·2단계 구현 PR과 검증 기록 연결 |
 | [behavior-profile-and-personalization](behavior-profile-and-personalization.md) | exploring | none | 행동 Pin의 현재 증언을 상황별로 요약해 프로필과 다음 산책에 쓰는 후보. 귀속·분모·정정/삭제·근거 회수부터 실험 |
 | [storyboard-and-regions](storyboard-and-regions.md) | exploring | working-skeleton | SGIS·상가·공원·하천과 합성 산책으로 로컬 스토리보드 비교. 지역 구간은 챕터 후보, 게임 성과는 독립 fixture. 운영 저장·나레이터는 미구현 |

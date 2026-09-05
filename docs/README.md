@@ -2,6 +2,9 @@
 
 문서는 한 줄기가 아니라 **갈래**로 자란다. 뭐가 확정이고 뭐가 탐색 중인지 여기서 본다.
 
+- [공간 일기 제작·재개 계획](explorations/walk/diary-storyboard-plan.md)
+  — 행동 입력 → 장면 분석 → 사람 검토까지의 구현 상태, 선택한 이유, AI 일기 계약과 다음 작업의 완료 기준.
+
 - [환경 조회 우선순위 초안](research/2026-09-05-priority-context-draft.md)
   — 최소 목표 4구간, 액션·이동 변화·거리 보충. 핀 없는 산책도 결과를 제공한다.
 
@@ -56,7 +59,7 @@ backlog.md           갈래에 안 붙는 미결
 
 ## 주제
 - [산책 점령 게임 제작 계획](explorations/walk/territory-production-plan.md) — 미인증 점유·인증 우선권·세션별 점령 규칙과 APP/Dev/Geo의 5단계 제작 순서. 첫 묶음은 지도·실제 촬영·페이크 판정까지
-- [2026-09-04 세션 인수인계 — 여기서 이어 읽기](research/2026-09-04-walk-personalization-handoff.md) — 스토리보드 실험에서 행동 프로필로 이어진 배경, 구현/제안 구분, PC 이동 시 파일·재현 절차, 다음 세션 시작 문구
+- [2026-09-04 세션 인수인계 — 초기 기획 경위](research/2026-09-04-walk-personalization-handoff.md) — 스토리보드 실험에서 행동 프로필로 이어진 배경과 당시 재현 절차. 최신 재개 기준은 위 공간 일기 제작 계획
 - [행동 Pin 기반 프로필·개인화](explorations/walk/behavior-profile-and-personalization.md) — 구조화된 행동 증언의 상황별 요약, 근거 장면 회수, 다음 산책 제안 후보. 귀속·분모·정정/삭제·Context 경계를 포함한 상세 설계
 - [공급자 조립 현황](provider-assembly.md) — 현재 선택·폴백·교체 지점·검증 로그
 - [병원 찾기](explorations/hospital-search/README.md) — 장소·거리 코어와 parked 실험을 분리

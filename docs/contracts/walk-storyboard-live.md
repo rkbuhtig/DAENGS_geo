@@ -1,5 +1,8 @@
 # 장면 생성 규칙의 실데이터 이식
 
+제품 방향·결정 이유·현재 진행과 다음 작업은
+[공간 일기 제작·재개 계획](../explorations/walk/diary-storyboard-plan.md)을 먼저 읽는다.
+
 `app/features/storyboard/scenes.py`와 `selection.py`는 시뮬레이터 의존성이 없는
 장면 builder/선택 함수다. GPS lab은 관측 nodes·기록·시간 범위를 만들어 이 함수를 부르고,
 합성 결과에는 synthetic=true를 지정한다. 기존 다섯 fixture의 장면 ID는 유지한다.

@@ -1,5 +1,9 @@
 # geo → app 장면 후보 계약 v1
 
+> 이 문서의 최초 연결은 lab JSON 교환이다. 이후 동일 bundle을 운영 분석 API에서도
+> 사용하도록 연결했다. [실데이터 이식](walk-storyboard-live.md)과
+> [공간 일기 제작 계획](../explorations/walk/diary-storyboard-plan.md)에서 최신 연결 상태를 확인한다.
+
 산책의 사실 조각을 전달한다. 완성된 AI 일기나 사용자 편집본을 전달하지 않는다.
 정식 HTTP API가 아닌 lab JSON 교환 계약이며, 스키마는 같은 폴더의
 `walk-storyboard-candidates-v1.schema.json`이다. app의 `GeoStoryboardBundle`이 읽는다.
