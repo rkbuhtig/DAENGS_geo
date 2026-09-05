@@ -1,7 +1,7 @@
 """Simulator boundary; generated route truth is never an input to the live adapter."""
 from datetime import timedelta
 
-from app.features.walk.storyboard import StoryboardBundle, build_storyboard
+from app.features.storyboard.scenes import StoryboardBundle, build_storyboard
 
 __all__ = ["StoryboardBundle", "export_storyboard"]
 

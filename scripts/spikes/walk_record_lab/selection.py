@@ -1,5 +1,5 @@
 """GPS simulator adapter for the shared observation-only selector."""
-from app.features.walk.storyboard_selection import ReferenceWalk, SelectionPolicy, select_nodes
+from app.features.storyboard.selection import ReferenceWalk, SelectionPolicy, select_nodes
 
 __all__ = ["ReferenceWalk", "SelectionPolicy", "route_nodes", "select"]
 

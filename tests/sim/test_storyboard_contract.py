@@ -78,7 +78,7 @@ def test_unlocated_note_does_not_acquire_a_route_position():
 def test_live_builder_accepts_observations_without_a_scenario_or_truth():
     from datetime import UTC, datetime, timedelta
 
-    from app.features.walk.storyboard import build_storyboard
+    from app.features.storyboard.scenes import build_storyboard
 
     start = datetime(2026, 9, 5, tzinfo=UTC)
     result = build_storyboard("real-session", start, start+timedelta(minutes=1), 0,
