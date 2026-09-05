@@ -1,5 +1,9 @@
 # 우선순위 기반 환경 조회 — 수정 가능한 초안
 
+> 후속 상태: 선택 규칙은 [geo #238](https://github.com/rkbuhtig/DAENGS_geo/pull/238)에서
+> 실데이터용으로 추출해 dev/app에 연결했다. 아래는 최초 lab 검증 시점의 기록이다.
+> 현재 구현·미확인 범위·다음 작업은 [공간 일기 제작 계획](../explorations/walk/diary-storyboard-plan.md)을 따른다.
+
 이 문서는 행동 핀이 없어도 산책 결과를 제공하기 위한 현재 lab 정책이다.
 운영 app/dev에 승격하지 않았으며 기존 공통/행동별 조회 비교보다 우선한다.
 
