@@ -107,6 +107,16 @@ flowchart LR
 
 지원 범위와 공개 서버 확인 결과: [2단계 조사](place-search-stage2-audit.md).
 
+#### 첫 연결 구현 기록 (2026-09-05)
+
+- 앱 PR #143에 ConnectedPlaceSearchScreen을 추가해 기존 운영 ViewModel/Coordinator/
+  Repository에 새 UI를 연결했다. PlaceSearchLabViewModel은 fixture 검토 용도로 유지한다.
+- debug 전용 PlaceSearchLiveActivity는 개발 API·성수 고정 좌표·프로필 없음으로 실제
+  단일 업종 조회를 한다. PlacesRoute(useConnectedSearch=true)로 실제 위치 흐름에도 연결 가능하다.
+- 이름 검색·주차 우선·지도 중심 재검색·실패 재시도·전화·Journey 액션을 기존 경로에 연결했다.
+- APK 빌드와 관련 테스트 58개 통과. 실기기 지도·GPS·외부 앱 동작 검증은 남아 있다.
+- 운영 기본 UI 전환·출시 서버 배포는 하지 않았다. 전체보기·반경 선택 확장·지역 검색·다견·AI는 후속 작업이다.
+
 - [ ] 최신 API의 장소명·주소 검색, 지역 해석, 중심·반경, 업종, 전체보기 지원 범위 조사표 작성.
 - [ ] 지원되는 요청·응답 계약을 확정하고 필요한 변경을 DAENGS_dev에 구현.
 - [ ] 일반 검색 제출, 카테고리·직접 조건 변경, 지도 지역 재검색을 공통 요청 경로에 연결.
