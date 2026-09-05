@@ -4,6 +4,7 @@ from typing import Annotated
 
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -42,6 +43,13 @@ async def bind_usage_request_scope(request, call_next):
 
 
 if settings.dev_console:
+    # Android 시설 검색 UI를 기록된 공개 응답으로 검토한다. DB·지도 키 없이도 동작한다.
+    app.mount(
+        "/place-ui-lab",
+        StaticFiles(directory=Path(__file__).parent / "static" / "place_ui_lab", html=True),
+        name="place-ui-lab",
+    )
+
     from app.api.spatial_diary_lab import build_spatial_diary_ui_fixture
     from app.discovery.place_intent.lab import router as place_intent_lab_router
     from app.features.territory.game.dev_api import router as territory_site_dev_router

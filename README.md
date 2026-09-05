@@ -1,5 +1,8 @@
 # DAENGS_geo
 
+Android 시설 검색 UI를 브라우저에서 비교하는 [웹 검토판](docs/explorations/facility/place-ui-web.md)은
+DB·Docker 없이 기록된 응답으로 실행할 수 있다. 개발 서버 경로는 `/place-ui-lab/`이다.
+
 [![CI](https://github.com/rkbuhtig/DAENGS_geo/actions/workflows/ci.yml/badge.svg)](https://github.com/rkbuhtig/DAENGS_geo/actions/workflows/ci.yml)
 
 장소 원천과 산책 측정을 재현 가능한 공간 증거로 만들고, 사용자가 증언한 장면을 조건별

@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="ko">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>댕스 · 영역표시 플레이 실험</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="style.css">
+<main>
+  <header><span class="eyebrow">DAENGS / WALK LAB 03</span><h1>걸으며 남기는<br>우리 강아지의 영역</h1><p>같은 산책 지도에서 영역표시하고, 사진으로 인증해 보세요.</p><p class="muted">합성 지도 · 로컬 점유 · 샘플 촬영 · 페이크 판정</p><p><a href="app-copy.html">앱 산책 화면에서 플레이하기 ↗</a></p></header>
+  <section class="phone" aria-label="산책 앱 실험">
+    <div class="appbar"><strong>산책 중 <span id="session-label"></span></strong><button id="visibility">점령지 숨기기</button></div>
+    <div class="map-wrap">
+      <svg id="map" viewBox="0 0 400 440" role="img" aria-label="합성 산책 지도. 빈 곳을 누르면 위치가 이동합니다">
+        <rect width="400" height="440" fill="#e9ede6"/>
+        <path d="M280 -20 Q220 140 300 220 T250 460" stroke="#c4dfe5" stroke-width="60" fill="none"/>
+        <path d="M-20 330 Q100 320 145 250 T200 -20 M-20 140 Q180 180 420 110 M80 450 L120 -20 M-20 365 L430 360" stroke="#fffdf7" stroke-width="24" fill="none"/>
+        <g fill="#d8dfd2" stroke="#cbd4c7" stroke-width="2"><rect x="14" y="28" width="63" height="77" rx="10"/><rect x="23" y="204" width="54" height="83" rx="10"/><rect x="172" y="194" width="66" height="91" rx="10"/><rect x="310" y="253" width="70" height="65" rx="10"/><rect x="162" y="388" width="68" height="42" rx="8"/></g>
+        <g fill="#83967c" font-size="12"><text x="20" y="124">우리 동네</text><text x="313" y="210">반려 산책길</text><text x="17" y="415">합성 지도 · 2 px = 1 m</text></g>
+        <polyline id="trail" fill="none" stroke="#719d7b" stroke-width="4" stroke-dasharray="6 4"/>
+        <g id="sites"></g><g id="player"><circle r="17" fill="#3864da" fill-opacity=".12"/><circle r="8" fill="#3864da" stroke="white" stroke-width="3"/></g>
+      </svg>
+      <div class="map-hint">지도의 빈 곳을 눌러 이동</div>
+    </div>
+    <div class="game" id="game">
+      <div class="card-heading"><span class="eyebrow">영역표시</span><span id="distance" class="badge"></span></div>
+      <h2 id="site-title"></h2><p id="owner"></p><p id="guidance" aria-live="polite"></p>
+      <div class="actions"><button id="mark" class="secondary">⌖ 영역표시</button><button id="photograph" class="primary">인증 촬영</button></div>
+    </div>
+    <div class="walkbar"><span id="walk-label"></span><button id="pause">일시정지</button></div>
+    <section class="queue"><h3>사진 인증 <span id="pending-count"></span></h3><div id="jobs" aria-live="polite">아직 촬영한 사진이 없어요</div></section>
+  </section>
+  <aside>
+    <section class="panel"><span class="eyebrow">실험 조작판</span><h2>현장 없이 한 사이클</h2>
+      <label>다음 산책 대표견<select id="pet"><option value="p1">보리</option><option value="p2">두부</option><option value="p3">콩이</option></select></label>
+      <button id="new-session" class="secondary">종료하고 새 산책 시작</button>
+      <label>대상 장소<select id="target"><option value="A">A · 골목 전봇대</option><option value="B">B · 공원 입구</option><option value="C">C · 산책길 보안등</option></select></label>
+      <div class="actions"><button id="approach">대상 옆으로 이동</button><button id="leave">멀리 이동</button></div>
+      <label>GPS 오차 <output id="accuracy-value">5 m</output><input id="accuracy" type="range" min="0" max="40" value="5"></label>
+      <label><input id="untrusted" type="checkbox"> 신뢰할 수 없는 위치 / 모의 위치</label>
+      <label><input id="stale" type="checkbox"> 10초 넘은 위치</label>
+      <label>다음 사진 판정<select id="verdict"><option value="ACCEPTED">2초 뒤 성공</option><option value="REJECTED">2초 뒤 부적합</option><option value="RETRYABLE_FAILURE">2초 뒤 통신 장애</option><option value="DELAY">15초 뒤 성공</option></select></label>
+    </section>
+    <section class="panel instructions"><h3>이렇게 플레이해 보세요</h3><ol><li>대상 옆으로 이동 → 사진 없이 영역표시</li><li>인증 촬영 → 지도에서 다른 장소로 이동</li><li>대표견을 두부로 바꾸고 새 산책 시작</li><li>A에 접근 → 새 사진으로 인증 영역 탈취</li></ol><p>부적합은 같은 시도에서 재촬영. 통신 장애는 기존 사진으로 재시도합니다. 점령지 표시를 꺼도 산책과 판정은 계속됩니다.</p><p class="muted">미인증 간 무사진 경쟁과 지연 결과의 동시 점유 충돌 정책은 미정입니다. 점수는 이 실험에서 계산하지 않습니다.</p><p id="tests">공통 시나리오 확인 중…</p></section>
+  </aside>
+  <dialog id="camera"><span class="eyebrow">샘플 촬영 · 실제 카메라 아님</span><h2>현장 영역표시 인증</h2><div class="sample"><span>🐕</span><b>영역표시 샘플</b><small>사진 내용은 판정하지 않습니다</small></div><p id="capture-context"></p><p>셔터를 누를 때 세션과 현재 위치를 다시 확인합니다.</p><p id="camera-error" role="status"></p><div class="actions"><button id="cancel">취소</button><button id="shutter" class="primary">샘플 촬영하고 계속 걷기</button></div></dialog>
+</main><script type="module" src="lab.mjs"></script>
+</html>

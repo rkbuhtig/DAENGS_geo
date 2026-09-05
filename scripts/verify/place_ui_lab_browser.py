@@ -1,0 +1,163 @@
+# /// script
+# requires-python = ">=3.12"
+# dependencies = ["playwright>=1.50,<2"]
+# ///
+"""Browser checks for the standalone lab; use an already-installed Chrome/Edge.
+
+Start the static server from docs/explorations/facility/place-ui-web.md, then:
+uv run scripts/verify/place_ui_lab_browser.py --browser-path /path/to/chrome
+Optional --screenshots writes desktop/mobile captures outside the repository.
+"""
+
+import argparse
+from pathlib import Path
+
+
+def main():
+    # uv supplies this script-only dependency when the browser check is executed.
+    from playwright.sync_api import expect, sync_playwright
+
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--browser-path", required=True)
+    parser.add_argument("--url", default="http://127.0.0.1:8765/")
+    parser.add_argument("--screenshots", type=Path)
+    args = parser.parse_args()
+    with sync_playwright() as playwright:
+        browser = playwright.chromium.launch(executable_path=args.browser_path, headless=True)
+        page = browser.new_page(viewport={"width": 1440, "height": 1100}, device_scale_factor=1)
+        errors = []
+        page.on("pageerror", lambda error: errors.append(str(error)))
+        page.goto(args.url)
+        expect(page.locator(".card")).to_have_count(24)
+        expect(page.get_by_role("button", name="현재 앱", exact=True)).to_have_attribute(
+            "aria-pressed", "true"
+        )
+        for region, count in (("gangnam", 24), ("seongsu", 14), ("haeundae", 5), ("jeju", 1)):
+            page.select_option("#region", region)
+            for dog in ("large", "small", "baseline"):
+                page.select_option("#dog", dog)
+                for _ in range(2):
+                    expect(page.locator(".card")).to_have_count(count)
+                    page.locator("#parking").click()
+        page.locator("#rooftop-example").click()
+        expect(page.locator("#selected-name")).to_have_text("구욱희씨")
+        expect(page.locator(".card.selected")).to_contain_text("입장 조건상 가능")
+        expect(page.locator(".card.selected .restrictions")).to_have_count(0)
+        page.get_by_role("button", name="제한사항 보완안", exact=True).click()
+        expect(page.locator('#ai-toggle')).to_have_attribute('aria-pressed', 'false')
+        expect(page.locator('#search-mode-note')).not_to_be_visible()
+        expect(page.locator('.panel-title')).not_to_be_visible()
+        expect(page.locator('#result-total')).to_have_text('카페 14곳')
+        page.select_option('#result-sort', 'parking')
+        expect(page.locator('#parking')).to_have_attribute('aria-pressed', 'true')
+        page.select_option('#result-sort', 'distance')
+        expect(page.locator('.filter-line #profile-picker')).to_be_visible()
+        assert page.locator('#categories').evaluate(
+            "el => getComputedStyle(el).gridTemplateRows.split(' ').length"
+        ) == 2
+        page.locator('[data-kind="all"]').click()
+        expect(page.locator('.all-scope')).to_contain_text('카페·음식점 표본만')
+        page.locator('#profile-picker summary').click()
+        page.locator('[value="demo-bori"]').check()
+        page.locator('[value="demo-choco"]').check()
+        expect(page.locator('#profile-selection')).to_have_text('보리 · 초코')
+        expect(page.locator('.card')).to_have_count(14)
+        page.locator('#profile-picker summary').click()
+        page.locator('[data-kind="etc"]').click()
+        expect(page.locator('#results')).to_contain_text('수집하지 않았습니다')
+        page.locator('[data-kind="cafe"]').click()
+        expect(page.locator('#profile-selection')).to_have_text('보리 · 초코')
+        page.locator('#search-query').fill('구욱희씨')
+        expect(page.locator('.card')).to_have_count(14)
+        page.locator('#ai-toggle').click()
+        expect(page.locator('#search-query')).to_have_value('구욱희씨')
+        expect(page.locator('.card')).to_have_count(14)
+        page.locator('#ai-toggle').click()
+        page.locator('#search-query').press('Enter')
+        expect(page.locator('.card')).to_have_count(1)
+        page.locator('[data-clear-filter="query"]').click()
+        expect(page.locator('.card')).to_have_count(14)
+        page.locator('#ai-toggle').click()
+        page.locator('#ai-example').click()
+        expect(page.locator('#parking')).to_have_attribute('aria-pressed', 'false')
+        page.locator('#search-query').press('Enter')
+        expect(page.locator('#parking')).to_have_attribute('aria-pressed', 'true')
+        expect(page.locator('#active-filters')).to_contain_text('주차 우선')
+        page.locator('#search-query').fill('실내 동반 가능한 곳')
+        page.locator('#search-query').press('Enter')
+        expect(page.locator('#search-feedback')).to_contain_text('기존 검색 조건은 유지')
+        page.locator('#filter-toggle').click()
+        page.select_option('#filter-dog', 'small')
+        expect(page.locator('#dog')).to_have_value('small')
+        page.locator('#filter-done').click()
+        expect(page.locator('#filter-sheet')).not_to_be_visible()
+        page.locator('#rooftop-example').click()
+        page.locator('#ai-toggle').click()
+        page.locator('#search-query').fill('')
+        expect(page.locator(".facility-drawer[open]")).to_have_count(0)
+        expect(page.locator(".card.selected .drawer-body")).not_to_be_visible()
+        expect(page.locator(".card.selected .registration-label")).not_to_be_visible()
+        expect(page.locator(".card.selected .registration")).to_have_attribute(
+            "aria-label", "동반 가능 등록"
+        )
+        if args.screenshots:
+            args.screenshots.mkdir(parents=True, exist_ok=True)
+            page.screenshot(path=str(args.screenshots / "place-ui-collapsed.png"), full_page=True)
+        page.locator(".card.selected summary").click()
+        expect(page.locator(".card.selected .drawer-body")).to_be_visible()
+        expect(page.locator(".card.selected .registration-label")).to_be_visible()
+        expect(page.locator(".card.selected")).to_contain_text("루프탑 외 입장 불가")
+        expect(page.locator(".card.selected")).to_contain_text("크기·체중 조건상 가능")
+        assert page.locator(".panel").evaluate("panel => panel.scrollTop") == 0
+        if args.screenshots:
+            args.screenshots.mkdir(parents=True, exist_ok=True)
+            page.screenshot(path=str(args.screenshots / "place-ui-desktop.png"), full_page=True)
+        page.locator(".map-marker").first.click()
+        expect(page.locator(".card").first).to_have_class("card drawer-card selected")
+        page.locator(".card").first.locator("summary").click()
+        expect(page.locator(".facility-drawer[open]")).to_have_count(1)
+        page.locator(".card").first.locator("summary").press("Enter")
+        expect(page.locator(".facility-drawer[open]")).to_have_count(0)
+        for scenario in ("loading", "empty", "error", "permission"):
+            page.select_option("#scenario", scenario)
+            expect(page.locator(".card")).to_have_count(0)
+            expect(page.locator(".map-marker")).to_have_count(0)
+        page.select_option("#scenario", "error")
+        page.locator("#retry").click()
+        expect(page.locator(".card")).to_have_count(14)
+        page.locator('[data-kind="restaurant"]').click()
+        expect(page.locator("#results")).to_contain_text("결과를 찾지 못했습니다")
+        page.locator('[data-kind="pet_shop"]').click()
+        expect(page.locator("#results")).to_contain_text("수집하지 않았습니다")
+        page.locator("#outdoor-example").click()
+        page.select_option("#dog", "baseline")
+        expect(page.locator(".card").first).not_to_contain_text("크기·체중 조건상 가능")
+        # Server strings must remain text even when markup is supplied.
+        page.evaluate("""() => {
+            fixtures.cases['gangnam-baseline'].groups[0].results[0].place.name =
+                '<img src=x onerror="window.__injected=true">'; render();
+        }""")
+        expect(page.locator(".card img")).to_have_count(0)
+        assert page.evaluate("window.__injected === undefined")
+        page.reload()
+        expect(page.locator(".card")).to_have_count(24)
+        page.set_viewport_size({"width": 390, "height": 844})
+        page.locator("#rooftop-example").click()
+        page.get_by_role("button", name="제한사항 보완안", exact=True).click()
+        page.locator(".card.selected summary").click()
+        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+        if args.screenshots:
+            page.screenshot(path=str(args.screenshots / "place-ui-mobile.png"), full_page=True)
+        page.locator('.card.selected summary').click()
+        page.locator('#ai-toggle').click()
+        page.locator('#ai-example').click()
+        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+        if args.screenshots:
+            page.screenshot(path=str(args.screenshots / 'place-ui-ai-mobile.png'), full_page=True)
+        assert not errors, errors
+        browser.close()
+    print("Browser checks passed: recorded controls, selection, modes, states, escaping, mobile width")
+
+
+if __name__ == "__main__":
+    main()
