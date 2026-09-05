@@ -20,7 +20,7 @@
 
 | 갈래 | status | implementation | 한 줄 |
 |---|---|---|---|
-| [territory-production-plan](territory-production-plan.md) | exploring | none | 미인증 점유·인증 우선권·세션당 장소별 한 번을 기준으로 앱 한 사이클 → 온라인 공유 → 시즌·실제 판정 제작 |
+| [territory-production-plan](territory-production-plan.md) | exploring | draft | 미인증 점유·인증 우선권·세션당 장소별 한 번을 기준으로 앱 한 사이클 → 온라인 공유 → 시즌·실제 판정 제작. 1·2단계 구현 PR과 검증 기록 연결 |
 | [behavior-profile-and-personalization](behavior-profile-and-personalization.md) | exploring | none | 행동 Pin의 현재 증언을 상황별로 요약해 프로필과 다음 산책에 쓰는 후보. 귀속·분모·정정/삭제·근거 회수부터 실험 |
 | [storyboard-and-regions](storyboard-and-regions.md) | exploring | working-skeleton | SGIS·상가·공원·하천과 합성 산책으로 로컬 스토리보드 비교. 지역 구간은 챕터 후보, 게임 성과는 독립 fixture. 운영 저장·나레이터는 미구현 |
 | [memory-engine](memory-engine.md) | exploring | none | **왜 반복 체류 검출에서 기억 엔진으로 옮겼나.** M2 부정 결과 → 미시/거시 분리 → 공간적 일기장 → Walk Capsule 까지의 사슬. 원칙 10개는 아직 결정 아님 |
