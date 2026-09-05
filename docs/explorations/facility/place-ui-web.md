@@ -1,5 +1,7 @@
 # Android 시설 검색 UI 웹 검토판
 
+후속 구현 순서와 완료 기준: [시설 검색 구현 작업 계획](place-search-implementation-plan.md).
+
 Android 실행 환경 없이 현재 표시와 제한사항 보완안을 비교하는 실험이다.
 제품 API·검색 정책·Kotlin 코드를 변경하지 않는다. 기본 모드는 현재 앱이다.
 
