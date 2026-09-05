@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DAENGS · 시설 검색 UI 검토</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="lab-header"><a href="#" id="brand">DAENGS<span>PLACE UI LAB</span></a><span class="pill">Android → Web · 실험</span></header>
+  <main class="workspace">
+    <aside class="controls">
+      <p class="eyebrow">시설 검색, 화면에서 확인하기</p>
+      <h1>우리 아이와 <br>갈 수 있는 곳.</h1>
+      <p class="intro">앱의 지도·하단 패널·가로 카드를 웹으로 옮겼습니다. 같은 결과로 현재 표시와 제한사항 보완안을 비교하세요.</p>
+      <fieldset class="mode"><legend>표시 방식</legend><div class="segmented"><button type="button" data-mode="current" aria-pressed="true">현재 앱</button><button type="button" data-mode="proposed" aria-pressed="false">제한사항 보완안</button></div></fieldset>
+      <label for="region">검색 지역 <span>반경 3km</span></label>
+      <select id="region"><option value="gangnam">서울 · 강남역</option><option value="seongsu">서울 · 성수역</option><option value="haeundae">부산 · 해운대역</option><option value="jeju">제주 · 제주시청</option></select>
+      <label for="dog">반려견 조건 <span>검토용 값</span></label>
+      <select id="dog"><option value="large">대형견 · 30kg · 3세</option><option value="small">소형견 · 5kg · 3세</option><option value="baseline">반려견 조건 없음</option></select>
+      <label for="scenario">화면 상태</label>
+      <select id="scenario"><option value="results">검색 완료</option><option value="loading">검색 중</option><option value="empty">결과 없음 (시뮬레이션)</option><option value="error">네트워크 오류 (시뮬레이션)</option><option value="permission">위치 권한 필요 (시뮬레이션)</option></select>
+      <div class="sample-links"><span>바로 살펴보기</span><button id="outdoor-example" type="button">야외만 가능한 카페 ↗</button><button id="rooftop-example" type="button">루프탑 제한이 있는 카페 ↗</button></div>
+      <p class="note">카페·음식점은 저장한 실제 응답입니다. 다른 종류는 미수집 상태로 표시합니다. 기기 GPS·지도 SDK·전화·길찾기는 실행하지 않습니다.</p>
+      <p class="note" id="capture-info">응답 파일 읽는 중…</p>
+    </aside>
+
+    <section class="preview-area" aria-label="앱 화면 미리보기">
+      <div class="preview-caption"><span id="mode-label">현재 Android 표시</span><span>390 × 844 기준</span></div>
+      <div class="phone">
+        <div class="status-bar" aria-hidden="true"><span>9:41</span><span>▰ ▰ ▰</span></div>
+        <div class="map-area">
+          <svg id="map" viewBox="0 0 390 370" role="group" aria-label="시설 좌표 배치도"></svg>
+          <button class="float home" type="button" data-demo="홈 이동은 이 검토판의 범위 밖입니다.">← 홈</button>
+          <div class="location-tools"><button id="my-location" class="float" type="button">내 위치</button></div>
+          <div id="location-message" role="status"></div>
+          <span class="map-caption">시설 좌표 배치도 · 실제 지도 배경 아님</span>
+        </div>
+        <section class="panel" aria-label="주변 시설 검색">
+          <div class="handle" aria-hidden="true"></div>
+          <div class="panel-title"><h2>내 주변 장소</h2><p>내 위치 기준 · 카테고리 하나씩 사실 그대로 검색합니다.</p></div>
+          <div id="categories" class="categories" aria-label="장소 종류"></div>
+          <div class="sort-row"><button id="parking" class="chip" type="button" aria-pressed="false">주차 가능 우선</button><span id="sort-label">가까운 순</span></div>
+          <div id="coverage" class="coverage"></div>
+          <div id="results" aria-live="polite"></div>
+        </section>
+        <div class="gesture-bar" aria-hidden="true"></div>
+      </div>
+      <p class="preview-footnote">카드를 가로로 넘기거나 지도 번호를 선택하세요.</p>
+    </section>
+
+    <aside class="inspector">
+      <p class="eyebrow">선택한 장소의 근거</p>
+      <h2 id="selected-name">장소를 선택하세요</h2>
+      <div id="evidence"></div>
+      <details class="raw-details"><summary>서버 응답 확인</summary><pre id="raw-response"></pre></details>
+      <div class="mapping"><h3>Kotlin으로 옮길 자리</h3><a href="https://github.com/SAJOYO/DAENGS_app/blob/a36a4c9/app/src/main/java/com/daengs/app/map/features/places/PlaceDiscoveryPanel.kt" target="_blank" rel="noreferrer">PlaceDiscoveryPanel.kt ↗</a><p>패널·종류 칩·가로 카드</p><a href="https://github.com/SAJOYO/DAENGS_app/blob/a36a4c9/app/src/main/java/com/daengs/app/map/features/places/PlaceCardPresentation.kt" target="_blank" rel="noreferrer">PlaceCardPresentation.kt ↗</a><p>평가 문구·톤·제한사항 표시</p><a href="https://github.com/SAJOYO/DAENGS_app/blob/a36a4c9/app/src/main/java/com/daengs/app/place/PlaceModels.kt" target="_blank" rel="noreferrer">PlaceModels.kt ↗</a><p>restrictions 계약 파싱</p></div>
+    </aside>
+  </main>
+  <div id="toast" role="status" hidden></div>
+</body>
+</html>
