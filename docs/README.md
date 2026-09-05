@@ -89,6 +89,7 @@ backlog.md           갈래에 안 붙는 미결
 - [결정 #84 — CanonicalTrail consumer boundary](decisions/2026-09-03-canonical-trail-consumer-boundary.md) — canonical 산책 증거는 finalize 중 한 번만 만들고 일기·점령은 각자 자격과 수명으로 소비한다. 점령 v0는 단일 `claiming_pet_id` 가계약
 
 ## 계약
+- [스토리보드 장면 후보 v2](contracts/walk-storyboard-candidates-v2.md) — 대상 강아지·원본 기록 버전과 조회 목표/한계를 보존하며 v1 소비자와 호환
 - [반려견 프로필](contracts/dog-profile.md) — 외부에서 받는 형태 + 가상 페르소나 8마리 (축: 지도 위 난점)
 - [견주 프로필](contracts/owner-profile.md) — 이동 제약 + 페르소나 5명 (축: 병원의 역할을 아는 정도)
 - [Place v2 검색](contracts/place-search-v2.md) — kinds별 그룹, 공통 identity·facts, 주차 사실 선호

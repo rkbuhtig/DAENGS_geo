@@ -4,11 +4,12 @@ import json
 from copy import deepcopy
 from pathlib import Path
 
+from app.features.storyboard.scenes import StoryboardBundleV2
 from scripts.spikes.storyboard_and_regions.sources import service_key
 from scripts.spikes.walk_record_lab.context import ContextReader
 from scripts.spikes.walk_record_lab.core import Experiment, prepare
 from scripts.spikes.walk_record_lab.selection import select
-from scripts.spikes.walk_record_lab.storyboard_contract import StoryboardBundle, export_storyboard
+from scripts.spikes.walk_record_lab.storyboard_contract import export_storyboard
 
 
 def fixture_experiments():
@@ -53,7 +54,7 @@ def main():
         (args.out / f"{name}.json").write_text(bundle.model_dump_json(indent=2), encoding="utf-8")
         reports.append({"case": name, "scenes": len(bundle.scenes), "queries": metrics,
                         "source_revision": bundle.source_revision})
-    (args.out / "schema.json").write_text(json.dumps(StoryboardBundle.model_json_schema(),
+    (args.out / "schema.json").write_text(json.dumps(StoryboardBundleV2.model_json_schema(),
                                                     ensure_ascii=False, indent=2), encoding="utf-8")
     print(json.dumps(reports, ensure_ascii=False))
 
