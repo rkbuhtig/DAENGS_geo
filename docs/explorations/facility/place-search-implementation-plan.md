@@ -107,6 +107,15 @@ flowchart LR
 
 지원 범위와 공개 서버 확인 결과: [2단계 조사](place-search-stage2-audit.md).
 
+#### 반경·전체보기 구현 기록 (2026-09-05)
+
+- 앱 후속 PR [#146](https://github.com/SAJOYO/DAENGS_APP/pull/146): 반경 1·3·5·10·20km와 전체보기 연결.
+- 18종류를 최대 6개씩 3묶음으로 조회. 모두 성공해야 게시하고 하나라도 실패하면 형제 취소·전체 오류·재시도.
+- canonical ID로 표시 중복을 접고 통합 거리/주차 정렬. 원본 그룹·분류는 응답에 보존.
+- 반경·이름·업종은 지도 이동/내 위치/재시도에서 유지. truncated는 +와 반경 축소 안내.
+- APK 빌드·관련 테스트 60개 통과. 개발 API 성수 5km 3요청에서 18종류·합계 145개(중복 제거 전),
+  펫샵/미용 truncated 확인. 실기기 검증·지역명 검색·출시 배포는 남아 있다.
+
 #### 첫 연결 구현 기록 (2026-09-05)
 
 - 후속 앱 PR [#145](https://github.com/SAJOYO/DAENGS_APP/pull/145)에 ConnectedPlaceSearchScreen을 추가해 기존 운영 ViewModel/Coordinator/
