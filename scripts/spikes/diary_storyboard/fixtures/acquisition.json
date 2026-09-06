@@ -1,0 +1,48 @@
+{
+  "format": "diary-acquisition-v1",
+  "note": "합성 입력 생성 설정. 경로는 도로망을 검증하지 않은 선이며 제품 정책이나 실제 산책이 아니다.",
+  "origin": {"lat": 37.48928, "lng": 127.05633},
+  "points": {
+    "S": {"xy": [-180, 0]},
+    "A": {"latlng": [37.48928, 127.05633]},
+    "B": {"latlng": [37.48430, 127.05400]},
+    "D": {"xy": [-350, 160]},
+    "E": {"xy": [-350, -120]}
+  },
+  "dog_id": "diary-synthetic-dog",
+  "current": {
+    "started_at": "2026-09-06T07:00:00+09:00",
+    "seed": 90601,
+    "route": ["S", "A", "B", "A", "S"],
+    "base_speed_mps": 1.25,
+    "holds": [
+      {"waypoint_index": 1, "duration_s": 40},
+      {"waypoint_index": 2, "duration_s": 25},
+      {"waypoint_index": 3, "duration_s": 50}
+    ]
+  },
+  "history_groups": [
+    {"count": 8, "route": ["S", "A", "S"], "holds": [{"waypoint_index": 1, "duration_s": 30}]},
+    {"count": 3, "route": ["S", "A", "B", "A", "S"], "holds": [{"waypoint_index": 2, "duration_s": 20}]},
+    {"count": 4, "route": ["S", "D", "E", "S"], "holds": []}
+  ],
+  "history_speed_mps": [1.1, 1.25, 1.4],
+  "sensor": {"kind": "noisy", "sample_interval_s": 5, "accuracy_m": 3, "jitter_sigma_m": 0.25},
+  "pins": [
+    {"id": "pin-01", "elapsed_s": 160, "type": "sniffing", "memo": "나무 밑에서 킁킁"},
+    {"id": "pin-02", "elapsed_s": 1175, "type": "sniffing", "memo": "돌아오는 길에도 같은 나무 밑에서 킁킁"}
+  ],
+  "query_policy": {
+    "version": "diary-spatial-query-experiment-v1",
+    "since": "2026-08-07T00:00:00+09:00",
+    "timezone": "Asia/Seoul",
+    "radius_m": 30,
+    "radius_u": 8,
+    "min_peak": 0,
+    "tags": {},
+    "empty_sheets": "include",
+    "target_sources": ["micro_slow", "behavior_pins", "session_endpoints"],
+    "environment_match_m": 15
+  },
+  "environment_snapshots": ["A_address.json", "A_CE7.json", "A_FD6.json", "B_address.json", "B_CE7.json", "B_FD6.json"]
+}

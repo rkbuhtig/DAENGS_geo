@@ -3,6 +3,9 @@
 2026-09-06. [기획과 아키텍처](../explorations/walk/diary-storyboard-plan.md),
 [실험 코드와 실행 방법](../../scripts/spikes/diary_storyboard/README.md).
 
+이 문서는 수기 합성 입력으로 실행한 초기 결과다. 이후 실제 geo 계산기를 연결한 범위와
+결과는 [관측 GPS 입력 후속 실험](2026-09-06-diary-geo-observed-inputs.md)에 기록했다.
+
 ## 무엇을 구현했나
 
 geo의 `scripts/spikes/diary_storyboard/`에 파일 기반 실행기를 만들었다.
