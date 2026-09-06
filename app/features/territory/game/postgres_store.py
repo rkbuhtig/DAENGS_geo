@@ -118,7 +118,8 @@ class PostgresPolicyTransaction:
         rows = await self._rows(
             """
             SELECT * FROM territory_policy_account
-            WHERE season_id=:sid AND pet_id=ANY(CAST(:pets AS text[])) ORDER BY pet_id FOR UPDATE
+            WHERE season_id=:sid AND pet_id=ANY(CAST(:pets AS text[]))
+            ORDER BY pet_id COLLATE "C" FOR UPDATE
         """,
             {"sid": season_id, "pets": list(pet_ids)},
         )
@@ -297,7 +298,8 @@ class PostgresPolicyTransaction:
         self._locked(season_id)
         rows = await self._rows(
             """
-            SELECT * FROM territory_policy_account WHERE season_id=:sid ORDER BY pet_id FOR UPDATE
+            SELECT * FROM territory_policy_account WHERE season_id=:sid
+            ORDER BY pet_id COLLATE "C" FOR UPDATE
         """,
             {"sid": season_id},
         )
@@ -317,7 +319,8 @@ class PostgresPolicyTransaction:
             return None
         rows = await self._rows(
             """
-            SELECT * FROM territory_policy_result WHERE season_id=:sid ORDER BY rank, pet_id
+            SELECT * FROM territory_policy_result WHERE season_id=:sid
+            ORDER BY rank, pet_id COLLATE "C"
         """,
             {"sid": season_id},
         )

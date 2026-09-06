@@ -53,7 +53,8 @@ class Database:
 
     async def query(self, sql, **params):
         async with self.sessions.begin() as session:
-            return (await session.execute(text(sql), params)).mappings().all()
+            result = await session.execute(text(sql), params)
+            return result.mappings().all() if result.returns_rows else []
 
     async def seed(self, *, rules=None, initial_owners=None, starts=0, ends=DAY_MS, sid="s"):
         async with self.sessions.begin() as session:
@@ -412,3 +413,16 @@ async def test_finalize_racing_boundary_claim_never_grants_points(db):
     assert (await db.query("SELECT status FROM territory_policy_season"))[0][
         "status"
     ] == "FINALIZED"
+
+
+async def test_tied_results_replay_in_kernel_order_independent_of_database_collation(db):
+    await db.seed(
+        initial_owners={
+            "A": Ownership("Z", "walk:Z", "claim:Z", "VERIFIED", 0),
+            "B": Ownership("a", "walk:a", "claim:a", "VERIFIED", 0),
+        }
+    )
+    final = await db.close()
+    assert [r.pet_id for r in final.results] == ["Z", "a"]
+    assert [r.rank for r in final.results] == [1, 1]
+    assert await db.close() == final
