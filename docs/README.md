@@ -3,7 +3,10 @@
 문서는 한 줄기가 아니라 **갈래**로 자란다. 뭐가 확정이고 뭐가 탐색 중인지 여기서 본다.
 
 - [산책·점령 세션과 통계 working skeleton 설계](explorations/walk/activity-statistics-skeleton.md)
-  — 다음 기반 작업. 기존 ID 연결, 두 통계의 원본·수명·재생, 최소 실행 흐름과 Geo → DEV → APP 순서. 설계 단계.
+  — 기존 ID 연결, 두 통계의 원본·수명·재생, 최소 실행 흐름과 Geo → DEV → APP 순서.
+
+- [산책·점령 통계 코어 계약과 실행](contracts/activity-statistics-core.md)
+  — S1·S2 구현. 세션 연결, 확정 분석 선택, 보유 구간 재생과 통계 계산. DB/제품 연결은 후속.
 
 - [산책 점령 게임 구현·이관 인수인계](explorations/walk/territory-game-handoff.md)
   — 게임 작업의 시작점. Geo에 있는 이유, DEV·APP에 이미 있는 것, 파일별 매핑·검증·후속 작업.
