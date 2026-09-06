@@ -6,6 +6,10 @@ last_verified: 2026-09-06
 
 # 동네 강자 — 점령·보유 시간·시즌 게임
 
+전체 개발 경위와 DEV·APP 이관은 [게임 인수인계](territory-game-handoff.md)를 먼저 읽는다.
+이 문서는 로컬 체험과 현재 점수 규칙을 설명한다. 동네 범위와 칭호는
+[미구현 정책/계약 초안](../../contracts/territory-ranking-titles.md)에서 별도로 다룬다.
+
 2026-09-06 대화에서 정한 방향을 Geo의 실행 가능한 게임 규칙과 로컬 체험으로 구현한다.
 목표는 산책하며 영역을 차지하고 **우리 강아지를 동네 강자로 알리는 것**이다.
 시즌 이후 칭호·점령 기록은 남기며, 개인 지도·미니룸 꾸미기는 후순위다.
@@ -180,4 +184,6 @@ DEV로 옮길 때는 [연결 계약](../../contracts/territory-policy-integratio
 4. 대상 DB에 #260과 후속 migration·검증을 먼저 적용한 뒤 해당 서버와 APP을 반영한다.
    Windows 개발 DB와 GCP 운영 DB의 적용은 별개다.
 
-이번 작업은 Geo 로컬 구현이다. 공유 DB 변경·DEV 병합·운영 배포는 하지 않는다.
+로컬 체험 외에 [Geo PostgreSQL 어댑터와 0033](../../contracts/territory-policy-postgres.md)도 구현했다.
+웹 체험은 계속 SQLite를 사용한다. PostgreSQL 체험 연결은 DEV 승격의 필수 조건이 아니다.
+실제 #260 테이블 매핑·APP 확장·운영 적용은 [이관 작업표](territory-game-handoff.md)에 남긴다.

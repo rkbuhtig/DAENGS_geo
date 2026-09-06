@@ -6,6 +6,9 @@ last_verified: 2026-09-06
 
 # 점령 정책 연결 계약 v1
 
+전체 개발 이유·저장소별 상태·이관 작업은 [게임 인수인계](../explorations/walk/territory-game-handoff.md)를 읽는다.
+동네 순위·칭호는 이 계약의 구현 범위가 아니며 [별도 초안](territory-ranking-titles.md)에 있다.
+
 운영 DB 적용 전에도 구현·검증할 수 있는 정책과 저장 경계를 정의한다. Geo에는 계산 코드,
 트랜잭션 인터페이스, 실행 서비스와 테스트 어댑터를 구현했다. 후속으로
 [Geo PostgreSQL 어댑터와 Alembic 0033](territory-policy-postgres.md)을 추가했다.

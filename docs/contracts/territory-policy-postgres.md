@@ -6,6 +6,10 @@ last_verified: 2026-09-06
 
 # 점령 정책 PostgreSQL 어댑터
 
+Geo 구현의 목적과 DEV·APP으로 옮길 파일/연결 지점은
+[게임 인수인계](../explorations/walk/territory-game-handoff.md)를 먼저 읽는다.
+현재 DB는 [동네·칭호 초안](territory-ranking-titles.md)의 지급 원장이나 지역 계약을 포함하지 않는다.
+
 Geo에서 [정책 연결 계약](territory-policy-integration.md)을 실제 SQLAlchemy `AsyncSession`과
 PostgreSQL 테이블로 구현한다. Alembic `0033`이 저장 구조를 만들고
 `app/features/territory/game/postgres_store.py`가 같은 트랜잭션에서 소유권·점수·기록을 반영한다.
