@@ -57,6 +57,7 @@ jobs:
 
     env:
       DAENGS_DATABASE_URL: postgresql+asyncpg://daengs:daengs@localhost:5432/daengs
+      DAENGS_POLICY_TEST_URL: postgresql+asyncpg://daengs:daengs@localhost:5432/daengs
       PGPASSWORD: daengs
 
     steps:

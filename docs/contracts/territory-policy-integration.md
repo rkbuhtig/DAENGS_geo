@@ -7,8 +7,9 @@ last_verified: 2026-09-06
 # 점령 정책 연결 계약 v1
 
 운영 DB 적용 전에도 구현·검증할 수 있는 정책과 저장 경계를 정의한다. Geo에는 계산 코드,
-트랜잭션 인터페이스, 실행 서비스와 테스트 어댑터를 구현했다. **DEV용 SQLAlchemy 어댑터와
-후속 마이그레이션은 아직 구현하지 않았다.** 이 문서는 해당 구현의 입력 계약이다.
+트랜잭션 인터페이스, 실행 서비스와 테스트 어댑터를 구현했다. 후속으로
+[Geo PostgreSQL 어댑터와 Alembic 0033](territory-policy-postgres.md)을 추가했다.
+DEV #260의 실제 테이블 매핑과 운영 반영은 아직 하지 않았다. 이 문서는 공통 입력 계약이다.
 
 기준은 [DEV #260](https://github.com/SAJOYO/DAENGS_dev/pull/260)의
 `5b2c8a4c57cdf593c8e5be9f11225ffaab599413`이다. 이후 변경되면 연결 위치를 다시 대조한다.
@@ -21,6 +22,7 @@ last_verified: 2026-09-06
 | `app/features/territory/game/policy.py` | 불변 입력으로 보호·보유 구간·소유권 변경·시즌 종료 결과 계산. 표준 라이브러리만 사용 |
 | `policy_ports.py` | 호출자가 연 동일 DB 트랜잭션의 조회·잠금·저장 인터페이스 `PolicyTransaction` |
 | `policy_service.py` | `apply_ownership_in_transaction`, `finalize_in_transaction`. 커밋은 호출자 책임 |
+| `postgres_store.py` | Geo PostgreSQL 실제 저장, 시즌 생성/점유 초기 반영, 일관된 점수 조회 |
 | `season.py` | 같은 계산 모듈을 사용하는 합성 세션·사진·게임판 체험 |
 | `tests/territory/policy_memory_adapter.py` | 롤백·재전송·경쟁 요청 계약을 실행하는 테스트 전용 어댑터 |
 
@@ -149,6 +151,6 @@ uv run pytest -q tests/territory/test_policy_integration.py tests/territory/test
 
 가짜 트랜잭션에서 외부 커밋 책임, 중간 오류 전체 롤백, 중복 callback 한 번 지급, 두 장소의
 동일 강아지 정산, 경쟁 탈취의 버전 충돌, 10분 경계, 늦은 영수증 재생, 시즌 종료 원자성을 검증한다.
-로컬 체험도 동일 계산 코드를 실행한다. 가짜 어댑터의 전역 잠금은 PostgreSQL 행 잠금의 증명이
-아니다. DEV 어댑터 구현 시 실제 DB 두 연결로 같은 사례와 잠금 순서·UNIQUE·CAS·migration
-전후·backfill 일치 검증을 추가해야 운영 연결 준비가 끝난다.
+로컬 체험도 동일 계산 코드를 실행한다. 후속 `test_policy_postgres.py`는 Geo 실제 PostgreSQL
+연결로 중복/경쟁 요청·잠금 대기·UNIQUE·CAS·migration 전후·초기 점유 반영을 검증한다.
+DEV 승격 시 #260 실제 테이블 매핑에도 같은 사례를 적용해야 운영 연결 준비가 끝난다.

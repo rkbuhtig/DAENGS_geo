@@ -2,6 +2,9 @@
 
 문서는 한 줄기가 아니라 **갈래**로 자란다. 뭐가 확정이고 뭐가 탐색 중인지 여기서 본다.
 
+- [점령 정책 PostgreSQL 어댑터](contracts/territory-policy-postgres.md)
+  — 실제 DB 어댑터·Alembic 0033·시즌 초기화와 다중 연결 검증, DEV 매핑 경계.
+
 - [점령 정책 연결 계약](contracts/territory-policy-integration.md)
   — #260 입력·트랜잭션·잠금·멱등성·후속 저장 구조와 DB 적용 전 실행 가능한 정책 인터페이스.
 
