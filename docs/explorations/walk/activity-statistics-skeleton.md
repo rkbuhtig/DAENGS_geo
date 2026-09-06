@@ -1,6 +1,6 @@
 ---
 status: proposed
-implementation: pure-core; persistence-and-promotion-pending
+implementation: geo-postgres-skeleton; dev-app-promotion-pending
 last_verified: 2026-09-06
 ---
 
@@ -12,7 +12,8 @@ last_verified: 2026-09-06
 
 사용자가 통계 기록과 세션 ID 관리를 먼저 만들기로 정했다. 아래 구조·필드·작업 순서는 이를
 구현하기 위한 설계다. S1·S2의 ID 연결과 순수 통계 계산은 [코어 계약과 실행](../../contracts/activity-statistics-core.md)에
-구현 근거를 남겼다. DB 저장·재시작·제품 연동까지의 skeleton은 아직 완성되지 않았다.
+구현 근거를 남겼다. S3의 [PostgreSQL 저장·재처리 골격](../../contracts/activity-statistics-postgres.md)도
+추가했다. DEV의 실제 분석/점령 입력과 APP 기능 연결은 아직 후속이다.
 기존 게임 구현/이관은 [인수인계](territory-game-handoff.md), 순위·칭호는
 [별도 초안](../../contracts/territory-ranking-titles.md)을 참고한다.
 
@@ -264,9 +265,9 @@ payload가 들어오면 덮어쓰지 않고 충돌로 처리한다. 앞선 원�
 잘못이다. 마지막 처리 시각이나 마지막 사건 시각만으로도 최신 상태를 증명할 수 없다.
 
 점령 읽기에는 `confirmed_through_ms`와 원본의 확정 revision이 필요하다. 기존 시즌 barrier 안에서
-짧게 `(source_revision, as_of_ms)` 기준점을 잡고, 처리기가 그 revision까지 모두 반영했음을 확인한
-범위까지만 보유 시간을 계산한다. 원본은 이후에도 계속 진행할 수 있다. 이 기준점은 제안하는
-추가 계약이며 현재 PostgreSQL 어댑터가 이미 제공하는 기능은 아니다.
+`(source_revision, as_of_ms)` 기준점을 잡고, 처리기가 그 revision까지 모두 반영했음을 확인한
+범위까지만 보유 시간을 계산한다. 원본은 이후에도 계속 진행할 수 있다. S3의
+`StatisticsPolicyTransaction`이 이 기준점 생성을 제공한다. 기존 정책 어댑터와는 별도 연결부다.
 
 산책과 점령은 각자의 freshness를 반환한다. 최근 산책 업로드가 늦었다고 점령 시간을 멈추거나,
 점령 처리 지연 때문에 확정 산책 수를 숨기지 않는다. 서로 다른 확정 시점을 하나의 “실시간”
@@ -275,7 +276,8 @@ payload가 들어오면 덮어쓰지 않고 충돌로 처리한다. 앞선 원�
 ## 7. 저장 구조와 코드 경계
 
 아래는 목표 저장 논리 구조다. 일부 ID/기여분/보유 구간은 순수 코어의 값 객체로 구현했지만,
-DB 테이블은 아직 없다. 실제 마이그레이션에서 기존 키 및 삭제 정책에 맞춰 제약과 타입을 정한다.
+S3의 실제 테이블 매핑은 [PostgreSQL 계약](../../contracts/activity-statistics-postgres.md)에 남겼다.
+DEV 이식에서는 기존 키 및 삭제 정책에 맞춰 제약과 타입을 다시 맞춘다.
 
 | 구조 | 책임 | 핵심 중복 방지/참조 기준 |
 |---|---|---|
@@ -327,7 +329,7 @@ DB 테이블은 아직 없다. 실제 마이그레이션에서 기존 키 및 �
 
 Geo에서 가짜 입력만 계산하는 단계 다음에 **격리 PostgreSQL에 실제 저장하고 재시작하는 단계**까지
 통과해야 저장 skeleton이 완성된다. 현재는 메모리에서 정책 결과·늦은 연결·통계 재생까지 검증했다.
-PostgreSQL 저장과 프로세스 재시작 검증은 S3에서 수행한다.
+PostgreSQL 저장과 별도 프로세스의 복원 검증은 S3의 실제 DB 테스트로 추가했다.
 첫 실행 인터페이스는 테스트/CLI로 충분하다. 화면이나 공개 HTTP API가 선행 조건은 아니다.
 
 ### 8.2 처음 제공할 조회 형태
@@ -383,8 +385,9 @@ DEV의 반려견/계정 삭제와 기존 cascade를 확인해 개인별 통계 �
 | S5. 제품 조회 | DEV API + APP | 기존 세션 ID/재전송 유지, 확정 시점과 미계산 상태를 표시하는 조회 |
 | 후속. 의미/비교 층 | 별도 계약 | 활동일/추세, 비교 범위, 순위 snapshot, 칭호 판정·이력 |
 
-S1·S2는 [순수 코어](../../contracts/activity-statistics-core.md)로 구현했다. S3 이후 DB 저장·
-마이그레이션·제품 연결은 아직 만들지 않았다. 현재 검증은 저장 skeleton의 완료를 뜻하지 않는다.
+S1·S2는 [순수 코어](../../contracts/activity-statistics-core.md), S3는
+[PostgreSQL 저장 골격](../../contracts/activity-statistics-postgres.md)으로 구현했다.
+S4/S5의 DEV 생산자 연결·권한·삭제·APP 표시는 아직 후속이다.
 Geo의 실험 UI를 PostgreSQL에 붙이는 작업은 필요하면 S3 검증 도구로 선택할 수 있지만,
 실험 입력을 제품 서버의 신뢰 입력으로 만드는 작업과 동일하지 않다.
 

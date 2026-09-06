@@ -6,7 +6,8 @@ Geo에 둔 이유, 현재 DEV·APP 반영 상태, 파일별 이관 방법과 남
 
 [산책·점령 세션/통계 working skeleton](docs/explorations/walk/activity-statistics-skeleton.md)의
 [ID 연결·순수 통계 코어](docs/contracts/activity-statistics-core.md)를 구현했다.
-DB 저장·재시작 검증과 DEV/APP 연결은 후속 단계다.
+[PostgreSQL 저장·재처리 골격](docs/contracts/activity-statistics-postgres.md)도 추가했으며,
+DEV/APP 제품 연결은 후속 단계다.
 
 [동네 강자 시즌 체험](docs/explorations/walk/territory-season-game.md)은 10분 보호·점령/점유 점수·
 시즌 기록을 로컬 DB에 보존한다. `uv run python -m scripts.spikes.territory_season.server`로

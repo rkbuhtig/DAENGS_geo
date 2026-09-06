@@ -6,7 +6,10 @@
   — 기존 ID 연결, 두 통계의 원본·수명·재생, 최소 실행 흐름과 Geo → DEV → APP 순서.
 
 - [산책·점령 통계 코어 계약과 실행](contracts/activity-statistics-core.md)
-  — S1·S2 구현. 세션 연결, 확정 분석 선택, 보유 구간 재생과 통계 계산. DB/제품 연결은 후속.
+  — S1·S2 구현. 세션 연결, 확정 분석 선택, 보유 구간 재생과 통계 계산.
+
+- [산책·점령 통계 PostgreSQL 저장/처리 계약](contracts/activity-statistics-postgres.md)
+  — S3 구현. 실제 DB migration, 원자적 저장·재처리·복원과 Geo 점령 연결. DEV/APP는 후속.
 
 - [산책 점령 게임 구현·이관 인수인계](explorations/walk/territory-game-handoff.md)
   — 게임 작업의 시작점. Geo에 있는 이유, DEV·APP에 이미 있는 것, 파일별 매핑·검증·후속 작업.
