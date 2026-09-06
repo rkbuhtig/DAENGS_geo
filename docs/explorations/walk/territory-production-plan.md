@@ -6,6 +6,10 @@ depends-on: territory-site-game.md, territory-season-scoring.md, ../mobile-shell
 ---
 # 산책 점령 게임 — 제작 계획
 
+> **최신 재개 기준:** [게임 구현·이관 인수인계](territory-game-handoff.md).
+> 아래는 9월 5일 단계별 계획/검증 기록이다. 이후 APP 서버 조회·영역표시·사진 연결이 추가됐고,
+> Geo 정책·PostgreSQL 구현과 동네·칭호 미결 사항은 최신 문서에서 구분한다.
+
 > **2026-09-06 후속 구현:** [동네 강자 시즌 게임](territory-season-game.md)에서
 > 10분 보호·점령 보너스·실제 보유 시간과 동시 보유 배율·시즌 보존을 Geo 로컬로 구현했다.
 > 아래의 정기 정산 설명은 9월 5일 계획 기록이다. 새 배점은 변경 가능한 초안이며

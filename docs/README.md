@@ -2,6 +2,12 @@
 
 문서는 한 줄기가 아니라 **갈래**로 자란다. 뭐가 확정이고 뭐가 탐색 중인지 여기서 본다.
 
+- [산책 점령 게임 구현·이관 인수인계](explorations/walk/territory-game-handoff.md)
+  — 게임 작업의 시작점. Geo에 있는 이유, DEV·APP에 이미 있는 것, 파일별 매핑·검증·후속 작업.
+
+- [동네 순위·칭호 정책과 계약 초안](contracts/territory-ranking-titles.md)
+  — 아직 미구현. 지역 귀속·동점·수여·기록·공개·HTTP/저장 구조의 제안과 채택 전 결정 목록.
+
 - [점령 정책 PostgreSQL 어댑터](contracts/territory-policy-postgres.md)
   — 실제 DB 어댑터·Alembic 0033·시즌 초기화와 다중 연결 검증, DEV 매핑 경계.
 

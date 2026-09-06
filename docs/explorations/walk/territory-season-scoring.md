@@ -6,6 +6,9 @@ depends-on: territory-site-game.md, storyboard-and-regions.md, decisions/2026-09
 ---
 # 시즌 점령전 — 정기 점수와 최대 동시 정복
 
+> **최신 재개 기준:** [게임 구현·이관 인수인계](territory-game-handoff.md).
+> 실제 동네 순위·칭호의 현재 미구현 범위와 검토 계약은 [별도 초안](../../contracts/territory-ranking-titles.md)에 있다.
+
 > **2026-09-06 후속 방향:** 대화에서 점령 보너스와 동시 보유 배율을 선택했고,
 > [동네 강자 시즌 게임](territory-season-game.md)에 실제 보유 시간 정산을 로컬 구현했다.
 > 이 문서의 정산 순간 1점·점령 보너스 없음은 이전 비교 가설로 보존한다.
