@@ -15,6 +15,8 @@ android/*.keystore
 *.log
 .DS_Store
 Thumbs.db
+.uv-cache/
+.local/
 
 # TMAP 옵션 조사 원본 응답 — 재실행 캐시. summary.md · rows.csv 만 커밋한다
 docs/research/tmap-option-survey/raw/

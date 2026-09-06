@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>댕스 · 동네 강자 시즌</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <span class="eyebrow">DAENGS / SEASON LAB</span>
+        <h1>우리 동네,<br />이번 시즌의 강자</h1>
+        <p>영역을 차지하고 함께 지켜요. 시즌이 지나도 활약은 남아요.</p>
+        <p class="muted">
+          합성 지도와 강아지 · 사진 판정 실험 · 시간은 아래 버튼으로 이동합니다.
+        </p>
+      </header>
+      <div class="layout">
+        <section class="phone" aria-label="산책 게임">
+          <div class="appbar">
+            <strong id="walk-label">새 산책을 시작해 주세요</strong
+            ><button id="pause" disabled>일시정지</button>
+          </div>
+          <svg
+            id="map"
+            viewBox="0 0 400 440"
+            role="img"
+            aria-label="합성 동네 지도. 장소를 선택하고 빈 곳을 눌러 이동합니다"
+          >
+            <rect width="400" height="440" fill="#e9ede6" />
+            <path
+              d="M280 -20 Q220 140 300 220 T250 460"
+              stroke="#c4dfe5"
+              stroke-width="60"
+              fill="none"
+            />
+            <path
+              d="M-20 330 Q100 320 145 250 T200 -20 M-20 140 Q180 180 420 110 M80 450 L120 -20 M-20 365 L430 360"
+              stroke="#fffdf7"
+              stroke-width="24"
+              fill="none"
+            />
+            <g fill="#d8dfd2">
+              <rect x="14" y="28" width="63" height="77" rx="10" />
+              <rect x="23" y="204" width="54" height="83" rx="10" />
+              <rect x="172" y="194" width="66" height="91" rx="10" />
+            </g>
+            <text x="18" y="415" fill="#637460" font-size="12">
+              합성 지도 · 2px = 1m
+            </text>
+            <g id="sites"></g>
+            <g id="player" transform="translate(40 380)">
+              <circle r="17" fill="#3864da" opacity=".15" />
+              <circle r="8" fill="#3864da" stroke="white" stroke-width="3" />
+            </g>
+          </svg>
+          <div class="target-card">
+            <div class="row">
+              <span class="eyebrow">영역표시</span
+              ><span id="distance" class="badge"></span>
+            </div>
+            <h2 id="site-title">시즌을 시작해 주세요</h2>
+            <p id="owner"></p>
+            <p id="protection" aria-live="polite"></p>
+            <div class="actions">
+              <button id="approach" class="secondary" disabled>
+                옆으로 이동</button
+              ><button id="mark" disabled>영역표시</button>
+            </div>
+            <button id="photo" class="wide secondary" disabled>
+              샘플 사진 제출
+            </button>
+            <p id="attempt" class="muted"></p>
+          </div>
+          <section class="queue">
+            <h3>사진 판정 대기</h3>
+            <p class="muted">
+              제출 후 이동하거나 산책을 끝내도 판정할 수 있어요.
+            </p>
+            <div id="jobs"></div>
+          </section>
+        </section>
+        <div class="dashboard">
+          <section class="panel">
+            <div class="row">
+              <h2>시즌 점수</h2>
+              <span id="status" class="badge">시작 전</span>
+            </div>
+            <label
+              >시즌 기록<select id="seasons">
+                <option>시즌 없음</option>
+              </select></label
+            >
+            <p id="clock"></p>
+            <div class="actions">
+              <button data-minutes="1">+1분</button
+              ><button data-minutes="10">+10분</button
+              ><button data-minutes="60">+1시간</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>순위·강아지</th>
+                    <th>점수</th>
+                    <th>보유·배율</th>
+                    <th>최대 보유</th>
+                  </tr>
+                </thead>
+                <tbody id="standings"></tbody>
+              </table>
+            </div>
+            <p id="rate" class="muted"></p>
+            <button id="finish" class="secondary wide" disabled>
+              시즌 종료 시각까지 진행
+            </button>
+          </section>
+          <section class="panel">
+            <h2>산책 조작</h2>
+            <label
+              >다음 산책 대표견<select id="pet">
+                <option value="p1">보리</option>
+                <option value="p2">두부</option>
+                <option value="p3">콩이</option>
+              </select></label
+            >
+            <button id="new-session" class="wide" disabled>새 산책 시작</button>
+            <label
+              >대상 장소<select id="target">
+                <option value="A">A · 골목 전봇대</option>
+                <option value="B">B · 공원 입구</option>
+                <option value="C">C · 산책길 보안등</option>
+              </select></label
+            >
+            <label
+              ><input id="untrusted" type="checkbox" /> 신뢰할 수 없는 위치로
+              시도</label
+            >
+            <p class="muted">
+              다른 강아지로 새 산책을 시작하면 경쟁을 재현할 수 있어요. 보호
+              종료 후 타인의 영역은 사진 인증으로 탈취해 보세요.
+            </p>
+          </section>
+          <section class="panel">
+            <h2>다음 시즌 설정 <span class="badge">초안</span></h2>
+            <p class="muted">
+              10분 보호를 제외한 배점·기간·반복 보상은 비교용 설정입니다. 진행
+              중인 시즌의 규칙은 바뀌지 않아요.
+            </p>
+            <form id="create-form">
+              <div class="fields">
+                <label
+                  >첫 점령 점수<input
+                    id="claim-points"
+                    type="number"
+                    min="0"
+                    max="1000000"
+                    value="100"
+                    required /></label
+                ><label
+                  >탈취 점수<input
+                    id="takeover-points"
+                    type="number"
+                    min="0"
+                    max="1000000"
+                    value="100"
+                    required
+                /></label>
+                <label
+                  >영역당 시간당 점수<input
+                    id="hourly-points"
+                    type="number"
+                    min="0"
+                    max="1000000"
+                    value="10"
+                    required /></label
+                ><label
+                  >영역 추가당 배율 증가<input
+                    id="extra-bps"
+                    type="number"
+                    min="0"
+                    max="100"
+                    value="0.1"
+                    step="0.01"
+                    required
+                /></label>
+                <label
+                  >최대 배율<input
+                    id="maximum-bps"
+                    type="number"
+                    min="1"
+                    max="100"
+                    value="2"
+                    step="0.01"
+                    required /></label
+                ><label
+                  >시즌 기간 (일)<input
+                    id="duration"
+                    type="number"
+                    min="1"
+                    max="366"
+                    value="7"
+                    required
+                /></label>
+              </div>
+              <label
+                >반복 점령 보너스<select id="repeat-bonus">
+                  <option value="every_change">소유권 변경마다 지급</option>
+                  <option value="daily_pet_site">
+                    강아지·장소별 UTC 하루 한 번
+                  </option>
+                </select></label
+              >
+              <label
+                ><input id="unverified-scores" type="checkbox" checked /> 미인증
+                영역도 점유 점수에 포함</label
+              >
+              <button id="create" class="wide" type="submit">
+                새 시즌 시작
+              </button>
+            </form>
+          </section>
+          <section class="panel">
+            <h2>이번 시즌의 기록</h2>
+            <div id="events" class="events"></div>
+          </section>
+        </div>
+      </div>
+      <div id="message" role="status" aria-live="polite"></div>
+      <button id="retry" class="retry" hidden>마지막 요청 다시 보내기</button>
+      <footer>
+        이 화면의 기록은 로컬 실험 DB에 보존됩니다. 실제 위치·카메라·회원 인증을
+        대신하지 않습니다.
+      </footer>
+    </main>
+    <script type="module" src="lab.mjs"></script>
+  </body>
+</html>
