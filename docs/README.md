@@ -12,10 +12,10 @@
   — 10분 보호·점령 보너스·보유 시간 배율·시즌 기록의 로컬 구현. 실행·검증과 초안 배점 비교.
 
 - [공간 일기 제작·재개 계획](explorations/walk/diary-storyboard-plan.md)
-  — 행동 입력 → 장면 분석 → 사람 검토까지의 구현 상태, 선택한 이유, AI 일기 계약과 다음 작업의 완료 기준.
+  — 전체 이해 → 장면별 갱신 → 재검토 → 사용자 검토 → 선택적 일기의 현재 설계와 geo 실험 구현.
 
-- [환경 조회 우선순위 초안](research/2026-09-05-priority-context-draft.md)
-  — 최소 목표 4구간, 액션·이동 변화·거리 보충. 핀 없는 산책도 결과를 제공한다.
+- [산책 일기 스켈레톤 실행 결과](research/2026-09-06-diary-storyboard-skeleton.md)
+  — 실제 Gemini 실행, 상태 전달·생성 선택·재생 검증, 남아 있는 서술 오류.
 
 - [산책 기록 lab: 행동·환경·종료 결과 비교 (2026-09-05)](research/2026-09-05-walk-record-lab.md)
   — GPS lab에 킁킁·배설·짖기·메모를 연결한 로컬 실험. 운영 정책은 미채택.
@@ -68,7 +68,6 @@ backlog.md           갈래에 안 붙는 미결
 
 ## 주제
 - [산책 점령 게임 제작 계획](explorations/walk/territory-production-plan.md) — 미인증 점유·인증 우선권·세션별 점령 규칙과 APP/Dev/Geo의 5단계 제작 순서. 첫 묶음은 지도·실제 촬영·페이크 판정까지
-- [2026-09-04 세션 인수인계 — 초기 기획 경위](research/2026-09-04-walk-personalization-handoff.md) — 스토리보드 실험에서 행동 프로필로 이어진 배경과 당시 재현 절차. 최신 재개 기준은 위 공간 일기 제작 계획
 - [행동 Pin 기반 프로필·개인화](explorations/walk/behavior-profile-and-personalization.md) — 구조화된 행동 증언의 상황별 요약, 근거 장면 회수, 다음 산책 제안 후보. 귀속·분모·정정/삭제·Context 경계를 포함한 상세 설계
 - [공급자 조립 현황](provider-assembly.md) — 현재 선택·폴백·교체 지점·검증 로그
 - [병원 찾기](explorations/hospital-search/README.md) — 장소·거리 코어와 parked 실험을 분리

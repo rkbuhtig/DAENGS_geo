@@ -12,8 +12,7 @@ depends-on: storyboard-and-regions.md, behavior-anchor.md, micro-judgment.md
 
 현재 구현은 아니다. 데이터베이스·API·행동 어휘·판정 문턱·보존 기간·Context capability를
 채택하지 않는다. 아래 객체 이름과 JSON은 설명용 후보이며 실행 계약으로 가져다 쓰지 않는다.
-세션 전체 경위와 다른 컴퓨터에서의 재개는
-[인수인계 문서](../../research/2026-09-04-walk-personalization-handoff.md)를 먼저 읽는다.
+산책 일기의 현재 설계와 실행은 [산책 일기 계획](diary-storyboard-plan.md)에서 확인한다.
 
 ## 1. 만들고 싶은 경험
 

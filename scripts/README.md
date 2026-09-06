@@ -16,6 +16,10 @@
 
 ## `spikes/` — 갈래에 묶고, 갈래가 닫히면 폴더째 지운다
 
+`spikes/diary_storyboard`는 [산책 일기 제작 계획](../docs/explorations/walk/diary-storyboard-plan.md)의
+LLM 실험 골격이다. 전체 이해 → 장면별 갱신 → 재검토 → 사용자 검토 → 선택적 일기 생성을
+별도 단계로 실행하고 상태·근거·변경 기록을 보존한다. [실행 방법](spikes/diary_storyboard/README.md).
+
 `spikes/territory_production_plan`은 [점령 게임 제작 계획](../docs/explorations/walk/territory-production-plan.md)의
 지도·촬영·페이크 판정을 조작하는 웹 실험이다. API 키 없이 실행하며 공통 점령 TSV와
 브라우저 검사를 제공한다. [실행 방법](spikes/territory_production_plan/README.md).

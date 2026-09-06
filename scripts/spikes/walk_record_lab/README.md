@@ -3,11 +3,9 @@
 app으로 전달할 장면은 분석 후 **app 장면 JSON 저장**으로 내보낸다.
 [장면 후보 v1 계약과 다섯 고정 예시](../../../docs/contracts/walk-storyboard-candidates-v1.md)를 참고한다.
 
-> **현재 정책:** [우선순위 초안](../../../docs/research/2026-09-05-priority-context-draft.md).
-> 최소 목표 4구간을 액션 → 과거 이동 대비 변화 → 세션 속도 변화 → 거리 보충으로 채운다.
-> 현재 서버는 배설을 포함한 액션을
-> 최우선 환경 후보로 사용하며, 이전 JSON의 `policy` 필드는 입력 호환용으로만 남는다.
-> 현재 일괄 실행은 8개 입력 × 최소 목표 3·4 = 16개 bundle이다.
+이 lab은 기존 규칙 selector의 실행·비교 도구다. 산책 일기의 현재 설계와 LLM 실험은
+[산책 일기 계획](../../../docs/explorations/walk/diary-storyboard-plan.md)을 따른다.
+일괄 실행은 8개 입력 × 최소 목표 3·4 = 16개 bundle이다.
 
 기존 GPS lab의 시나리오 생성기·관측·전달 시각을 재사용하는 **로컬 연구 도구**다.
 운영 app/dev, DB, 개인정보 프로필 정책은 변경하지 않는다. Docker, DB, LLM, SGIS 파일 없이
