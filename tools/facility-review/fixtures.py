@@ -9,10 +9,6 @@ from math import asin, cos, radians, sin, sqrt
 from pathlib import Path
 
 import httpx
-from fastapi import HTTPException
-from memory_sessions import MemorySessions
-from pydantic import ValidationError
-
 from daengs_backend.schemas.facility_discovery import FacilityActionRequest
 from daengs_backend.schemas.facility_discovery import FacilityDiscoveryRequest as PublicRequest
 from daengs_backend.services.facility_discovery import (
@@ -49,6 +45,9 @@ from daengs_place.place.search import (
     evaluate_search_dogs,
 )
 from daengs_place.place.source_facts.bundle import CandidateFactBundle
+from fastapi import HTTPException
+from memory_sessions import MemorySessions
+from pydantic import ValidationError
 
 EXAMPLES = {
     "주차되면 좋은 카페": [
