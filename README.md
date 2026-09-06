@@ -7,6 +7,9 @@
 Android 시설 검색 UI를 브라우저에서 비교하는 [웹 검토판](docs/explorations/facility/place-ui-web.md)은
 DB·Docker 없이 기록된 응답으로 실행할 수 있다. 개발 서버 경로는 `/place-ui-lab/`이다.
 
+운영 시설 API의 최초 AI 검색·후속 선택을 확인하는 [시설 AI 웹 검토 도구](tools/facility-review/README.md)도
+이 저장소에서 관리한다. 화면·표본·브라우저 검증은 geo, 운영 API·서비스 테스트는 dev가 소유한다.
+
 [![CI](https://github.com/rkbuhtig/DAENGS_geo/actions/workflows/ci.yml/badge.svg)](https://github.com/rkbuhtig/DAENGS_geo/actions/workflows/ci.yml)
 
 장소 원천과 산책 측정을 재현 가능한 공간 증거로 만들고, 사용자가 증언한 장면을 조건별
