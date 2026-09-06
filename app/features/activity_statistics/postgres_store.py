@@ -450,6 +450,34 @@ class PostgresStatisticsTransaction:
             tuple(codec.event(r["payload"]) for r in changes),
         )
 
+    async def progress(self, generation_id, kind, scope_id):
+        """Freshness relative to the durable source, not to undiscovered client uploads."""
+        await self.generation(generation_id)
+        row = (
+            await self.rows(
+                """
+            SELECT s.revision AS source_revision,s.through_ms AS source_through_ms,
+                c.revision AS applied_revision,c.through_ms AS confirmed_through_ms
+            FROM activity_stat_stream s LEFT JOIN activity_stat_checkpoint c
+                ON c.kind=s.kind AND c.scope_id=s.scope_id AND c.generation_id=:gid
+            WHERE s.kind=:kind AND s.scope_id=:scope
+        """,
+                {"gid": generation_id, "kind": kind, "scope": scope_id},
+            )
+        ).one_or_none()
+        require(row is not None, "unknown_statistics_stream")
+        status = (
+            "PENDING"
+            if row["applied_revision"] is None
+            else (
+                "READY"
+                if (row["source_revision"], row["source_through_ms"])
+                == (row["applied_revision"], row["confirmed_through_ms"])
+                else "STALE"
+            )
+        )
+        return {"status": status, **dict(row)}
+
 
 async def run_pending(sessions, generation_id, *, limit=100):
     """One transaction per scope; invoke periodically or from a CLI/job host."""

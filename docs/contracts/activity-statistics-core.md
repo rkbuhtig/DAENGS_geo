@@ -1,6 +1,6 @@
 ---
 status: implemented-in-geo
-implementation: pure-core; persistence-and-dev-app-adapters-pending
+implementation: pure-core; geo-postgres-available; dev-app-adapters-pending
 contract_version: activity-statistics.v1
 last_verified: 2026-09-06
 ---
@@ -8,9 +8,9 @@ last_verified: 2026-09-06
 # 산책·점령 통계 코어 — 입력 계약과 이관 경계
 
 [working skeleton 설계](../explorations/walk/activity-statistics-skeleton.md)의 S1·S2를 구현했다.
-기존 ID 연결과 산책/점령의 순수 계산·재생까지 실행할 수 있다. PostgreSQL 저장, 처리기,
-원본 transaction 연결, HTTP 조회와 APP 표시는 아직 없다. 이 코어만 배포해서 제품 기능이
-활성화되는 것은 아니다.
+기존 ID 연결과 산책/점령의 순수 계산·재생까지 실행할 수 있다. S3의 저장·처리·Geo 정책
+연결은 [PostgreSQL 계약](activity-statistics-postgres.md)에 추가했다. DEV의 실제 산책 분석/점령
+생산자와 HTTP 조회·APP 표시는 아직 없다. 이 코어만 배포해서 제품 기능이 활성화되는 것은 아니다.
 
 ## 1. 파일과 책임
 
@@ -144,7 +144,10 @@ P2 보유 8분, 완료 산책 한 번/400m를 확인한다. 중복·역순 재�
 이 결과는 메모리 순수 계산의 검증이다. PostgreSQL transaction, 재시작 복원, producer 동시성,
 운영 권한/삭제와 APP 동작을 검증했다는 의미가 아니다.
 
-## 6. 다음 PR과 이식 시 해야 할 일
+## 6. 저장 구현과 제품 이식 시 해야 할 일
+
+아래 S3는 [PostgreSQL 구현](activity-statistics-postgres.md)에서 진행했다. S4/S5는 아직 후속이며,
+원본 권한·삭제와 운영 규모의 처리 최적화는 Geo의 DB 테스트로 대체하지 않는다.
 
 - S3: 세션 연결 UNIQUE, 원본 변경/기여분/보유 구간/처리 영수증 저장, migration, 어댑터와 runner.
   원본 변경 기록과 producer 확정을 묶고, projection·영수증·checkpoint도 원자적으로 저장한다.

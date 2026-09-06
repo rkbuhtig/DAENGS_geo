@@ -6,8 +6,8 @@ Revises: 0033
 
 from alembic import op
 
-revision = "0034"
-down_revision = "0033"
+revision: str = "0034"
+down_revision: str | None = "0033"
 branch_labels = None
 depends_on = None
 

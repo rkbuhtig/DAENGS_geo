@@ -109,8 +109,16 @@ async def test_late_upload_full_flow_and_fresh_process_read(stats_db):
         await tx.append_walk(selection())
         assert (await tx.links("owner-1"))[0].status == "LINKED"
     await capture(db)
+    async with db.sessions.begin() as connection:
+        assert (await PostgresStatisticsTransaction(connection).progress(GID, "TERRITORY", "s"))[
+            "status"
+        ] == "PENDING"
     assert await run_pending(db.sessions, GID) == 2
     assert await run_pending(db.sessions, GID) == 0
+    async with db.sessions.begin() as connection:
+        assert (await PostgresStatisticsTransaction(connection).progress(GID, "TERRITORY", "s"))[
+            "status"
+        ] == "READY"
     before = await read(db)
     p1 = summarize_territory(before, pet_id="p1")
     p2 = summarize_territory(before, pet_id="p2")
@@ -226,6 +234,10 @@ async def test_lagged_output_does_not_extend_previous_owner_to_new_cut(stats_db)
     await apply(db, command("photo:2", pet="p2", version=1, photo=True), 12 * MINUTE)
     await capture(db)
     stale = summarize_territory(await read(db), pet_id="p1")
+    async with db.sessions.begin() as connection:
+        assert (await PostgresStatisticsTransaction(connection).progress(GID, "TERRITORY", "s"))[
+            "status"
+        ] == "STALE"
     assert stale.confirmed_through_ms == 10 * MINUTE and stale.held_site_ms == 8 * MINUTE
     await run_pending(db.sessions, GID)
     assert summarize_territory(await read(db), pet_id="p1").held_site_ms == 10 * MINUTE
@@ -337,3 +349,35 @@ async def test_source_mutation_and_revision_gap_are_rejected(stats_db):
         async with stats_db.sessions.begin() as connection:
             await PostgresStatisticsTransaction(connection).append_walk(selection(revision=3))
     assert len(await stats_db.query("SELECT * FROM activity_stat_change")) == 1
+
+
+async def test_cut_waits_for_inflight_policy_transaction(stats_db):
+    db = stats_db
+    await seed(db)
+    written, release, capturing = asyncio.Event(), asyncio.Event(), asyncio.Event()
+
+    async def producer():
+        async with db.sessions.begin() as connection:
+            await apply_ownership_in_transaction(ClockedPolicy(connection, 2 * MINUTE), command())
+            written.set()
+            await release.wait()
+
+    async def reader():
+        await written.wait()
+        capturing.set()
+        return await capture(db, 3 * MINUTE)
+
+    producing = asyncio.create_task(producer())
+    reading = asyncio.create_task(reader())
+    try:
+        await asyncio.wait_for(capturing.wait(), 5)
+        # Reader must not see an old revision paired with a time after the pending acquisition.
+        with pytest.raises(TimeoutError):
+            await asyncio.wait_for(asyncio.shield(reading), 0.05)
+    finally:
+        release.set()
+        await producing
+    cut = await asyncio.wait_for(reading, 5)
+    assert cut.revision == 2 and cut.through_ms == 3 * MINUTE
+    await run_pending(db.sessions, GID)
+    assert summarize_territory(await read(db), pet_id="p1").held_site_ms == MINUTE
