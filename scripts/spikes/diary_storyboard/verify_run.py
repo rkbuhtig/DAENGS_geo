@@ -102,7 +102,10 @@ def verify(run: Path, compare_replay: Path | None = None):
         prefix = f"{current.revision:06d}"
         for choice in ("skip", "generate"):
             relative = f"decisions/{prefix}-{choice}/result.json"
-            assert read(run / relative) == read(compare_replay / relative)
+            original_path, replay_path = run / relative, compare_replay / relative
+            assert original_path.exists() == replay_path.exists()
+            if original_path.exists():
+                assert read(original_path) == read(replay_path)
         assert all(
             read(p)["transport"] == "replay"
             for p in (compare_replay / "calls").glob("*/receipt.json")
