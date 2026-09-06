@@ -4,6 +4,9 @@
 Geo에 둔 이유, 현재 DEV·APP 반영 상태, 파일별 이관 방법과 남은 작업을 확인한다.
 [동네 순위·칭호 정책/계약](docs/contracts/territory-ranking-titles.md)은 아직 미구현인 검토 초안이다.
 
+[산책·점령 세션/통계 working skeleton](docs/explorations/walk/activity-statistics-skeleton.md)은
+다음 기반 작업의 설계다. 기존 ID 연결, 분리된 통계 원본, 저장·재생 완료 기준과 DEV/APP 이관 순서를 다룬다.
+
 [동네 강자 시즌 체험](docs/explorations/walk/territory-season-game.md)은 10분 보호·점령/점유 점수·
 시즌 기록을 로컬 DB에 보존한다. `uv run python -m scripts.spikes.territory_season.server`로
 실행한다. 합성 지도·사진 판정과 수동 시간 조작으로 검증하며 운영 연결은 후속이다.
