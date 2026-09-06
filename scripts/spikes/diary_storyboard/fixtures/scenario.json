@@ -1,0 +1,56 @@
+{
+  "fixture_note": "실험용으로 만든 가상 산책이다. 실제 사용자 기록이나 실제 장소 조회 결과가 아니다. 아래 구간은 관측을 묶은 입력 단위이며 최종 이야기 장면을 지정한 것이 아니다.",
+  "session": {
+    "id": "synthetic-walk-01",
+    "pet": "두부",
+    "started_at": "2026-09-06T07:00:00+09:00",
+    "ended_at": "2026-09-06T07:15:00+09:00",
+    "observed_route": "A → B → C → B → A",
+    "locations": {
+      "A": "출발·종료가 관측된 아파트 앞 보도",
+      "B": "공원 입구 근처의 가로수 옆 보도",
+      "C": "하천 쪽으로 이어지는 횡단보도 앞 보도"
+    }
+  },
+  "micro_observations": [
+    {"id": "m1", "from": "07:00:00", "to": "07:03:00", "location": "A→B", "observed_path_m": 180, "duration_s": 180},
+    {"id": "m2", "from": "07:03:00", "to": "07:04:00", "location": "B", "observed_path_m": 12, "net_displacement_m": 2, "span_from_center_m": 6, "duration_s": 60},
+    {"id": "m3", "from": "07:04:00", "to": "07:07:00", "location": "B→C", "observed_path_m": 210, "duration_s": 180},
+    {"id": "m4", "from": "07:07:00", "to": "07:08:00", "location": "C", "observed_path_m": 8, "net_displacement_m": 1, "span_from_center_m": 4, "duration_s": 60},
+    {"id": "m5", "from": "07:08:00", "to": "07:11:00", "location": "C→B", "observed_path_m": 195, "duration_s": 180},
+    {"id": "m6", "from": "07:11:00", "to": "07:12:00", "location": "B", "observed_path_m": 18, "net_displacement_m": 3, "span_from_center_m": 7, "duration_s": 60},
+    {"id": "m7", "from": "07:12:00", "to": "07:15:00", "location": "B→A", "observed_path_m": 180, "duration_s": 180}
+  ],
+  "measurement_context": {
+    "observed_time_s": 900,
+    "gap_time_s": 0,
+    "reported_position_accuracy_median_m": 5,
+    "note": "거리는 관측 좌표로 계산한 값이다. 위치 오차가 포함되며, 미시 움직임의 원인이나 반려견 감정은 측정하지 않았다."
+  },
+  "environment": [
+    {"id": "e1", "location": "B", "facts": ["공원 출입구가 관측 위치에서 약 15m 떨어져 있다", "보도에 가로수가 있다"], "unknown": ["공원 내부에 들어갔는지"]},
+    {"id": "e2", "location": "C", "facts": ["신호등이 있는 횡단보도가 관측 위치에서 약 10m 떨어져 있다", "횡단보도 건너편 방향에 하천 산책로 연결부가 있다"], "unknown": ["당시 신호 상태", "횡단보도를 건넜는지", "방향을 바꾼 이유"]},
+    {"id": "e3", "scope": "산책 시작 시점의 날씨", "facts": ["낮", "기온 22도", "강수 없음"]}
+  ],
+  "macro_spatial_tendencies": {
+    "policy_receipt": {
+      "pet": "두부",
+      "period": "2026-08-07부터 이번 산책 시작 전까지",
+      "selected_previous_walks": 24,
+      "context_filter": "추가 날씨·시간대 필터 없음",
+      "spatial_definition": "B와 C 각각의 관측 중심 주변 30m 영역",
+      "appearance_definition": "산책별 셀로판의 양수 occupancy 셀 중심이 해당 영역에 하나 이상 있는 산책을 1회로 센다",
+      "measurement_generation": "비교한 장은 동일 세대이며 24개 모두 유효 관측 질량이 있다"
+    },
+    "pieces": [
+      {"id": "g1", "location": "B", "appeared_walks": 18, "selected_walks": 24, "ratio": 0.75},
+      {"id": "g2", "location": "C", "appeared_walks": 3, "selected_walks": 24, "ratio": 0.125}
+    ],
+    "coverage_note": "영역 주변 공간의 등장 비율이다. 개별 시설 출입 여부와 과거의 행동 기록은 이 집계에 포함하지 않았다."
+  },
+  "behavior_pins": [
+    {"id": "p1", "at": "07:03:25", "location": "B", "type": "sniffing", "recorded_by": "보호자", "memo": null},
+    {"id": "p2", "at": "07:11:30", "location": "B", "type": "sniffing", "recorded_by": "보호자", "memo": "돌아오는 길에도 같은 나무 밑에서 킁킁"}
+  ],
+  "recording_note": "핀은 보호자가 남긴 관찰 기록이다. C에는 행동핀이 남아 있지 않다."
+}
