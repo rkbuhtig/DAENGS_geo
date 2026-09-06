@@ -36,9 +36,12 @@ class Provider:
         self.env_file, self.replay_from = env_file, replay_from
         self.last_attempt = None
 
+    def instruction(self, stage):
+        return COMMON + "\n" + STAGES[stage]
+
     def call(self, stage, payload, contract):
         request = {
-            "systemInstruction": {"parts": [{"text": COMMON + "\n" + STAGES[stage]}]},
+            "systemInstruction": {"parts": [{"text": self.instruction(stage)}]},
             "contents": [
                 {"role": "user", "parts": [{"text": json.dumps(payload, ensure_ascii=False)}]}
             ],

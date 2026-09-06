@@ -15,6 +15,8 @@
 | `geo_adapter.py` | 관측 export → 기존 geo 계산·과거 공간 조회 → 자료 조각 |
 | `cached_environment.py` | 저장 지도 응답의 조회 범위·시점·출처를 유지하며 현재 위치와 연결 |
 | `verify_acquisition.py` | 저장 관측과 지도 응답으로 조각·집계 영수증 재계산 및 지문 대조 |
+| `claim_experiment.py` | 행동 의미 정규화 후 같은 초안을 기존 재검토 / 근거 대조 후 수정으로 비교 |
+| `compare_claim_runs.py` | 3쌍의 입력·초안·실제 지시·대조 결과 전달을 검증하고 호출 비용 집계 |
 | `prompts.py` | 전체 이해·장면 갱신·재검토·일기 작성의 단계별 시스템 지시 |
 | `provider.py` | Gemini 호출, 요청·응답·사용량 기록, 같은 요청의 저장 응답 재생 |
 | `runner.py` | 단계 실행·재개, 검토·편집, 버전에 묶인 생성 여부 결정 |
@@ -135,9 +137,33 @@ uv run python -m scripts.spikes.diary_storyboard start --run ../experiments/diar
 
 ## 검증과 남은 경계
 
+### 행동 정규화·근거 대조 비교
+
+같은 계산 입력으로 세 번의 초안을 만들고, 각 초안을 두 조건으로 나눈다. 아래 명령의
+`--pair`를 1, 2, 3으로 바꿔 **순차 실행**한다. 재개도 동일 명령을 사용한다.
+
 ```powershell
-uv run pytest tests/test_diary_geo_acquisition.py tests/test_diary_storyboard_skeleton.py tests/test_script_imports.py -k diary -q
-uv run ruff check scripts/spikes/diary_storyboard tests/test_diary_geo_acquisition.py tests/test_diary_storyboard_skeleton.py
+uv run python -m scripts.spikes.diary_storyboard.claim_experiment --input ../experiments/diary_storyboard_geo/my-input/evidence.json --root ../experiments/diary_storyboard_geo/my-comparison --pair 1 --env-file C:/Users/Administrator/Downloads/forwork/env
+uv run python -m scripts.spikes.diary_storyboard.compare_claim_runs --root ../experiments/diary_storyboard_geo/my-comparison
+```
+
+비교 검증기는 세 쌍이 모두 완료된 뒤 실행한다. 생성한 각 run의 자료는 기존 `verify_run`으로도
+검증할 수 있다. 조건별 재개에는 `claim_experiment`를 사용한다. 추가 지시·정규화 지문은
+상위 `experiment.json`에 저장하며 변경 시 새 root를 요구한다. 기존 `advance`는 이 추가
+대조 단계를 실행하지 않으므로 실험 조건의 재개에 사용하지 않는다.
+
+두 번째 조건은 초안 작성 응답만 정확히 재생하고 대조·수정은 실제 호출한다. 모든 텍스트
+필드를 대조 목록에 포함하지만, 한 문단 안의 주장을 각각 분해하는 구현은 아니다.
+대조 모델의 판정은 정답이 아니다. 단계당 최대 3회 시도하고, 429·503은 30초 대기한다.
+실패·체크포인트는 보존하며 사용자 검토나 일기 생성 없이 멈춘다.
+[실제 3쌍 비교 결과](../../../docs/research/2026-09-06-diary-claim-comparison.md)는 대조 후에도
+장면 수정이 없었다. 초기 요청이 몰려 429가 발생한 뒤 순차 재개한 과정까지 기록했다.
+
+### 회귀 검증
+
+```powershell
+uv run pytest tests/test_diary_claim_experiment.py tests/test_diary_geo_acquisition.py tests/test_diary_storyboard_skeleton.py tests/test_script_imports.py -k diary -q
+uv run ruff check scripts/spikes/diary_storyboard tests/test_diary_claim_experiment.py tests/test_diary_geo_acquisition.py tests/test_diary_storyboard_skeleton.py
 uv run python -m scripts.spikes.diary_storyboard.verify_run --run ../experiments/diary_storyboard_geo/my-run
 ```
 
