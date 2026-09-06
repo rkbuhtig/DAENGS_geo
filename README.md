@@ -1,5 +1,9 @@
 # DAENGS_geo
 
+[동네 강자 시즌 체험](docs/explorations/walk/territory-season-game.md)은 10분 보호·점령/점유 점수·
+시즌 기록을 로컬 DB에 보존한다. `uv run python -m scripts.spikes.territory_season.server`로
+실행한다. 합성 지도·사진 판정과 수동 시간 조작으로 검증하며 운영 연결은 후속이다.
+
 Android 시설 검색 UI를 브라우저에서 비교하는 [웹 검토판](docs/explorations/facility/place-ui-web.md)은
 DB·Docker 없이 기록된 응답으로 실행할 수 있다. 개발 서버 경로는 `/place-ui-lab/`이다.
 

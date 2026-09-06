@@ -1,0 +1,276 @@
+:root {
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
+  color: #20372c;
+  background: #f5f5ee;
+  line-height: 1.5;
+  font-synthesis: none;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+main {
+  max-width: 1160px;
+  margin: auto;
+  padding: 40px 24px;
+}
+header {
+  margin-bottom: 30px;
+  max-width: 660px;
+}
+h1 {
+  font-size: clamp(32px, 5vw, 48px);
+  line-height: 1.18;
+  letter-spacing: -2px;
+  margin: 12px 0;
+}
+h2 {
+  font-size: 20px;
+  margin: 0 0 16px;
+}
+h3 {
+  font-size: 16px;
+}
+.eyebrow {
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: #58806a;
+  font-weight: 750;
+}
+.muted,
+footer {
+  color: #65766d;
+  font-size: 13px;
+}
+.layout {
+  display: grid;
+  grid-template-columns: 400px minmax(0, 1fr);
+  gap: 28px;
+  align-items: start;
+}
+.phone {
+  border: 1px solid #d5dfd4;
+  border-radius: 28px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 15px 40px #24452e0a;
+}
+.appbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  padding: 16px;
+  font-size: 13px;
+}
+.appbar button {
+  padding: 8px 12px;
+}
+#map {
+  display: block;
+  width: 100%;
+  cursor: crosshair;
+}
+.target-card {
+  padding: 24px;
+}
+.row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+.row h2 {
+  margin: 0;
+}
+.badge {
+  background: #eaf1e8;
+  color: #3e684c;
+  padding: 4px 9px;
+  border-radius: 20px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.panel {
+  padding: 24px;
+  background: white;
+  border: 1px solid #e0e5db;
+  border-radius: 20px;
+}
+.dashboard {
+  display: grid;
+  gap: 20px;
+}
+.queue {
+  border-top: 1px solid #e6ece3;
+  padding: 0 24px 24px;
+}
+button {
+  border: 0;
+  border-radius: 12px;
+  background: #2f6949;
+  color: #fff;
+  padding: 12px 16px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+}
+button:hover:enabled {
+  filter: brightness(0.93);
+}
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+button.secondary {
+  background: #edf2e8;
+  color: #37583e;
+}
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.actions button {
+  flex: 1;
+}
+.wide {
+  width: 100%;
+  margin-top: 12px;
+}
+label {
+  display: block;
+  font-size: 13px;
+  margin: 15px 0 8px;
+}
+select,
+input[type="number"] {
+  width: 100%;
+  font: inherit;
+  padding: 10px;
+  border: 1px solid #d6ded1;
+  border-radius: 9px;
+  background: #fafbf7;
+  margin-top: 5px;
+  color: inherit;
+}
+input[type="checkbox"] {
+  accent-color: #2f6949;
+}
+.fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 15px;
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 13px;
+  margin: 20px 0;
+}
+th,
+td {
+  padding: 13px 7px;
+  text-align: left;
+  border-bottom: 1px solid #edf0e8;
+}
+th {
+  color: #647769;
+  font-size: 11px;
+}
+td small {
+  display: block;
+  font-size: 10px;
+  color: #6b7d70;
+}
+.table-wrap {
+  overflow: auto;
+}
+.events {
+  max-height: 260px;
+  overflow: auto;
+  font-size: 12px;
+}
+.event {
+  padding: 10px 0;
+  border-bottom: 1px solid #edf0e8;
+}
+.job {
+  padding: 12px 0;
+  border-bottom: 1px solid #edf0e8;
+}
+.job button {
+  font-size: 11px;
+  padding: 9px;
+}
+.job p {
+  font-size: 12px;
+}
+#protection {
+  font-weight: 600;
+  color: #9b5b1b;
+}
+#message {
+  position: fixed;
+  bottom: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: min(640px, 90vw);
+  padding: 12px 22px;
+  background: #20372c;
+  color: #fff;
+  border-radius: 14px;
+  font-size: 13px;
+  z-index: 10;
+  box-shadow: 0 8px 24px #0002;
+}
+#message:empty {
+  display: none;
+}
+.retry {
+  position: fixed;
+  right: 20px;
+  bottom: 84px;
+  z-index: 11;
+  background: #9b5b1b;
+}
+footer {
+  margin: 30px 0 0;
+}
+button:focus-visible,
+select:focus-visible,
+input:focus-visible,
+[data-site]:focus-visible {
+  outline: 3px solid #79a8ff;
+  outline-offset: 3px;
+}
+@media (max-width: 760px) {
+  main {
+    padding: 24px 14px;
+  }
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .phone {
+    max-width: 440px;
+    width: 100%;
+    margin: auto;
+  }
+  .panel {
+    padding: 20px;
+  }
+  header {
+    padding: 0 8px;
+  }
+  th,
+  td {
+    padding: 10px 5px;
+  }
+}
