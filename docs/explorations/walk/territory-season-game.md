@@ -78,7 +78,10 @@ uv run python -m scripts.spikes.territory_season.server
 
 ## 점수와 저장
 
-`season.py`는 DB·네트워크·시계·앱 인증을 import하지 않는 Python 규칙이다.
+`policy.py`는 DB·네트워크·시계·앱 인증과 독립인 보호·점수·시즌 계산 모듈이다.
+`policy_service.py`는 저장 인터페이스를 통해 소유권·점수·영수증을 함께 반영한다.
+실제 서버 입력·잠금 순서·후속 스키마는 [점령 정책 연결 계약](../../contracts/territory-policy-integration.md)에 있다.
+`season.py`는 같은 계산 모듈을 사용하는 로컬 세션·사진·게임판 흐름이다.
 `Game.transition(command, at_ms=...)`는 새 상태와 결과를 반환한다. 실패는 입력 상태를 바꾸지 않는다.
 
 ```text
@@ -138,7 +141,7 @@ uv run python -m scripts.spikes.territory_season.server
 ## 검증과 비교
 
 ```powershell
-uv run pytest -q tests/territory/test_season_game.py tests/territory/test_season_store.py tests/test_import_direction.py tests/test_script_imports.py tests/walk/test_canonical_trail_boundary.py
+uv run pytest -q tests/territory/test_policy_integration.py tests/territory/test_season_game.py tests/territory/test_season_store.py tests/test_import_direction.py tests/test_script_imports.py tests/walk/test_canonical_trail_boundary.py
 uv run --with playwright python -m scripts.spikes.territory_season.browser_check --channel msedge
 uv run python -m scripts.spikes.territory_season.simulate --hours 6
 ```
@@ -147,11 +150,11 @@ Edge가 없으면 `uv run --with playwright python -m playwright install chromiu
 같은 검증 명령에 `--channel chromium`을 지정한다. 기본 검증은 Windows Edge headless다.
 브라우저 테스트는 임시 SQLite와 loopback 서버를 만들고 종료한다. 캡처는 `.local/season-browser/`다.
 
-2026-09-06 로컬 검증: 위 pytest 묶음 **114개 통과, skip 없음**. 새 시즌 규칙·실제 SQLite
+2026-09-06 로컬 검증: 위 pytest 묶음 **128개 통과, skip 없음**. 정책 연결·새 시즌 규칙·실제 SQLite
 동시 쓰기/롤백·HTTP 계약과 기존 import/CanonicalTrail 경계를 함께 선택했다. Starlette의
 기존 httpx 사용 중단 예정 경고 1개가 있다. 변경 Python의 Ruff 검사와 JS 구문 검사 통과.
 Edge에서 점령·인증·10분 보호·재시도·새로고침 복구·시즌 생성/명령의 응답 유실 후 재전송·
-시즌 결과·390px 레이아웃을 확인했다. 전체 PostGIS/Android CI나 실제 기기는 실행하지 않았다.
+시즌 결과·390px 레이아웃을 확인했다. 초기 PR의 PostGIS/Android CI도 통과했다. 실제 기기는 실행하지 않았다.
 
 6시간·초안 기본 배점으로 같은 커널을 실행한 비교:
 
@@ -167,7 +170,8 @@ Edge에서 점령·인증·10분 보호·재시도·새로고침 복구·시즌 
 ## APP·DEV 승격
 
 Geo에서 이 사이클을 개발하는 데 #260 마이그레이션이나 GCP 접속은 필요 없다.
-DEV로 옮길 때는 `Game` 전체 JSON DB나 로컬 API를 복사하지 않고 다음을 연결한다.
+DEV로 옮길 때는 [연결 계약](../../contracts/territory-policy-integration.md)의 `PolicyTransaction`을
+실제 DB 어댑터로 구현한다. `Game` 전체 JSON DB나 로컬 API를 복사하지 않고 다음을 연결한다.
 
 1. 실제 세션·참여견 소유권·접촉·사진 판정은 기존 인증된 서비스에서 제공한다.
 2. 점령 확정 경계에서 보호 검사·점수 정산을 호출하고, #260 소유권 변경과 같은 트랜잭션으로 묶는다.

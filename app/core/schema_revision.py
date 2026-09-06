@@ -133,6 +133,7 @@ LEGACY_MARKERS: tuple[LegacyMarker, ...] = (
         "displayed_result_count",
     ),
     LegacyMarker("0032", "0032_territory_site.py", "territory_site", "site_id"),
+    LegacyMarker("0033", "0033_territory_policy.py", "territory_policy_result"),
 )
 
 HEAD = LEGACY_MARKERS[-1].revision

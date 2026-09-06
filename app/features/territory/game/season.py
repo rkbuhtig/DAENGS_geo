@@ -8,63 +8,35 @@ from copy import deepcopy
 from dataclasses import asdict, dataclass, field
 from math import isfinite
 
-HOUR_MS = 3_600_000
-DAY_MS = 24 * HOUR_MS
-POINT_DENOMINATOR = HOUR_MS * 10_000
+from app.features.territory.game.policy import (
+    DAY_MS,
+    HOUR_MS,
+    POINT_DENOMINATOR,
+    GameError,
+    Ownership,
+    OwnershipCandidate,
+    Rules,
+    Score,
+    SeasonContext,
+    SiteSnapshot,
+    is_protected,
+    plan_finalization,
+    plan_ownership,
+    require,
+    settle,
+)
 
-
-class GameError(ValueError):
-    """Stable conflict code, also used by the HTTP adapter."""
-
-
-def require(condition: bool, code: str) -> None:
-    if not condition:
-        raise GameError(code)
-
-
-@dataclass(frozen=True)
-class Rules:
-    """Draft balance, frozen for each season; only ten-minute protection is decided."""
-
-    version: str = "draft-2026-09-06"
-    protection_ms: int = 600_000
-    claim_points: int = 100
-    takeover_points: int = 100
-    hourly_points: int = 10
-    extra_site_bps: int = 1000
-    maximum_bps: int = 20_000
-    repeat_bonus: str = "every_change"
-    unverified_scores: bool = True
-
-    def __post_init__(self):
-        require(self.protection_ms == 600_000, "protection_must_be_ten_minutes")
-        for value in (
-            self.claim_points,
-            self.takeover_points,
-            self.hourly_points,
-            self.extra_site_bps,
-            self.maximum_bps,
-        ):
-            require(type(value) is int and 0 <= value <= 1_000_000, "invalid_balance")
-        require(self.maximum_bps >= 10_000, "invalid_multiplier_cap")
-        require(self.repeat_bonus in {"every_change", "daily_pet_site"}, "invalid_repeat_bonus")
-        require(type(self.unverified_scores) is bool, "invalid_unverified_policy")
-
-    def multiplier(self, count: int) -> int:
-        return min(10_000 + max(0, count - 1) * self.extra_site_bps, self.maximum_bps)
-
-
-@dataclass
-class Score:
-    bonus: int = 0
-    holding_units: int = 0
-    held_site_ms: int = 0
-    current_count: int = 0
-    scoring_count: int = 0
-    peak: int = 0
-    claims: int = 0
-    takeovers: int = 0
-    last_ms: int = 0
+# Existing local-lab import paths remain compatible; server adapters import policy directly.
+__all__ = [
+    "DAY_MS",
+    "HOUR_MS",
+    "POINT_DENOMINATOR",
+    "Game",
+    "GameError",
+    "Rules",
+    "Score",
+    "require",
+]
 
 
 @dataclass
@@ -122,29 +94,11 @@ class Game:
         data["scores"] = {p: Score(**s) for p, s in data["scores"].items()}
         return cls(**data)
 
-    def _settle(self, pet, at_ms):
-        score = self.scores[pet]
-        elapsed = at_ms - score.last_ms
-        require(elapsed >= 0, "time_reversed")
-        score.holding_units += (
-            elapsed
-            * score.scoring_count
-            * self.rules.hourly_points
-            * self.rules.multiplier(score.scoring_count)
-        )
-        score.held_site_ms += elapsed * score.current_count
-        score.last_ms = at_ms
+    def _context(self):
+        return SeasonContext(self.season_id, self.starts_ms, self.ends_ms, self.rules, self.status)
 
-    def _counts(self, pet):
-        owned = [
-            s["owner"] for s in self.sites.values() if s["owner"] and s["owner"]["pet_id"] == pet
-        ]
-        score = self.scores[pet]
-        score.current_count = len(owned)
-        score.scoring_count = sum(
-            self.rules.unverified_scores or o["certification"] == "VERIFIED" for o in owned
-        )
-        score.peak = max(score.peak, score.current_count)
+    def _settle(self, pet, at_ms):
+        self.scores[pet] = settle(self.scores[pet], at_ms, self.rules)
 
     def _event(self, kind, **values):
         self.events.append(
@@ -156,54 +110,52 @@ class Game:
         return owner and owner["pet_id"] == attempt["pet_id"]
 
     def _protected(self, site, pet):
-        owner = site["owner"]
-        return (
-            owner
-            and owner["pet_id"] != pet
-            and self.now_ms < owner["occupied_ms"] + self.rules.protection_ms
-        )
+        owner = Ownership(**site["owner"]) if site["owner"] else None
+        return is_protected(owner, pet, self.now_ms, self.rules)
 
     def _grant(self, attempt, certification):
         site = self.sites[attempt["site_id"]]
-        old = site["owner"]
+        old = Ownership(**site["owner"]) if site["owner"] else None
         pet = attempt["pet_id"]
-        same_pet = old and old["pet_id"] == pet
-        affected = {pet} | ({old["pet_id"]} if old else set())
-        for p in affected:
-            self._settle(p, self.now_ms)
-        occupied_ms = old["occupied_ms"] if same_pet else self.now_ms
-        # A new session's certification must not replace the original acquisition evidence.
-        site["owner"] = {
-            "pet_id": pet,
-            "session_id": old["session_id"] if same_pet else attempt["session_id"],
-            "attempt_id": old["attempt_id"] if same_pet else attempt["id"],
-            "certification": certification,
-            "occupied_ms": occupied_ms,
-        }
-        site["version"] += 1
+        affected = {pet} | ({old.pet_id} if old else set())
+        day_key = f"{pet}\n{attempt['site_id']}\n{self.now_ms // DAY_MS}"
+        verified = certification == "VERIFIED"
+        candidate = OwnershipCandidate(
+            self.season_id,
+            f"photo:{attempt['capture_id']}" if verified else f"mark:{attempt['id']}",
+            attempt["site_id"],
+            site["version"],
+            pet,
+            attempt["session_id"],
+            attempt["id"],
+            certification,
+            "PHOTO_VERIFIED" if verified else "MARK",
+        )
+        plan = plan_ownership(
+            self._context(),
+            SiteSnapshot(self.season_id, attempt["site_id"], site["version"], old),
+            candidate,
+            {p: self.scores[p] for p in affected},
+            at_ms=self.now_ms,
+            bonus_already_paid=day_key in self.rewarded_days,
+        )
+        site["owner"] = asdict(plan.after.owner)
+        site["version"] = plan.after.version
+        for account in plan.accounts:
+            self.scores[account.pet_id] = account.score
         attempt["expected_version"] = site["version"]
         attempt["disposition"] = "GRANTED"
-        for p in affected:
-            self._counts(p)
-        bonus = 0
-        if not same_pet:
-            score = self.scores[pet]
-            score.claims += 1
-            score.takeovers += int(old is not None)
-            day_key = f"{pet}\n{attempt['site_id']}\n{self.now_ms // DAY_MS}"
-            if self.rules.repeat_bonus == "every_change" or day_key not in self.rewarded_days:
-                bonus = self.rules.takeover_points if old else self.rules.claim_points
-                score.bonus += bonus
-                if self.rules.repeat_bonus == "daily_pet_site":
-                    self.rewarded_days.append(day_key)
-        self._event(
-            "CERTIFIED" if same_pet else "OWNERSHIP_CHANGED",
-            site_id=attempt["site_id"],
-            attempt_id=attempt["id"],
-            pet_id=pet,
-            previous_pet_id=old["pet_id"] if old else None,
-            bonus=bonus,
-        )
+        if plan.bonus_key is not None:
+            self.rewarded_days.append(day_key)
+        if plan.kind != "UNCHANGED":
+            self._event(
+                plan.kind,
+                site_id=attempt["site_id"],
+                attempt_id=attempt["id"],
+                pet_id=pet,
+                previous_pet_id=old.pet_id if old else None,
+                bonus=plan.bonus,
+            )
 
     def _session(self, session_id, recording=False):
         require(session_id in self.sessions, "unknown_session")
@@ -307,9 +259,10 @@ class Game:
 
     def _finish(self):
         self.now_ms = self.ends_ms
-        for pet in self.pets:
-            self._settle(pet, self.ends_ms)
+        plan = plan_finalization(self._context(), self.scores, at_ms=self.ends_ms)
+        self.scores = {r.pet_id: r.score for r in plan.results}
         self.results = self.standings()
+        self.scores = {a.pet_id: a.score for a in plan.accounts}
         self.status = "FINALIZED"
         for attempt in self.attempts.values():
             if attempt["photo"] in {"PENDING", "RETRY_PENDING"}:
@@ -320,8 +273,6 @@ class Game:
             if site["owner"]:
                 site["version"] += 1
             site["owner"] = None
-        for score in self.scores.values():
-            score.current_count = score.scoring_count = 0
         self._event("SEASON_FINALIZED")
 
     def transition(self, command, *, at_ms):
@@ -370,8 +321,9 @@ class Game:
     def standings(self):
         projected = deepcopy(self)
         rows = []
-        for pet, score in projected.scores.items():
+        for pet in projected.scores:
             projected._settle(pet, min(self.now_ms, self.ends_ms))
+            score = projected.scores[pet]
             total = score.bonus * POINT_DENOMINATOR + score.holding_units
             rows.append(
                 {"pet_id": pet, "name": self.pets[pet], **asdict(score), "total_units": total}
