@@ -426,3 +426,16 @@ async def test_tied_results_replay_in_kernel_order_independent_of_database_colla
     assert [r.pet_id for r in final.results] == ["Z", "a"]
     assert [r.rank for r in final.results] == [1, 1]
     assert await db.close() == final
+
+
+async def test_imported_owner_account_survives_loss_without_original_capture_receipt(db):
+    await db.seed(
+        initial_owners={
+            "A": Ownership("p1", "walk:old", "claim:old", "VERIFIED", 0),
+        }
+    )
+    await db.apply(command("photo:2", "p2", 1, photo=True), at=HOUR_MS)
+    with pytest.raises(DBAPIError):
+        await db.query("DELETE FROM territory_policy_account WHERE pet_id='p1'")
+    score = (await db.query("SELECT * FROM territory_policy_account WHERE pet_id='p1'"))[0]
+    assert (score["current_count"], score["holding_units"]) == (0, 10 * POINT_DENOMINATOR)

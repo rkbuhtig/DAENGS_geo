@@ -147,6 +147,13 @@ def upgrade() -> None:
             ON territory_policy_{table} FOR EACH ROW
             EXECUTE FUNCTION territory_policy_immutable()
         """)
+    # Imported owners may have earned holding points without a capture receipt.
+    # Retain their account even after their last site is lost; a missing row must
+    # never turn an existing participant into a newly initialized zero score.
+    op.execute("""
+        CREATE TRIGGER territory_policy_keep_account BEFORE DELETE
+        ON territory_policy_account FOR EACH ROW EXECUTE FUNCTION territory_policy_immutable()
+    """)
     op.execute("""
         CREATE FUNCTION territory_policy_season_guard() RETURNS trigger LANGUAGE plpgsql AS $$
         BEGIN
