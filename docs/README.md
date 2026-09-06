@@ -2,6 +2,9 @@
 
 문서는 한 줄기가 아니라 **갈래**로 자란다. 뭐가 확정이고 뭐가 탐색 중인지 여기서 본다.
 
+- [점령 정책 연결 계약](contracts/territory-policy-integration.md)
+  — #260 입력·트랜잭션·잠금·멱등성·후속 저장 구조와 DB 적용 전 실행 가능한 정책 인터페이스.
+
 - [동네 강자 시즌 게임](explorations/walk/territory-season-game.md)
   — 10분 보호·점령 보너스·보유 시간 배율·시즌 기록의 로컬 구현. 실행·검증과 초안 배점 비교.
 
