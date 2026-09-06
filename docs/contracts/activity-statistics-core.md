@@ -112,7 +112,8 @@ cut보다 나중 사건을 같이 넣으면 `event_outside_cut`이다. 조회할
 기존 정책의 `OwnershipPlan.kind`, before/after와 candidate의 원본 ID를 변환할 수 있다.
 **verified는 요청의 인증 요구가 아니라 after 소유권의 결과 상태**다. 보호 시간과 사진 판정은
 원본 정책이 이미 검증한 것으로 받아들이며 통계가 재판정하거나 점수를 지급하지 않는다.
-현재 Geo의 초기화/종료는 이 스트림을 만들지 않으므로 S3/S4에서 원본 transaction 안의 생성이 필요하다.
+기존 Geo 정책 어댑터 자체는 이 스트림을 만들지 않는다. S3의 `StatisticsPolicyTransaction`이
+초기화/종료를 같은 transaction으로 연결하며, DEV 생산자 연결은 S4에서 별도로 구현한다.
 
 보유 구간 ID는 `(season_id, start_event_id, site_id)`다. 인증 강화에도 획득 당시 game/claim과
 구간 ID를 유지한다. 인증 사건은 projection의 원본 사건 목록에서 추적한다. IMPORTED에는 새
@@ -120,7 +121,8 @@ cut보다 나중 사건을 같이 넣으면 `event_outside_cut`이다. 조회할
 
 cut은 caller가 현재 시각과 마지막 처리 ID를 조합해서 만들면 안 된다. 생산자 transaction의
 시즌 barrier 아래에서 확정한 일관된 기준점이어야 한다. 코어는 그 revision까지 사건이 모두
-있는지 확인하지만 **기준점 자체의 진실성은 검증할 수 없다.** 이 기준점 생성/저장도 후속 구현이다.
+있는지 확인하지만 **기준점 자체의 진실성은 검증할 수 없다.** Geo의 기준점 생성/저장은
+[S3 연결부](activity-statistics-postgres.md)에서 제공하며 코어 함수 자체가 원본 잠금을 잡지는 않는다.
 
 `summarize_territory`는 coverage 시작부터 확정 cut까지의 pet/season 획득·탈취·보유·인증 보유·
 현재/최대 동시 보유를 반환한다. 시즌 종료 후 열린 구간은 없고 현재 수는 0이다. coverage가
@@ -160,4 +162,4 @@ P2 보유 8분, 완료 산책 한 번/400m를 확인한다. 중복·역순 재�
 - S4/S5: 권한·개인정보 삭제·source 생존 검사, DB 읽기와 반영 상태 API, APP 표시를 구현한다.
 
 이 범위에서 아직 제공하지 않는 것: 활동 시간대별 거리/활동일, 행동 해석, 지역 비교,
-랭킹 snapshot, 칭호 수여, DB freshness 상태와 checkpoint 영속화.
+랭킹 snapshot, 칭호 수여와 제품 API. DB 반영 상태와 checkpoint 영속화는 S3에서 추가했다.
