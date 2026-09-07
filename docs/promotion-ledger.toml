@@ -31,6 +31,8 @@ paths = [
   "tests/ingest",
   "tests/integration",
   "tests/place",
+  # 4차 이전 전 tests/place 아래에 있던 검토 근거의 추적을 유지한다.
+  "tests/tools/facility/test_facility_map_surface.py",
   "tests/test_search_closure.py",
 ]
 
@@ -56,6 +58,9 @@ paths = [
   "tests/providers",
   "tests/usage",
   "tests/discovery",
+  # 4차 폴더 이동의 경로 추적만 이어 간다. 검토 도구의 운영 채택을 뜻하지 않는다.
+  "tools/place_intent/lab.py",
+  "tests/tools/place_intent/test_lab_surface.py",
 ]
 
 [[surface]]

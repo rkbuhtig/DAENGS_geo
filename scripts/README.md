@@ -1,62 +1,55 @@
-# scripts/ — 수명이 다른 셋을 섞지 않는다
+# scripts/ — 명령·생성기·검증·갈래별 실험
 
-`app/` 은 [결정 #67](../docs/decisions/2026-08-26-package-architecture.md) 이 축을 잠갔고
-`tests/` 는 계약 테스트가 지킨다. `scripts/` 에는 규칙이 없었고, 그래서 **수명이 다른 셋이
-한 레벨에 나란히** 쌓였다 — 계속 쓰는 도구, 재사용하는 검증 하네스, 갈래가 닫히면 사라질
-측정 스파이크. 폴더만 봐서는 어느 것이 끝난 실험인지 알 수 없었다.
+반복 실행하는 명령은 목적과 소비자에 따라 아래 위치에서 관리한다.
+공용 app 내부의 계층은 [결정 #67](../docs/decisions/2026-08-26-package-architecture.md),
+검증의 소유권은 [tests 안내](../tests/README.md)를 따른다.
 
 기준은 **개수가 아니라 수명**이다.
 
 저장소 경계는 [결정 #86](../docs/decisions/2026-09-07-repository-execution-boundaries.md)을
 따른다. scripts와 tools는 app을 소비할 수 있지만, app에서 scripts/tools/tests로 향하는
 새 import는 금지한다. 반복해서 조작하는 검토 화면·HTTP 어댑터는 tools가 소유하고
-공용 생성기는 sim에 남긴다. 현재 파일 이전은 단계별로 진행하며 기존 실행 명령은 유지한다.
+공용 생성기는 sim에 남긴다. 도구별 위치·실행 조건은 [tools 안내](../tools/README.md)를 따른다. 기존 독립 실행 명령은 유지한다.
 
 | | 무엇 | 언제 사라지나 |
 |---|---|---|
-| `scripts/*.py` | 운영 도구. README 가 실행을 지시하는 정식 명령 | 그 워크플로가 없어질 때 |
+| `scripts/*.py` | README가 안내하는 정식 관리·실행 명령 | 그 워크플로가 없어질 때 |
 | `verify/` | 관통 검증 하네스. 같은 경로를 여러 단계가 다시 쓴다 | 검증 대상이 없어질 때 |
 | `sim/` | 재현 가능한 생성기. truth·센서 관측·전달을 분리해 실패를 비교한다 | 해당 계약을 대체할 때 |
-| `spikes/<갈래>/` | 측정 스파이크. 연구 문서의 재현 장치 | **갈래가 닫힐 때** |
+| `spikes/<갈래>/` | 기획·가설별 실험과 재현 장치 | 종료 판단과 소비자·재현 경로 확인 뒤 |
 
-## `spikes/` — 갈래에 묶고, 갈래가 닫히면 폴더째 지운다
+## `spikes/` — 갈래별 실험과 재현
 
-`spikes/diary_storyboard`는 [산책 일기 제작 계획](../docs/explorations/walk/diary/plan.md)의
-LLM 실험 골격이다. 전체 이해 → 장면별 갱신 → 재검토 → 사용자 검토 → 선택적 일기 생성을
-별도 단계로 실행하고 상태·근거·변경 기록을 보존한다. [실행 방법](spikes/diary_storyboard/README.md).
+| 갈래 | 질문·현재 실행 입구 |
+|---|---|
+| `diary_storyboard/` | 전체 이해·장면 갱신·보호자 검토·별도 생성 요청. [실행](spikes/diary_storyboard/README.md) |
+| `storyboard_and_regions/` | 합성 산책과 저장된 세계 자료로 장면·동네 구간 비교. [실행](spikes/storyboard_and_regions/README.md) |
+| `territory_paint/` | 공간 붓·분포·센서 오염·저장 후보 비교. [기준 탐색](../docs/explorations/walk/spatial/territory-paint.md) |
+| `territory_production_plan/` | 지도·촬영·페이크 판정의 제작 가설과 공통 TSV. [실행](spikes/territory_production_plan/README.md) |
+| `territory_season/` | 시즌 전략 시뮬레이션과 검토 서버의 기존 CLI. [실행](spikes/territory_season/README.md) |
+| `walk_diary_route/` | 경로 마스킹·양자화·단순화의 노출/충실도 비교. [기준 탐색](../docs/explorations/walk/diary/walk-diary-route.md) |
+| `walk_record_lab/` | 행동·환경·종료 결과와 자료 선택 비교. [실행](spikes/walk_record_lab/README.md) |
 
-`spikes/territory_production_plan`은 [점령 게임 제작 계획](../docs/explorations/walk/game/territory-production-plan.md)의
-지도·촬영·페이크 판정을 조작하는 웹 실험이다. API 키 없이 실행하며 공통 점령 TSV와
-브라우저 검사를 제공한다. [실행 방법](spikes/territory_production_plan/README.md).
-
-스파이크는 `docs/explorations/` 의 갈래 하나에 속한다. 폴더 이름이 그 갈래고, 지금은
-`territory_paint/` 하나다 (문서는 `territory-paint.md` — 파이썬 모듈 경로라 `_`).
+재사용되는 검토 HTTP·화면은 `tools/`에 있다. 특정 실험의 결과 HTML·제작 시안·재현
+페이지는 해당 실험과 함께 유지한다. 아래는 공간 분포 실험의 명령 예다.
 
 ```bash
 uv run python -m scripts.spikes.territory_paint.persona_year --cache osm.json --json personas.json
 uv run python -m scripts.spikes.territory_paint.storage_candidates --personas personas.json
 ```
 
-갈래에 묶는 이유는 **정리를 파일 단위 판단에서 빼기 위해서**다. "이 중에 뭘 지워도 되지"를
-아홉 번 묻는 대신 갈래 status 하나만 본다 — `adopted` 나 `rejected` 로 닫히면 그 폴더는
-통째로 지운다. 갈래가 `exploring` 인 동안에는 아무것도 지우지 않는다.
+갈래 상태가 `adopted`나 `rejected`로 바뀌면 종료 여부를 검토한다. 상태만으로 코드를
+자동 삭제하지 않는다. 제품 보류와 죽은 코드는 구분하고, 실행 중인 도구·다른 실험·테스트가
+소비하거나 현재 판단을 재현하는 코드라면 유지한다.
 
-**지우기 전에 참조를 확인한다.** 스파이크는 재현 장치이면서 동시에 **프로덕션 코드의 근거**
-이기도 하다 — `app/geo/cells.py` 와 `app/features/territory/region.py` 의 도크스트링이 셀 반지름을 고른
-근거로 `region_fidelity.py` 를 가리킨다. 그냥 지우면 살아 있는 코드가 없는 파일을 가리킨다.
+종료할 때는 import와 문서 참조를 확인하고, 소비자가 더 이상 없으며 결과를 다시 찾을
+수 있을 때 제거한다. 삭제한 구현은 연구 문서의 `재현` 절에서 해당 커밋·옛 경로로 연결한다.
+예를 들어 `region_fidelity.py`는 공간 셀·영역 계산의 근거이므로 참조를 확인하지 않고
+삭제할 대상이 아니다.
 
 ```bash
-git grep -n 'scripts/spikes/<갈래>'   # app · tests · docs · android 전부
+rg -n 'scripts[./]spikes[./]<갈래>' app tools scripts tests docs android
 ```
-
-걸린 것이 있으면 그 참조를 **연구 문서 쪽으로 갈아끼운 뒤** 지운다. 문서는 지우지 않으므로
-근거 사슬이 끊기지 않는다.
-
-지울 때 재현성은 연구 문서가 받는다. 코드를 남기는 대신 **git history 포인터 한 줄**을
-그 문서의 `## 재현` 에 적는다. 선례가 있다 — `tmap_option_survey.py` 는 결정 #66 과 함께
-지웠고, [조사 문서](../docs/research/2026-08-22-tmap-option-survey.md) 가 `git log` 명령으로
-원문을 가리킨다. 안 도는 코드를 "언젠가 쓸지도 몰라서" 남기면 몇 달 뒤 import 경로가
-바뀌어 어차피 안 돈다. 그때는 지워야 한다는 것조차 안 보인다.
 
 **여기 있는 모든 모듈은 import 되는 것이 테스트로 지켜진다** (`tests/test_script_imports.py`).
 `ruff` 는 import 대상을 해석하지 않고 `compileall` 은 문법만 본다 — 둘 다 통과하면서 깨져

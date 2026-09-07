@@ -80,35 +80,24 @@ start / fixes / finish
 
 ## 저장소 지도
 
-```text
-app/
-├── api/                         Place v2·정적 지도 HTTP 표면
-├── context_plane/               typed Atom·Facet·Lens·registry
-├── core/                        설정·DB·clock·스키마 판별
-├── discovery/place_intent/      intent compiler·lens·dev lab
-├── features/
-│   ├── walk/                    세션→사실→Capsule 생산
-│   ├── territory/               Cellophane·Field·View·Memory Place
-│   ├── spatial_diary/           Offer·Attestation·Pin·Journal·Snapshot
-│   ├── context_plane/           기존 도메인 객체 adapter
-│   ├── journey/                 Journey HTTP 표면
-│   └── scene/                   walk 사실의 규칙 기반 소비자
-├── geo/                         좌표·시간·태그·PostGIS primitive
-├── ingest/                      공공 원천 정규화·적재·연결
-├── journey/                     경로·advice·handoff
-├── place/                       canonical Place 계약·검색·평가
-├── profile/                     외부 프로필 계약과 fixture source
-├── providers/                   지도·경로 제공사 adapter
-├── usage/                       실제 외부 호출 Gate
-├── main.py                      전체 R&D 앱
-└── search_main.py               Place 검색 전용 앱
+| 위치 | 책임 |
+|---|---|
+| `app/core`, `geo`, `place`, `providers`, `usage` 등 | 공통 설정·공간 primitive·검색·제공사·사용량 |
+| `app/discovery/place_intent` | intent compiler·planner·lens·관측 저장 |
+| `app/features/walk` | 세션 수집·사실·Capsule 생산 |
+| `app/features/territory` | Cellophane·Field·조건별 View·Memory Place |
+| `app/features/territory_game` | 점령 정책·트랜잭션·PostgreSQL·순수 시즌 규칙 |
+| `app/features/spatial_diary`, `storyboard`, `activity_statistics` | 공간 일기·장면 구성·산책과 게임 통계 |
+| `app/features/context_plane`, `journey`, `scene` | 기존 도메인 adapter·Journey HTTP·산책 사실 소비 |
+| `app/main.py`, `app/search_main.py` | 공용 기준 API, Place 검색 전용 실행 |
+| [tools/](tools/README.md) | 도구별 검토 HTTP·화면·로컬 저장. `lab_server.py`는 선택·연결 |
+| [scripts/](scripts/README.md) | 관리 명령·공용 시뮬레이터·관통 검증·갈래별 실험 |
+| [tests/](tests/README.md) | 기능·도구 소유권별 검증. 루트는 저장소 경계 검사 |
+| [alembic/](alembic/README.md), [seeds/](seeds/README.md) | 단일 스키마 변경 경로, 수동 개발용 가상 데이터 |
+| [docs/](docs/README.md), [android/](android/README.md) | 문서 유형별 기록, Kotlin/Compose 연구·대조 구현 |
 
-android/                         Kotlin/Compose 기준 구현
-alembic/                         단일 스키마 변경 경로
-docs/                            결정·계약·탐색·연구
-scripts/                         운영 도구·검증 하네스·측정 spike
-tests/                           도메인 소유권별 회귀 테스트
-```
+파일 이동과 유지한 실행·저장 경계, 기준선 대비 검증은
+[구조 정리 결과](docs/research/2026-09-07-repository-reorganization.md)에 있다.
 
 ## 빠른 실행
 
@@ -120,7 +109,7 @@ cp .env.example .env
 docker compose up -d db
 uv sync
 uv run alembic upgrade head
-docker compose exec -T db psql -U daengs -d daengs < migrations/dev_seed.sql
+docker compose exec -T db psql -U daengs -d daengs < seeds/dev_seed.sql
 uv run uvicorn app.main:app --reload
 ```
 
@@ -184,7 +173,7 @@ uv run python -m scripts.detect_schema_revision
 ```
 
 출력된 `stamp <revision>`과 `upgrade head`를 검토해 실행한다. 자세한 수명과 과거 SQL 경계는
-[migrations/README.md](migrations/README.md)를 따른다.
+[alembic/README.md](alembic/README.md)를 따른다.
 
 ## 공공데이터 적재
 
@@ -229,7 +218,7 @@ DAENGS_USAGE_POLICY=dev
 - [docs/README.md](docs/README.md) — 결정·계약·탐색·연구 전체 지도
 - [docs/contracts/](docs/contracts/) · [docs/decisions/](docs/decisions/) — 계약과 채택된 결정
 - [docs/provider-assembly.md](docs/provider-assembly.md) — 외부 제공사 조립 현황
-- [scripts/README.md](scripts/README.md) · [tests/README.md](tests/README.md) — 실행 도구와 테스트 소유권
+- [tools/README.md](tools/README.md) · [scripts/README.md](scripts/README.md) · [tests/README.md](tests/README.md) — 검토 도구·명령·테스트 소유권
 - [docs/backlog.md](docs/backlog.md) — 갈래에 붙지 않은 미결
 
 날짜가 붙은 `docs/research/`는 당시 관찰 기록이다. 현재 상태 문서처럼 소급해서 고치지 않고,
