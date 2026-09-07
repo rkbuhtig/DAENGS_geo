@@ -118,11 +118,11 @@ async def test_dev_search_can_inspect_and_filter_the_source_kind() -> None:
             )
 
 
-def _paths_with_dev_console(enabled: bool) -> set[str]:
+def _paths_with_review_entrypoint(enabled: bool) -> set[str]:
     environment = os.environ.copy()
     environment["DAENGS_DEV_CONSOLE"] = "true" if enabled else "false"
-    command = """
-from app.main import app
+    command = ("from tools.lab_server import create_app; app = create_app(enabled_tools=['territory-sites'])\n"
+               if enabled else "from app.main import app\n") + """
 
 def collect_paths(routes):
     paths = []
@@ -148,10 +148,10 @@ print("\\n".join(sorted(collect_paths(app.routes))))
     return set(result.stdout.splitlines())
 
 
-def test_dev_territory_site_surface_is_gated_but_app_read_is_always_mounted() -> None:
+def test_review_territory_sites_are_separate_from_the_common_read_api() -> None:
     dev_paths = {"/dev/territory-sites", "/dev/territory-sites/search"}
-    disabled = _paths_with_dev_console(False)
-    enabled = _paths_with_dev_console(True)
+    disabled = _paths_with_review_entrypoint(False)
+    enabled = _paths_with_review_entrypoint(True)
 
     assert dev_paths.isdisjoint(disabled)
     assert dev_paths <= enabled

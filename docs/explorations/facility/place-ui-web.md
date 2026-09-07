@@ -14,7 +14,7 @@ uv run --no-project --python 3.12 python -m http.server 8765 --bind 127.0.0.1 --
 ```
 
 브라우저에서 http://127.0.0.1:8765/ 를 연다.
-기존 Geo 앱에서는 `DAENGS_DEV_CONSOLE=true`일 때 `/place-ui-lab/`로 접근한다.
+`uv run python -m tools.lab_server --tool place-ui`로 실행한 뒤 `/place-ui-lab/`로 접근한다.
 기본 설정에서는 이 경로를 mount하지 않는다.
 
 설치된 Chrome/Edge로 브라우저 동작을 검사할 수 있다. 첫 실행 시 uv가 Playwright

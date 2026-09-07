@@ -37,7 +37,7 @@ cellophane-r15-step.geojson
 cellophane-r15-smooth.geojson
 ```
 
-`DAENGS_DEV_CONSOLE=true`로 서버를 띄우고 `/cellophane`의 `JSON 열기`에서 각 파일을 비교한다.
+`uv run python -m tools.lab_server --tool cellophane`으로 검토 서버를 띄우고 `/cellophane`의 `JSON 열기`에서 각 파일을 비교한다.
 외부 basemap 요청은 없다.
 
 ## 읽는 값

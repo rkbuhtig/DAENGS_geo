@@ -43,7 +43,7 @@ Android 지도  DAENGS_NAVER_NCP_KEY_ID
 지오코딩       DAENGS_GEOCODE_PROVIDER=none
 경로           *_ROUTE_PROVIDER=fake
 
-의도 lab       DAENGS_DEV_CONSOLE=true
+의도 lab       uv run python -m tools.lab_server --tool place-intent
                DAENGS_LLM_PROVIDER=gemini + DAENGS_GEMINI_API_KEY
 수동 live 평가 DAENGS_LLM_PROVIDER=openai + DAENGS_OPENAI_API_KEY
 

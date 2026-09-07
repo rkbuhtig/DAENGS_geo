@@ -77,8 +77,10 @@ def test_map_pan_is_undoable_but_a_gps_refresh_is_not():
 
 - `test_import_direction.py`: 결정 #67의 app 내부 계층·계약·순환 검사.
 - `test_repository_imports.py`: app → tools/scripts/tests의 새 의존을 차단한다.
-  기존 `app.main → scripts.sim.walk.lab`만 정확한 모듈 예외이며, 연결을 고쳤다면
-  예외도 제거해야 한다. 임시 소스에서 금지 import·누락 파일을 넣어 검사 실패를 확인한다.
+  3차에서 `app.main → scripts.sim.walk.lab`을 제거해 현재 예외는 없다.
+  임시 소스에서 금지 import·누락 파일을 넣어 검사 실패를 확인한다.
+- `tools/test_lab_server.py`: 공용 앱의 도구 미로딩, 선택 실행, 고정 fixture, 시즌 저장·복원,
+  요청별 사용량 경계. [실행 안내](../tools/README.md).
 - 일기 실험 세 파일은 `spikes/diary_storyboard/`가 소유한다. fixture 생성 방식은
   기존 루트 `conftest.py`를 사용하며 도메인별 공용 fixture 파일을 늘리지 않는다.
 

@@ -1,6 +1,6 @@
 """Explicit local R&D application. Synthetic dogs/contact/photo verdicts, no authentication.
 
-Mounted only behind dev_console, or run on loopback with the standalone lab script.
+Selected by tools.lab_server, or run on loopback with the standalone lab script.
 No PostGIS engine, environment credentials or external providers are loaded here.
 """
 
