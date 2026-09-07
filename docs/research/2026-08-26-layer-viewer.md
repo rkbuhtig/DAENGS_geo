@@ -10,7 +10,7 @@ uv run python -m scripts.spikes.territory_paint.basemap --walks bbox.json --out 
 ```
 
 코드는 `scripts/spikes/territory_paint/layer_scenes.py`. 갈래는
-[territory-paint](../explorations/walk/territory-paint.md).
+[territory-paint](../explorations/walk/spatial/territory-paint.md).
 
 ## 앞 실험과 무엇이 다른가
 
@@ -90,7 +90,7 @@ E 여름∩낮   n =  18      ← 분모가 화면에 붙어 있다
 ```
 
 "여름 낮엔 하천에 안 간다" 를 n=18 에서 읽고 있다는 것이 보인다. 비율을 분모 없이 내지
-않는다는 규율([territory-paint §D](../explorations/walk/territory-paint.md))의 UI 판이다.
+않는다는 규율([territory-paint §D](../explorations/walk/spatial/territory-paint.md))의 UI 판이다.
 
 ## 설계에서 고른 것
 

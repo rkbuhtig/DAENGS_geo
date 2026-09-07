@@ -7,7 +7,7 @@ Geo 루트에서 `uv run python -m scripts.spikes.territory_season.server`를 �
 SQLite 파일을 별도로 사용하므로 PostGIS·Docker·API 키가 필요 없다.
 `--db .local/my-game.sqlite3 --port 8768`로 다른 실험을 열 수 있다.
 
-- [규칙·저장·검증·승격 계약](../../../docs/explorations/walk/territory-season-game.md)
+- [규칙·저장·검증·승격 계약](../../../docs/explorations/walk/game/territory-season-game.md)
 - [기존 영역표시 웹 실험](../territory_production_plan/README.md)
 
 ```powershell

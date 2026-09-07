@@ -140,7 +140,7 @@ APP debug `TraceLocationSource`가 읽을 계약이다. `android-route.gpx`는 A
 입력용이고 missing/chain 경계에서 track segment를 끊는다. `--play`는 같은 capture 시간축을
 배속해 AVD에 `adb emu geo fix`를 보낸다. GPX/ADB가 accuracy·mock·pause/resume·delivery를 전부
 표현한다고 주장하지 않으며, 정확한 손실과 APP/DEV 경계는
-[`android-replay-adapter.md`](./android-replay-adapter.md)에 둔다.
+[`android-replay-adapter.md`](android-replay-adapter.md)에 둔다.
 
 ## 셀로판 모집단 fixture
 
@@ -181,4 +181,4 @@ provider가 다르면 설정의 `fallback=osm`에 따라 OpenStreetMap 실지도
 읽는 `continuous_brush_field()`와 비교한다. 이 reference는 원형 kernel의 면적 적분을 1로
 정규화해 입력 `Σ Segment.dt`를 보존하며, 아직 저장·API·제품 renderer에 사용하지 않는다.
 계약과 다음 비교 항목은
-[`continuous-brush-reference.md`](./continuous-brush-reference.md)에 고정한다.
+[`../spatial/continuous-brush-reference.md`](../spatial/continuous-brush-reference.md)에 고정한다.

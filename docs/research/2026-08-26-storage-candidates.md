@@ -8,7 +8,7 @@ uv run python -m scripts.spikes.territory_paint.storage_candidates --personas pe
 ```
 
 코드는 `scripts/spikes/territory_paint/storage_candidates.py`, 갈래는
-[territory-paint §A](../explorations/walk/territory-paint.md).
+[territory-paint §A](../explorations/walk/spatial/territory-paint.md).
 
 ## 왜 쟀나
 

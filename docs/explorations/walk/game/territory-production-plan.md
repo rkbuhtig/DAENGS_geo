@@ -2,7 +2,7 @@
 status: exploring
 implementation: draft
 last_verified: 2026-09-05
-depends-on: territory-site-game.md, territory-season-scoring.md, ../mobile-shell/map-purpose-display-policy.md, ../../contracts/canonical-trail-consumers.md
+depends-on: territory-site-game.md, territory-season-scoring.md, ../../mobile-shell/map-purpose-display-policy.md, ../../../contracts/canonical-trail-consumers.md
 ---
 # 산책 점령 게임 — 제작 계획
 
@@ -53,13 +53,13 @@ Pin 영역표시를 제공한다. 점유는 메모리 페이크이며 대표견�
 인증 강화·탈취·부적합 재촬영·기존 사진 재시도를 제공한다. 로컬 타겟 JVM 테스트와 debug
 빌드를 확인했으며, 실제 카메라와 보행·진동·Compose 배치는 기기 검증이 남아 있다.
 
-기기가 없는 동안의 조작 검증은 [웹 플레이 실험](../../../scripts/spikes/territory_production_plan/README.md)에서
+기기가 없는 동안의 조작 검증은 [웹 플레이 실험](../../../../scripts/spikes/territory_production_plan/README.md)에서
 수행한다. 합성 지도와 샘플 촬영으로 앱의 액션 흐름을 재현하며 APP·Dev와 같은 20단계 TSV를
 사용한다. Edge에서 공통 시나리오·경계 26개와 UI 인증 강화/탈취/재촬영/재시도,
 확인 중 이동·표시 숨기기, 취소·오래된 위치의 셔터 차단 및 모바일 너비를 검증했다.
 웹 통과를 실제 Android 카메라의 검증으로 간주하지 않는다.
 
-[산책 게임 앱 화면 웹 검토판](../../../scripts/spikes/territory_production_plan/app-copy.md)은
+[산책 게임 앱 화면 웹 검토판](../../../../scripts/spikes/territory_production_plan/app-copy.md)은
 시설 검색 카피코드 PR #232의 프레임·색상과 APP `WalkScreen.kt`의 HUD·행동 도크·하단
 컨트롤 배치에 게임 카드를 연결한다. 같은 지도에서 표시 토글, 근접·Pin·촬영·판정 목록을
 조작하며 세로/가로·모바일 너비에서 화면 겹침을 확인한다. 사진 상태를 한 줄 요약으로
@@ -109,7 +109,7 @@ Pin 영역표시를 제공한다. 점유는 메모리 페이크이며 대표견�
 막는 별도 기획 과제로 키우지 않는다. VLM의 강아지 검출과 등록 개체 식별은 구분한다.
 
 접근 판정은 산책의 검증된 위치·접촉 근거를 소비한다. 지도 표시 토글은 산책 수집을
-바꾸지 않는다. [CanonicalTrail 소비자 경계](../../contracts/canonical-trail-consumers.md)에
+바꾸지 않는다. [CanonicalTrail 소비자 경계](../../../contracts/canonical-trail-consumers.md)에
 따라 Cellophane 색·밀도나 일기 표시 경로에서 점령 근거를 역산하지 않는다.
 
 ## 3. 사용자에게 보이는 한 사이클

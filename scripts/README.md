@@ -21,11 +21,11 @@
 
 ## `spikes/` — 갈래에 묶고, 갈래가 닫히면 폴더째 지운다
 
-`spikes/diary_storyboard`는 [산책 일기 제작 계획](../docs/explorations/walk/diary-storyboard-plan.md)의
+`spikes/diary_storyboard`는 [산책 일기 제작 계획](../docs/explorations/walk/diary/plan.md)의
 LLM 실험 골격이다. 전체 이해 → 장면별 갱신 → 재검토 → 사용자 검토 → 선택적 일기 생성을
 별도 단계로 실행하고 상태·근거·변경 기록을 보존한다. [실행 방법](spikes/diary_storyboard/README.md).
 
-`spikes/territory_production_plan`은 [점령 게임 제작 계획](../docs/explorations/walk/territory-production-plan.md)의
+`spikes/territory_production_plan`은 [점령 게임 제작 계획](../docs/explorations/walk/game/territory-production-plan.md)의
 지도·촬영·페이크 판정을 조작하는 웹 실험이다. API 키 없이 실행하며 공통 점령 TSV와
 브라우저 검사를 제공한다. [실행 방법](spikes/territory_production_plan/README.md).
 
@@ -65,7 +65,7 @@ git grep -n 'scripts/spikes/<갈래>'   # app · tests · docs · android 전부
 새 갈래의 스파이크는 새 폴더를 만든다. 갈래 없이 스파이크를 추가하지 않는다 — 소속이
 없으면 지울 시점도 없기 때문이고, 그게 이 폴더가 쌓인 이유였다.
 
-`spikes/storyboard_and_regions`는 [산책 스토리보드와 동네 구간](../docs/explorations/walk/storyboard-and-regions.md)
+`spikes/storyboard_and_regions`는 [산책 스토리보드와 동네 구간](../docs/explorations/walk/diary/storyboard-and-regions.md)
 갈래의 로컬 실험이다. 합성 산책과 SGIS·상가·공원·하천 snapshot으로 자동 재생 HTML을 만든다.
 기본 재생성은 네트워크를 쓰지 않고, 자료 수집에만 명시적인 `--fetch`가 필요하다.
 원본 자료·인증키·산출물은 저장소 밖에 둔다.
@@ -85,7 +85,7 @@ git grep -n 'scripts/spikes/<갈래>'   # app · tests · docs · android 전부
 `sim/walk`는 지도 독립 행동과 로컬 polyline으로 연속 motion truth를 만든 뒤 센서 관측과 앱
 전달을 따로 오염한다. 저장한 `walk-trace-scenario-v1`을 다시 실행할 수 있고, 결과의
 `walk-export.json`만 기존 제품 계산기로 들어간다. 사용법과 층별 출력은
-[`simulator-core.md`](../docs/explorations/walk/simulator-core.md)에 둔다.
+[`simulator-core.md`](../docs/explorations/walk/recording/simulator-core.md)에 둔다.
 
 ## 최상위
 

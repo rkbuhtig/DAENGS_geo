@@ -110,5 +110,5 @@ canonical Segment는 원좌표 purge 전까지만 재생성 가능하다. 따라
 승격하지 않는다.
 
 첫 정량 비교와 재현 명령은
-[연속 원 field와 Hex Cellophane 비교](../../research/2026-08-31-continuous-hex-comparison.md)에
+[연속 원 field와 Hex Cellophane 비교](../../../research/2026-08-31-continuous-hex-comparison.md)에
 기록한다.

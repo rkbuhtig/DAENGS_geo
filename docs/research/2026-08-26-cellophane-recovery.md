@@ -8,7 +8,7 @@ uv run python -m scripts.spikes.territory_paint.persona_experiment --personas pe
 ```
 
 코드는 `app/features/territory/layers.py` · `scripts/spikes/territory_paint/persona_{year,experiment}.py`.
-갈래는 [territory-paint](../explorations/walk/territory-paint.md).
+갈래는 [territory-paint](../explorations/walk/spatial/territory-paint.md).
 
 ## 무엇을 물었나
 
@@ -166,7 +166,7 @@ F2 여름−겨울 양의 질량 중 river   0.000
 - **문턱을 정하지 않았다.** `min_peak` 는 0 으로 돌렸다 — 등급은 데이터가 생긴 뒤 정한다는
   결정을 selection 단계에서 어기지 않으려고.
 - **저장 경계를 안 정했다.** 단순화 궤적 vs 산책별 셀 맵은 여전히 열려 있다
-  ([territory-paint §A](../explorations/walk/territory-paint.md)). 다만 이 실험은 **장 단위
+  ([territory-paint §A](../explorations/walk/spatial/territory-paint.md)). 다만 이 실험은 **장 단위
   보존이 값을 한다**는 근거를 하나 보탰다 — 기준 4 가 그것이다.
 - **성능.** 2,514 장을 칠하는 데 6 분이다(1 장 153ms). 실서비스라면 finish 때 한 장씩
   칠하므로 문제가 아니지만, 실험은 캐시에 의존한다.

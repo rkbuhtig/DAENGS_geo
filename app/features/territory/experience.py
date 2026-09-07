@@ -1,6 +1,6 @@
 """화면이 쓸 질의 조합 — 저녁 산책 직전 장면 하나를 숫자로 만든다.
 
-갈래는 [experience-scenario](../../../docs/explorations/walk/experience-scenario.md).
+갈래는 [experience-scenario](../../../docs/explorations/walk/spatial/experience-scenario.md).
 장면의 다섯 비트 중 3·4·5 번이 여기서 나온다.
 
     3. 조건을 바꾸면 지도가 바뀐다          조건별 Layer

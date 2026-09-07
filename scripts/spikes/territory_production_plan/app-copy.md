@@ -2,7 +2,7 @@
 
 `app-copy.html`은 판정 실험 `index.html`과 같은 `claims.mjs` 및 공통 TSV를 사용하면서,
 Android 산책 화면의 배치 안에서 게임 UI를 조작하는 검토판이다.
-소속 탐색은 [점령 게임 제작 계획](../../../../docs/explorations/walk/territory-production-plan.md)이다.
+소속 탐색은 [점령 게임 제작 계획](../../../docs/explorations/walk/game/territory-production-plan.md)이다.
 
 ## 플레이 후 개선 — 지도 위 대상과 행동을 우선
 

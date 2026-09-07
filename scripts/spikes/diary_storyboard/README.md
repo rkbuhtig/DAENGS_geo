@@ -1,6 +1,6 @@
 # 산책 세션 이해 → 스토리보드 → 선택적 일기 실험
 
-[산책 일기 제작 계획](../../../docs/explorations/walk/diary-storyboard-plan.md)의 실험 골격이다.
+[산책 일기 제작 계획](../../../docs/explorations/walk/diary/plan.md)의 실험 골격이다.
 `app/`의 운영 경로와 DB에 연결하지 않고 로컬 파일로 전체 흐름을 실행한다.
 초기 `fixtures/scenario.json`은 값을 직접 작성한 가상 산책이다. 후속 `acquire`는 합성 관측 GPS를
 실제 geo 계산기에 넣어 공간 경향까지 계산하고, 저장된 실제 지도 응답과 연결한다.

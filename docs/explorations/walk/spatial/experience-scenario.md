@@ -243,7 +243,7 @@ LLM 을 안 붙이는 이유("매끈한 문장이 부실한 정보를 가린다"
 숫자는 문장에서 뺐다 — 근거는 영수증 ② 가 통째로 편다.
 
 **2. "색이 완전히 같아서 재미가 반감된다."** 이건 **우리가 데이터 층에서 죽인 병이 렌더러에서
-부활한 것**이다. [붓 감쇠 측정](../../research/2026-08-26-brush-falloff.md)의 결론이
+부활한 것**이다. [붓 감쇠 측정](../../../research/2026-08-26-brush-falloff.md)의 결론이
 "이진 도장은 구별이 0" 이어서 감쇠를 넣고 `occupancy`·`peak` 를 살렸는데, 화면이 물감을
 단색 + 알파로 그려서 **거의 모든 칸이 포화에 걸려 같은 색**이 됐다. 데이터에는 농담이 다
 있는데 표시가 눌러 버린 것이다.
@@ -286,7 +286,7 @@ LLM 을 안 붙이는 이유("매끈한 문장이 부실한 정보를 가린다"
   없는 것" 이지 "영원히 안 만드는 것" 이 아니다.
 
 [evidence-layer]: evidence-layer.md
-[U2]: ../../research/2026-08-26-storage-candidates.md
-[회수 실험]: ../../research/2026-08-26-cellophane-recovery.md
-[뷰어 실험]: ../../research/2026-08-26-layer-viewer.md
-[#69]: ../../decisions/2026-08-26-walk-permanent-spatial-form.md
+[U2]: ../../../research/2026-08-26-storage-candidates.md
+[회수 실험]: ../../../research/2026-08-26-cellophane-recovery.md
+[뷰어 실험]: ../../../research/2026-08-26-layer-viewer.md
+[#69]: ../../../decisions/2026-08-26-walk-permanent-spatial-form.md

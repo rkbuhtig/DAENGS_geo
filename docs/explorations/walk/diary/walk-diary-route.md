@@ -2,8 +2,8 @@
 status: exploring
 implementation: dev-lab-spike
 last_verified: 2026-09-03
-decision: ../../decisions/2026-09-03-walk-diary-route-privacy.md
-research: ../../research/2026-09-03-walk-diary-route-privacy.md
+decision: ../../../decisions/2026-09-03-walk-diary-route-privacy.md
+research: ../../../research/2026-09-03-walk-diary-route-privacy.md
 ---
 # 단일 산책 일기 동선 — 선은 필요하지만 익명화됐다고 부르지 않는다
 

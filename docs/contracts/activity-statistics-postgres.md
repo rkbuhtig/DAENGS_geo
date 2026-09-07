@@ -7,7 +7,7 @@ last_verified: 2026-09-06
 # 산책·점령 통계 PostgreSQL — 저장, 처리, 재시작 계약
 
 [순수 코어](activity-statistics-core.md)에 DB 저장을 연결하는 S3 구현이다.
-[전체 설계](../explorations/walk/activity-statistics-skeleton.md)의 작은 흐름을 PostgreSQL에서
+[전체 설계](../explorations/walk/statistics/activity-statistics-skeleton.md)의 작은 흐름을 PostgreSQL에서
 검증한다. DEV의 실제 산책 분석/점령 API와 APP에는 아직 연결하지 않았다.
 
 ## 1. 구현 파일과 저장 단위

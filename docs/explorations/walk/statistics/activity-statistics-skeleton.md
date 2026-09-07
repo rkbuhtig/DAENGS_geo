@@ -11,11 +11,11 @@ last_verified: 2026-09-06
 공유한다. 경향 해석, 다른 강아지와 비교, 동네 순위, 칭호는 이 통계를 읽는 후속 소비자다.
 
 사용자가 통계 기록과 세션 ID 관리를 먼저 만들기로 정했다. 아래 구조·필드·작업 순서는 이를
-구현하기 위한 설계다. S1·S2의 ID 연결과 순수 통계 계산은 [코어 계약과 실행](../../contracts/activity-statistics-core.md)에
-구현 근거를 남겼다. S3의 [PostgreSQL 저장·재처리 골격](../../contracts/activity-statistics-postgres.md)도
+구현하기 위한 설계다. S1·S2의 ID 연결과 순수 통계 계산은 [코어 계약과 실행](../../../contracts/activity-statistics-core.md)에
+구현 근거를 남겼다. S3의 [PostgreSQL 저장·재처리 골격](../../../contracts/activity-statistics-postgres.md)도
 추가했다. DEV의 실제 분석/점령 입력과 APP 기능 연결은 아직 후속이다.
-기존 게임 구현/이관은 [인수인계](territory-game-handoff.md), 순위·칭호는
-[별도 초안](../../contracts/territory-ranking-titles.md)을 참고한다.
+기존 게임 구현/이관은 [인수인계](../game/territory-game-handoff.md), 순위·칭호는
+[별도 초안](../../../contracts/territory-ranking-titles.md)을 참고한다.
 
 ## 1. 큰 그림: 통합할 것과 분리할 것
 
@@ -276,7 +276,7 @@ payload가 들어오면 덮어쓰지 않고 충돌로 처리한다. 앞선 원�
 ## 7. 저장 구조와 코드 경계
 
 아래는 목표 저장 논리 구조다. 일부 ID/기여분/보유 구간은 순수 코어의 값 객체로 구현했지만,
-S3의 실제 테이블 매핑은 [PostgreSQL 계약](../../contracts/activity-statistics-postgres.md)에 남겼다.
+S3의 실제 테이블 매핑은 [PostgreSQL 계약](../../../contracts/activity-statistics-postgres.md)에 남겼다.
 DEV 이식에서는 기존 키 및 삭제 정책에 맞춰 제약과 타입을 다시 맞춘다.
 
 | 구조 | 책임 | 핵심 중복 방지/참조 기준 |
@@ -385,8 +385,8 @@ DEV의 반려견/계정 삭제와 기존 cascade를 확인해 개인별 통계 �
 | S5. 제품 조회 | DEV API + APP | 기존 세션 ID/재전송 유지, 확정 시점과 미계산 상태를 표시하는 조회 |
 | 후속. 의미/비교 층 | 별도 계약 | 활동일/추세, 비교 범위, 순위 snapshot, 칭호 판정·이력 |
 
-S1·S2는 [순수 코어](../../contracts/activity-statistics-core.md), S3는
-[PostgreSQL 저장 골격](../../contracts/activity-statistics-postgres.md)으로 구현했다.
+S1·S2는 [순수 코어](../../../contracts/activity-statistics-core.md), S3는
+[PostgreSQL 저장 골격](../../../contracts/activity-statistics-postgres.md)으로 구현했다.
 S4/S5의 DEV 생산자 연결·권한·삭제·APP 표시는 아직 후속이다.
 Geo의 실험 UI를 PostgreSQL에 붙이는 작업은 필요하면 S3 검증 도구로 선택할 수 있지만,
 실험 입력을 제품 서버의 신뢰 입력으로 만드는 작업과 동일하지 않다.

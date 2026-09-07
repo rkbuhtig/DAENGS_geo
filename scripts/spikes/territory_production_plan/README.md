@@ -7,7 +7,7 @@
 프레임·색상과 실제 `WalkScreen.kt` 배치에 게임을 연결한 `app-copy.html`이다.
 이 문서의 `index.html`은 판정과 조작을 독립적으로 확인하는 실험으로 유지한다.
 
-소속: [산책 점령 게임 제작 계획](../../../../docs/explorations/walk/territory-production-plan.md).
+소속: [산책 점령 게임 제작 계획](../../../docs/explorations/walk/game/territory-production-plan.md).
 실제 기기가 없을 때 3단계의 지도·촬영·비동기 판정을 조작하며 확인하는 로컬 스파이크다.
 기존 `walk_trace_lab.html`의 위치/상태 조작 방식과 `storyboard_and_regions/viewer.html`의
 키 없는 합성 SVG 지도를 참고했다. Naver·Leaflet·장소 조회 API와 무관하게 실행된다.

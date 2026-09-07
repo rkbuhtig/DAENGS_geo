@@ -30,5 +30,5 @@
 여기서 나가는 것은 **숫자와 후보**지 문장이 아니다. 문장은 응답 에이전트 몫이다
 (#53 — 판단은 근거를 가진 쪽, 실행은 데이터를 가진 쪽). 그리고 여기서 만드는 근거는
 **질의 결과지 저장물이 아니다** — 지도가 저장된 진실이 아닌 것과 같은 이유다
-(`docs/explorations/walk/evidence-layer.md`).
+(`docs/explorations/walk/spatial/evidence-layer.md`).
 """

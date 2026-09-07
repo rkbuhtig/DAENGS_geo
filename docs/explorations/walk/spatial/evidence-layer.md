@@ -234,5 +234,5 @@ LLM 도 아직 안 붙인다. `Evidence → 결정론적 순위 → 템플릿 �
 [repeated-dwell-area]: repeated-dwell-area.md
 [territory-paint]: territory-paint.md
 [experience-scenario]: experience-scenario.md
-[#69]: ../../decisions/2026-08-26-walk-permanent-spatial-form.md
-[layers.py]: ../../../app/features/territory/layers.py
+[#69]: ../../../decisions/2026-08-26-walk-permanent-spatial-form.md
+[layers.py]: ../../../../app/features/territory/layers.py

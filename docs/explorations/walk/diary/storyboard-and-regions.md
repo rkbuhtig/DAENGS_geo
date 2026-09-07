@@ -12,7 +12,7 @@ last_verified: 2026-09-04
 이 문서는 구상을 축적하는 탐색 문서다. 아래 타입명·화면·구현 순서는 후보이며, 저장 계약,
 지역 공급자, 게임 규칙, API 또는 제품 이관을 승인하는 결정이 아니다. 기존 결정은 유지한다.
 
-2026-09-04에 [시나리오 스토리보드 실험](../../research/2026-09-04-storyboard-regions-spike.md)을
+2026-09-04에 [시나리오 스토리보드 실험](../../../research/2026-09-04-storyboard-regions-spike.md)을
 추가했다. SGIS 실제 경계·상가·공원·하천 자료와 합성 산책을 결합해 로컬 HTML을 만든다.
 `working-skeleton`은 이 개발 실험을 가리킨다. 운영 나레이터나 경로 영구 보관 구현은 아니다.
 
@@ -141,12 +141,12 @@ Pin은 시간과 공간 근거로 구간에 연결하고, 불확실하면 억지
 
 ## 6. 보관과 계산 시점 — geo와 운영을 구별한다
 
-[결정 #84](../../decisions/2026-09-03-canonical-trail-consumer-boundary.md)의 geo CanonicalTrail은
+[결정 #84](../../../decisions/2026-09-03-canonical-trail-consumer-boundary.md)의 geo CanonicalTrail은
 finalize 중의 transient 증거다. 원좌표 purge 후 Cellophane만으로 이동 순서를 복원할 수 없다.
 geo에서 과거 스토리보드의 지역 순서를 재생하려면 purge 전 필요한 재료를 보존하는 수명 결정이
 선행해야 한다. 이 문서가 새 결과를 필수 Capsule 자식으로 추가하거나 궤적 보관을 승인하지 않는다.
 
-[결정 #85](../../decisions/2026-09-03-walk-diary-route-privacy.md)는 단일 산책의 선형 UI 방향을
+[결정 #85](../../../decisions/2026-09-03-walk-diary-route-privacy.md)는 단일 산책의 선형 UI 방향을
 유지하지만 WalkDiaryRoute의 서버 영속은 열지 않았다. 현재 허용 범위는 dev Lab·fixture replay와
 원본 수명을 늘리지 않는 종료 직후 미리보기다. 지역 구간 후보는 이 동선과 별도 형태이지만,
 이 문서만으로 저장 자격을 얻지는 않는다. 관련 [동선 탐색](walk-diary-route.md)의 단절 보존과
@@ -217,7 +217,7 @@ Pin 유무, 관측 공백과 게임 표시 유무를 비교한다. 한 동네 �
 [행동 프로필·개인화](behavior-profile-and-personalization.md)에 입력 자격·집계·프로필 표시·
 미시 제안·정정/삭제를 따로 정리했다. 스토리보드는 그 요약의 근거 장면으로 돌아가는 표면이
 될 수 있다. 현재 spike의 합성 Pin이 실제 행동 개인화 구현을 뜻하지는 않는다.
-산책 일기의 현재 설계와 실행은 [산책 일기 계획](diary-storyboard-plan.md)에서 확인한다.
+산책 일기의 현재 설계와 실행은 [산책 일기 계획](plan.md)에서 확인한다.
 
 - 첫 지역 체계의 실제 단위·공급자·경계 품질과 이름의 이해 가능성.
 - 사진 없는 산책의 화면 재료, 한 동네 산책의 편집, 자동/수동 넘김과 장면 길이.
@@ -232,9 +232,9 @@ Pin 유무, 관측 공백과 게임 표시 유무를 비교한다. 한 동네 �
 ## 참고와 확인 기준
 
 - [산책 기억 엔진](memory-engine.md), [미시 판정](micro-judgment.md), [행동 책갈피](behavior-anchor.md).
-- [점령 게임 탐색](territory-site-game.md), [세션 연속성과 체류](session-continuity-and-dwell.md).
-- [Context Plane](../../contracts/context-plane.md), [Journal](../../contracts/walk-journal-projection.md),
-  [Pin 증언 정정](../../contracts/pin-attestation-correction.md).
+- [점령 게임 탐색](../game/territory-site-game.md), [세션 연속성과 체류](../recording/session-continuity-and-dwell.md).
+- [Context Plane](../../../contracts/context-plane.md), [Journal](../../../contracts/walk-journal-projection.md),
+  [Pin 증언 정정](../../../contracts/pin-attestation-correction.md).
 - geo 확인 기준: `4ae875f7d7f28b3c2223b968878c55b44e9a5d64`.
 - PR 준비 중 `daf634a3ca9305bbc3af5763539a1e96d4729f5f`까지 확인하고 새 결정 #85를 연결했다.
 - dev 확인 기준: `eb804cc5eda135df88c1c1608a4690253968230e`의

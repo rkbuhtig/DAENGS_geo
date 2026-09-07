@@ -1,15 +1,15 @@
 # DAENGS_geo
 
-[산책 게임 구현·이관 인수인계](docs/explorations/walk/territory-game-handoff.md)에서
+[산책 게임 구현·이관 인수인계](docs/explorations/walk/game/territory-game-handoff.md)에서
 Geo에 둔 이유, 현재 DEV·APP 반영 상태, 파일별 이관 방법과 남은 작업을 확인한다.
 [동네 순위·칭호 정책/계약](docs/contracts/territory-ranking-titles.md)은 아직 미구현인 검토 초안이다.
 
-[산책·점령 세션/통계 working skeleton](docs/explorations/walk/activity-statistics-skeleton.md)의
+[산책·점령 세션/통계 working skeleton](docs/explorations/walk/statistics/activity-statistics-skeleton.md)의
 [ID 연결·순수 통계 코어](docs/contracts/activity-statistics-core.md)를 구현했다.
 [PostgreSQL 저장·재처리 골격](docs/contracts/activity-statistics-postgres.md)도 추가했으며,
 DEV/APP 제품 연결은 후속 단계다.
 
-[동네 강자 시즌 체험](docs/explorations/walk/territory-season-game.md)은 10분 보호·점령/점유 점수·
+[동네 강자 시즌 체험](docs/explorations/walk/game/territory-season-game.md)은 10분 보호·점령/점유 점수·
 시즌 기록을 로컬 DB에 보존한다. `uv run python -m scripts.spikes.territory_season.server`로
 실행한다. 합성 지도·사진 판정과 수동 시간 조작으로 검증하며 운영 연결은 후속이다.
 

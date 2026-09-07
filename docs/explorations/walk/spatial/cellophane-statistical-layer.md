@@ -2,7 +2,7 @@
 status: exploring
 implementation: working-skeleton
 last_verified: 2026-08-31
-depends-on: decisions/2026-08-26-walk-permanent-spatial-form.md, contracts/cellophane-geojson.md, explorations/walk/territory-paint.md
+depends-on: decisions/2026-08-26-walk-permanent-spatial-form.md, contracts/cellophane-geojson.md, explorations/walk/spatial/territory-paint.md
 ---
 # 싸인펜·셀로판·통계층 — 산책별 공간장을 보존하고 질문에 따라 읽는 모델
 
@@ -13,9 +13,9 @@ depends-on: decisions/2026-08-26-walk-permanent-spatial-form.md, contracts/cello
 공간 이용 분포처럼 서로 다른 질문으로 축약하는 질의다.**
 
 이 문서는 이 세 비유를 하나의 색 효과로 섞지 않기 위한 의미 계약이다. 구현 계약은
-[`Cellophane`](../../../app/features/territory/paint.py)과
-[Cellophane GeoJSON](../../contracts/cellophane-geojson.md), 영구 저장 경계는
-[결정 #69](../../decisions/2026-08-26-walk-permanent-spatial-form.md)가 우선한다.
+[`Cellophane`](../../../../app/features/territory/paint.py)과
+[Cellophane GeoJSON](../../../contracts/cellophane-geojson.md), 영구 저장 경계는
+[결정 #69](../../../decisions/2026-08-26-walk-permanent-spatial-form.md)가 우선한다.
 
 ## 왜 별도 문서가 필요한가
 
@@ -528,7 +528,7 @@ GPS noise seed와 accuracy만 변경
   evaluator truth와 truth label을 제거한 canonical Cellophane fixture
 - `/cellophane-distribution` — 다섯 metric과 질량 영역을 실제 Naver/OSM 지도에서 바꾸어 보는
   dev console 검증 화면. 모집단 generator version·run ID와 Paint 세대를 함께 표시한다.
-- [`continuous_brush.py`](./continuous-brush-reference.md) — canonical Segment를 육각형 없이
+- [`continuous_brush.py`](continuous-brush-reference.md) — canonical Segment를 육각형 없이
   정규화된 시간 질량 원으로 읽는 비교용 연속 reference field
 - Cellophane GeoJSON — 한 장의 chain·셀·질량 진단 검증 표면
 

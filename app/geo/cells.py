@@ -20,7 +20,7 @@
 `scripts/spikes/territory_paint/region_fidelity.py`, `docs/research/2026-08-26-region-cell-fidelity.md`.
 
 **무엇을 영구히 남길지는 아직 안 정했다** — 단순화 궤적과 산책별 셀 맵이 후보다
-(`docs/explorations/walk/territory-paint.md` §A). 실사용 업로드는 #57·#58 이 막고 있어
+(`docs/explorations/walk/spatial/territory-paint.md` §A). 실사용 업로드는 #57·#58 이 막고 있어
 지금 고를 필요가 없다.
 """
 

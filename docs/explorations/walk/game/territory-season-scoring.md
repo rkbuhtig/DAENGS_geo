@@ -2,12 +2,12 @@
 status: proposed
 implementation: none
 last_verified: 2026-09-04
-depends-on: territory-site-game.md, storyboard-and-regions.md, decisions/2026-09-03-canonical-trail-consumer-boundary.md
+depends-on: territory-site-game.md, ../diary/storyboard-and-regions.md, decisions/2026-09-03-canonical-trail-consumer-boundary.md
 ---
 # 시즌 점령전 — 정기 점수와 최대 동시 정복
 
 > **최신 재개 기준:** [게임 구현·이관 인수인계](territory-game-handoff.md).
-> 실제 동네 순위·칭호의 현재 미구현 범위와 검토 계약은 [별도 초안](../../contracts/territory-ranking-titles.md)에 있다.
+> 실제 동네 순위·칭호의 현재 미구현 범위와 검토 계약은 [별도 초안](../../../contracts/territory-ranking-titles.md)에 있다.
 
 > **2026-09-06 후속 방향:** 대화에서 점령 보너스와 동시 보유 배율을 선택했고,
 > [동네 강자 시즌 게임](territory-season-game.md)에 실제 보유 시간 정산을 로컬 구현했다.
@@ -224,7 +224,7 @@ A동 정복 랭킹
 시즌 중에는 `site_id → region_id` 매핑과 활성 점령지 목록을 바꾸지 않는다.
 
 지역 체계는 행정동·법정동·별도 리그 격자 중 아직 정하지 않았다. 공통 지역 정보는
-[산책 스토리보드와 동네 구간](storyboard-and-regions.md)과 함께 검토하되, 스토리보드의
+[산책 스토리보드와 동네 구간](../diary/storyboard-and-regions.md)과 함께 검토하되, 스토리보드의
 편집용 지역 구간을 게임 점령 판정으로 사용하지 않는다.
 
 ## 7. 비동기 사진은 과거 점수를 다시 쓰지 않는다
@@ -442,5 +442,5 @@ Standing은 그 기록을 합계와 최고값으로 읽은 결과다. 점령 증
 - geo 기준: `0defc3ab402e61df978c803d82dff7a052f66c77`.
 - 중립 점령지 읽기 구현: `app/features/territory/game/`.
 - 점령 증거 탐색: [territory-site-game.md](territory-site-game.md).
-- 공통 산책 소비자 경계: [결정 #84](../../decisions/2026-09-03-canonical-trail-consumer-boundary.md).
-- 지역 카탈로그와 랭킹 지역 구분: [storyboard-and-regions.md](storyboard-and-regions.md).
+- 공통 산책 소비자 경계: [결정 #84](../../../decisions/2026-09-03-canonical-trail-consumer-boundary.md).
+- 지역 카탈로그와 랭킹 지역 구분: [../diary/storyboard-and-regions.md](../diary/storyboard-and-regions.md).

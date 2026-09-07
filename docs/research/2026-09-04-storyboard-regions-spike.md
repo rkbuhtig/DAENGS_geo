@@ -1,6 +1,6 @@
 # 2026-09-04 — 실제 주변 자료를 넣은 합성 산책 스토리보드
 
-대상: [산책 스토리보드와 동네 구간](../explorations/walk/storyboard-and-regions.md).
+대상: [산책 스토리보드와 동네 구간](../explorations/walk/diary/storyboard-and-regions.md).
 기준 코드: geo `0defc3a` 위의 `scripts/spikes/storyboard_and_regions`.
 운영 계약을 채택하는 문서가 아니라 로컬 실험의 관찰 기록이다.
 

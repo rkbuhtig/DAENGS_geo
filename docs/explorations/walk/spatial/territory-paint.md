@@ -59,7 +59,7 @@ depends-on: contracts/walk-record.md (WalkFacts), app/geo/cells.py 격자
 그리고 애초에 산책의 시작과 끝은 주인이 정하지 지형이 정하지 않는다. 면은 궤적이 만드는 게
 아니라 붓이 만든다.
 
-### 4. 이진 도장 — [측정으로 기각](../../research/2026-08-26-brush-falloff.md)
+### 4. 이진 도장 — [측정으로 기각](../../../research/2026-08-26-brush-falloff.md)
 
 셀 중심이 붓 반경 안이면 시간을 통째로 주는 방식. 경로 위의 칸과 24m 떨어진 칸이 같은 값을
 받아 **모든 칸의 `peak` 이 1.0** 이 된다. 표시를 어떻게 하든 구별할 값 자체가 없다.
@@ -93,7 +93,7 @@ Paint v2 부터 각 stamp 의 가중치 합을 1 로 정규화한다. 따라서 
 `sample_step_m` 을 묶은 `paint_fp` 다. 다른 `paint_fp` 의 장은 겹치지 않는다.
 
 `app/features/territory/geojson.py` — 그 한 장과 원천 canonical Segment를
-[결정론적 GeoJSON](../../contracts/cellophane-geojson.md)으로 만든다. continuity chain마다
+[결정론적 GeoJSON](../../../contracts/cellophane-geojson.md)으로 만든다. continuity chain마다
 `LineString Feature`를 따로 내므로 break 사이를 잇지 않고, 셀 육각형과 질량 진단도 서버가
 같이 계산한다. 색상·opacity·범례는 저장값이 아니라 소비자 표현이라 포함하지 않는다.
 
@@ -121,13 +121,13 @@ Paint v2 부터 각 stamp 의 가중치 합을 1 로 정규화한다. 따라서 
 ### A. 무엇을 영구히 남기나 — **결정 #69 로 닫힘**
 
 > **2026-08-26 채택.** 집계 셀 맵(C) 하나를 남긴다. 단순화 궤적은 영구 저장하지 않는다.
-> 근거와 대가는 [결정 #69](../../decisions/2026-08-26-walk-permanent-spatial-form.md).
+> 근거와 대가는 [결정 #69](../../../decisions/2026-08-26-walk-permanent-spatial-form.md).
 > 아래 표는 그 결정이 선 근거이므로 그대로 둔다.
 
 셀로판을 나중에 다시 만들려면 무언가가 남아야 하는데 원좌표는 finish 직후 purge 된다(#57).
 후보가 셋이었고, 재고 나서 골랐다.
 
-아래는 [저장 후보 실측](../../research/2026-08-26-storage-candidates.md)(산책 98회, 셀 11.9m,
+아래는 [저장 후보 실측](../../../research/2026-08-26-storage-candidates.md)(산책 98회, 셀 11.9m,
 연 1,000회 환산)이다. **첫 판에 적었던 "~80점 / ~200행" 은 추정이었고, 궤적 쪽이 14배
 틀렸다.**
 
@@ -163,7 +163,7 @@ Paint v2 부터 각 stamp 의 가중치 합을 1 로 정규화한다. 따라서 
 
 ### B'. 격자가 `occupancy` 의 **뜻**을 정한다 — 체류냐 빈도냐
 
-> **2026-08-27 실측** — [멈춤이 물감이 되는가](../../research/2026-08-27-dwell-becomes-paint.md)
+> **2026-08-27 실측** — [멈춤이 물감이 되는가](../../../research/2026-08-27-dwell-becomes-paint.md)
 
 멈춤은 물감이 되고 체류 시간에 비례한다. 그런데 그 대비가 격자에 크게 좌우된다.
 
@@ -179,7 +179,7 @@ Paint v2 부터 각 stamp 의 가중치 합을 1 로 정규화한다. 따라서 
 > **2026-08-27 정정.** 위 표의 "통과가 이긴다/체류가 이긴다" 는 **총량끼리 견준 오류**다.
 > 산책당으로 나누면 격자 무관하게 체류가 5 배 안팎으로 이긴다. 그리고 진짜 결함은
 > 정규화 없는 kernel 이 **관측 1 초를 격자에 따라 0.45~10.3 초로 쌓는 것**이었다 —
-> [질량 보존 kernel 측정](../../research/2026-08-27-mass-conserving-kernel.md).
+> [질량 보존 kernel 측정](../../../research/2026-08-27-mass-conserving-kernel.md).
 >
 > **Paint v2 에 채택했다.** 정규화 뒤 격자는 `occupancy` 의 **뜻**을 못 바꾸고, 이
 > fixture 에서 관측된 주된 차이는 위치 해상도와 저장량이다. 그러면 #69 의 격자 게이트는
@@ -283,7 +283,7 @@ A − B   여름에만 가 본 곳
 ## 검증됨 (2026-08-26)
 
 `LayerSpec`(`app/features/territory/layers.py`)과 정답 심은 1년치로 파이프라인 전체를 쟀다 —
-[셀로판 회수 실험](../../research/2026-08-26-cellophane-recovery.md). 6 기준 전부 통과.
+[셀로판 회수 실험](../../../research/2026-08-26-cellophane-recovery.md). 6 기준 전부 통과.
 
 가장 센 결과는 F1/F2 다. **같은 집·같은 경로·같은 연간 횟수, 계절 배정만 정반대**인 두
 사람의 연간 누적 지도가 잡음보다도 가깝고(0.5ε) 계절 조건에서는 코사인 −0.999 로 갈린다.
@@ -294,7 +294,7 @@ A − B   여름에만 가 본 곳
 
 ## 읽히는 것도 확인됐다 (2026-08-26)
 
-[뷰어 실험](../../research/2026-08-26-layer-viewer.md) — 고정 시나리오 13 종, F1/F2 를
+[뷰어 실험](../../../research/2026-08-26-layer-viewer.md) — 고정 시나리오 13 종, F1/F2 를
 나란히. **뷰어가 자기 숫자를 스스로 잰다**(자가 점검 패널) — 두 판 비교는 픽셀 단위 평균 절대차다:
 
 - **전체 장면에서 두 판이 픽셀까지 사실상 같다**(MAD 0.06/255) — 누적만 저장했다면 여기서 끝
@@ -310,6 +310,6 @@ A − B   여름에만 가 본 곳
    "몇에서 끊어야 그림이 읽히는가" 를 눈으로 재고, 그 관찰을 §C 의 근거로 삼는다
 2. 궤적과 셀 맵을 **둘 다** 들고 레이어 연산을 만져 본다
 3. 그다음에 §A의 경계를 고른다. 이제 기준 4 와 뷰어라는 근거가 한쪽에 붙어 있다
-4. **[실기기 export 로컬 replay](cellophane-device-replay.md)** — 세 연구 문서가 전부
+4. **[실기기 export 로컬 replay](../recording/cellophane-device-replay.md)** — 세 연구 문서가 전부
    "실기기 지터 분포는 가정" 을 남겼다. `daengs-debug-walk-export.apk` 로 쌓기 시작하면
    §B(정확도에 맞춘 붓)의 근거가 된다

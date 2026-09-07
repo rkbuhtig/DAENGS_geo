@@ -7,7 +7,7 @@ uv run python -m scripts.spikes.territory_paint.real_route --json walks.json    
 uv run python -m scripts.spikes.territory_paint.paint --walks walks.json          # 프로파일별로 칠하기
 ```
 
-코드는 `app/features/territory/paint.py`, 갈래는 [territory-paint](../explorations/walk/territory-paint.md).
+코드는 `app/features/territory/paint.py`, 갈래는 [territory-paint](../explorations/walk/spatial/territory-paint.md).
 
 > **2026-08-26 재측정.** 첫 판은 격자 좌표(Web Mercator)를 그대로 미터로 썼다 — 위도 37.5°
 > 에서 1 단위가 실제 0.79m 라, `3·8·20` 밴드가 실제 2.4·6.3·15.9m 로 동작하고 넓이는 1.6배로
@@ -145,7 +145,7 @@ uv run python -m scripts.spikes.territory_paint.paint --walks walks.json        
 - **문턱 값.** `peak ≥ 0.9`, `walks ≥ 절반` 은 이 측정을 읽기 위한 잠정 구분이지 등급이 아니다.
   `peak ≥ 0.9` 를 "밟았다" 로 읽으면 안 된다 — σ=8m GPS 로 2~3m 심에 찍혔다는 것이 실제로
   그 자리에 있었다는 뜻이 못 된다. 그래서 코드의 이름도 `core_hit_cells` 다.
-  등급은 [territory-paint](../explorations/walk/territory-paint.md) 참고.
+  등급은 [territory-paint](../explorations/walk/spatial/territory-paint.md) 참고.
 - **시간축.** 24회를 한 장에 합쳤다. 계절·시간대별로 다른 경로를 쓰면 그 맥락이 죽는데,
   이 측정은 그 문제를 다루지 않는다.
 - **실기기 지터 분포.** σ=8m 은 가정이다.

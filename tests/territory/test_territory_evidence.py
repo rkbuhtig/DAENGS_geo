@@ -8,7 +8,7 @@
 **정답을 심은 자료에서는 무엇이 제일 말할 가치 있는지 우리가 안다.** 그래서 선택 정책도
 테스트할 수 있다 — 이게 "고르기도 장치다" 의 실제 값어치다.
 
-[evidence-layer]: ../../docs/explorations/walk/evidence-layer.md
+[evidence-layer]: ../../docs/explorations/walk/spatial/evidence-layer.md
 """
 
 import math

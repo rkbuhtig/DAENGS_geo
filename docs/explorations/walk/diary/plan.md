@@ -17,10 +17,10 @@ LLM이 전체 세션을 먼저 이해하고, 시간순으로 장면을 하나씩
 
 **구현 위치는 `scripts/spikes/diary_storyboard/`다.** 이 제작 계획에 속하는 실험으로 두며,
 운영 `app/`에 붙이기 전에 단계별 상태와 모델 출력을 로컬 파일로 비교한다.
-[실행 명령과 파일 구성](../../../scripts/spikes/diary_storyboard/README.md),
-[초기 골격 실행](../../research/2026-09-06-diary-storyboard-skeleton.md),
-[geo 계산 입력 연결 결과](../../research/2026-09-06-diary-geo-observed-inputs.md),
-[행동 정규화·근거 대조 3쌍 비교](../../research/2026-09-06-diary-claim-comparison.md).
+[실행 명령과 파일 구성](../../../../scripts/spikes/diary_storyboard/README.md),
+[초기 골격 실행](../../../research/2026-09-06-diary-storyboard-skeleton.md),
+[geo 계산 입력 연결 결과](../../../research/2026-09-06-diary-geo-observed-inputs.md),
+[행동 정규화·근거 대조 3쌍 비교](../../../research/2026-09-06-diary-claim-comparison.md).
 
 ### 설계한 아키텍처
 
@@ -116,8 +116,8 @@ geo의 LLM 골격은 제품 API에 연결하지 않았다. 검토본 서버 동�
 일기 생성·열람의 제품 연결, 운영 DB 적용·실기기 전체 흐름 확인이 남아 있다.
 기존 규칙 selector의 세부 수치는 그 구현을 설명하는 값이며 새 LLM 장면 정책으로 가져오지 않는다.
 
-제품의 요청·응답과 저장 동작은 [실데이터 이식 계약](../../contracts/walk-storyboard-live.md),
-[장면 교환 v2](../../contracts/walk-storyboard-candidates-v2.md),
+제품의 요청·응답과 저장 동작은 [실데이터 이식 계약](../../../contracts/walk-storyboard-live.md),
+[장면 교환 v2](../../../contracts/walk-storyboard-candidates-v2.md),
 DAENGS_dev·DAENGS_app의 `docs/walk-storyboard-live.md`에서 확인한다.
 
 ## 다음 작업

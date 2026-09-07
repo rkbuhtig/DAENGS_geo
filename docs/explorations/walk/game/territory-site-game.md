@@ -2,7 +2,7 @@
 status: proposed
 implementation: working-skeleton
 last_verified: 2026-09-03
-depends-on: territory-paint.md, contracts/walk-record.md, contracts/walk-capsule.md, decisions/2026-09-03-canonical-trail-consumer-boundary.md
+depends-on: ../spatial/territory-paint.md, contracts/walk-record.md, contracts/walk-capsule.md, decisions/2026-09-03-canonical-trail-consumer-boundary.md
 ---
 # 점령지 게임 — 산책 접촉, 사진 서명, 영역 형성
 
@@ -36,7 +36,7 @@ depends-on: territory-paint.md, contracts/walk-record.md, contracts/walk-capsule
 ```
 
 점령의 장기 주체를 개·보호자·가구 중 무엇으로 할지는 아직 미정이다. 다만 첫 계약이 그 결정을
-막지 않으면서 현재 단일 `dog_id` 산책과 이어지도록 [결정 #84](../../decisions/2026-09-03-canonical-trail-consumer-boundary.md)는
+막지 않으면서 현재 단일 `dog_id` 산책과 이어지도록 [결정 #84](../../../decisions/2026-09-03-canonical-trail-consumer-boundary.md)는
 `claiming_pet_id` 하나를 가계약으로 정했다. v0에서는 세션의 `dog_id`와 같고, 강아지 수가
 점령 기회나 강도를 늘리지 않는다. 권한을 가진 보호자 계정은 actor이지 장기 claimant로 확정된
 것이 아니다.

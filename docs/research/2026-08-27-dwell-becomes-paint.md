@@ -7,7 +7,7 @@ uv run pytest tests/territory/test_dwell_paint.py -v
 ```
 
 코드는 `app/features/territory/paint.py` · `app/features/walk/facts.py`,
-갈래는 [evidence-layer](../explorations/walk/evidence-layer.md).
+갈래는 [evidence-layer](../explorations/walk/spatial/evidence-layer.md).
 
 ## 왜 쟀나
 

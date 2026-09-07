@@ -1,6 +1,6 @@
 # M2 사건 자리에서 진짜 세계가 얼마나 읽히나 — DB 명사는 0/3, 지도 맥락은 6/6
 
-[memory-engine](../explorations/walk/memory-engine.md) §12 가 Walk Capsule 의 event-context 를
+[memory-engine](../explorations/walk/diary/memory-engine.md) §12 가 Walk Capsule 의 event-context 를
 "당시 확보 **가능했던** 주변" 이라고 정의했다. 이 실험은 그 "가능했던" 을 가정이 아니라
 숫자로 만든다 — M2 의 합성 사건 자리([latent-dwell-synthesis](2026-08-27-latent-dwell-synthesis.md))
 에서 **시스템이 실제로 가진 세계 데이터**(DB 의 place·facility, OSM 지형)가 무엇을 돌려주나.
@@ -26,7 +26,7 @@
    것은 **사후 관찰**로 표기한다.
 4. bbox 는 M2 의 것을 그대로 썼다 — 지역을 새로 고르지 않았다.
 5. 이 실험이 재는 것은 "캡슐에 무엇이 담기는가" 다. "나레이터가 무엇을 말해도 되는가" 는
-   문법([memory-engine](../explorations/walk/memory-engine.md) 원칙 10)이 정하고, 여기서
+   문법([memory-engine](../explorations/walk/diary/memory-engine.md) 원칙 10)이 정하고, 여기서
    판정하지 않는다.
 
 ## 사전 등록 질문과 판정 기준
@@ -96,7 +96,7 @@ A·D 자리 셋 중 셋 다, 50m 도 100m 도 DB 명사가 없다. 이유는 DB 
 KCISA/KTO 문화시설이고 `place` 는 병원·약국이다. **이 시스템은 일반 상권 POI 를 가진 적이
 없다.** 카페·편의점·빵집을 몰라서 못 주는 게 아니라, 그 층 자체가 없다.
 
-그러니 [memory-engine](../explorations/walk/memory-engine.md) §12 의 커버리지 구멍 경고와
+그러니 [memory-engine](../explorations/walk/diary/memory-engine.md) §12 의 커버리지 구멍 경고와
 §16 의 우선순위(`미시 Place 생성 >>> World context 완전성`)가 수치로 선다: **"이 근처" 와
 사용자 명명("두부 풀숲")이 기본 경로이고, 세계 명사는 걸리면 좋은 보너스다.** "주인이 지도다"
 는 감상이 아니라 이 상자의 측정 결과다.

@@ -5,8 +5,8 @@ adopted_at: 2026-09-01
 ---
 # 산책 증거는 Capsule로 봉인하고, 사용자가 남긴 Pin을 조건에 따라 공간 일기로 다시 읽는다
 
-이 결정은 [memory-engine](../explorations/walk/memory-engine.md)과
-[behavior-anchor](../explorations/walk/behavior-anchor.md)의 전체를 채택하지 않는다. 두 탐색에서
+이 결정은 [memory-engine](../explorations/walk/diary/memory-engine.md)과
+[behavior-anchor](../explorations/walk/diary/behavior-anchor.md)의 전체를 채택하지 않는다. 두 탐색에서
 제품 한 바퀴를 닫는 데 필요한 좁은 경계만 꺼낸다.
 
 결정 #57은 산책 데이터의 좌표 민감도와 삭제 경계를, #58은 산책을 묶는 `dog_id`를, #69는

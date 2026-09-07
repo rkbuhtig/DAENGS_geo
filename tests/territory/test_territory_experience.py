@@ -1,6 +1,6 @@
 """경험 질의 계약. `app/features/territory/experience.py`.
 
-장면(`docs/explorations/walk/experience-scenario.md`)의 3·4·5 번이 숫자로 나오는지 본다.
+장면(`docs/explorations/walk/spatial/experience-scenario.md`)의 3·4·5 번이 숫자로 나오는지 본다.
 
 여기서 고정하는 것 넷.
 

@@ -9,7 +9,7 @@
 
 ## 무엇을 그리나
 
-[evidence-layer](../../../docs/explorations/walk/evidence-layer.md) 원칙 1 의 **사람 쪽
+[evidence-layer](../../../docs/explorations/walk/spatial/evidence-layer.md) 원칙 1 의 **사람 쪽
 renderer** 다. AI 는 같은 JSON 을 읽고 문장을 만들고, 이 화면은 같은 JSON 을 읽고 근거를
 편다 — 사실은 하나고 그리는 방법만 둘이다.
 

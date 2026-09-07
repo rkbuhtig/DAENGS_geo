@@ -30,7 +30,7 @@ escalation 슬롯이고, 채택하려면 #7 의 **보이는 개정**이어야 �
 
 지표 후보(occupancy · low-motion · excess-time · prominence)와 자리별 축(노출 · 반복성 ·
 강도, 분모는 체류를 뺀 통과 기준). 어느 후보가 이기는지는 미정이다 — fixture generation 2
-위의 매트릭스 실험이 정한다 ([repeated-dwell-area](repeated-dwell-area.md) M3).
+위의 매트릭스 실험이 정한다 ([repeated-dwell-area](../spatial/repeated-dwell-area.md) M3).
 
 ### L3 — 룰은 행동의 의미가 아니라 발언 가능성을 판정한다
 

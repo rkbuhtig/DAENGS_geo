@@ -2,7 +2,7 @@
 
     uv run python -m scripts.spikes.territory_paint.real_route --json walks.json --cache osm.json
 
-갈래는 `docs/explorations/walk/territory-paint.md`.
+갈래는 `docs/explorations/walk/spatial/territory-paint.md`.
 
 ## 왜 필요한가
 
