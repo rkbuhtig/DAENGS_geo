@@ -1,0 +1,56 @@
+{
+  "passed": true,
+  "twoOfThree": {
+    "policy": "complete-observations-visit-colour-v1",
+    "cell": [
+      832462,
+      376297
+    ],
+    "numerator": 2,
+    "denominator": 3,
+    "value": 0.6666666666666666,
+    "selected_count": 3,
+    "excluded_count": 0,
+    "lat": 37.54654512779772,
+    "lng": 127.03969630845684
+  },
+  "twentyOfThirty": {
+    "policy": "complete-observations-visit-colour-v1",
+    "cell": [
+      832462,
+      376297
+    ],
+    "numerator": 20,
+    "denominator": 30,
+    "value": 0.6666666666666666,
+    "selected_count": 30,
+    "excluded_count": 0,
+    "lat": 37.54654512779772,
+    "lng": 127.03969630845684
+  },
+  "missing": {
+    "policy": "complete-observations-visit-colour-v1",
+    "cell": [
+      832462,
+      376297
+    ],
+    "numerator": 2,
+    "denominator": 3,
+    "value": 0.6666666666666666,
+    "selected_count": 5,
+    "excluded_count": 2,
+    "lat": 37.54654512779772,
+    "lng": 127.03969630845684
+  },
+  "checks": [
+    "identical PNG for 2/3 vs 20/30",
+    "5-minute hold does not change visit image",
+    "missing/partial excluded while scenes remain",
+    "real map click raw Hex inspection",
+    "fixed visit legend separate from legacy density",
+    "N=0 is unavailable",
+    "mobile map/card visible together",
+    "320/360/430/760/1120 layouts",
+    "no JS errors"
+  ]
+}

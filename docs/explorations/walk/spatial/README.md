@@ -2,6 +2,10 @@
 
 [산책 전체 입구](../README.md) · [일기](../diary/README.md) · [세션 통계](../statistics/README.md)
 
+조건별 셀로판·부드러운 브러시·겹 수/비율 혼합 농도와 일기 탐색의 로컬 실험 결과는
+[2026-09-07 종합 보고서](../../../research/2026-09-07-walk-diary-experiment-report.md)에 있다.
+농도 계수는 시각 실험값이며 통계적으로 추정한 최적값이나 제품 채택 계약이 아니다.
+
 | 작업 | 기준 문서 |
 |---|---|
 | 붓·산책별 셀로판·통계 질의 | [공간 통계층](cellophane-statistical-layer.md), [territory paint](territory-paint.md) |

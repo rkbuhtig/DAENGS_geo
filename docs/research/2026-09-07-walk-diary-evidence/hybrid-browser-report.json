@@ -1,0 +1,105 @@
+{
+  "passed": true,
+  "numeric": [
+    {
+      "weight": 0,
+      "single": 0.10813714792105533,
+      "twentyOfTwenty": 0.47497267886325534,
+      "twentyOfHundred": 0.47497267886325534,
+      "twoOfThree": 0.17139332438980942,
+      "twentyOfThirty": 0.47497267886325534,
+      "none": 0,
+      "cap": 0.72
+    },
+    {
+      "weight": 0.3,
+      "single": 0.10813714792105533,
+      "twentyOfTwenty": 0.47497267886325534,
+      "twentyOfHundred": 0.36097923593607406,
+      "twoOfThree": 0.15425399195082845,
+      "twentyOfThirty": 0.42747541097692976,
+      "none": 0,
+      "cap": 0.72
+    },
+    {
+      "weight": 0.5,
+      "single": 0.10813714792105533,
+      "twentyOfTwenty": 0.47497267886325534,
+      "twentyOfHundred": 0.2849836073179532,
+      "twoOfThree": 0.14282777032484117,
+      "twentyOfThirty": 0.3958105657193794,
+      "none": 0,
+      "cap": 0.72
+    }
+  ],
+  "readings": [
+    {
+      "population": "single",
+      "weight": 0,
+      "peak": 1,
+      "alpha": 0.10813714792105533
+    },
+    {
+      "population": "single",
+      "weight": 0.3,
+      "peak": 1,
+      "alpha": 0.10813714792105533
+    },
+    {
+      "population": "single",
+      "weight": 0.5,
+      "peak": 1,
+      "alpha": 0.10813714792105533
+    },
+    {
+      "population": "ratio3",
+      "weight": 0,
+      "peak": 3,
+      "alpha": 0.21627429584211066
+    },
+    {
+      "population": "ratio3",
+      "weight": 0.3,
+      "peak": 3,
+      "alpha": 0.21627429584211066
+    },
+    {
+      "population": "ratio3",
+      "weight": 0.5,
+      "peak": 3,
+      "alpha": 0.21627429584211066
+    },
+    {
+      "population": "ratio30",
+      "weight": 0,
+      "peak": 30,
+      "alpha": 0.535732659246252
+    },
+    {
+      "population": "ratio30",
+      "weight": 0.3,
+      "peak": 30,
+      "alpha": 0.535732659246252
+    },
+    {
+      "population": "ratio30",
+      "weight": 0.5,
+      "peak": 30,
+      "alpha": 0.535732659246252
+    }
+  ],
+  "checks": [
+    "single stays pale",
+    "same count considers denominator",
+    "same ratio grows darker with count",
+    "identical brush geometry",
+    "mode cache restores exact image",
+    "hold/missing invariant in all three modes",
+    "scene selection preserves background",
+    "raw Hex inspection",
+    "mobile map/card and responsive widths",
+    "URL model restoration",
+    "empty cohort",
+    "no JS errors"
+  ]
+}
