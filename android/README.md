@@ -1,6 +1,11 @@
-# DAENGS Android 워킹 스켈레톤
+# DAENGS Android 연구·대조 구현
 
-현재 스냅샷 검증: 2026-09-01 — CI에서 단위 테스트와 `assembleDebug`가 통과했다. 실기기 화면
+이 Gradle 프로젝트는 **Geo의 연구용 기준 구현**이다. 운영 앱 수정은
+[SAJOYO/DAENGS_APP](https://github.com/SAJOYO/DAENGS_APP)에서 진행한다.
+이 문서의 구현·미구현 목록은 Geo 사본에만 해당하며, 채택 기준점은
+[승격 원장](../docs/promotion-ledger.toml)에서 확인한다.
+
+기록된 검증: 2026-09-01 — CI에서 단위 테스트와 `assembleDebug`가 통과했다. 실기기 화면
 OFF/다른 앱 전환 smoke는 별도 확인이 필요하다.
 
 `android/app` 단일 모듈이 실제 위치에서 canonical `POST /v2/places/search`를 호출하고 NAVER
@@ -115,7 +120,7 @@ debug 빌드의 `지도 기능` 탭에서 1×/5×/10× 가상 경로를 재생�
 
 ## 로컬 설정
 
-`local.properties.example`을 `local.properties`로 복사하고 SDK 경로를 고친다. Gradle은
+`android/local.properties.example`을 `android/local.properties`로 복사하고 SDK 경로를 고친다. Gradle은
 `local.properties` → 프로세스 환경변수 → 레포 루트의 무시된 `.env` 순서로 개발 설정을 읽는다.
 
 ```properties
@@ -140,12 +145,19 @@ NAVER Cloud Maps 애플리케이션에서 Dynamic Map을 켜고 Android 패키�
 
 ## 빌드와 테스트
 
-Android Studio에서 `android/`를 프로젝트로 열거나 다음을 실행한다.
+Android SDK와 JDK 21(CI 기준)을 준비한다. Android Studio에서는 `android/`를 프로젝트로 연다.
+아래 CLI는 **Geo 루트**에서 실행하며 `-p android`로 Gradle 프로젝트를 지정한다.
+Windows PowerShell 예시의 JDK 경로는 실제 설치 경로로 바꾼다.
 
 ```powershell
 $env:JAVA_HOME = 'C:\Program Files\Android\Android Studio\jbr'
-cd android
-.\gradlew.bat testDebugUnitTest lintDebug assembleDebug
+.\android\gradlew.bat -p android testDebugUnitTest lintDebug assembleDebug
+```
+
+Bash에서는 같은 Geo 루트에서 실행한다. `JAVA_HOME`은 준비한 JDK를 가리켜야 한다.
+
+```bash
+./android/gradlew -p android testDebugUnitTest lintDebug assembleDebug
 ```
 
 Foreground Service 실기기 smoke에서는 다음을 추가로 본다.
@@ -168,6 +180,9 @@ JSON 을 공유 시트로 넘긴다 — 메일 · 메신저 · Drive 어디로�
 
 ### adb 로 한꺼번에 가져오기
 
+아래 `scripts.verify.walk_bundle` 명령도 **Geo 루트**에서 실행한다. Python 3.12와
+`uv sync --frozen`, PATH의 `adb`, 연결·디버깅 승인된 기기와 로컬 API가 필요하다.
+`all`은 가져오기뿐 아니라 서버 업로드·파생 조회까지 수행한다. 파일만 가져오려면 `pull`을 쓴다.
 
 debug 빌드는 산책을 종료할 때 세션 전체(메타 + 원본 fix)를 내부 저장소
 `files/walk-exports/` 에 JSON 으로 남긴다 — 서버는 finish 에서 원좌표를 지우므로 이 파일이
@@ -198,7 +213,7 @@ uv run python -m scripts.verify.walk_bundle clear                              #
 
 `--out` 폴더는 레포 밖에 두고 커밋하지 않는다.
 
-## 아직 하지 않은 것
+## 이 Geo 사본의 남은 범위
 
 - 이 변경의 실기기 화면 OFF/다른 앱 전환 smoke
 - 닫히지 않은 세션의 복구 UI (미업로드 재전송은 `scripts/verify/walk_bundle.py push` 로 PC 에서 가능)

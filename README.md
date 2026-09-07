@@ -1,24 +1,5 @@
 # DAENGS_geo
 
-[산책 게임 구현·이관 인수인계](docs/explorations/walk/game/territory-game-handoff.md)에서
-Geo에 둔 이유, 현재 DEV·APP 반영 상태, 파일별 이관 방법과 남은 작업을 확인한다.
-[동네 순위·칭호 정책/계약](docs/contracts/territory-ranking-titles.md)은 아직 미구현인 검토 초안이다.
-
-[산책·점령 세션/통계 working skeleton](docs/explorations/walk/statistics/activity-statistics-skeleton.md)의
-[ID 연결·순수 통계 코어](docs/contracts/activity-statistics-core.md)를 구현했다.
-[PostgreSQL 저장·재처리 골격](docs/contracts/activity-statistics-postgres.md)도 추가했으며,
-DEV/APP 제품 연결은 후속 단계다.
-
-[동네 강자 시즌 체험](docs/explorations/walk/game/territory-season-game.md)은 10분 보호·점령/점유 점수·
-시즌 기록을 로컬 DB에 보존한다. `uv run python -m scripts.spikes.territory_season.server`로
-실행한다. 합성 지도·사진 판정과 수동 시간 조작으로 검증하며 운영 연결은 후속이다.
-
-Android 시설 검색 UI를 브라우저에서 비교하는 [웹 검토판](docs/explorations/facility/place-ui-web.md)은
-DB·Docker 없이 기록된 응답으로 실행할 수 있다. 개발 서버 경로는 `/place-ui-lab/`이다.
-
-운영 시설 API의 최초 AI 검색·후속 선택을 확인하는 [시설 AI 웹 검토 도구](tools/facility-review/README.md)도
-이 저장소에서 관리한다. 화면·표본·브라우저 검증은 geo, 운영 API·서비스 테스트는 dev가 소유한다.
-
 [![CI](https://github.com/rkbuhtig/DAENGS_geo/actions/workflows/ci.yml/badge.svg)](https://github.com/rkbuhtig/DAENGS_geo/actions/workflows/ci.yml)
 
 장소 원천과 산책 측정을 재현 가능한 공간 증거로 만들고, 사용자가 증언한 장면을 조건별
@@ -32,98 +13,46 @@ DB·Docker 없이 기록된 응답으로 실행할 수 있다. 개발 서버 경
 [현재 컨셉과 범위](docs/overview.md) · [문서 지도](docs/README.md) ·
 [Android 기준 구현](android/README.md) · [공급자 조립 현황](docs/provider-assembly.md)
 
-## 현재 상태
+## 작업별 입구
 
-| 축 | 구현 상태 | 운영 경계 |
-|---|---|---|
-| Place 검색 | canonical `POST /v2/places/search`, kind별 그룹·사실 조건·공통 identity | 운영 원본은 `DAENGS_dev` |
-| Journey | 선택한 Place의 이동 snapshot과 NAVER handoff | 운영 원본은 `DAENGS_dev` |
-| Android | 위치·Place·Journey·foreground 산책·Room·명시적 종료 업로드 | 운영 원본은 `DAENGS_app` |
-| Walk Capsule | WalkFacts·Cellophane·측정 영수증·당시 문맥을 봉인한 뒤 raw fix purge | 이 저장소의 증거 생산 계약 |
-| Spatial Diary | 조건별 View, Offer·Attestation·Pin, Memory Place, Journal, 비공개 Snapshot | DB/API 구현, 인증 미조립 시 503 |
-| Context Plane | typed Atom·Facet·Lens와 기존 객체 adapter | 계약 구현, 기존 소비자의 전면 이행은 아직 |
-| 자연어 Place intent | hypothesis·lens·open discovery·관측 로그 | dev-only lab, 제품 필수 경로 아님 |
-
-CI는 실제 PostGIS를 포함한 backend `ruff + pytest`와 Android unit test + `assembleDebug`를 병렬로
-검증한다.
-
-## 핵심 흐름
-
-```mermaid
-flowchart TD
-    A["공공 장소 원천"] --> B["Place 사실과 검색"]
-    C["Android GPS"] --> D["Walk 수집"]
-    D --> E["Capsule 봉인"]
-    E --> F["Spatial Diary 읽기"]
-    G["날씨·프로필·측정"] --> H["Context Plane"]
-    H -. "허용된 Lens" .-> I["정책·LLM 소비자"]
-```
-
-산책 종료는 다음 순서를 지킨다.
-
-```text
-start / fixes / finish
-→ canonical fix chain
-→ WalkFacts · occurrence · micro observation
-→ 8u Cellophane · MeasurementReceipt · TrailContextSnapshot
-→ WalkCapsuleManifest seal
-→ raw fix purge
-```
-
-`WalkFacts`와 그 canonical 자식은 관측 사실만 소유한다. 행동 원인·일기 문장·개의 목소리는
-생산 사실에 넣지 않는다. Spatial Diary는 같은 증거를 다시 읽는 별도 소비자이며, Candidate나
-단순 interaction이 아니라 사용자 `Attestation`만 안정적인 `EpisodePin` 의미로 승격한다.
-
-개인정보와 주장 권위까지 포함한 상세 경계는 [컨셉과 범위](docs/overview.md), 객체별 수명은
-[Walk Capsule 계약](docs/contracts/walk-capsule.md)과
-[Spatial Diary 결정 #74](docs/decisions/2026-09-01-spatial-diary.md)를 따른다.
-
-## 저장소 지도
-
-| 위치 | 책임 |
+| 하려는 일 | 먼저 읽을 문서 |
 |---|---|
-| `app/core`, `geo`, `place`, `providers`, `usage` 등 | 공통 설정·공간 primitive·검색·제공사·사용량 |
-| `app/discovery/place_intent` | intent compiler·planner·lens·관측 저장 |
-| `app/features/walk` | 세션 수집·사실·Capsule 생산 |
-| `app/features/territory` | Cellophane·Field·조건별 View·Memory Place |
-| `app/features/territory_game` | 점령 정책·트랜잭션·PostgreSQL·순수 시즌 규칙 |
-| `app/features/spatial_diary`, `storyboard`, `activity_statistics` | 공간 일기·장면 구성·산책과 게임 통계 |
-| `app/features/context_plane`, `journey`, `scene` | 기존 도메인 adapter·Journey HTTP·산책 사실 소비 |
-| `app/main.py`, `app/search_main.py` | 공용 기준 API, Place 검색 전용 실행 |
-| [tools/](tools/README.md) | 도구별 검토 HTTP·화면·로컬 저장. `lab_server.py`는 선택·연결 |
-| [scripts/](scripts/README.md) | 관리 명령·공용 시뮬레이터·관통 검증·갈래별 실험 |
-| [tests/](tests/README.md) | 기능·도구 소유권별 검증. 루트는 저장소 경계 검사 |
-| [alembic/](alembic/README.md), [seeds/](seeds/README.md) | 단일 스키마 변경 경로, 수동 개발용 가상 데이터 |
-| [docs/](docs/README.md), [android/](android/README.md) | 문서 유형별 기록, Kotlin/Compose 연구·대조 구현 |
+| Place 검색·시설 UI·외부 제공사 확인 | [시설 탐색](docs/explorations/facility/README.md), [공급자 조립](docs/provider-assembly.md) |
+| 산책 수집·실기기 관측·재생 | [기록·재생](docs/explorations/walk/recording/README.md), [Android 기준 구현](android/README.md) |
+| 셀로판·조건별 공간 분포 읽기 | [공간 분석](docs/explorations/walk/spatial/README.md) |
+| 공간 일기·장면·사용자 증언 | [일기 작업 입구](docs/explorations/walk/diary/README.md) |
+| 점령 정책·시즌·DEV/APP 이관 | [게임 작업 입구](docs/explorations/walk/game/README.md) |
+| 산책·점령 세션 통계 | [통계 작업 입구](docs/explorations/walk/statistics/README.md) |
+| 화면을 열어 검토 | [도구 목록과 실행 조건](tools/README.md), [시설 AI 검토](tools/facility-review/README.md) |
+| 변경 검증·운영 승격 범위 확인 | [테스트 안내](tests/README.md), [승격 원장](docs/promotion-ledger.toml) |
 
-파일 이동과 유지한 실행·저장 경계, 기준선 대비 검증은
-[구조 정리 결과](docs/research/2026-09-07-repository-reorganization.md)에 있다.
+각 주제 문서에서 계획·구현·검증 결과를 구분한다. Geo의 구현이나 검토 화면이 있다는 사실만으로
+운영 채택을 판단하지 않으며, DEV·APP 반영 범위는 인수인계와 승격 기록을 확인한다.
 
 ## 빠른 실행
 
-Python 3.12와 `uv`, Docker가 필요하다. 로컬 API를 직접 띄우고 Docker는 DB만 사용하는 경로가
-가장 단순하다.
+아래 명령은 **Geo 저장소 루트의 Bash** 기준이다. Python 3.12와 `uv`, Docker가 필요하다.
+로컬 API를 직접 띄우고 Docker는 DB만 사용하는 경로가 가장 단순하다.
 
 ```bash
-cp .env.example .env
+cp .env.example .env  # 최초 준비 시. 기존 .env가 있으면 그 설정을 사용한다
 docker compose up -d db
-uv sync
+uv sync --frozen
 uv run alembic upgrade head
-docker compose exec -T db psql -U daengs -d daengs < seeds/dev_seed.sql
 uv run uvicorn app.main:app --reload
 ```
+
+검색용 가상 시설이 필요하면 [개발 seed 안내](seeds/README.md)를 따른다.
+Windows PowerShell에서는 첫 복사 명령을 `Copy-Item .env.example .env`로 실행하고, 나머지 명령은 같다.
 
 OpenAPI는 `http://127.0.0.1:8000/docs`, 상태 확인은 `/health`와 `/health/ready`다.
 검토 화면은 공용 API와 분리된 입구에서 선택해 실행한다. 예를 들어
 `uv run python -m tools.lab_server --tool cellophane --tool spatial-diary --port 8001`을
 실행하면 해당 서버에서 기존 URL로 열린다. 도구별 명령·데이터·저장 조건은
 [tools 안내](tools/README.md)를 따른다. `DAENGS_DEV_CONSOLE=true`만으로 검토 화면이 열리지는 않는다.
-`/spatial-diary-lab`은 좁은 화면의 지도 60%·열람 패널 40% 배치에서 두 읽기 정책을 시험한다.
-`날짜별 일기`는 fixture 전용 단순화 경로·속도 구간·시작/종료·시간순 Pin을, `겹쳐보기`는
-canonical Paint로 만든 12회 Cellophane의 정적 합성과 별도 읽기 반경을 보여준다. 전자의 경로와
-근사 endpoint는 현재 영구 저장 계약이 아니라 UI 결정을 위한 실험값이다.
 
-테스트와 정적 검사는 CI와 같은 명령으로 실행한다.
+테스트와 정적 검사는 다음으로 실행한다. DB·선택 의존성·별도 도구 검사의 조건은
+[테스트 안내](tests/README.md)를 따른다. `skip`이 있으면 해당 검증은 실행되지 않은 것이다.
 
 ```bash
 uv run ruff check .
@@ -142,7 +71,50 @@ uv run uvicorn app.search_main:app --reload
 pgvector 0.8.6 조합이다. Compose로 API까지 띄울 때도 Alembic은 자동 실행되지 않으므로 먼저
 `docker compose run --rm api alembic upgrade head`를 실행한다.
 
-## API 입구
+## 저장소 지도
+
+| 위치 | 책임 |
+|---|---|
+| `app/core`, `geo`, `place`, `providers`, `usage` 등 | 공통 설정·공간 primitive·검색·제공사·사용량 |
+| `app/discovery/place_intent` | intent compiler·planner·lens·관측 저장 |
+| `app/features/walk` | 세션 수집·사실·Capsule 생산 |
+| `app/features/territory` | Cellophane·Field·조건별 View·Memory Place |
+| `app/features/territory_game` | 점령 정책·트랜잭션·PostgreSQL·순수 시즌 규칙 |
+| `app/features/spatial_diary`, `storyboard`, `activity_statistics` | 공간 일기·장면 구성·산책과 게임 통계 |
+| `app/features/context_plane`, `journey`, `scene` | 기존 도메인 adapter·Journey HTTP·산책 사실 소비 |
+| `app/main.py`, `app/search_main.py` | 공용 기준 API, Place 검색 전용 실행 |
+| [tools/](tools/README.md) | 도구별 검토 HTTP·화면·로컬 저장. `lab_server.py`는 선택·연결 |
+| [scripts/](scripts/README.md) | 관리 명령·공용 시뮬레이터·관통 검증·갈래별 실험 |
+| [tests/](tests/README.md) | 기능·도구 소유권별 검증. 새 테스트는 소유 폴더에 배치 |
+| [alembic/](alembic/README.md), [seeds/](seeds/README.md) | 단일 스키마 변경 경로, 수동 개발용 가상 데이터 |
+| [docs/](docs/README.md), [android/](android/README.md) | 문서 유형별 기록, Kotlin/Compose 연구·대조 구현 |
+
+파일 이동과 유지한 실행·저장 경계, 기준선 대비 검증은
+[구조 정리 결과](docs/research/2026-09-07-repository-reorganization.md)에 있다.
+
+## 핵심 흐름
+
+```mermaid
+flowchart TD
+    A["공공 장소 원천"] --> B["Place 사실과 검색"]
+    C["Android GPS"] --> D["Walk 수집"]
+    D --> E["Capsule 봉인"]
+    E --> F["Spatial Diary 읽기"]
+    G["날씨·프로필·측정"] --> H["Context Plane"]
+    H -. "허용된 Lens" .-> I["정책·LLM 소비자"]
+```
+
+`WalkFacts`와 그 canonical 자식은 관측 사실만 소유한다. 행동 원인·일기 문장·개의 목소리는
+생산 사실에 넣지 않는다. Spatial Diary는 같은 증거를 다시 읽는 별도 소비자이며, Candidate나
+단순 interaction이 아니라 사용자 `Attestation`만 안정적인 `EpisodePin` 의미로 승격한다.
+
+개인정보와 주장 권위까지 포함한 상세 경계는 [컨셉과 범위](docs/overview.md), 객체별 수명은
+[Walk Capsule 계약](docs/contracts/walk-capsule.md)과
+[Spatial Diary 결정 #74](docs/decisions/2026-09-01-spatial-diary.md)를 따른다.
+
+## 주요 API 입구
+
+아래는 대표 표면이다. 전체 경로·요청·응답은 실행 중인 공용 API의 `/docs`에서 확인한다.
 
 | 표면 | 역할 |
 |---|---|
@@ -151,6 +123,7 @@ pgvector 0.8.6 조합이다. Compose로 API까지 띄울 때도 Alembic은 자�
 | `POST /walk/sessions` | 멱등 산책 시작 |
 | `POST /walk/sessions/{session_id}/fixes` | 원본 fix 배치 수신 |
 | `POST /walk/sessions/{session_id}/finish` | Capsule 봉인과 raw fix purge |
+| `GET /territory/sites/nearby` | 적재한 중립 점령지 조회 |
 | `/spatial-diary/*` | View·Offer·Pin·Memory Place·Journal·Snapshot |
 
 Spatial Diary는 인증 principal을 요구한다. 앱 조립부가 실제 인증 dependency를 주입하기 전에는
@@ -158,22 +131,8 @@ Spatial Diary는 인증 principal을 요구한다. 앱 조립부가 실제 인�
 
 ## 스키마 변경
 
-스키마 변경은 Alembic 한 경로다. `--autogenerate`는 쓰지 않는다. ORM metadata가 전체 legacy
-테이블을 표현하지 않아 정상 테이블을 삭제 대상으로 오판할 수 있기 때문이다.
-
-```bash
-uv run alembic upgrade head
-uv run alembic revision -m "무엇을 바꾸는지"
-```
-
-Alembic 도입 전 DB에 일괄 `stamp head`를 하면 안 된다. 먼저 실제 스키마 지표를 판별한다.
-
-```bash
-uv run python -m scripts.detect_schema_revision
-```
-
-출력된 `stamp <revision>`과 `upgrade head`를 검토해 실행한다. 자세한 수명과 과거 SQL 경계는
-[alembic/README.md](alembic/README.md)를 따른다.
+스키마 변경과 기존 DB 판별 절차는 [Alembic 안내](alembic/README.md)를 따른다.
+개발용 가상 데이터는 [seed 안내](seeds/README.md)에서 별도로 적재한다.
 
 ## 공공데이터 적재
 
@@ -210,7 +169,7 @@ DAENGS_USAGE_POLICY=dev
 [android/README.md](android/README.md)에 정리돼 있다.
 
 실제 프로필·인증 연동, process-death 복구 UI, 원본 fix 보관 기간·삭제 UI, release 배포 설정은
-아직 운영 앱에서 닫아야 한다.
+이 Geo 기준 구현의 남은 범위다. 운영 앱의 구현 여부는 `DAENGS_APP`에서 별도로 확인한다.
 
 ## 문서
 

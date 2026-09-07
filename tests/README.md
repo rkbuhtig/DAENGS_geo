@@ -6,6 +6,7 @@
 봐야 하나"가 답해지는 것이 이 구조의 목적이다.
 
 ```
+activity_statistics/ 산책·점령 세션 연결·순수 통계·PostgreSQL 재처리
 api/            HTTP 표면 — 입력 검증, 상태코드, 응답에 나가면 안 되는 값
 context_plane/  typed Atom·Facet·Lens, registry와 기존 기능 adapter
 core/           설정·DB·스키마 리비전 판별 같은 공통 런타임 경계
@@ -30,8 +31,12 @@ walk/           산책 세션·fix·WalkFacts·Capsule 봉인, 수집 계약
 `fixtures/`는 녹화된 외부 출력 같은 재현 자료만 둔다. 테스트 소유권은 위 도메인 폴더가 가진다.
 
 `conftest.py` 는 루트에 하나다. **만드는 방법만 공유하고 무엇을 만들지는 각 테스트가
-소유한다** — 그 경계의 이유는 `conftest.py` 첫 문단에 있다. 도메인별 `fixtures.py` 를
-만들지 마라. 같은 문제가 도메인 안에서 그대로 생긴다.
+소유한다** — 그 경계의 이유는 `conftest.py` 첫 문단에 있다. 새 범용 fixture 생성기를 도메인별 `fixtures.py`로
+늘리지 않는다. 기존 `activity_statistics/fixtures.py`처럼 특정 통계 시나리오의 입력을 소유하는
+파일은 공용 pytest fixture 등록과 구분한다.
+
+루트에 남은 `test_storyboard_sources.py`·`test_storyboard_regions.py`는 기존 장면 실험 검사다.
+새 장면 실험 검사는 소유 폴더에 배치한다. 기존 파일의 위치만으로 저장소 전체 검사라고 판단하지 않는다.
 
 ## 규칙
 
@@ -100,8 +105,38 @@ pytest 기본 범위는 `tests/`다. `tools/facility-review/test_serve.py`는 �
 [도구 README](../tools/facility-review/README.md)에 있다. 기본 CI가 이 별도 검사를
 실행한다고 읽지 않는다.
 
-## DB 테스트
+## 실행 환경과 skip 확인
 
-`conftest.db_session()` 은 PostGIS 에 못 붙으면 **skip** 한다. 로컬에서 DB 없이 돌리면
-초록이 떠도 DB 테스트는 빠져 있다. CI 는 마이그레이션을 먼저 적용하므로 그 단계가
-실패하면 멈춘다 — 즉 **CI 의 초록만 DB 테스트가 실제로 돌았다는 뜻이다.**
+Geo 루트에서 Python 3.12와 `uv sync --frozen`으로 준비한다.
+
+```bash
+uv run ruff check .
+uv run pytest -q -rs
+```
+
+| 검사 | 실행 조건 | 조건이 없을 때 |
+|---|---|---|
+| 공용 DB fixture를 쓰는 검사 | `DAENGS_DATABASE_URL`의 PostGIS와 Alembic 적용 | 연결 실패 시 `skip` |
+| 점령 정책·세션 통계 PostgreSQL 검사 | 마이그레이션된 폐기 가능한 테스트 DB를 `DAENGS_POLICY_TEST_URL`로 명시 | 미설정 시 `skip`; 설정 후 연결·스키마 오류는 실패 |
+| `test_storyboard_regions.py` | 선택 의존성 `shapely`, `pyproj` | 모듈 수집 시 `skip` |
+| `tools/facility-review` Python·JS·브라우저 | npm 및 검사별 실행 조건 | 기본 pytest·CI 범위 밖; [별도 안내](../tools/facility-review/README.md) |
+
+DB 준비는 [빠른 실행](../README.md#빠른-실행)과 [Alembic 안내](../alembic/README.md)를 따른다.
+정책·통계 검사는 공용 DB URL로 자동 폴백하지 않는다. 로컬 테스트 DB를 명시하는 예시는 다음과 같다.
+
+```bash
+# Bash. 준비한 테스트 DB의 URL로 지정한다.
+export DAENGS_POLICY_TEST_URL=postgresql+asyncpg://daengs:daengs@localhost:5432/daengs
+uv run pytest tests/territory_game/test_policy_postgres.py tests/activity_statistics/test_postgres.py -q -rs
+```
+
+PowerShell은 첫 줄 대신 `$env:DAENGS_POLICY_TEST_URL = 'postgresql+asyncpg://daengs:daengs@localhost:5432/daengs'`를 쓴다.
+지역 geometry 검사는 외부 API·개인 SGIS 파일 없이 실행한다.
+
+```bash
+uv run --with shapely --with pyproj pytest tests/test_storyboard_regions.py -q -rs
+```
+
+[CI](../.github/workflows/ci.yml)는 두 DB URL을 설정하고 Alembic 적용 후 pytest를 실행한다.
+로컬과 CI 모두 통과 수뿐 아니라 `-rs`의 skip 사유를 확인해야 한다. CI 기본 의존성에는
+위 geometry 패키지가 없고, 브라우저·실기기 검증도 별도이므로 전체 검증 완료로 해석하지 않는다.
