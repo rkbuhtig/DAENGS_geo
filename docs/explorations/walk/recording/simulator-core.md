@@ -105,11 +105,10 @@ Cellophane support IoU·누락/누출 셀·질량 보존, Delivery의 지연·�
 
 ## 지도 저작 Lab
 
-CLI 계약을 바꾸지 않고 `dev_console` 뒤에서 시나리오를 지도에 그려 실행할 수 있다.
+CLI 계약을 바꾸지 않고 [검토 서버](../../../../tools/README.md)에서 시나리오를 지도에 그려 실행할 수 있다.
 
 ```powershell
-$env:DAENGS_DEV_CONSOLE="true"
-uv run uvicorn app.main:app --reload
+uv run python -m tools.lab_server --tool walk-trace
 # http://127.0.0.1:8000/walk-trace-lab
 ```
 
@@ -167,8 +166,7 @@ GPS·canonical Segment·Cellophane만 남는다. 통계층은 `sheets`만 읽으
 ```powershell
 uv run python -m scripts.spikes.territory_paint.population_distribution `
   --out cellophane-distribution.json
-$env:DAENGS_DEV_CONSOLE="true"
-uv run uvicorn app.main:app --reload
+uv run python -m tools.lab_server --tool cellophane
 # http://127.0.0.1:8000/cellophane-distribution
 ```
 

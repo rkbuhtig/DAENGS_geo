@@ -1,10 +1,7 @@
 import asyncio
-from pathlib import Path
 from typing import Annotated
 
 from fastapi import Depends, FastAPI, HTTPException, status
-from fastapi.responses import FileResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -40,131 +37,6 @@ async def bind_usage_request_scope(request, call_next):
     """요청당 사용량 카운터만 만든다. 허용·소비 집행은 실제 외부 호출 Gate 한 곳에서 한다."""
     async with usage_request_scope():
         return await call_next(request)
-
-
-if settings.dev_console:
-    # Android 시설 검색 UI를 기록된 공개 응답으로 검토한다. DB·지도 키 없이도 동작한다.
-    app.mount(
-        "/place-ui-lab",
-        StaticFiles(directory=Path(__file__).parent / "static" / "place_ui_lab", html=True),
-        name="place-ui-lab",
-    )
-
-    from app.api.spatial_diary_lab import build_spatial_diary_ui_fixture
-    from app.discovery.place_intent.lab import router as place_intent_lab_router
-    from app.features.territory.game.dev_api import router as territory_site_dev_router
-    from app.features.territory.game.season_lab import build_app as build_season_lab
-    from scripts.sim.walk.lab import router as walk_trace_lab_router
-
-    app.include_router(place_intent_lab_router)
-    app.include_router(territory_site_dev_router)
-    app.include_router(walk_trace_lab_router)
-    app.mount("/territory-season-lab", build_season_lab(Path(".local/territory-season.sqlite3")))
-
-    _TERRITORY_SITES = Path(__file__).parent / "static" / "territory_sites.html"
-    _CELLOPHANE = Path(__file__).parent / "static" / "cellophane.html"
-    _CELLOPHANE_DISTRIBUTION = Path(__file__).parent / "static" / "cellophane_distribution.html"
-    _CONTINUOUS_HEX_COMPARISON = (
-        Path(__file__).parent / "static" / "continuous_hex_comparison.html"
-    )
-    _SPATIAL_DIARY_LAB = Path(__file__).parent / "static" / "spatial_diary_lab.html"
-    _FACILITY = Path(__file__).parent / "static" / "facility.html"
-
-    @app.get("/facility-map", include_in_schema=False)
-    async def facility_map():
-        """시설 필터를 눈으로 보는 표면. 개를 바꾸면 무엇이 빠지는지가 보여야 한다."""
-        return FileResponse(_FACILITY, media_type="text/html")
-
-    @app.get("/dev/territory-sites", include_in_schema=False)
-    async def territory_site_map():
-        """점령지 분포를 보는 검수 표면. 앱 지도와 분리해 dev_console 뒤에 둔다."""
-        return FileResponse(_TERRITORY_SITES, media_type="text/html")
-
-    @app.get("/cellophane", include_in_schema=False)
-    async def cellophane_view():
-        """Paint v2 한 장의 chain·육각 셀·질량 보존을 보는 얇은 검증 표면."""
-        return FileResponse(_CELLOPHANE, media_type="text/html")
-
-    @app.get("/cellophane/data", include_in_schema=False)
-    async def cellophane_data():
-        """CWD의 명시적 fixture 하나만 제공한다. 임의 경로는 받지 않는다."""
-        path = Path.cwd() / "cellophane.json"
-        if not path.exists():
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-        return FileResponse(
-            path,
-            media_type="application/geo+json",
-            headers={"Cache-Control": "no-store"},
-        )
-
-    @app.get("/cellophane-distribution", include_in_schema=False)
-    async def cellophane_distribution_view():
-        """30회 Cellophane 통계와 질량 영역을 실제 지도에서 비교하는 검증 표면."""
-        return FileResponse(_CELLOPHANE_DISTRIBUTION, media_type="text/html")
-
-    @app.get("/cellophane-distribution/data", include_in_schema=False)
-    async def cellophane_distribution_data():
-        """CWD의 고정 통계 fixture만 제공한다. latent truth 파일은 제공하지 않는다."""
-        path = Path.cwd() / "cellophane-distribution.json"
-        if not path.exists():
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-        return FileResponse(
-            path,
-            media_type="application/json",
-            headers={"Cache-Control": "no-store"},
-        )
-
-    @app.get("/continuous-hex-comparison", include_in_schema=False)
-    async def continuous_hex_comparison_view():
-        """연속 reference·raw Hex·보수적 복원 Field의 실제 지도 검증 표면."""
-        return FileResponse(_CONTINUOUS_HEX_COMPARISON, media_type="text/html")
-
-    @app.get("/continuous-hex-comparison/data", include_in_schema=False)
-    async def continuous_hex_comparison_data():
-        """CWD의 고정 비교 fixture만 제공한다. 임의 경로나 latent truth는 받지 않는다."""
-        path = Path.cwd() / "continuous-hex-visualization.json"
-        if not path.exists():
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-        return FileResponse(
-            path,
-            media_type="application/json",
-            headers={"Cache-Control": "no-store"},
-        )
-
-    @app.get("/spatial-diary-lab", include_in_schema=False)
-    async def spatial_diary_lab_view():
-        """좁은 화면의 Cellophane 적층과 고정 일기 reader를 함께 보는 UI 실험실."""
-        return FileResponse(_SPATIAL_DIARY_LAB, media_type="text/html")
-
-    @app.get("/spatial-diary-lab/data", include_in_schema=False)
-    async def spatial_diary_lab_data():
-        """실사용 좌표 없이 canonical Paint로 매번 같은 UI fixture를 만든다."""
-        return JSONResponse(
-            build_spatial_diary_ui_fixture(),
-            headers={"Cache-Control": "no-store"},
-        )
-
-    _WORLD_CTX = Path(__file__).parent / "static" / "world_context.html"
-    _WORLD_CTX_DATA = frozenset({"latent.json", "world_context.json", "osm_world.json"})
-
-    @app.get("/world-context", include_in_schema=False)
-    async def world_context_view():
-        """M2 합성 사건 × 진짜 세계 readout 을 실제 지도 위에서 보는 검증 표면.
-
-        스파이크(`scripts/spikes/territory_paint/world_context_readout.py`) 산출물 전용이라
-        같은 dev_console 게이트 뒤에 둔다. basemap 은 앱과 같은 `/map/client-config` 로 뜬다.
-        """
-        return FileResponse(_WORLD_CTX, media_type="text/html")
-
-    @app.get("/world-context/data/{name}", include_in_schema=False)
-    async def world_context_data(name: str):
-        """스파이크 산출물만 — 목록 밖 이름과 없는 파일은 404. CWD 에서 읽는다."""
-        if name not in _WORLD_CTX_DATA:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-        path = Path.cwd() / name
-        if not path.exists():
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-        return FileResponse(path, media_type="application/json")
 
 
 @app.get("/health")

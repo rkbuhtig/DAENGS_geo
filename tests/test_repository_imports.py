@@ -14,9 +14,9 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 EXTERNAL_ROOTS = {"tools", "scripts", "tests"}
-# Decision #86: remove this exact edge when stage 3 separates the lab entrypoint.
-# These are modules, not prefixes; another caller or sibling target is new debt.
-KNOWN_EDGES = {("app.main", "scripts.sim.walk.lab")}
+# Decision #86: stage 3 removed the app.main -> scripts.sim.walk.lab edge.
+# Keep the empty allowlist so any new repository dependency fails.
+KNOWN_EDGES: set[tuple[str, str]] = set()
 
 
 def _modules(root: Path) -> dict[str, Path]:

@@ -49,8 +49,8 @@ class Settings(BaseSettings):
     max_radius_m: int = 10000
     default_limit: int = 20
 
-    # 지도 검증 표면. 앱 UI 가 아니라 내부 검증용이라 출고 기본값은 닫혀 있다.
-    # 개발에서는 .env 의 DAENGS_DEV_CONSOLE=true 로 연다 (.env.example 에 들어 있다).
+    # 이전 개발 콘솔 설정의 호환 필드. 공용 app.main은 이 값으로 검토 도구를 연결하지 않는다.
+    # 검토 표면은 python -m tools.lab_server --tool ... 로 명시적으로 실행한다.
     dev_console: bool = False
 
     # 딥링크

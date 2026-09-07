@@ -4,7 +4,7 @@
 pause 전후 두 continuity chain과 서버 육각 셀, 질량 진단을 화면 하나에서 함께 확인할 수 있다.
 
     uv run python -m scripts.spikes.territory_paint.cellophane_fixture --out cellophane.json
-    DAENGS_DEV_CONSOLE=true uv run uvicorn app.main:app --reload
+    uv run python -m tools.lab_server --tool cellophane
     # http://127.0.0.1:8000/cellophane
 """
 

@@ -2,7 +2,7 @@
 
     uv run python -m scripts.spikes.territory_paint.population_distribution \
         --out cellophane-distribution.json
-    DAENGS_DEV_CONSOLE=true uv run uvicorn app.main:app --reload
+    uv run python -m tools.lab_server --tool cellophane
     # http://127.0.0.1:8000/cellophane-distribution
 
 출력에는 evaluator-only branch·hold·seed가 없다. 관측을 통과한 Cellophane과 통계 영수증만

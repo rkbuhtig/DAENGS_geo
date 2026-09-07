@@ -452,11 +452,11 @@ def test_intent_lab_renders_invalid_model_output_as_a_typed_empty_state() -> Non
     assert "data.trace.raw ? data.trace.raw.interpretations.length : 0" in HTML
 
 
-def _paths_with_dev_console(enabled: bool) -> set[str]:
+def _paths_with_review_entrypoint(enabled: bool) -> set[str]:
     environment = os.environ.copy()
     environment["DAENGS_DEV_CONSOLE"] = "true" if enabled else "false"
-    command = """
-from app.main import app
+    command = ("from tools.lab_server import create_app; app = create_app(enabled_tools=['place-intent'])\n"
+               if enabled else "from app.main import app\n") + """
 
 def collect_paths(routes):
     paths = []
@@ -482,7 +482,7 @@ print("\\n".join(sorted(collect_paths(app.routes))))
     return set(result.stdout.splitlines())
 
 
-def test_intent_lab_routes_are_behind_dev_console_gate() -> None:
+def test_intent_lab_routes_require_the_review_entrypoint() -> None:
     paths = {
         "/place-intent-lab",
         "/dev/place-intent/search",
@@ -491,5 +491,5 @@ def test_intent_lab_routes_are_behind_dev_console_gate() -> None:
         "/dev/place-intent/interact",
         "/dev/place-intent/observations",
     }
-    assert paths.isdisjoint(_paths_with_dev_console(False))
-    assert paths <= _paths_with_dev_console(True)
+    assert paths.isdisjoint(_paths_with_review_entrypoint(False))
+    assert paths <= _paths_with_review_entrypoint(True)

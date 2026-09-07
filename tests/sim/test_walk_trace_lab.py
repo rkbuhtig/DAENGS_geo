@@ -1,4 +1,4 @@
-"""GPS 경로 저작 Lab의 실행 경계와 dev-console 게이트."""
+"""GPS 경로 저작 Lab의 계산과 선택 실행 경계."""
 
 from __future__ import annotations
 
@@ -121,11 +121,11 @@ def test_lab_styles_faults_by_contract_kind_instead_of_free_form_id():
     assert "id.includes('spike')" not in HTML
 
 
-def _paths_with_dev_console(enabled: bool) -> set[str]:
+def _paths_with_review_entrypoint(enabled: bool) -> set[str]:
     environment = os.environ.copy()
     environment["DAENGS_DEV_CONSOLE"] = "true" if enabled else "false"
-    command = """
-from app.main import app
+    command = ("from tools.lab_server import create_app; app = create_app(enabled_tools=['walk-trace'])\n"
+               if enabled else "from app.main import app\n") + """
 
 def collect_paths(routes):
     paths = []
@@ -151,11 +151,11 @@ print("\\n".join(sorted(collect_paths(app.routes))))
     return set(result.stdout.splitlines())
 
 
-def test_walk_trace_lab_is_closed_without_the_dev_console_gate():
+def test_walk_trace_lab_requires_the_review_entrypoint():
     paths = {
         "/walk-trace-lab",
         "/walk-trace-lab/example",
         "/walk-trace-lab/run",
     }
-    assert paths.isdisjoint(_paths_with_dev_console(False))
-    assert paths <= _paths_with_dev_console(True)
+    assert paths.isdisjoint(_paths_with_review_entrypoint(False))
+    assert paths <= _paths_with_review_entrypoint(True)

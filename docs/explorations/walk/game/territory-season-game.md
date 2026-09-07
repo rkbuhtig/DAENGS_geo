@@ -38,7 +38,8 @@ uv run python -m scripts.spikes.territory_season.server
 
 기본 DB는 `.local/territory-season.sqlite3`이다. 새로고침·서버 재시작 후에도 보존한다.
 별도 실험은 `--db .local/another-game.sqlite3`로 분리한다. 기존 데이터를 지울 필요가 없다.
-기존 `app.main`에서도 `DAENGS_DEV_CONSOLE=true`일 때만 `/territory-season-lab/`로 마운트한다.
+`uv run python -m tools.lab_server --tool territory-season`으로도 `/territory-season-lab/`에서 연다.
+기존 공용 앱과 같은 CWD의 `.local/territory-season.sqlite3`를 사용한다. 공용 `app.main`에는 마운트하지 않는다.
 기본 앱 전체를 실행하면 기존 앱의 환경 요구사항도 적용되므로 독립 실행 명령을 우선한다.
 
 지도·참여견·접촉·사진 판정은 합성이다. 실제 GPS, 사진 업로드, VLM, 계정·반려견 소유권

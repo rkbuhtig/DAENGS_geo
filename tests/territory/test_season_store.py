@@ -179,8 +179,8 @@ def test_http_lab_contract_static_assets_and_validation(tmp_path):
         assert client.get("/api/seasons/s").json()["sites"]["A"]["protected_until_ms"] == 600_000
 
 
-def test_lab_stays_behind_main_development_gate():
-    # Use the app's closed default; the standalone runner is explicitly loopback-only.
+def test_lab_is_absent_from_the_common_entrypoint():
+    # Common API never mounts labs; explicit local runners own them.
     from app.main import app
 
     assert not any(getattr(route, "path", "") == "/territory-season-lab" for route in app.routes)

@@ -1,35 +1,25 @@
-"""The recorded Android UI lab stays behind dev_console and needs no DB."""
+"""The recorded Android UI lab uses the explicit review entrypoint and needs no DB."""
 
-import importlib
 import json
 from pathlib import Path
 
 from fastapi.testclient import TestClient
 
-from app.core.config import settings
+from app.main import app
+from tools.lab_server import create_app
 
 
-def test_place_ui_lab_is_gated_and_serves_only_static_files(monkeypatch):
-    import app.main
+def test_place_ui_lab_is_separate_and_serves_only_static_files():
+    with TestClient(app) as client:
+        assert client.get("/place-ui-lab/").status_code == 404
+        assert client.get("/place-ui-lab/fixtures.json").status_code == 404
 
-    try:
-        monkeypatch.setattr(settings, "dev_console", False)
-        module = importlib.reload(app.main)
-        with TestClient(module.app) as client:
-            assert client.get("/place-ui-lab/").status_code == 404
-            assert client.get("/place-ui-lab/fixtures.json").status_code == 404
-
-        monkeypatch.setattr(settings, "dev_console", True)
-        module = importlib.reload(app.main)
-        with TestClient(module.app) as client:
-            assert client.get("/place-ui-lab").status_code == 200
-            for asset in ("", "app.js", "style.css", "fixtures.json"):
-                assert client.get(f"/place-ui-lab/{asset}").status_code == 200
-            assert client.get("/place-ui-lab/missing.json").status_code == 404
-            assert client.get("/place-ui-lab/%2e%2e/%2e%2e/core/config.py").status_code == 404
-    finally:
-        monkeypatch.undo()
-        importlib.reload(app.main)
+    with TestClient(create_app(enabled_tools=["place-ui"])) as client:
+        assert client.get("/place-ui-lab").status_code == 200
+        for asset in ("", "app.js", "style.css", "fixtures.json"):
+            assert client.get(f"/place-ui-lab/{asset}").status_code == 200
+        assert client.get("/place-ui-lab/missing.json").status_code == 404
+        assert client.get("/place-ui-lab/%2e%2e/%2e%2e/core/config.py").status_code == 404
 
 
 def test_recordings_cover_every_control_combination_without_identity_drift():

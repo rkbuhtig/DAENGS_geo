@@ -1,4 +1,4 @@
-"""PR3 dev_console thin viewer 계약."""
+"""Cellophane thin viewer와 별도 검토 입구 계약."""
 
 import json
 import os
@@ -127,11 +127,14 @@ def test_cell_selection_is_clickable_and_keyboard_accessible():
     assert "textContent = properties.cell_id" in HTML
 
 
-def _paths_with_dev_console(enabled: bool) -> set[str]:
+def _paths_with_review_entrypoint(enabled: bool) -> set[str]:
     environment = os.environ.copy()
     environment["DAENGS_DEV_CONSOLE"] = "true" if enabled else "false"
     command = (
-        "from app.main import app; "
+        ("from tools.lab_server import create_app; "
+         "app = create_app(enabled_tools=['cellophane', 'spatial-diary']); "
+         if enabled else "from app.main import app; ")
+        +
         "print('\\n'.join(sorted(route.path for route in app.routes "
         "if hasattr(route, 'path'))))"
     )
@@ -146,7 +149,7 @@ def _paths_with_dev_console(enabled: bool) -> set[str]:
     return set(result.stdout.splitlines())
 
 
-def test_cellophane_surface_is_behind_the_dev_console_gate():
+def test_cellophane_surface_requires_the_review_entrypoint():
     comparison_paths = {
         "/cellophane",
         "/cellophane/data",
@@ -157,5 +160,5 @@ def test_cellophane_surface_is_behind_the_dev_console_gate():
         "/spatial-diary-lab",
         "/spatial-diary-lab/data",
     }
-    assert comparison_paths.isdisjoint(_paths_with_dev_console(False))
-    assert comparison_paths <= _paths_with_dev_console(True)
+    assert comparison_paths.isdisjoint(_paths_with_review_entrypoint(False))
+    assert comparison_paths <= _paths_with_review_entrypoint(True)
