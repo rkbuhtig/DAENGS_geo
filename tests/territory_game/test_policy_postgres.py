@@ -19,7 +19,7 @@ from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 
-from app.features.territory.game.policy import (
+from app.features.territory_game.policy import (
     DAY_MS,
     HOUR_MS,
     POINT_DENOMINATOR,
@@ -29,11 +29,11 @@ from app.features.territory.game.policy import (
     Rules,
     SeasonContext,
 )
-from app.features.territory.game.policy_service import (
+from app.features.territory_game.policy_service import (
     apply_ownership_in_transaction,
     finalize_in_transaction,
 )
-from app.features.territory.game.postgres_store import PostgresPolicyTransaction, create_season
+from app.features.territory_game.postgres_store import PostgresPolicyTransaction, create_season
 
 MIGRATION = Path(__file__).resolve().parents[2] / "alembic/versions/0033_territory_policy.py"
 

@@ -11,7 +11,7 @@ from app.features.activity_statistics.territory import (
     summarize_territory,
 )
 from app.features.activity_statistics.walk import project_walks, summarize_walks
-from app.features.territory.game.policy import (
+from app.features.territory_game.policy import (
     OwnershipCandidate,
     Rules,
     Score,

@@ -78,7 +78,7 @@ uv run pytest -q tests/test_repository_imports.py tests/test_import_direction.py
 | `cellophane/` | `lab.py`, `static/` | `app/features/territory` 계산, `scripts/spikes/territory_paint` 실험 |
 | `spatial_diary/` | `lab.py`, `fixture.py`, `static/` | `app/features/spatial_diary` 공용 계약·서비스 |
 | `world_context/` | `lab.py`, `static/` | 기존 세계 자료 생성기·고정 CWD JSON |
-| `territory_game/` | `sites_lab.py`, `season_lab.py`, `local_store.py`, `local_schema.sql`, `static/` | `app/features/territory/game` 정책·계약·PostgreSQL 저장 |
+| `territory_game/` | `sites_lab.py`, `season_lab.py`, `local_store.py`, `local_schema.sql`, `static/` | `app/features/territory_game` 정책·계약·PostgreSQL 저장 |
 | `place_ui/` | `lab.py`, `static/` (표본 포함) | `app/place` 검색 구현 |
 | `place_intent/` | `lab.py`, `static/` | `app/discovery/place_intent` planner·lens·관측 저장 |
 | `facility/` | `lab.py`, `static/` | `app/api/places_v2.py`, `app/place` 검색 |

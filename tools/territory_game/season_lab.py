@@ -12,7 +12,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from app.features.territory.game.season import DAY_MS, Game, GameError, Rules
+from app.features.territory_game.season import DAY_MS, Game, GameError, Rules
 from tools.territory_game.local_store import LocalGameStore
 
 Identifier = Annotated[str, Field(pattern=r"^[A-Za-z0-9_-]{1,80}$")]

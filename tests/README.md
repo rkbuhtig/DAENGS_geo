@@ -21,6 +21,7 @@ sim/            장기 산책·Cellophane 통계 시뮬레이션
 spikes/         갈래별 실험 실행·상태·근거 계약 (diary_storyboard/ 등)
 spatial_diary/  Capsule 소비·Offer·Attestation·Pin·Journal·Snapshot
 territory/      Cellophane·Field·조건별 View·Memory Place
+territory_game/ 점령 정책·트랜잭션·PostgreSQL·순수 시즌 게임
 tools/          도구별 화면·HTTP·로컬 저장, 선택 실행 경계
 usage/          실제 외부 호출 Gate — 허용·요청당 한도·누적 사용량
 walk/           산책 세션·fix·WalkFacts·Capsule 봉인, 수집 계약

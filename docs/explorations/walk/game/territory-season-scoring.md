@@ -440,7 +440,7 @@ Standing은 그 기록을 합계와 최고값으로 읽은 결과다. 점령 증
 ## 확인 기준
 
 - geo 기준: `0defc3ab402e61df978c803d82dff7a052f66c77`.
-- 중립 점령지 읽기 구현: `app/features/territory/game/`.
+- 중립 점령지 읽기 구현의 현재 위치: `app/features/territory_game/`.
 - 점령 증거 탐색: [territory-site-game.md](territory-site-game.md).
 - 공통 산책 소비자 경계: [결정 #84](../../../decisions/2026-09-03-canonical-trail-consumer-boundary.md).
 - 지역 카탈로그와 랭킹 지역 구분: [../diary/storyboard-and-regions.md](../diary/storyboard-and-regions.md).

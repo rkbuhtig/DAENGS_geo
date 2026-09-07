@@ -56,7 +56,7 @@ depends-on: ../spatial/territory-paint.md, contracts/walk-record.md, contracts/w
 `territory_site` / `TerritorySite`로 통일한다.
 
 구현 경계도 이 차이를 따른다. `features.walk`는 산책 세션·fix·검증된 사실만 소유하고,
-점령 게임은 그 사실을 소비하는 `features.territory.game`에 둔다. 지금 구현된 것은 중립
+점령 게임은 그 사실을 소비하는 `features.territory_game`에 둔다. 지금 구현된 것은 중립
 점령지를 거리순으로 읽는 앱 API(`/territory/sites/nearby`)와 원천을 검수하는 dev
 표면(`/dev/territory-sites`)뿐이다. 10m 접촉 판정, 촬영, VLM, 소유 상태는 이 초안이
 채택되기 전까지 구현 계약이 아니다. 앱 조회의 `radius_m`은 지도 선로딩 범위이며 10m 접촉

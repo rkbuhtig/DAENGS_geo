@@ -13,7 +13,7 @@ from dataclasses import asdict, fields, replace
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.features.territory.game.policy import (
+from app.features.territory_game.policy import (
     CONTRACT_VERSION,
     Account,
     BonusKey,

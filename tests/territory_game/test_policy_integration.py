@@ -8,7 +8,7 @@ from dataclasses import replace
 
 import pytest
 
-from app.features.territory.game.policy import (
+from app.features.territory_game.policy import (
     DAY_MS,
     HOUR_MS,
     GameError,
@@ -18,11 +18,11 @@ from app.features.territory.game.policy import (
     plan_finalization,
     plan_ownership,
 )
-from app.features.territory.game.policy_service import (
+from app.features.territory_game.policy_service import (
     apply_ownership_in_transaction,
     finalize_in_transaction,
 )
-from tests.territory.policy_memory_adapter import MemoryDatabase
+from tests.territory_game.policy_memory_adapter import MemoryDatabase
 
 
 def test_policy_can_load_without_web_database_or_local_game_dependencies():
@@ -35,13 +35,13 @@ import sys
 class BlockInfrastructure:
     def find_spec(self, fullname, path=None, target=None):
         if fullname.split('.')[0] in {'fastapi', 'sqlalchemy', 'sqlite3'} or fullname in {
-            'app.core.config', 'app.features.territory.game.season',
+            'app.core.config', 'app.features.territory_game.season',
             'tools.territory_game.local_store',
         }:
             raise RuntimeError('policy requires infrastructure: ' + fullname)
 sys.meta_path.insert(0, BlockInfrastructure())
-from app.features.territory.game.policy import Rules
-from app.features.territory.game.policy_service import apply_ownership_in_transaction
+from app.features.territory_game.policy import Rules
+from app.features.territory_game.policy_service import apply_ownership_in_transaction
 assert Rules().protection_ms == 600000
 """,
         ],

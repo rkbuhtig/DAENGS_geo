@@ -9,7 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_session
-from app.features.territory.game.sites import inspect_bbox
+from app.features.territory_game.sites import inspect_bbox
 
 router = APIRouter(prefix="/dev/territory-sites", tags=["dev-territory-sites"])
 

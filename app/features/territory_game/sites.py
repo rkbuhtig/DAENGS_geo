@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.features.territory.game.contract import TerritorySite
+from app.features.territory_game.contract import TerritorySite
 
 _NEARBY = text("""
 WITH origin AS (

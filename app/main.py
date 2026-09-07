@@ -12,7 +12,7 @@ from app.core.db import get_session
 from app.features.journey import api as journey
 from app.features.spatial_diary import api as spatial_diary_episode
 from app.features.territory import api as spatial_diary
-from app.features.territory.game import api as territory_game
+from app.features.territory_game import api as territory_game
 from app.features.walk import api as walk
 from app.usage.composition import route_capability_problems
 from app.usage.gate import usage_request_scope

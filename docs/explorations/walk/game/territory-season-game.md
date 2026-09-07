@@ -146,7 +146,7 @@ uv run python -m scripts.spikes.territory_season.server
 ## 검증과 비교
 
 ```powershell
-uv run pytest -q tests/territory/test_policy_integration.py tests/territory/test_season_game.py tests/tools/territory_game/test_season_store.py tests/test_import_direction.py tests/test_script_imports.py tests/walk/test_canonical_trail_boundary.py
+uv run pytest -q tests/territory_game/test_policy_integration.py tests/territory_game/test_season_game.py tests/tools/territory_game/test_season_store.py tests/test_import_direction.py tests/test_script_imports.py tests/walk/test_canonical_trail_boundary.py
 uv run --with playwright python -m scripts.spikes.territory_season.browser_check --channel msedge
 uv run python -m scripts.spikes.territory_season.simulate --hours 6
 ```

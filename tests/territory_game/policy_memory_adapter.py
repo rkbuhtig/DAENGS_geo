@@ -9,7 +9,7 @@ from contextlib import asynccontextmanager
 from copy import deepcopy
 from dataclasses import replace
 
-from app.features.territory.game.policy import (
+from app.features.territory_game.policy import (
     DAY_MS,
     Rules,
     Score,

@@ -22,12 +22,12 @@ DEV #260의 실제 테이블 매핑과 운영 반영은 아직 하지 않았다.
 
 | 모듈 | 책임 |
 |---|---|
-| `app/features/territory/game/policy.py` | 불변 입력으로 보호·보유 구간·소유권 변경·시즌 종료 결과 계산. 표준 라이브러리만 사용 |
+| `app/features/territory_game/policy.py` | 불변 입력으로 보호·보유 구간·소유권 변경·시즌 종료 결과 계산. 표준 라이브러리만 사용 |
 | `policy_ports.py` | 호출자가 연 동일 DB 트랜잭션의 조회·잠금·저장 인터페이스 `PolicyTransaction` |
 | `policy_service.py` | `apply_ownership_in_transaction`, `finalize_in_transaction`. 커밋은 호출자 책임 |
 | `postgres_store.py` | Geo PostgreSQL 실제 저장, 시즌 생성/점유 초기 반영, 일관된 점수 조회 |
 | `season.py` | 같은 계산 모듈을 사용하는 합성 세션·사진·게임판 체험 |
-| `tests/territory/policy_memory_adapter.py` | 롤백·재전송·경쟁 요청 계약을 실행하는 테스트 전용 어댑터 |
+| `tests/territory_game/policy_memory_adapter.py` | 롤백·재전송·경쟁 요청 계약을 실행하는 테스트 전용 어댑터 |
 
 운영 어댑터가 `Game` 전체 상태나 로컬 SQLite에 의존할 필요는 없다. 로컬 HTTP의 `advance`,
 `resolve`, `finalize` 명령을 실제 앱 API로 옮기지 않는다.
@@ -149,7 +149,7 @@ backfill/동시성 검증 → 대상 DB 준비 확인 → 서버 배포 → 기�
 ## 현재 검증과 남은 검증
 
 ```powershell
-uv run pytest -q tests/territory/test_policy_integration.py tests/territory/test_season_game.py tests/tools/territory_game/test_season_store.py
+uv run pytest -q tests/territory_game/test_policy_integration.py tests/territory_game/test_season_game.py tests/tools/territory_game/test_season_store.py
 ```
 
 가짜 트랜잭션에서 외부 커밋 책임, 중간 오류 전체 롤백, 중복 callback 한 번 지급, 두 장소의

@@ -143,7 +143,7 @@ PENDING/STALE/READY와 source/applied revision을 반환한다. TERRITORY의 확
 ```powershell
 # DAENGS_POLICY_TEST_URL은 명시적으로 선택한, 마이그레이션된 격리 테스트 DB URL이어야 한다.
 uv run pytest -q tests/activity_statistics/test_postgres.py
-uv run pytest -q tests/activity_statistics tests/territory/test_policy_integration.py tests/test_import_direction.py
+uv run pytest -q tests/activity_statistics tests/territory_game/test_policy_integration.py tests/test_import_direction.py
 uv run ruff check .
 ```
 

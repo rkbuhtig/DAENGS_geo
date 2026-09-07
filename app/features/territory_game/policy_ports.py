@@ -7,7 +7,7 @@ skip scoring. The test adapter demonstrates the protocol, not PostgreSQL lock be
 
 from typing import Protocol
 
-from app.features.territory.game.policy import (
+from app.features.territory_game.policy import (
     Account,
     BonusKey,
     FinalizationPlan,

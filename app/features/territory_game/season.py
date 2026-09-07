@@ -8,7 +8,7 @@ from copy import deepcopy
 from dataclasses import asdict, dataclass, field
 from math import isfinite
 
-from app.features.territory.game.policy import (
+from app.features.territory_game.policy import (
     DAY_MS,
     HOUR_MS,
     POINT_DENOMINATOR,

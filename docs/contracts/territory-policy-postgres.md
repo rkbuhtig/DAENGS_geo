@@ -12,7 +12,7 @@ Geo 구현의 목적과 DEV·APP으로 옮길 파일/연결 지점은
 
 Geo에서 [정책 연결 계약](territory-policy-integration.md)을 실제 SQLAlchemy `AsyncSession`과
 PostgreSQL 테이블로 구현한다. Alembic `0033`이 저장 구조를 만들고
-`app/features/territory/game/postgres_store.py`가 같은 트랜잭션에서 소유권·점수·기록을 반영한다.
+`app/features/territory_game/postgres_store.py`가 같은 트랜잭션에서 소유권·점수·기록을 반영한다.
 운영 API·GPS·사진 인증·DEV 서버 연결은 이 어댑터의 호출자 책임이다.
 
 ## 저장 구조와 Geo/DEV 매핑
@@ -48,7 +48,7 @@ Geo에는 DEV #260의 계정·사진·점령 테이블이 없다. 따라서 이�
 $env:DAENGS_DATABASE_URL = 'postgresql+asyncpg://daengs:daengs@127.0.0.1:5432/territory_policy_test'
 uv run alembic upgrade head
 $env:DAENGS_POLICY_TEST_URL = $env:DAENGS_DATABASE_URL
-uv run pytest -q tests/territory/test_policy_postgres.py
+uv run pytest -q tests/territory_game/test_policy_postgres.py
 ```
 
 `0033`은 기존 Geo 장소를 변경하지 않고 정책 테이블을 추가한다. 활성 시즌·점유 데이터는
@@ -68,9 +68,9 @@ DB 테스트는 매 사례마다 UUID가 포함된 별도 schema를 만들고, �
 commit/rollback하지 않는다. 세션의 트랜잭션이 종료되면 해당 어댑터를 재사용할 수 없다.
 
 ```python
-from app.features.territory.game.policy import OwnershipCandidate
-from app.features.territory.game.policy_service import apply_ownership_in_transaction
-from app.features.territory.game.postgres_store import PostgresPolicyTransaction
+from app.features.territory_game.policy import OwnershipCandidate
+from app.features.territory_game.policy_service import apply_ownership_in_transaction
+from app.features.territory_game.postgres_store import PostgresPolicyTransaction
 
 async with session_factory.begin() as session:
     tx = PostgresPolicyTransaction(session)
