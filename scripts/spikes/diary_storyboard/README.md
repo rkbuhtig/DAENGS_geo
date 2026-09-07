@@ -162,8 +162,8 @@ uv run python -m scripts.spikes.diary_storyboard.compare_claim_runs --root ../ex
 ### 회귀 검증
 
 ```powershell
-uv run pytest tests/test_diary_claim_experiment.py tests/test_diary_geo_acquisition.py tests/test_diary_storyboard_skeleton.py tests/test_script_imports.py -k diary -q
-uv run ruff check scripts/spikes/diary_storyboard tests/test_diary_claim_experiment.py tests/test_diary_geo_acquisition.py tests/test_diary_storyboard_skeleton.py
+uv run pytest tests/spikes/diary_storyboard tests/test_script_imports.py -k diary -q
+uv run ruff check scripts/spikes/diary_storyboard tests/spikes/diary_storyboard
 uv run python -m scripts.spikes.diary_storyboard.verify_run --run ../experiments/diary_storyboard_geo/my-run
 ```
 

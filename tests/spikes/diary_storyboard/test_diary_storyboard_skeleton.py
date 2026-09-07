@@ -9,7 +9,7 @@ from scripts.spikes.diary_storyboard.contracts import Edit
 from scripts.spikes.diary_storyboard.runner import build, decide, initialize, review, step
 from scripts.spikes.diary_storyboard.storage import latest, read, save
 
-FIXTURE = Path(__file__).parents[1] / "scripts/spikes/diary_storyboard/fixtures/scenario.json"
+FIXTURE = Path(__file__).parents[3] / "scripts/spikes/diary_storyboard/fixtures/scenario.json"
 
 
 def claim(text, source="p1"):

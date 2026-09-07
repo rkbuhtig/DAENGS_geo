@@ -18,6 +18,7 @@ place/          canonical Place 계약·resolver·검색·제약 projection
 profile/        외부 Dog/Owner profile 계약과 테스트용 source
 providers/      외부 지도·경로 제공사 경계와 진실성 계약
 sim/            장기 산책·Cellophane 통계 시뮬레이션
+spikes/         갈래별 실험 실행·상태·근거 계약 (diary_storyboard/ 등)
 spatial_diary/  Capsule 소비·Offer·Attestation·Pin·Journal·Snapshot
 territory/      Cellophane·Field·조건별 View·Memory Place
 usage/          실제 외부 호출 Gate — 허용·요청당 한도·누적 사용량
@@ -68,6 +69,32 @@ def test_map_pan_is_undoable_but_a_gps_refresh_is_not():
 **결정 문서는 테스트의 근거가 될 수 있지만 테스트 분류가 되어서는 안 된다.** 하나의
 결정이 여러 도메인에 걸치고, 하나의 테스트가 두 결정의 결과일 수 있다. 소유권은 폴더가
 1:1 로, 근거는 링크가 N:M 으로 나타낸다. `decision-37/` 같은 폴더를 만들지 마라.
+
+## 저장소 구조 검사와 이동 검증
+
+[결정 #86](../docs/decisions/2026-09-07-repository-execution-boundaries.md)은
+공용 구현과 검토 도구·실험의 소유권을 구분한다.
+
+- `test_import_direction.py`: 결정 #67의 app 내부 계층·계약·순환 검사.
+- `test_repository_imports.py`: app → tools/scripts/tests의 새 의존을 차단한다.
+  기존 `app.main → scripts.sim.walk.lab`만 정확한 모듈 예외이며, 연결을 고쳤다면
+  예외도 제거해야 한다. 임시 소스에서 금지 import·누락 파일을 넣어 검사 실패를 확인한다.
+- 일기 실험 세 파일은 `spikes/diary_storyboard/`가 소유한다. fixture 생성 방식은
+  기존 루트 `conftest.py`를 사용하며 도메인별 공용 fixture 파일을 늘리지 않는다.
+
+```bash
+uv run pytest tests/test_import_direction.py tests/test_repository_imports.py tests/spikes/diary_storyboard -q
+uv run pytest --collect-only -q
+```
+
+파일 이동 PR은 이전·이후 수집 nodeid를 경로 대응표로 비교한다. 항목 수만 같다고
+누락이 없다고 판단하지 않는다. 날짜가 붙은 연구 문서에는 당시의 옛 명령이 남을 수 있으며,
+현재 일기 실험 명령은 [실험 README](../scripts/spikes/diary_storyboard/README.md)를 따른다.
+
+pytest 기본 범위는 `tests/`다. `tools/facility-review/test_serve.py`는 별도 실행해야 하고
+먼저 npm 의존성이 필요하다. Python·JS·브라우저 명령과 선택적인 DEV 표본 환경은
+[도구 README](../tools/facility-review/README.md)에 있다. 기본 CI가 이 별도 검사를
+실행한다고 읽지 않는다.
 
 ## DB 테스트
 
