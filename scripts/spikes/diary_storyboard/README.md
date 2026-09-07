@@ -30,17 +30,39 @@
 
 ## 실행
 
-geo 루트에서 프로젝트의 Python 3.12 환경을 쓴다. 기존 `pydantic`, `httpx` 외 추가 의존성은 없다.
-아래 경로는 이 워크스페이스의 예이며 출력 위치와 키 파일은 바꿀 수 있다. 모델은 앞 실험과
-비교하기 위해 `gemini-3.1-flash-lite`를 기본값으로 사용하며 `--model`로 바꿀 수 있다.
-모델 선택을 최적화한 결과라는 뜻은 아니다.
+모든 명령은 **Geo 루트** 기준이다. Python 3.12와 `uv sync --frozen`으로 준비하며
+기존 `pydantic`, `httpx` 외 추가 의존성은 없다. 예시의 `../diary-lab/`은 저장소 밖의
+실험 디렉터리다. 출력과 캐시를 구분해 두고 실제 보관 위치에 맞게 바꾼다.
+
+### 키·외부 캐시 없이 먼저 검증
+
+```bash
+uv run python -m scripts.spikes.diary_storyboard --help
+uv run pytest tests/spikes/diary_storyboard tests/test_script_imports.py -k diary -q
+```
+
+회귀 테스트는 합성 입력·가짜 모델·임시 캐시로 계산과 검토 흐름을 실행한다. DB·실제 API 키·
+저장된 모델 응답이 필요 없다. CLI의 `start`는 가짜 모델 모드가 아니므로 다음 조건을 준비한다.
+
+| 실행 | 준비할 자료 | 외부 호출 |
+|---|---|---|
+| `acquire` / `verify_acquisition` | recipe와 해당 recipe의 저장 지도 응답 | 없음; 캐시를 새로 수집하지 않음 |
+| `start` / `advance` | 수기 fixture 또는 계산된 evidence, Gemini 키 | 모델 호출; 마지막 완료 상태까지 도달했으면 재사용 |
+| `review` / `decide --choice skip` | 기존 run과 현재 검토 버전 | 없음 |
+| `decide --choice generate` | 검토된 run과 Gemini 키 | 별도 일기 생성 요청 |
+| `--replay-from` / `verify_run` | 같은 입력·설정으로 이미 저장한 run | 저장 응답 재생, 실제 호출 없음 |
+
+실제 호출은 `GEMINI_API_KEY` 또는 `GOOGLE_API_KEY` 환경변수를 준비하거나 예시의
+`../diary-lab/keys.env`를 만든다. 키 파일은 해당 dotenv 이름과 기존 `gemini: ...` 형식을 읽는다.
+모델 기본값은 비교 실험용 `gemini-3.1-flash-lite`이며 `start --model`로 바꿀 수 있다.
+모델 선택을 최적화한 결과라는 뜻은 아니다. `claim_experiment`도 실제 모델을 호출하는 별도 비교다.
 
 ### 계산 입력으로 실행
 
 ```powershell
-uv run python -m scripts.spikes.diary_storyboard.acquire --cache-dir ../experiments/coordinate_narration/cache --out ../experiments/diary_storyboard_geo/my-input
-uv run python -m scripts.spikes.diary_storyboard.verify_acquisition --dataset ../experiments/diary_storyboard_geo/my-input --cache-dir ../experiments/coordinate_narration/cache
-uv run python -m scripts.spikes.diary_storyboard start --input ../experiments/diary_storyboard_geo/my-input/evidence.json --run ../experiments/diary_storyboard_geo/my-run --env-file C:/Users/Administrator/Downloads/forwork/env
+uv run python -m scripts.spikes.diary_storyboard.acquire --cache-dir ../diary-lab/environment-cache --out ../diary-lab/my-input
+uv run python -m scripts.spikes.diary_storyboard.verify_acquisition --dataset ../diary-lab/my-input --cache-dir ../diary-lab/environment-cache
+uv run python -m scripts.spikes.diary_storyboard start --input ../diary-lab/my-input/evidence.json --run ../diary-lab/my-run --env-file ../diary-lab/keys.env
 ```
 
 `--recipe`로 생성·조회 조건을 바꿀 수 있다. 기본값은 `fixtures/acquisition.json`이다.
@@ -52,28 +74,34 @@ uv run python -m scripts.spikes.diary_storyboard start --input ../experiments/di
 선택하고 30m 반경, 8u 붓, 빈 장 포함, 조건 필터 없음으로 읽는다. 시간대 필터는
 `Asia/Seoul` 기준이다. 이 값들은 실험 조건이며 장면 수·우선순위 정책이 아니다.
 
-환경 캐시는 저장소에 포함하지 않는다. 기본 recipe에 나열된 Kakao 응답 6개가 외부 캐시
-폴더에 필요하다. 각 JSON은 `name`, `endpoint`, `query`, `fetched_at`, `http_status`,
+환경 캐시는 저장소에 포함하지 않는다. [기본 recipe](fixtures/acquisition.json)에 나열된 Kakao 응답 6개
+(`A_address.json`, `A_CE7.json`, `A_FD6.json`, `B_address.json`, `B_CE7.json`, `B_FD6.json`)가
+`--cache-dir`에 필요하다. 이 CLI는 기존 좌표 실험의 저장 응답을 소비하며 수집기는 제공하지 않는다.
+각 JSON은 `name`, `endpoint`, `query`, `fetched_at`, `http_status`,
 `response_sha256`, `data`를 가진 기존 좌표 실험의 저장 형식이다. 현재 조회 대상과 기존 조회
 중심이 15m 이내일 때 연결하며, 시설 결과의 원래 조회 반경 250m를 유지한다. 자료 없는 위치는
 시설 0개로 바꾸지 않는다. 당시 날씨·공원 내부 여부·실제 시설 방문은 제공하지 않는다.
 실제 응답의 원문 지문과 저장 JSON 지문을 구별하고 연락처 등 불필요 필드는 투영에서 뺀다.
 
+캐시가 없다면 위 회귀 검증부터 실행한다. 공간 계산만 비교하려면 기본 recipe를 저장소 밖에
+복사해 `environment_snapshots`를 빈 배열로 바꾸고 `acquire --recipe <복사한 파일>`을 지정할 수 있다.
+이때 환경 조각은 `no_source`(연결할 저장 질의 없음)로 남으며, 실제 환경 자료를 연결한 실행과
+같은 결과로 보지 않는다.
+
 ### 초기 수기 시나리오로 실행
 
 ```powershell
-uv run python -m scripts.spikes.diary_storyboard start --run ../experiments/diary_storyboard_geo/my-run --env-file C:/Users/Administrator/Downloads/forwork/env
+uv run python -m scripts.spikes.diary_storyboard start --run ../diary-lab/my-run --env-file ../diary-lab/keys.env
 ```
 
-`GEMINI_API_KEY` 또는 `GOOGLE_API_KEY` 환경변수도 지원한다. 키 파일은 같은 dotenv 이름과
-기존 로컬 파일의 `gemini: ...` 형식을 읽는다. 키는 요청 헤더로만 전송하고 저장하지 않는다.
+환경변수로 키를 준비했다면 `--env-file`을 생략한다. 키는 요청 헤더로만 전송하고 저장하지 않는다.
 출력 디렉터리는 저장소 밖에 둔다. start는 비어 있지 않은 디렉터리를 덮어쓰지 않는다.
 사용자 자료를 붙이면 스냅샷과 요청·응답에 그 자료가 포함된다는 점도 출력 보관에 반영한다.
 
 실패하면 마지막 완료 단계부터 재개한다. 실패한 호출의 자료를 유지하고 새 호출을 기록한다.
 
 ```powershell
-uv run python -m scripts.spikes.diary_storyboard advance --run ../experiments/diary_storyboard_geo/my-run --env-file C:/Users/Administrator/Downloads/forwork/env
+uv run python -m scripts.spikes.diary_storyboard advance --run ../diary-lab/my-run --env-file ../diary-lab/keys.env
 ```
 
 원자료나 프롬프트가 달라졌으면 새 run을 만든다. 자동 무한 재시도는 없다.
@@ -91,16 +119,26 @@ ID는 해당 실행의 모델 출력에서 가져온다. 생략한 장면과 필
 ```
 
 ```powershell
-uv run python -m scripts.spikes.diary_storyboard review --run ../experiments/diary_storyboard_geo/my-run --expected-revision 4 --actor human --reviewer owner --edits ../my-edits.json
+$revision = (Get-Content -Raw -Encoding UTF8 ../diary-lab/my-run/storyboard.json | ConvertFrom-Json).revision
+uv run python -m scripts.spikes.diary_storyboard review --run ../diary-lab/my-run --expected-revision $revision --actor human --reviewer owner --edits ../my-edits.json
 ```
 
-`--expected-revision`은 예시 숫자가 아니라 현재 출력 버전으로 지정한다. 편집 없이 검토하려면
+`--expected-revision`은 직접 확인한 현재 출력 버전으로 지정한다. 위 PowerShell 명령은 그 값을 읽는다.
+편집 없이 검토하려면
 `--edits`를 생략한다. 테스트에서 검토를 모사할 때는 `--actor simulated`를 명시한다.
 review 명령도 모델을 호출하지 않으며 검토된 새 버전을 저장한다.
 
 ```powershell
-uv run python -m scripts.spikes.diary_storyboard decide --run ../experiments/diary_storyboard_geo/my-run --expected-revision 5 --choice skip
-uv run python -m scripts.spikes.diary_storyboard decide --run ../experiments/diary_storyboard_geo/my-run --expected-revision 5 --choice generate --env-file C:/Users/Administrator/Downloads/forwork/env
+# review가 저장한 새 버전을 확인하고 일기 생성을 건너뛴다.
+$revision = (Get-Content -Raw -Encoding UTF8 ../diary-lab/my-run/storyboard.json | ConvertFrom-Json).revision
+uv run python -m scripts.spikes.diary_storyboard decide --run ../diary-lab/my-run --expected-revision $revision --choice skip
+```
+
+일기 생성을 요청할 때는 검토된 버전을 확인한 뒤 별도로 실행한다.
+
+```powershell
+$revision = (Get-Content -Raw -Encoding UTF8 ../diary-lab/my-run/storyboard.json | ConvertFrom-Json).revision
+uv run python -m scripts.spikes.diary_storyboard decide --run ../diary-lab/my-run --expected-revision $revision --choice generate --env-file ../diary-lab/keys.env
 ```
 
 skip은 호출 0회이며 이후 generate를 선택할 수 있다. generate는 검토본의 포함 장면으로 일기를
@@ -129,10 +167,12 @@ run/
 저장된 요청과 모델이 일치할 때 실제 네트워크 없이 응답을 재생할 수 있다.
 
 ```powershell
-uv run python -m scripts.spikes.diary_storyboard start --run ../experiments/diary_storyboard_geo/replay --replay-from ../experiments/diary_storyboard_geo/my-run
+uv run python -m scripts.spikes.diary_storyboard start --input ../diary-lab/my-input/evidence.json --run ../diary-lab/replay --replay-from ../diary-lab/my-run
 ```
 
-같은 review 입력을 적용하고 decide에 `--replay-from`을 주면 일기도 재생한다.
+위 재생 예시는 계산 입력 run 기준이다. 수기 기본 시나리오로 실행했으면 `--input`을 생략한다.
+모델을 바꿨다면 원 실행과 같은 `--model`도 지정한다. 같은 review 입력을 적용하고
+decide에 `--replay-from`을 주면 일기도 재생한다.
 입력·모델·프롬프트·스키마·앞선 상태가 달라져 요청 지문이 다르면 재생을 거부한다.
 수정한 프롬프트를 옛 응답으로 평가하는 용도로 사용하지 않는다.
 
@@ -144,8 +184,8 @@ uv run python -m scripts.spikes.diary_storyboard start --run ../experiments/diar
 `--pair`를 1, 2, 3으로 바꿔 **순차 실행**한다. 재개도 동일 명령을 사용한다.
 
 ```powershell
-uv run python -m scripts.spikes.diary_storyboard.claim_experiment --input ../experiments/diary_storyboard_geo/my-input/evidence.json --root ../experiments/diary_storyboard_geo/my-comparison --pair 1 --env-file C:/Users/Administrator/Downloads/forwork/env
-uv run python -m scripts.spikes.diary_storyboard.compare_claim_runs --root ../experiments/diary_storyboard_geo/my-comparison
+uv run python -m scripts.spikes.diary_storyboard.claim_experiment --input ../diary-lab/my-input/evidence.json --root ../diary-lab/my-comparison --pair 1 --env-file ../diary-lab/keys.env
+uv run python -m scripts.spikes.diary_storyboard.compare_claim_runs --root ../diary-lab/my-comparison
 ```
 
 비교 검증기는 세 쌍이 모두 완료된 뒤 실행한다. 생성한 각 run의 자료는 기존 `verify_run`으로도
@@ -165,7 +205,7 @@ uv run python -m scripts.spikes.diary_storyboard.compare_claim_runs --root ../ex
 ```powershell
 uv run pytest tests/spikes/diary_storyboard tests/test_script_imports.py -k diary -q
 uv run ruff check scripts/spikes/diary_storyboard tests/spikes/diary_storyboard
-uv run python -m scripts.spikes.diary_storyboard.verify_run --run ../experiments/diary_storyboard_geo/my-run
+uv run python -m scripts.spikes.diary_storyboard.verify_run --run ../diary-lab/my-run
 ```
 
 회귀 검증은 상태 전달·장면 교체·재개·근거 ID·시간 범위·원자료 변경·검토 버전·숨김/편집·

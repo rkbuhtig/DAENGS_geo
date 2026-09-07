@@ -18,4 +18,5 @@
 [CanonicalTrail 계약](../../../contracts/canonical-trail-consumers.md),
 [결정 #84](../../../decisions/2026-09-03-canonical-trail-consumer-boundary.md)를 읽는다.
 실험 결과는 [산책 기록 lab 기록](../../../research/2026-09-05-walk-record-lab.md)으로 연결한다.
-운영 채택은 [승격 원장](../../../promotion-ledger.toml)과 [Android 실행 안내](../../../../android/README.md)에서 확인한다.
+Geo의 수집·빌드·기기 확인은 [Android 실행 안내](../../../../android/README.md)를 따른다.
+운영 채택 기준점은 [승격 원장](../../../promotion-ledger.toml)에서 확인한다.

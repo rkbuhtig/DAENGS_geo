@@ -2,7 +2,21 @@
 
 **질문**: 주인이 "어디로 갈지"를 정하는 4축(거리 · 시간 · 종류/규모 · 평가) 중, 리뷰 데이터 없이 어디까지 채울 수 있나. AI는 어디에 끼나.
 
-**고정 축 (안 변함)**: 좌표 하나 → 반경 안 동물병원 → 거리·영업으로 정렬. `app/geo/search.py`. 나머지는 전부 이 위에 얹는 갈래.
+## 현재 검색 입구
+
+현재 공용 앱과 검색 전용 앱은 `POST /v2/places/search`를 연결한다.
+[Place v2 계약](../../contracts/place-search-v2.md),
+[HTTP 어댑터](../../../app/api/places_v2.py), [검색 구현](../../../app/place/search.py)을 먼저 읽는다.
+병원은 같은 Place identity와 검색 경로를 사용하는 kind이며 UI의 병원 바로가기는 유지한다
+([결정 #71](../../decisions/2026-08-27-hospital-place-entry.md)).
+기존 [app/geo/search.py](../../../app/geo/search.py)는 저장소에 남은 병원 검색 구현으로,
+현재 공용 앱의 canonical HTTP 진입과 구분한다. 실행은 [루트 안내](../../../README.md#빠른-실행)를 따른다.
+
+## 탐색 이력
+
+아래 표는 각 갈래의 결정과 배경을 찾는 색인이다. `adopted`나 `verified`가 현재 공용 앱에
+그 HTTP 표면이 등록돼 있거나 운영에 배포됐다는 뜻은 아니다. 최신 범위는 각 문서와 후속 결정을,
+운영 채택은 [승격 원장](../../promotion-ledger.toml)을 확인한다.
 
 | 갈래 | status | implementation | 한 줄 |
 |---|---|---|---|

@@ -1,42 +1,7 @@
-# docs — 지도
+# docs — 문서 지도
 
-문서는 한 줄기가 아니라 **갈래**로 자란다. 뭐가 확정이고 뭐가 탐색 중인지 여기서 본다.
-
-- [산책·점령 세션과 통계 working skeleton 설계](explorations/walk/statistics/activity-statistics-skeleton.md)
-  — 기존 ID 연결, 두 통계의 원본·수명·재생, 최소 실행 흐름과 Geo → DEV → APP 순서.
-
-- [산책·점령 통계 코어 계약과 실행](contracts/activity-statistics-core.md)
-  — S1·S2 구현. 세션 연결, 확정 분석 선택, 보유 구간 재생과 통계 계산.
-
-- [산책·점령 통계 PostgreSQL 저장/처리 계약](contracts/activity-statistics-postgres.md)
-  — S3 구현. 실제 DB migration, 원자적 저장·재처리·복원과 Geo 점령 연결. DEV/APP는 후속.
-
-- [산책 점령 게임 구현·이관 인수인계](explorations/walk/game/territory-game-handoff.md)
-  — 게임 작업의 시작점. Geo에 있는 이유, DEV·APP에 이미 있는 것, 파일별 매핑·검증·후속 작업.
-
-- [동네 순위·칭호 정책과 계약 초안](contracts/territory-ranking-titles.md)
-  — 아직 미구현. 지역 귀속·동점·수여·기록·공개·HTTP/저장 구조의 제안과 채택 전 결정 목록.
-
-- [점령 정책 PostgreSQL 어댑터](contracts/territory-policy-postgres.md)
-  — 실제 DB 어댑터·Alembic 0033·시즌 초기화와 다중 연결 검증, DEV 매핑 경계.
-
-- [점령 정책 연결 계약](contracts/territory-policy-integration.md)
-  — #260 입력·트랜잭션·잠금·멱등성·후속 저장 구조와 DB 적용 전 실행 가능한 정책 인터페이스.
-
-- [동네 강자 시즌 게임](explorations/walk/game/territory-season-game.md)
-  — 10분 보호·점령 보너스·보유 시간 배율·시즌 기록의 로컬 구현. 실행·검증과 초안 배점 비교.
-
-- [공간 일기 제작·재개 계획](explorations/walk/diary/plan.md)
-  — 전체 이해 → 장면별 갱신 → 재검토 → 사용자 검토 → 선택적 일기의 현재 설계와 geo 실험 구현.
-
-- [산책 일기 자료 카탈로그](explorations/walk/diary/evidence-catalog.md)
-  — 값·계산 정의·확보 범위, 과거 공간 경향의 추출 정책과 조각 계약. 제품 연결 범위와 구분.
-
-- [산책 일기 스켈레톤 실행 결과](research/2026-09-06-diary-storyboard-skeleton.md)
-  — 실제 Gemini 실행, 상태 전달·생성 선택·재생 검증, 남아 있는 서술 오류.
-
-- [산책 기록 lab: 행동·환경·종료 결과 비교 (2026-09-05)](research/2026-09-05-walk-record-lab.md)
-  — GPS lab에 킁킁·배설·짖기·메모를 연결한 로컬 실험. 운영 정책은 미채택.
+계획·현재 계약·결정·당시 실험 결과를 문서 유형별로 찾는다. 실행 명령은
+[루트 빠른 실행](../README.md#빠른-실행)과 각 도구 README에서 확인한다.
 
 ## 저장소 역할과 제품 승격 경계
 
@@ -84,25 +49,29 @@ backlog.md           갈래에 안 붙는 미결
 ```
 
 ## 갈래 상태
+
 `proposed` 도입 후보 · `exploring` 파는 중 · `adopted` 채택 (decisions/에 한 줄 생김) · `parked` 보류 · `rejected` 기각 (지우지 않음 — 같은 질문 다시 안 하려고)
 
 `status`는 **제품 결정**, 선택적인 `implementation`은 **코드 성숙도**다. 구현돼 있어도 현재
 제품 범위에서 빠졌다면 `status: parked`, `implementation: working-skeleton`이 될 수 있다.
 
-## 주제
-- [산책 점령 게임 제작 계획](explorations/walk/game/territory-production-plan.md) — 미인증 점유·인증 우선권·세션별 점령 규칙과 APP/Dev/Geo의 5단계 제작 순서. 첫 묶음은 지도·실제 촬영·페이크 판정까지
-- [행동 Pin 기반 프로필·개인화](explorations/walk/diary/behavior-profile-and-personalization.md) — 구조화된 행동 증언의 상황별 요약, 근거 장면 회수, 다음 산책 제안 후보. 귀속·분모·정정/삭제·Context 경계를 포함한 상세 설계
-- [공급자 조립 현황](provider-assembly.md) — 현재 선택·폴백·교체 지점·검증 로그
-- [병원 찾기](explorations/hospital-search/README.md) — 장소·거리 코어와 parked 실험을 분리
-- [지도 제공사](explorations/map-provider/README.md)
-- [문화시설](explorations/facility/README.md) — 기반층을 실제로 쓸 수 있게. 병원과 달리 조건 편집의 오른쪽 항이 있다
-- [산책](explorations/walk/README.md) — 수집 코어는 사실 계약, Capsule·Spatial Diary는 그 사실을 별도 권위 경계에서 소비
-- [산책 스토리보드와 동네 구간](explorations/walk/diary/storyboard-and-regions.md) — 실제 SGIS·상가·공원·하천과 합성 산책으로 로컬 장면 재생. 지역 구간·주변 문맥·Pin·게임 성과의 경계를 비교
-- [싸인펜·셀로판·통계층](explorations/walk/spatial/cellophane-statistical-layer.md) — 한 산책의 시간 공간장, 산책별 z축 보존, 방문률·체류·공간 이용 분포를 서로 다른 연산으로 분리
-- [반복 체류 영역 — 조작적 정의](explorations/walk/spatial/repeated-dwell-area.md) — 의미를 안 붙인 채로 "여러 산책에서 반복해 주변보다 우세한 자리" 를 못 박는다
-- [판단 가능한 상태로 — Evidence 층](explorations/walk/spatial/evidence-layer.md) — 원시 행동을 저장하는 게 목적이 아니라 사람과 AI 가 같은 근거를 읽고 판단하게 만드는 것. 지도는 맨 마지막
-- [산책 경험 장면](explorations/walk/spatial/experience-scenario.md) — 저녁 산책 직전 화면 한 장이 스펙 전부. 기록·해석·행동 중 무엇이 값어치인지 판정한다
-- [모바일 셸](explorations/mobile-shell/README.md) — 폰에서의 제품 화면. 공간 표면 vs 에피소드 표면
+## 주제별 작업 입구
+
+| 작업 | 입구 |
+|---|---|
+| 장소·시설 검색과 검토 UI | [시설](explorations/facility/README.md) |
+| 병원 검색의 배경·보류 실험 | [병원 찾기](explorations/hospital-search/README.md) |
+| 지도·경로 어댑터와 현재 조립 | [지도 제공사](explorations/map-provider/README.md), [공급자 조립](provider-assembly.md) |
+| 모바일 기준 구현과 화면 정책 | [모바일 셸](explorations/mobile-shell/README.md) |
+| 산책 전체·수집·공간 분석 | [산책](explorations/walk/README.md), [기록](explorations/walk/recording/README.md), [공간](explorations/walk/spatial/README.md) |
+| 일기 제작·자료·장면 실험 | [일기](explorations/walk/diary/README.md) |
+| 점령 정책·시즌·구현 이관 | [게임](explorations/walk/game/README.md) |
+| 산책·점령 세션의 통계 | [통계](explorations/walk/statistics/README.md) |
+
+## 주요 결정
+
+전체 번호와 당시 판단은 [결정 목록](decisions/README.md)에 있다. 아래는 주요 경계의 바로가기다.
+
 - [결정 #51 — 병원은 산책의 모드, 산책이 척추](decisions/2026-08-22-walk-as-spine.md) — 08-19 → 08-22의 사슬과 2026-08-24 채택 범위
 - [결정 #65 — Place 우선 장소 발견](decisions/2026-08-26-place-first-discovery.md) — 원천 kind 후보군 → 조건 → 사실 순서, 의미 제안은 선택층
 - [결정 #69 — 원좌표 purge 뒤 남기는 공간 형태](decisions/2026-08-26-walk-permanent-spatial-form.md) — 집계 셀 맵 하나. 궤적은 안 남긴다. #57 의 네 번째 층이고 민감도는 장 수가 만든다
@@ -119,7 +88,13 @@ backlog.md           갈래에 안 붙는 미결
 - [결정 #83 — Context Plane v0](decisions/2026-09-01-context-plane-v0.md) — 날씨·프로필·측정 재료를 typed Atom·Facet·Lens로 분리하고 개인의 속마음은 registry 밖에 둔다
 - [결정 #84 — CanonicalTrail consumer boundary](decisions/2026-09-03-canonical-trail-consumer-boundary.md) — canonical 산책 증거는 finalize 중 한 번만 만들고 일기·점령은 각자 자격과 수명으로 소비한다. 점령 v0는 단일 `claiming_pet_id` 가계약
 
-## 계약
+## 주요 계약
+
+계약 문서가 초안인지 채택·구현된 범위인지 해당 문서에서 확인한다.
+
+- [산책·점령 통계 코어](contracts/activity-statistics-core.md) — 세션 연결·확정 분석·보유 구간 재생
+- [통계 PostgreSQL 저장·처리](contracts/activity-statistics-postgres.md) — 저장·재처리·복원
+- [점령 정책 연결](contracts/territory-policy-integration.md) · [PostgreSQL 저장](contracts/territory-policy-postgres.md) — 입력·잠금·멱등성과 DB 어댑터
 - [스토리보드 장면 후보 v2](contracts/walk-storyboard-candidates-v2.md) — 대상 강아지·원본 기록 버전과 조회 목표/한계를 보존하며 v1 소비자와 호환
 - [반려견 프로필](contracts/dog-profile.md) — 외부에서 받는 형태 + 가상 페르소나 8마리 (축: 지도 위 난점)
 - [견주 프로필](contracts/owner-profile.md) — 이동 제약 + 페르소나 5명 (축: 병원의 역할을 아는 정도)
@@ -134,14 +109,19 @@ backlog.md           갈래에 안 붙는 미결
 - [CanonicalTrail consumers](contracts/canonical-trail-consumers.md) — transient canonical 입력, 소비자별 eligibility, 점령 `claiming_pet_id` 가계약
 - [Published Journal Snapshot](contracts/published-journal-snapshot.md) — 사용자가 확정한 제목·요약·대표 Pin과 원본 정책 영수증을 보존하는 비공개 불변본
 - [Context Plane v0](contracts/context-plane.md) — 닫힌 capability·typed Atom·파생 Facet·목적 Lens와 fingerprint/evidence 경계
-- [연속 원 field와 Hex 비교](research/2026-08-31-continuous-hex-comparison.md) — 30회 산책의 4·8·12u 왜곡·질량 영역·수집 간격 측정
-- [Hex Cellophane의 보수적 연속 Field 복원](research/2026-09-01-conservative-hex-reconstruction.md) — 저장 계약을 바꾸지 않는 A/B/C 복원·누출·양방향 질량 비교
-- [GPS 오염에서 Cellophane과 복원 Field](research/2026-09-01-sensor-robustness.md) — dropout·outlier·drift·accuracy를 수집→canonical→Cellophane→Field 단계별로 분리한 paired 평가
 
 ## 조사
 
 아래 문서는 제목 날짜의 스냅샷이다. 결론이 뒤 결정에서 바뀌어도 본문을 현재형으로 다시 쓰지
 않고, 필요한 경우 `superseded_by` 안내만 추가한다.
+
+- [연속 원 field와 Hex 비교](research/2026-08-31-continuous-hex-comparison.md) — 30회 산책의 4·8·12u 왜곡·질량 영역·수집 간격 측정
+- [Hex Cellophane의 보수적 연속 Field 복원](research/2026-09-01-conservative-hex-reconstruction.md) — 저장 계약을 바꾸지 않는 A/B/C 복원·누출·양방향 질량 비교
+- [GPS 오염에서 Cellophane과 복원 Field](research/2026-09-01-sensor-robustness.md) — dropout·outlier·drift·accuracy를 수집→canonical→Cellophane→Field 단계별로 분리한 paired 평가
+- [일기 스켈레톤 실행](research/2026-09-06-diary-storyboard-skeleton.md)
+- [일기 계산 입력 연결](research/2026-09-06-diary-geo-observed-inputs.md)
+- [일기 근거 대조 비교](research/2026-09-06-diary-claim-comparison.md)
+- [산책 기록 lab](research/2026-09-05-walk-record-lab.md)
 - [지도 제공사 요금·쿼터·코드](research/2026-08-19-map-provider-pricing.md)
 - [리뷰/평가 데이터 출처](research/2026-08-19-review-sources.md)
 - [쿼리 재작성 실험](research/2026-08-19-query-rewrite-experiment.md)
@@ -169,6 +149,7 @@ backlog.md           갈래에 안 붙는 미결
 - [3축 Context Signature — 피복·업종·하천으로 DB 명사 0/3 이 원천 명사 3/3, A·D 자리 쌍 3/3 구분](research/2026-08-28-context-signature-readout.md)
 
 ## 새 갈래 만들 때
+
 `explorations/<주제>/<갈래>.md`, 상단에
 ```
 ---
@@ -185,7 +166,13 @@ depends-on: (있으면)
 계약·결정·날짜별 연구 기록은 문서 유형별 기존 위치를 유지하고 주제 README에서 연결한다.
 
 ## 갈래를 닫을 때 (adopted · rejected)
-`status`를 바꾸는 것으로 끝이 아니다. 그 갈래의 측정 스파이크 폴더
-`scripts/spikes/<갈래>/`도 같이 지운다 — 규칙과 절차는 [scripts/README.md](../scripts/README.md).
-갈래 파일과 연구 문서는 남고, 코드는 `## 재현`의 git history 포인터가 대신한다.
-`working-skeleton`은 status가 아니라 implementation 값이다.
+
+종료 시 코드 유지·제거 기준과 재현 경로 처리는 [scripts 안내](../scripts/README.md#갈래를-닫을-때)를 따른다.
+갈래의 채택·기각만으로 실험 코드를 자동 삭제하지 않는다. 결정과 날짜별 연구 기록은 보존한다.
+
+## README를 갱신할 때
+
+루트 README는 저장소 목적과 작업 입구, 이 문서는 문서 유형과 주제 연결을 맡는다.
+주제 README는 기준 계획·구현·실행·검증·운영 채택 기록을 연결하고, 도구·실험 README는
+준비 조건·명령·출력·저장·복구를 소유한다. 같은 상태표와 실행 절차를 여러 입구에 복제하지 않는다.
+현재 구현 설명을 바꿀 때는 코드·설정·테스트와 대조하고, 과거 검증 날짜를 새 날짜로 바꾸지 않는다.

@@ -1,9 +1,17 @@
-# 모바일 셸 — 탐색 갈래
+# 모바일 셸 — 탐색과 기준 구현
 
-실제 서비스가 폰에서 어떤 모양이 되는가. `/dev`만 있던 시점에서 시작했고 현재 Android 기준
-지도 셸이 착지했다.
+Geo의 [Android README](../../../android/README.md)에서 코드·설정·빌드·남은 검증을 확인한다.
+이 사본은 연구·대조용이며 운영 앱의 원본은
+[DAENGS_APP](https://github.com/SAJOYO/DAENGS_APP)이다.
 
-| 갈래 | status | implementation | 한 줄 |
-|---|---|---|---|
-| [mobile-map-shell](mobile-map-shell.md) | adopted | working-skeleton | Android 위치→검색→지도·카드→action·전화가 착지. 산책 service와 업로드는 미구현 |
-| [map-purpose-display-policy](map-purpose-display-policy.md) | exploring | working-skeleton | 장소 검색·산책·점령이 같은 지도에서 데이터는 공유하지 않고, 목적별 허용 레이어만 합성한다. 최종 소유자는 app 저장소 |
+| 찾는 내용 | 문서 |
+|---|---|
+| 지도 중심 셸의 초기 선택과 화면 구상 | [mobile-map-shell](mobile-map-shell.md) |
+| 장소·산책·점령의 목적별 레이어 경계 | [map-purpose-display-policy](map-purpose-display-policy.md) |
+| 현재 위치·Place 검색·Journey·산책 수집 실행 | [Android 기준 구현](../../../android/README.md) |
+| 운영 채택 기준점 | [승격 원장](../../promotion-ledger.toml) |
+
+Geo 사본에는 foreground 산책 서비스·Room 원본 저장과 명시적 종료 시
+`start → fixes → finish` 업로드가 구현돼 있다. 닫히지 않은 세션의 복구 UI와
+자동 재시도 큐는 이 사본의 남은 범위이며, 운영 앱의 구현 여부를 뜻하지 않는다.
+초기 셸 문서의 브리핑·트리거·회고 구상을 현재 구현된 화면으로 읽지 않는다.

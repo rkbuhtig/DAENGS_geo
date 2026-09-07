@@ -38,6 +38,8 @@ uv run python -m scripts.spikes.territory_paint.persona_year --cache osm.json --
 uv run python -m scripts.spikes.territory_paint.storage_candidates --personas personas.json
 ```
 
+### 갈래를 닫을 때
+
 갈래 상태가 `adopted`나 `rejected`로 바뀌면 종료 여부를 검토한다. 상태만으로 코드를
 자동 삭제하지 않는다. 제품 보류와 죽은 코드는 구분하고, 실행 중인 도구·다른 실험·테스트가
 소비하거나 현재 판단을 재현하는 코드라면 유지한다.

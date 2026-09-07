@@ -110,7 +110,14 @@ DAENGS_NAVER_NCP_KEY_ID=...
 DAENGS_NAVER_NCP_KEY=...
 ```
 
-확인 순서:
+위 설정과 [DB 준비](../README.md#빠른-실행)를 마친 뒤 Geo 루트에서 시설 검토 서버를 실행한다.
+공용 API가 이미 8000 포트를 사용 중이면 검토 서버에 `--port 8001`을 추가하고 아래 주소도 맞춘다.
+
+```bash
+uv run python -m tools.lab_server --tool facility
+```
+
+확인 순서 (검토 서버 주소 기준):
 
 ```text
 GET /map/client-config   provider=naver, naver_key_id 존재, secret 없음

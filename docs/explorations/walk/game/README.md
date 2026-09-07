@@ -9,6 +9,7 @@
 | 지도·촬영부터 온라인 공유까지 제작 순서 | [제작 계획](territory-production-plan.md) |
 | 현재 로컬 시즌 게임의 규칙·실행·검증 | [동네 강자 시즌 게임](territory-season-game.md) |
 | 접촉·사진·증언·점령의 증거 경계 | [점령지 게임](territory-site-game.md) |
+| 동네 순위·칭호의 미구현 검토 초안 | [순위·칭호 계약 초안](../../../contracts/territory-ranking-titles.md) |
 | 이전 정기 정산 가설과 비교 | [시즌 점수](territory-season-scoring.md) |
 
 공용 게임 구현은 [territory_game](../../../../app/features/territory_game/)이 소유한다.

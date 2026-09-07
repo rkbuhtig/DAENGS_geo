@@ -13,12 +13,17 @@ app으로 전달할 장면은 분석 후 **app 장면 JSON 저장**으로 내보
 
 ## 실행
 
-geo 루트에서 Python 3.12 환경을 사용한다. 운영 `.env` 전체를 로드하지 않고 지정 파일에서
+모든 명령은 **Geo 루트**에서 Python 3.12와 `uv sync --frozen`으로 준비해 실행한다. 운영 `.env` 전체를 로드하지 않고 지정 파일에서
 `DAENGS_DATA_GO_KR_SERVICE_KEY` 한 항목만 읽는다. 파일과 원본 캐시는 저장소 밖에 둔다.
 
 ```powershell
-.venv\Scripts\python.exe -X utf8 -m scripts.spikes.walk_record_lab.server --cache-dir C:/private/walk-lab/cache --env-file C:/private/walk-lab/private.env --port 8768
+uv run python -X utf8 -m scripts.spikes.walk_record_lab.server --cache-dir C:/private/walk-lab/cache --port 8768
 ```
+
+위 `C:/private/walk-lab/cache`는 Windows 예시이며 다른 환경에서는 저장소 밖의 실제 경로로 바꾼다.
+처음에는 빈 캐시로도 실행할 수 있고, 없는 환경 자료는 미확보로 남는다.
+공공데이터를 새로 수집하려면 `--env-file C:/private/walk-lab/private.env`를 추가한 뒤
+화면에서 수집을 명시적으로 선택한다.
 
 `http://127.0.0.1:8768`을 연다. `--env-file`을 생략하면 캐시만 사용한다. API 키는 HTML,
 응답, 다운로드, URL에 제공하지 않는다. 서버는 loopback에만 바인딩하며 다른 Origin의
@@ -67,18 +72,19 @@ POST와 외부 Host를 거절한다. 운영 서버의 라우터에는 등록하�
 ## 시나리오 일괄 실행
 
 ```powershell
-.venv\Scripts\python.exe -X utf8 -m scripts.spikes.walk_record_lab.evaluate --cache-dir C:/private/walk-lab/cache --out C:/private/walk-lab/cases --env-file C:/private/walk-lab/private.env --fetch
-# 이후 오프라인 재실행: --env-file과 --fetch 생략
+uv run python -X utf8 -m scripts.spikes.walk_record_lab.evaluate --cache-dir C:/private/walk-lab/cache --out C:/private/walk-lab/cases
+# 공공데이터 수집을 원할 때만 --env-file C:/private/walk-lab/private.env --fetch 추가
 ```
 
 정상 / 공백·정확도 저하 / 전달 지연·중복 / 핀 없음 / 메모만 / 삭제 / 반복 / 과거 대비 변화의
+캐시가 비어 있으면 환경 자료 미확보 상태로도 결과를 만든다.
 8개 입력에 최소 목표 3·4를 적용한 **16개 bundle**과 `report.json`을 만든다. 각각 UI에 가져올 수 있다.
 합성 경로는 실제 도로 라우팅을 보장하지 않는다. 원본 공공자료는 캐시에만 남고 결과에는
 근거별 최소 공개 필드와 수집 시각·fingerprint를 남긴다.
 
 ```powershell
-.venv\Scripts\python.exe -m pytest tests/sim/test_walk_record_selection.py tests/spikes/walk_record_lab/test_walk_record_lab.py tests/tools/walk_trace/test_walk_trace_lab.py tests/test_storyboard_sources.py -q
-.venv\Scripts\python.exe -m ruff check scripts/spikes/walk_record_lab tests/spikes/walk_record_lab/test_walk_record_lab.py
+uv run pytest tests/sim/test_walk_record_selection.py tests/spikes/walk_record_lab/test_walk_record_lab.py tests/tools/walk_trace/test_walk_trace_lab.py tests/test_storyboard_sources.py -q
+uv run ruff check scripts/spikes/walk_record_lab tests/spikes/walk_record_lab/test_walk_record_lab.py
 ```
 
 자동 테스트는 네트워크를 사용하지 않는다. 실제 키의 유효성·실기기 GPS·사용자 가치 검증은 별개다.
