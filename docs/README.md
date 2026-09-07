@@ -29,6 +29,9 @@
 - [공간 일기 제작·재개 계획](explorations/walk/diary/plan.md)
   — 전체 이해 → 장면별 갱신 → 재검토 → 사용자 검토 → 선택적 일기의 현재 설계와 geo 실험 구현.
 
+- [산책 일기 자료 카탈로그](explorations/walk/diary/evidence-catalog.md)
+  — 값·계산 정의·확보 범위, 과거 공간 경향의 추출 정책과 조각 계약. 제품 연결 범위와 구분.
+
 - [산책 일기 스켈레톤 실행 결과](research/2026-09-06-diary-storyboard-skeleton.md)
   — 실제 Gemini 실행, 상태 전달·생성 선택·재생 검증, 남아 있는 서술 오류.
 
