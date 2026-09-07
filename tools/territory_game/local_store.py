@@ -10,7 +10,7 @@ import sqlite3
 from contextlib import contextmanager
 from pathlib import Path
 
-from app.features.territory.game.season import Game, GameError, require
+from app.features.territory_game.season import Game, GameError, require
 
 
 def encode(value):

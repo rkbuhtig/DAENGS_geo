@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from app.features.territory.game.season import DAY_MS, Game, GameError
+from app.features.territory_game.season import DAY_MS, Game, GameError
 from tools.territory_game.local_store import LocalGameStore
 from tools.territory_game.season_lab import build_app
 

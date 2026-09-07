@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from app.features.territory.game.season import (
+from app.features.territory_game.season import (
     DAY_MS,
     HOUR_MS,
     POINT_DENOMINATOR,

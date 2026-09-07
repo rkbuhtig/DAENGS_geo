@@ -116,7 +116,7 @@ APP의 기본 debug는 로컬 게임, `territoryServerRead=true`는 서버 조�
 
 | Geo 원본 | 현재 책임 | DEV/APP으로 가져갈 방법 |
 |---|---|---|
-| `app/features/territory/game/policy.py` | 불변 입력, 보호·점수·종료 계산 | DEV `services` 아래 독립 정책 모듈로 이관. Python 계산을 APP에 복제하지 않음 |
+| `app/features/territory_game/policy.py` | 불변 입력, 보호·점수·종료 계산 | DEV `services` 아래 독립 정책 모듈로 이관. Python 계산을 APP에 복제하지 않음 |
 | `policy_ports.py` | 같은 트랜잭션의 잠금/저장 인터페이스 | DEV 저장 계약으로 이관. 구현체가 인증된 서버 세션을 사용 |
 | `policy_service.py` | 계산과 원자적 저장 순서, 영수증 재생 | DEV 점령 확정과 사진 callback에 연결. 외부 commit 책임 유지 |
 | `postgres_store.py` | Geo SQL 어댑터, 초기 반영·조회 | 계정/기록 SQL을 참조하고 소유권/시도 접근은 #260에 맞춰 재작성 |
@@ -125,9 +125,9 @@ APP의 기본 debug는 로컬 게임, `territoryServerRead=true`는 서버 조�
 | `tools/territory_game/local_store.py`, `tools/territory_game/local_schema.sql` | SQLite 전체 시즌 snapshot과 명령 복구 | Geo 체험용. 운영 DB 어댑터로 승격하지 않음 |
 | `tools/territory_game/season_lab.py`, `tools/territory_game/static/season/` | 합성 지도·수동 시각의 HTTP/화면 | 제품 화면 검토 자료. 운영 라우터·APP UI는 기존 제품 경로에서 구현 |
 | `scripts/spikes/territory_season/` | 서버 실행, 전략 비교, 브라우저 검증 | 재현 도구로 보존. 운영 워커/시즌 스케줄러가 아님 |
-| `tests/territory/test_policy_integration.py` | 계약 재전송·롤백·경계 테스트 | DEV 어댑터에서도 동일 의미의 사례 실행 |
-| `tests/territory/test_policy_postgres.py` | 실제 SQL/migration/경쟁 연결 테스트 | #260 원본 테이블을 사용하는 DEV 통합 테스트로 변환 |
-| `tests/territory/test_season_game.py`, `tests/tools/territory_game/test_season_store.py` | 계산 회귀·SQLite·HTTP 체험 검증 | 순수 계산 사례 재사용. SQLite 전용 기대는 Geo에 남김 |
+| `tests/territory_game/test_policy_integration.py` | 계약 재전송·롤백·경계 테스트 | DEV 어댑터에서도 동일 의미의 사례 실행 |
+| `tests/territory_game/test_policy_postgres.py` | 실제 SQL/migration/경쟁 연결 테스트 | #260 원본 테이블을 사용하는 DEV 통합 테스트로 변환 |
+| `tests/territory_game/test_season_game.py`, `tests/tools/territory_game/test_season_store.py` | 계산 회귀·SQLite·HTTP 체험 검증 | 순수 계산 사례 재사용. SQLite 전용 기대는 Geo에 남김 |
 
 정책 코드와 DB 제약의 책임은 DEV가 갖고, APP은 서버의 현재 상태·처리 결과를 표시한다.
 APP이 단말 시계로 보호 해제를 확정하거나 보너스를 자체 지급하면 같은 계약이 아니다.

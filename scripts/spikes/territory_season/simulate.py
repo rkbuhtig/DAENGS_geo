@@ -7,7 +7,7 @@ Prints JSON only; no database, external provider or file writes.
 import argparse
 import json
 
-from app.features.territory.game.season import DAY_MS, HOUR_MS, Game, Rules
+from app.features.territory_game.season import DAY_MS, HOUR_MS, Game, Rules
 
 
 def simulate(hours: int, repeat_bonus: str, strategy: str):

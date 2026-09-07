@@ -11,7 +11,11 @@
 | 접촉·사진·증언·점령의 증거 경계 | [점령지 게임](territory-site-game.md) |
 | 이전 정기 정산 가설과 비교 | [시즌 점수](territory-season-scoring.md) |
 
-현재 구현은 [territory/game](../../../../app/features/territory/game/)에 있다.
+공용 게임 구현은 [territory_game](../../../../app/features/territory_game/)이 소유한다.
+공간장·조건별 공간 읽기는 형제 `features/territory`, 통계 연결은 `features/activity_statistics`,
+검토 HTTP·화면·SQLite는 [tools/territory_game](../../../../tools/territory_game/)이 맡는다.
+게임 정책·PostgreSQL·순수 시즌 테스트는 [tests/territory_game](../../../../tests/territory_game/),
+검토 저장·화면 테스트는 [tests/tools/territory_game](../../../../tests/tools/territory_game/)에 있다.
 검토 도구의 실행 조건은 [시즌 서버](../../../../scripts/spikes/territory_season/README.md)와
 [지도·촬영 실험](../../../../scripts/spikes/territory_production_plan/README.md)을 따른다.
 

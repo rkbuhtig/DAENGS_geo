@@ -7,8 +7,8 @@ from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_session
-from app.features.territory.game.contract import TerritorySitePage
-from app.features.territory.game.sites import find_nearby
+from app.features.territory_game.contract import TerritorySitePage
+from app.features.territory_game.sites import find_nearby
 
 router = APIRouter(prefix="/territory/sites", tags=["territory-sites"])
 

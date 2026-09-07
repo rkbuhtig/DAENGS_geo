@@ -134,7 +134,7 @@ cut은 caller가 현재 시각과 마지막 처리 ID를 조합해서 만들면 
 
 ```powershell
 uv run pytest -q tests/activity_statistics
-uv run pytest -q tests/activity_statistics tests/territory/test_policy_integration.py tests/walk/test_walk_contract.py tests/walk/test_canonical_trail_boundary.py tests/test_import_direction.py tests/test_script_imports.py
+uv run pytest -q tests/activity_statistics tests/territory_game/test_policy_integration.py tests/walk/test_walk_contract.py tests/walk/test_canonical_trail_boundary.py tests/test_import_direction.py tests/test_script_imports.py
 uv run ruff check .
 ```
 

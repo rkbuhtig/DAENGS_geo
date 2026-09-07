@@ -26,10 +26,10 @@ from app.features.activity_statistics.postgres_store import (
 )
 from app.features.activity_statistics.territory import summarize_territory
 from app.features.activity_statistics.walk import WalkMetrics, WalkSelection, summarize_walks
-from app.features.territory.game.policy import Ownership
-from app.features.territory.game.policy_service import apply_ownership_in_transaction
+from app.features.territory_game.policy import Ownership
+from app.features.territory_game.policy_service import apply_ownership_in_transaction
 from tests.activity_statistics.fixtures import GENERATION, MINUTE, VERSIONS, selection, session
-from tests.territory import test_policy_postgres as policy_tests
+from tests.territory_game import test_policy_postgres as policy_tests
 
 policy_database = policy_tests.db
 command = policy_tests.command

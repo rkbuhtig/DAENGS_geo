@@ -63,7 +63,7 @@ PostgreSQL 안의 두 모듈과 하나의 재실행 가능한 집계 작업이�
 | DEV `walk_analyses`, `walk_capsules` | 입력 fingerprint·계산 버전별 불변 분석과 봉인 | 실제 확정된 산책 통계의 입력 |
 | DEV #260 claim session | 산책 중 등록, 내부 UUID와 client UUID·참여견·phase | 산책 업로드 이전에도 존재할 수 있는 게임 세션 |
 | Geo `walk/facts.py`, `walk/models.py` | 단일 dog 모델의 Facts와 canonical 계산 | 순수 측정 재료/검증. DEV 다견 계약을 대체하지 않음 |
-| Geo `territory/game/policy.py`, `postgres_store.py` | 점수·소유권 변경·시즌 결과 | 점령 사실을 생산할 연결 지점, 통계 입력의 점수 권위로 사용하지 않음 |
+| Geo `territory_game/policy.py`, `postgres_store.py` | 점수·소유권 변경·시즌 결과 | 점령 사실을 생산할 연결 지점, 통계 입력의 점수 권위로 사용하지 않음 |
 | Geo `territory/spatial_stats.py` | 셀로판 공간 통계, 분자/분모/표본·세대 | 나중 공간 통계로 확장할 재료. 게임 소유권 통계가 아님 |
 
 확인 기준: DEV dev `ec3f46b5d1858c0390666f72af21f6c0a317fe60`, APP dev

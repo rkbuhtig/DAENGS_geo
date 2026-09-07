@@ -1,8 +1,8 @@
 """Opt-in Geo policy composition; DEV must supply its own authenticated producers."""
 
-from app.features.territory.game.policy import FinalizationPlan, OwnershipPlan
-from app.features.territory.game.policy_service import finalize_in_transaction
-from app.features.territory.game.postgres_store import PostgresPolicyTransaction
+from app.features.territory_game.policy import FinalizationPlan, OwnershipPlan
+from app.features.territory_game.policy_service import finalize_in_transaction
+from app.features.territory_game.postgres_store import PostgresPolicyTransaction
 
 from .common import require
 from .postgres_store import PostgresStatisticsTransaction

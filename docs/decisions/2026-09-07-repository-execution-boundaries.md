@@ -102,3 +102,19 @@ app의 모든 Python 파일을 AST로 읽는다. `__init__.py`, 최상위 모듈
 새 도구 서버를 호출하는 얇은 입구다. 주제별 테스트 이동은 nodeid 대응으로 대조하고,
 이동한 scripts import 검사는 도구 발견 검사로 이어 간다.
 구체적인 위치·실행 조건·검증 명령은 [tools 안내](../../tools/README.md)를 따른다.
+
+## 5차 공용 점령 게임 독립 (2026-09-07)
+
+`app/features/territory/game`의 남은 공용 구현을 `app/features/territory_game`으로
+이동한다. 중립 점령지 읽기·정책·트랜잭션 연결·PostgreSQL 저장·순수 시즌 규칙이
+이 기능의 책임이다. 공간장·조건별 읽기·Memory Place는 `features/territory`에 유지한다.
+검토용 HTTP·화면·SQLite는 4차에서 분리한 `tools/territory_game`이 계속 소유한다.
+
+`activity_statistics`의 게임 연결은 새 형제 패키지를 사용한다. 기존 #67 검사에서
+이 형제를 별도 단위로 검사하며, 계약 선언은 `features.territory_game.contract`로
+갱신한다. 층 방향·계약 leaf·전체 DAG 및 app의 도구 역참조 규칙에 새 예외를 두지 않는다.
+
+정책·PostgreSQL·시즌 테스트와 테스트용 메모리 어댑터는 `tests/territory_game`으로
+옮긴다. 점령 규칙·배점·응답·SQL·트랜잭션 의미·Alembic 이력은 유지한다.
+승격 원장의 기준 커밋도 유지하며, 이동은 운영 채택으로 처리하지 않는다.
+현재 코드·검토 도구·계약·테스트 입구는 [게임 안내](../explorations/walk/game/README.md)에 있다.

@@ -5,7 +5,7 @@ Never catch database errors and continue the ownership write. Business rejection
 the photo service without undoing verified-visit evidence in its outer transaction.
 """
 
-from app.features.territory.game.policy import (
+from app.features.territory_game.policy import (
     FinalizationPlan,
     OwnershipCandidate,
     Receipt,
@@ -15,7 +15,7 @@ from app.features.territory.game.policy import (
     require,
     validate_context,
 )
-from app.features.territory.game.policy_ports import PolicyTransaction
+from app.features.territory_game.policy_ports import PolicyTransaction
 
 
 async def apply_ownership_in_transaction(
