@@ -37,6 +37,9 @@
 
 ## 저장소 역할과 제품 승격 경계
 
+[저장소 실행 경계 #86](decisions/2026-09-07-repository-execution-boundaries.md)은
+`app / tools / scripts`의 책임과 구조 정리 중 임시 import 예외를 정의한다.
+
 `DAENGS_geo`는 통합 뒤에도 폐기하지 않는다. **산책·공간·검색의 아직 확정되지 않은 가설을
 실험하고, 측정과 계약 후보를 검증하는 R&D/검증 원본**으로 계속 쓴다.
 

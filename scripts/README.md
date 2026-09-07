@@ -7,6 +7,11 @@
 
 기준은 **개수가 아니라 수명**이다.
 
+저장소 경계는 [결정 #86](../docs/decisions/2026-09-07-repository-execution-boundaries.md)을
+따른다. scripts와 tools는 app을 소비할 수 있지만, app에서 scripts/tools/tests로 향하는
+새 import는 금지한다. 반복해서 조작하는 검토 화면·HTTP 어댑터는 tools가 소유하고
+공용 생성기는 sim에 남긴다. 현재 파일 이전은 단계별로 진행하며 기존 실행 명령은 유지한다.
+
 | | 무엇 | 언제 사라지나 |
 |---|---|---|
 | `scripts/*.py` | 운영 도구. README 가 실행을 지시하는 정식 명령 | 그 워크플로가 없어질 때 |
