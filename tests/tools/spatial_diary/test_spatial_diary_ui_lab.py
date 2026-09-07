@@ -4,10 +4,10 @@ import json
 import math
 from pathlib import Path
 
-from app.api.spatial_diary_lab import build_spatial_diary_ui_fixture
+from tools.spatial_diary.fixture import build_spatial_diary_ui_fixture
 
-ROOT = Path(__file__).resolve().parents[2]
-HTML = (ROOT / "app" / "static" / "spatial_diary_lab.html").read_text(encoding="utf-8")
+ROOT = Path(__file__).resolve().parents[3]
+HTML = (ROOT / "tools" / "spatial_diary" / "static" / "spatial_diary_lab.html").read_text(encoding="utf-8")
 
 
 def test_fixture_uses_one_canonical_paint_generation_and_conserves_every_walk():

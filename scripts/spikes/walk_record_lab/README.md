@@ -77,8 +77,11 @@ POST와 외부 Host를 거절한다. 운영 서버의 라우터에는 등록하�
 근거별 최소 공개 필드와 수집 시각·fingerprint를 남긴다.
 
 ```powershell
-.venv\Scripts\python.exe -m pytest tests/sim/test_walk_record_selection.py tests/sim/test_walk_record_lab.py tests/sim/test_walk_trace_lab.py tests/test_storyboard_sources.py -q
-.venv\Scripts\python.exe -m ruff check scripts/spikes/walk_record_lab tests/sim/test_walk_record_lab.py
+.venv\Scripts\python.exe -m pytest tests/sim/test_walk_record_selection.py tests/spikes/walk_record_lab/test_walk_record_lab.py tests/tools/walk_trace/test_walk_trace_lab.py tests/test_storyboard_sources.py -q
+.venv\Scripts\python.exe -m ruff check scripts/spikes/walk_record_lab tests/spikes/walk_record_lab/test_walk_record_lab.py
 ```
 
 자동 테스트는 네트워크를 사용하지 않는다. 실제 키의 유효성·실기기 GPS·사용자 가치 검증은 별개다.
+
+HTTP와 화면 소유 위치는 `tools/walk_trace/record_server.py`와 `tools/walk_trace/static/`다.
+위 실행 명령은 호환 입구로 유지하며 실험 계산·캐시·선택 구현은 이 폴더에 남는다.

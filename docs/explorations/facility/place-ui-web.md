@@ -10,7 +10,7 @@ Android 실행 환경 없이 현재 표시와 제한사항 보완안을 비교�
 DB, Docker, Node, 지도 키가 필요 없다. Python 표준 HTTP 서버로 실행한다.
 
 ```sh
-uv run --no-project --python 3.12 python -m http.server 8765 --bind 127.0.0.1 --directory app/static/place_ui_lab
+uv run --no-project --python 3.12 python -m http.server 8765 --bind 127.0.0.1 --directory tools/place_ui/static
 ```
 
 브라우저에서 http://127.0.0.1:8765/ 를 연다.
@@ -49,7 +49,7 @@ Android의 폰트 배율, 인셋과 지도 SDK 배치는 실기기에서 별도�
 
 ## 데이터 출처와 한계
 
-`app/static/place_ui_lab/fixtures.json`은 2026-09-05 출시 API
+`tools/place_ui/static/fixtures.json`은 2026-09-05 출시 API
 `https://daengapi.weareithero.cloud/v2/places/search`에서 수집한 공개 시설 응답이다.
 계정, 토큰, 사용자 반려견, 산책 좌표는 포함하지 않는다. 반려견 조건은 검토용 가상 값이다.
 

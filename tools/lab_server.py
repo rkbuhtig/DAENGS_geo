@@ -1,7 +1,7 @@
 """Select local review tools: python -m tools.lab_server --tool walk-trace.
 
-The common API never imports this entrypoint. Tool internals/assets keep their
-existing locations until stage 4; only selected tools and their API dependencies
+The common API never imports this entrypoint. Each tool owns its HTTP surface,
+assets and local storage adapter; only selected tools and their API dependencies
 are imported. Run from the same working directory to retain fixture/SQLite paths.
 """
 
@@ -11,11 +11,8 @@ import argparse
 from collections.abc import Sequence
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
+from fastapi import FastAPI
 
-STATIC = Path(__file__).resolve().parents[1] / "app" / "static"
 AVAILABLE_TOOLS = (
     "walk-trace", "cellophane", "spatial-diary", "world-context",
     "territory-sites", "territory-season", "place-ui", "place-intent", "facility",
@@ -24,23 +21,6 @@ MAP_TOOLS = frozenset({
     "walk-trace", "cellophane", "spatial-diary", "world-context", "territory-sites",
     "place-intent", "facility",
 })
-
-
-def _page(application: FastAPI, url: str, filename: str) -> None:
-    async def view():
-        return FileResponse(STATIC / filename, media_type="text/html")
-
-    application.add_api_route(url, view, methods=["GET"], include_in_schema=False)
-
-
-def _fixture(application: FastAPI, url: str, filename: str, media_type: str) -> None:
-    async def data():
-        path = Path.cwd() / filename
-        if not path.exists():
-            raise HTTPException(status_code=404)
-        return FileResponse(path, media_type=media_type, headers={"Cache-Control": "no-store"})
-
-    application.add_api_route(url, data, methods=["GET"], include_in_schema=False)
 
 
 def create_app(
@@ -66,71 +46,49 @@ def create_app(
                 return await call_next(request)
 
     if "place-ui" in chosen:
-        application.mount(
-            "/place-ui-lab", StaticFiles(directory=STATIC / "place_ui_lab", html=True),
-            name="place-ui-lab",
-        )
+        from tools.place_ui.lab import mount as place_ui_mount
+
+        place_ui_mount(application)
 
     if "walk-trace" in chosen:
-        from scripts.sim.walk.lab import router as walk_trace_router
+        from tools.walk_trace.lab import router as walk_trace_router
 
         application.include_router(walk_trace_router)
 
     if "place-intent" in chosen:
-        from app.discovery.place_intent.lab import router as place_intent_router
+        from tools.place_intent.lab import router as place_intent_router
 
         application.include_router(place_intent_router)
 
     if "territory-sites" in chosen:
-        from app.features.territory.game.dev_api import router as territory_sites_router
+        from tools.territory_game.sites_lab import router as territory_game_router
 
-        application.include_router(territory_sites_router)
-        _page(application, "/dev/territory-sites", "territory_sites.html")
+        application.include_router(territory_game_router)
 
     if "territory-season" in chosen:
-        from app.features.territory.game.season_lab import build_app
+        from tools.territory_game.season_lab import mount as territory_game_mount
 
-        application.mount("/territory-season-lab", build_app(season_db))
+        territory_game_mount(application, season_db)
 
     if "facility" in chosen:
-        from app.api.places_v2 import router as places_router
+        from tools.facility.lab import router as facility_router
 
-        application.include_router(places_router)
-        _page(application, "/facility-map", "facility.html")
+        application.include_router(facility_router)
 
     if "cellophane" in chosen:
-        for url, html, fixture, media_type in (
-            ("/cellophane", "cellophane.html", "cellophane.json", "application/geo+json"),
-            ("/cellophane-distribution", "cellophane_distribution.html",
-             "cellophane-distribution.json", "application/json"),
-            ("/continuous-hex-comparison", "continuous_hex_comparison.html",
-             "continuous-hex-visualization.json", "application/json"),
-        ):
-            _page(application, url, html)
-            _fixture(application, url + "/data", fixture, media_type)
+        from tools.cellophane.lab import router as cellophane_router
+
+        application.include_router(cellophane_router)
 
     if "spatial-diary" in chosen:
-        from app.api.spatial_diary_lab import build_spatial_diary_ui_fixture
+        from tools.spatial_diary.lab import router as spatial_diary_router
 
-        _page(application, "/spatial-diary-lab", "spatial_diary_lab.html")
-
-        @application.get("/spatial-diary-lab/data", include_in_schema=False)
-        async def spatial_diary_data():
-            return JSONResponse(
-                build_spatial_diary_ui_fixture(), headers={"Cache-Control": "no-store"},
-            )
+        application.include_router(spatial_diary_router)
 
     if "world-context" in chosen:
-        _page(application, "/world-context", "world_context.html")
+        from tools.world_context.lab import router as world_context_router
 
-        @application.get("/world-context/data/{name}", include_in_schema=False)
-        async def world_context_data(name: str):
-            if name not in {"latent.json", "world_context.json", "osm_world.json"}:
-                raise HTTPException(status_code=404)
-            path = Path.cwd() / name
-            if not path.exists():
-                raise HTTPException(status_code=404)
-            return FileResponse(path, media_type="application/json")
+        application.include_router(world_context_router)
 
     return application
 

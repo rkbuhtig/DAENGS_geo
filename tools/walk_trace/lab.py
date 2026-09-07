@@ -1,4 +1,4 @@
-"""walk trace scenario를 지도에서 저작·실행하는 dev-console 전용 어댑터."""
+"""walk trace scenario를 지도에서 저작·실행하는 검토 도구 어댑터."""
 
 from __future__ import annotations
 
@@ -16,9 +16,9 @@ from scripts.spikes.walk_diary_route.projector import build_diary_route_experime
 
 router = APIRouter(prefix="/walk-trace-lab", tags=["walk-trace-lab"])
 
-_ROOT = Path(__file__).resolve().parents[3]
-_HTML = _ROOT / "app" / "static" / "walk_trace_lab.html"
-_EXAMPLE = Path(__file__).parent / "examples" / "sniff-and-go.json"
+_ROOT = Path(__file__).resolve().parents[2]
+_HTML = _ROOT / "tools" / "walk_trace" / "static" / "walk_trace_lab.html"
+_EXAMPLE = _ROOT / "scripts/sim/walk/examples/sniff-and-go.json"
 
 
 def build_lab_payload(artifacts: ScenarioArtifacts) -> dict[str, object]:

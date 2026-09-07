@@ -13,8 +13,8 @@ from app.features.walk.models import CALCULATION_VERSION
 from app.features.walk.observation import CANDIDATE_SPEED_MPS
 from scripts.spikes.territory_paint.cellophane_fixture import build_fixture, main
 
-ROOT = Path(__file__).resolve().parents[2]
-HTML = (ROOT / "app" / "static" / "cellophane.html").read_text(encoding="utf-8")
+ROOT = Path(__file__).resolve().parents[3]
+HTML = (ROOT / "tools" / "cellophane" / "static" / "cellophane.html").read_text(encoding="utf-8")
 
 
 def test_fixture_runs_the_canonical_segment_paint_serializer_path():
@@ -135,8 +135,19 @@ def _paths_with_review_entrypoint(enabled: bool) -> set[str]:
          "app = create_app(enabled_tools=['cellophane', 'spatial-diary']); "
          if enabled else "from app.main import app; ")
         +
-        "print('\\n'.join(sorted(route.path for route in app.routes "
-        "if hasattr(route, 'path'))))"
+        "\nfrom fastapi.testclient import TestClient\n"
+        "import tempfile\nfrom pathlib import Path\nimport os\n"
+        "with tempfile.TemporaryDirectory() as folder:\n"
+        "    os.chdir(folder)\n"
+        "    for name in ('cellophane.json', 'cellophane-distribution.json', "
+        "'continuous-hex-visualization.json'):\n"
+        "        Path(name).write_text('{}')\n"
+        "    with TestClient(app) as client:\n"
+        "        for page in ('cellophane', 'cellophane-distribution', "
+        "'continuous-hex-comparison', 'spatial-diary-lab'):\n"
+        "            for suffix in ('', '/data'):\n"
+        "                path = '/' + page + suffix\n"
+        "                if client.get(path).status_code == 200: print(path)\n"
     )
     result = subprocess.run(
         [sys.executable, "-c", command],

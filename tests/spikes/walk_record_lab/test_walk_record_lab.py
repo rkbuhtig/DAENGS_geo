@@ -8,9 +8,9 @@ from fastapi.testclient import TestClient
 from scripts.spikes.storyboard_and_regions.sources import fingerprint
 from scripts.spikes.walk_record_lab.context import ContextReader
 from scripts.spikes.walk_record_lab.core import Experiment, prepare, summarize
-from scripts.spikes.walk_record_lab.server import create_app
+from tools.walk_trace.record_server import create_app
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 
 
 def scenario():

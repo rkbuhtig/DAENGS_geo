@@ -15,7 +15,7 @@ def main():
     import uvicorn
     from playwright.sync_api import expect, sync_playwright
 
-    from app.features.territory.game.season_lab import build_app
+    from tools.territory_game.season_lab import build_app
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--channel", default="msedge")

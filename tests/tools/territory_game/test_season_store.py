@@ -6,9 +6,9 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from app.features.territory.game.local_store import LocalGameStore
 from app.features.territory.game.season import DAY_MS, Game, GameError
-from app.features.territory.game.season_lab import build_app
+from tools.territory_game.local_store import LocalGameStore
+from tools.territory_game.season_lab import build_app
 
 
 def seed(store):
@@ -132,7 +132,7 @@ def test_local_schema_initialization_is_repeatable_and_future_versions_fail(tmp_
     store = LocalGameStore(path)
     seed(store)
     with sqlite3.connect(path) as db:
-        sql = Path(__file__).resolve().parents[2] / ("app/features/territory/game/local_schema.sql")
+        sql = Path(__file__).resolve().parents[3] / ("tools/territory_game/local_schema.sql")
         db.executescript(sql.read_text("utf-8"))
         assert json.loads(db.execute("SELECT state FROM seasons").fetchone()[0])["season_id"] == "s"
         db.execute("PRAGMA user_version=999")

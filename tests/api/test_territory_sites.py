@@ -11,9 +11,9 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy import text
 
 from app.core.db import get_session
-from app.features.territory.game.dev_api import router as dev_router
 from app.main import app
 from tests.conftest import db_session
+from tools.territory_game.sites_lab import router as dev_router
 
 LAT, LNG = 37.4979, 130.9000
 BBOX = {"south": LAT - 0.01, "north": LAT + 0.01, "west": LNG - 0.01, "east": LNG + 0.01}

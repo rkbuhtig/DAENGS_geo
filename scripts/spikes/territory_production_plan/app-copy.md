@@ -82,7 +82,7 @@ Android 산책 화면의 배치 안에서 게임 UI를 조작하는 검토판이
 
 | 기준 코드 | 웹 대응 |
 |---|---|
-| Geo `app/static/place_ui_lab/index.html`, `style.css` | 390×844 프레임, 37px 상태바, 24px 제스처 영역, 브랜드 색과 검토판 레이아웃 |
+| Geo `tools/place_ui/static/index.html`, `style.css` | 390×844 프레임, 37px 상태바, 24px 제스처 영역, 브랜드 색과 검토판 레이아웃 |
 | APP `ui/theme/Color.kt` | 핑크 `#e88d91`, 연핑크 `#fbe4e0`, 크림 `#fdf4f0`, 텍스트·경계 색 |
 | APP `ui/walk/WalkScreen.kt` | 홈/표시 토글/회전, 한 줄 시간·거리·날씨 HUD, 하단 위치·산책 컨트롤 |
 | `WalkMomentDock`, `WalkMomentType` | 탐색·배변/마킹·교류·특별한 순간 4개 행동 버튼. 점령 시도와 별도 기록 |

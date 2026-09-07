@@ -10,7 +10,6 @@ import pytest
 from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.discovery.place_intent import lab as lab_module
 from app.discovery.place_intent.contract import (
     EvidenceQuote,
     IntentInterpretation,
@@ -22,20 +21,6 @@ from app.discovery.place_intent.contract import (
     materialize_llm_output,
 )
 from app.discovery.place_intent.hypotheses import build_search_hypotheses
-from app.discovery.place_intent.lab import (
-    CandidateExecution,
-    CandidateResultCounts,
-    PlaceIntentConfirmationRequest,
-    _aggregate_candidate_counts,
-    _attempt_outcome,
-    _attempt_snapshot,
-    _candidate_result_counts,
-    _ConfirmationStore,
-    _fallback_policy,
-    _InteractionStore,
-    _limit_search_preview,
-    _response_mode,
-)
 from app.discovery.place_intent.lenses import TargetSearchLens, compile_search_lenses
 from app.discovery.place_intent.observability import (
     AttemptStatus,
@@ -50,9 +35,24 @@ from app.place.planning.contract import CapabilityId, GateOrigin, PlaceKind
 from app.place.planning.intents import IntentSource, PlannerStatus
 from app.place.planning.preview import PlaceSearchPlanPreview
 from app.place.search import PlaceSearchGroup, PlaceSearchResponse
+from tools.place_intent import lab as lab_module
+from tools.place_intent.lab import (
+    CandidateExecution,
+    CandidateResultCounts,
+    PlaceIntentConfirmationRequest,
+    _aggregate_candidate_counts,
+    _attempt_outcome,
+    _attempt_snapshot,
+    _candidate_result_counts,
+    _ConfirmationStore,
+    _fallback_policy,
+    _InteractionStore,
+    _limit_search_preview,
+    _response_mode,
+)
 
 ROOT = Path(__file__).resolve().parents[3]
-HTML = (ROOT / "app" / "static" / "place_intent_lab.html").read_text(encoding="utf-8")
+HTML = (ROOT / "tools" / "place_intent" / "static" / "place_intent_lab.html").read_text(encoding="utf-8")
 
 
 def test_intent_lab_shows_model_policy_and_real_search_layers() -> None:

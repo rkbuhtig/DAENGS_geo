@@ -31,8 +31,8 @@ from app.main import app
 for name in sys.modules:
     assert not name.startswith(("tools", "scripts")), name
     assert name not in {
-        "app.api.spatial_diary_lab", "app.discovery.place_intent.lab",
-        "app.features.territory.game.season_lab", "app.features.territory.game.dev_api",
+        "tools.spatial_diary.fixture", "tools.place_intent.lab",
+        "tools.territory_game.season_lab", "tools.territory_game.sites_lab",
     }, name
 with TestClient(app) as client:
     assert client.get("/health").status_code == 200
@@ -74,8 +74,8 @@ from fastapi.testclient import TestClient
 app = create_app(enabled_tools=["walk-trace"])
 assert "app.main" not in sys.modules
 assert "app.core.db" not in sys.modules
-assert "app.discovery.place_intent.lab" not in sys.modules
-assert "app.features.territory.game.season_lab" not in sys.modules
+assert "tools.place_intent.lab" not in sys.modules
+assert "tools.territory_game.season_lab" not in sys.modules
 with TestClient(app) as client:
     assert client.get("/walk-trace-lab/example").status_code == 200
     assert client.get("/map/client-config").status_code == 200
@@ -122,7 +122,7 @@ def test_fixed_fixture_routes_keep_cwd_names_content_and_missing_states(tmp_path
 
 @pytest.mark.parametrize("custom_path", [False, True])
 def test_mounted_season_preserves_existing_store_assets_and_restart(tmp_path, monkeypatch, custom_path):
-    from app.features.territory.game.season_lab import build_app
+    from tools.territory_game.season_lab import build_app
 
     monkeypatch.chdir(tmp_path)
     db = tmp_path / ("custom.sqlite3" if custom_path else ".local/territory-season.sqlite3")

@@ -149,7 +149,7 @@ backfill/동시성 검증 → 대상 DB 준비 확인 → 서버 배포 → 기�
 ## 현재 검증과 남은 검증
 
 ```powershell
-uv run pytest -q tests/territory/test_policy_integration.py tests/territory/test_season_game.py tests/territory/test_season_store.py
+uv run pytest -q tests/territory/test_policy_integration.py tests/territory/test_season_game.py tests/tools/territory_game/test_season_store.py
 ```
 
 가짜 트랜잭션에서 외부 커밋 책임, 중간 오류 전체 롤백, 중복 callback 한 번 지급, 두 장소의

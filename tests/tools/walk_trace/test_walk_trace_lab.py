@@ -12,11 +12,11 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from scripts.sim.walk.bundle import build_scenario_from_spec
-from scripts.sim.walk.lab import build_lab_payload, router
 from scripts.sim.walk.spec import WalkTraceScenarioSpec
+from tools.walk_trace.lab import build_lab_payload, router
 
-ROOT = Path(__file__).resolve().parents[2]
-HTML = (ROOT / "app" / "static" / "walk_trace_lab.html").read_text(encoding="utf-8")
+ROOT = Path(__file__).resolve().parents[3]
+HTML = (ROOT / "tools" / "walk_trace" / "static" / "walk_trace_lab.html").read_text(encoding="utf-8")
 EXAMPLE = ROOT / "scripts" / "sim" / "walk" / "examples" / "sniff-and-go.json"
 
 
