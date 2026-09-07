@@ -1,0 +1,114 @@
+{
+  "passed": true,
+  "populations": [
+    {
+      "count": 3,
+      "scenes": 24,
+      "clusters": 6,
+      "located": 18,
+      "fp": "fd05856647753391056428b0eb56b8e4a7a365b77859a690cdd224f66fe2f5f6",
+      "timing": {
+        "load_ms": 277,
+        "render_js_ms": 18
+      },
+      "zoom": 17,
+      "renderedRows": 20
+    },
+    {
+      "count": 30,
+      "scenes": 240,
+      "clusters": 14,
+      "located": 180,
+      "fp": "ce982ce418a0d2c8b15cd77165a144036f44b7a7e1388b5a11a753be34658881",
+      "timing": {
+        "load_ms": 833,
+        "render_js_ms": 26
+      },
+      "zoom": 17,
+      "renderedRows": 20
+    },
+    {
+      "count": 100,
+      "scenes": 800,
+      "clusters": 14,
+      "located": 600,
+      "fp": "f2e03b6cdc202a5b1a29bf982d2fe7b53d3d44711f63dc24b615680c27339a69",
+      "timing": {
+        "load_ms": 1850,
+        "render_js_ms": 27
+      },
+      "zoom": 17,
+      "renderedRows": 20
+    }
+  ],
+  "lowZoom": {
+    "count": 100,
+    "scenes": 800,
+    "clusters": 1,
+    "located": 600,
+    "fp": "f2e03b6cdc202a5b1a29bf982d2fe7b53d3d44711f63dc24b615680c27339a69",
+    "timing": {
+      "load_ms": 1850,
+      "render_js_ms": 27
+    },
+    "zoom": 14,
+    "renderedRows": 20
+  },
+  "highZoom": {
+    "count": 100,
+    "scenes": 800,
+    "clusters": 42,
+    "located": 600,
+    "fp": "f2e03b6cdc202a5b1a29bf982d2fe7b53d3d44711f63dc24b615680c27339a69",
+    "timing": {
+      "load_ms": 1850,
+      "render_js_ms": 27
+    },
+    "zoom": 19,
+    "renderedRows": 20
+  },
+  "warm100": {
+    "count": 100,
+    "scenes": 800,
+    "clusters": 14,
+    "located": 600,
+    "fp": "f2e03b6cdc202a5b1a29bf982d2fe7b53d3d44711f63dc24b615680c27339a69",
+    "timing": {
+      "load_ms": 1763,
+      "render_js_ms": 18
+    },
+    "zoom": 17,
+    "renderedRows": 20
+  },
+  "mobile": {
+    "map": {
+      "top": 71.484375,
+      "bottom": 401.484375,
+      "left": 15,
+      "right": 375
+    },
+    "card": {
+      "top": 603.453125,
+      "bottom": 834,
+      "left": 10,
+      "right": 380
+    },
+    "pointY": 236.484375,
+    "viewport": 844
+  },
+  "checks": [
+    "3/30/100 real Geo synthetic cohorts",
+    "all located scenes preserved exactly once",
+    "nonoverlapping clusters",
+    "zoom split and regroup",
+    "scope stable across zoom",
+    "20-row chronological pagination",
+    "mobile map and card simultaneously visible",
+    "next scene preserves background",
+    "320/360/430/760/1120 layouts",
+    "empty-state cleanup",
+    "brush comparison",
+    "no JS errors"
+  ],
+  "limitations": "Desktop Edge headless; fixture generation is included in cold load. No Android hardware or large real GPS population benchmark."
+}
