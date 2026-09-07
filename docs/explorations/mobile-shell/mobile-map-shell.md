@@ -92,7 +92,9 @@ locationMode     follow_device | pinned
 | `resolution[].overrode` | 접지 않는 통지 | 눌린 설정 이름과 이유를 같이 |
 | 나머지 `resolution[]` | 상세 접기 | 디버깅용. 주인공 아님 |
 
-`/dev` 구현이 참조 렌더링이다 (`app/static/dev.html` `renderSafety`).
+이 초안 당시 참조 렌더링은 `/dev`의 `renderSafety`였다. 해당 화면은 현재 저장소에서
+제거됐다. 현재 검토 화면은 [tools 안내](../../../tools/README.md)에서 찾으며,
+아래 제안의 제품 반영 상태는 [mobile-shell 입구](README.md)에서 확인한다.
 
 ## 불확실성 행렬 — 시안이 반드시 덮어야 할 상태
 

@@ -21,7 +21,7 @@ import json
 import math
 import sys
 
-# 강남역. dev_seed.sql 이 이 주변에 병원 9곳을 심어둬서 지도로 눈 확인이 된다.
+# 강남역. seeds/dev_seed.sql이 이 주변에 가상 시설 9곳을 심어둬서 지도로 눈 확인이 된다.
 ORIGIN_LAT = 37.4979
 ORIGIN_LNG = 127.0276
 

@@ -1,0 +1,87 @@
+{
+  "stage0_items": 1481,
+  "final_items": 1523,
+  "missing": [],
+  "outcome_changes": [],
+  "added": [
+    "tests/test_repository_imports.py::test_app_does_not_gain_repository_tool_dependencies",
+    "tests/test_repository_imports.py::test_computed_dynamic_import_is_not_silently_ignored",
+    "tests/test_repository_imports.py::test_exception_is_exact_and_must_disappear_with_its_import",
+    "tests/test_repository_imports.py::test_internal_relative_imports_and_tool_consumers_are_allowed",
+    "tests/test_repository_imports.py::test_missing_scan_root_or_exception_file_fails[app/main.py]",
+    "tests/test_repository_imports.py::test_missing_scan_root_or_exception_file_fails[scripts/sim/walk/lab.py]",
+    "tests/test_repository_imports.py::test_new_import_forms_fail_the_repository_check[__import__('scripts.sim.walk.lab')]",
+    "tests/test_repository_imports.py::test_new_import_forms_fail_the_repository_check[def build():\\n    import tools.review]",
+    "tests/test_repository_imports.py::test_new_import_forms_fail_the_repository_check[from importlib import import_module as load\\nload('tests.helpers')]",
+    "tests/test_repository_imports.py::test_new_import_forms_fail_the_repository_check[from tests.helpers import make_fixture]",
+    "tests/test_repository_imports.py::test_new_import_forms_fail_the_repository_check[from tools import review]",
+    "tests/test_repository_imports.py::test_new_import_forms_fail_the_repository_check[if False:\\n    from scripts.sim.walk.lab import router]",
+    "tests/test_repository_imports.py::test_new_import_forms_fail_the_repository_check[import importlib as loader\\nloader.import_module('tools.review')]",
+    "tests/test_repository_imports.py::test_new_import_forms_fail_the_repository_check[import importlib\\nimportlib.import_module('.review', package='tools')]",
+    "tests/test_repository_imports.py::test_new_import_forms_fail_the_repository_check[import os, scripts.sim.walk.lab as lab]",
+    "tests/test_repository_imports.py::test_new_import_forms_fail_the_repository_check[import tools.review]",
+    "tests/test_repository_imports.py::test_package_initializers_and_namespace_modules_are_scanned[app/__init__.py]",
+    "tests/test_repository_imports.py::test_package_initializers_and_namespace_modules_are_scanned[app/new_feature/adapter.py]",
+    "tests/tools/test_lab_server.py::test_common_api_import_never_loads_review_code_or_creates_local_data[false]",
+    "tests/tools/test_lab_server.py::test_common_api_import_never_loads_review_code_or_creates_local_data[true]",
+    "tests/tools/test_lab_server.py::test_fixed_fixture_routes_keep_cwd_names_content_and_missing_states",
+    "tests/tools/test_lab_server.py::test_invalid_selection_fails_before_creating_a_database[tools0]",
+    "tests/tools/test_lab_server.py::test_invalid_selection_fails_before_creating_a_database[tools1]",
+    "tests/tools/test_lab_server.py::test_mounted_season_preserves_existing_store_assets_and_restart[False]",
+    "tests/tools/test_lab_server.py::test_mounted_season_preserves_existing_store_assets_and_restart[True]",
+    "tests/tools/test_lab_server.py::test_standalone_tools_do_not_import_settings_database_or_providers[place-ui]",
+    "tests/tools/test_lab_server.py::test_standalone_tools_do_not_import_settings_database_or_providers[territory-season]",
+    "tests/tools/test_lab_server.py::test_usage_budget_is_shared_within_request_and_reset_for_next_request",
+    "tests/tools/test_lab_server.py::test_walk_selection_does_not_load_other_labs_or_database",
+    "tests/tools/test_tool_imports.py::test_discovers_review_adapters",
+    "tests/tools/test_tool_imports.py::test_tool_imports[tools.cellophane.lab]",
+    "tests/tools/test_tool_imports.py::test_tool_imports[tools.facility.lab]",
+    "tests/tools/test_tool_imports.py::test_tool_imports[tools.lab_server]",
+    "tests/tools/test_tool_imports.py::test_tool_imports[tools.place_intent.lab]",
+    "tests/tools/test_tool_imports.py::test_tool_imports[tools.place_ui.lab]",
+    "tests/tools/test_tool_imports.py::test_tool_imports[tools.spatial_diary.fixture]",
+    "tests/tools/test_tool_imports.py::test_tool_imports[tools.spatial_diary.lab]",
+    "tests/tools/test_tool_imports.py::test_tool_imports[tools.territory_game.local_store]",
+    "tests/tools/test_tool_imports.py::test_tool_imports[tools.territory_game.season_lab]",
+    "tests/tools/test_tool_imports.py::test_tool_imports[tools.territory_game.sites_lab]",
+    "tests/tools/test_tool_imports.py::test_tool_imports[tools.walk_trace.record_server]",
+    "tests/tools/test_tool_imports.py::test_tool_imports[tools.world_context.lab]"
+  ],
+  "entrypoint_test_renames": {
+    "test_dev_territory_site_surface_is_gated_but_app_read_is_always_mounted": "test_review_territory_sites_are_separate_from_the_common_read_api",
+    "test_cellophane_surface_is_behind_the_dev_console_gate": "test_cellophane_surface_requires_the_review_entrypoint",
+    "test_intent_lab_routes_are_behind_dev_console_gate": "test_intent_lab_routes_require_the_review_entrypoint",
+    "test_place_ui_lab_is_gated_and_serves_only_static_files": "test_place_ui_lab_is_separate_and_serves_only_static_files",
+    "test_lab_stays_behind_main_development_gate": "test_lab_is_absent_from_the_common_entrypoint",
+    "test_walk_trace_lab_is_closed_without_the_dev_console_gate": "test_walk_trace_lab_requires_the_review_entrypoint"
+  },
+  "runtime_skip_reasons_unchanged": true,
+  "stage0_commit": "0cb73776ad9df8d6ba04a769ff9fdbd7fe4a6894",
+  "stage6_base_commit": "620861da5e554f978e65bda3ce8f31c290c7108b",
+  "http": {
+    "common": {
+      "count": 13,
+      "differences": []
+    },
+    "dev": {
+      "count": 38,
+      "differences": []
+    },
+    "standalone": {
+      "count": 15,
+      "differences": []
+    }
+  },
+  "browser_verification": "not_run: no browser executable; Playwright Chromium download timed out",
+  "pytest_summary": {
+    "passed": 1395,
+    "runtime_skipped": 128,
+    "collection_skipped_modules": 1
+  },
+  "separate_checks": {
+    "facility_python": 3,
+    "facility_js": 8,
+    "territory_js_assertions": 26,
+    "optional_storyboard": 6
+  }
+}

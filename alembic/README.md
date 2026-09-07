@@ -1,17 +1,14 @@
-# migrations/ — 개발용 시드만 남았다
+# Alembic — 스키마 변경의 단일 경로
 
-스키마 변경은 **alembic 한 경로**다. 이 디렉터리에 `.sql` 을 넣어도 아무도 실행하지 않는다.
+새 스키마 변경은 `alembic/versions/`에 리비전으로 추가한다.
 
 ```bash
-uv run alembic revision -m "무엇을 바꾸는지"   # alembic/versions/ 에 파일 생성
+uv run alembic revision -m "무엇을 바꾸는지"
 uv run alembic upgrade head
 ```
 
-`dev_seed.sql` 은 마이그레이션이 아니라 개발용 시드다. 계속 수동으로 쓴다.
-
-```bash
-docker compose exec -T db psql -U daengs -d daengs < migrations/dev_seed.sql
-```
+개발용 가상 장소는 [seeds 안내](../seeds/README.md)에 따라 수동으로 적재한다.
+SQL 파일을 임의 폴더에 추가해도 스키마 변경으로 자동 실행되지 않는다.
 
 ## 옛 `001_init.sql` ~ `011_*.sql` 은 어디 갔나
 
@@ -36,7 +33,7 @@ alembic 을 넣은 이유다. 리비전 순서는 파일명이 아니라 main �
 
 ## initdb 로는 안 돈다
 
-`docker-compose.yml` 은 이 디렉터리를 `/docker-entrypoint-initdb.d` 에 마운트하지 **않는다.**
+`docker-compose.yml`은 스키마 리비전이나 개발용 seed를 `/docker-entrypoint-initdb.d`에 마운트하지 않는다.
 그 방식은 볼륨 최초 생성 때만 돌아서 두 번째 변경부터 조용히 건너뛰기 때문이다. 그래서
 alembic 도입 전부터 쓰던 DB 는 어디까지 적용됐는지 각자 다르다. 일괄 stamp 하지 말고
 판별부터 한다:
