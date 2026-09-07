@@ -54,7 +54,7 @@ from app.usage.http import usage_http_exception
 from app.usage.models import UsageDenied
 
 router = APIRouter(tags=["place-intent-lab"])
-_SURFACE = Path(__file__).resolve().parents[2] / "static" / "place_intent_lab.html"
+_SURFACE = Path(__file__).parent / "static" / "place_intent_lab.html"
 
 
 class PlaceIntentLabRequest(PlanningModel):

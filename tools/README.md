@@ -19,7 +19,8 @@ uv run python -m tools.lab_server --tool place-ui
 
 `--tool`을 반복하면 필요한 도구를 함께 연결한다. 선택이 없거나 이름이 틀리면 시작하지 않는다.
 Python에서는 `create_app(enabled_tools=["walk-trace"])`로 같은 앱을 구성한다.
-각 도구는 기존 구현·에셋을 연결하며, 파일 자체의 주제별 이전은 4차 작업이다.
+각 도구의 폴더가 라우트·검토 데이터·정적 파일을 함께 소유한다.
+`lab_server.py`는 선택한 도구와 필요한 지도 API·요청별 사용량 처리만 연결한다.
 
 | 선택 이름 | 기존 URL (선택한 서버 주소 기준) | 입력·실행 조건 |
 |---|---|---|
@@ -59,10 +60,10 @@ Python에서는 `create_app(enabled_tools=["walk-trace"])`로 같은 앱을 구�
 | [시설 검토](facility-review/README.md) | 기존 Python·JS·브라우저 실행 및 실제 서버/저장 표본 모드 유지 |
 | [일기 LLM 실험](../scripts/spikes/diary_storyboard/README.md) | 기존 CLI와 외부 캐시·검토본·별도 생성 요청 유지 |
 
-## 검증과 다음 이동
+## 소유 위치와 검증
 
 ```bash
-uv run pytest -q tests/tools tests/api/test_place_ui_lab.py tests/territory/test_season_store.py
+uv run pytest -q tests/tools tests/spikes/walk_record_lab
 uv run pytest -q tests/test_repository_imports.py tests/test_import_direction.py
 ```
 
@@ -70,4 +71,19 @@ uv run pytest -q tests/test_repository_imports.py tests/test_import_direction.py
 같이 실행하며, `facility-review`의 별도 검사 명령은 해당 README를 따른다.
 [결정 #86](../docs/decisions/2026-09-07-repository-execution-boundaries.md)의
 `app.main → scripts.sim.walk.lab` 임시 예외는 3차에서 제거했다.
-다음 파일·에셋 이전은 이 실행 경계와 URL·입력·저장 계약을 유지하며 도구별로 진행한다.
+
+| 도구 소유 위치 | 검토 구현·정적 파일 | 남겨 둔 공용·실험 구현 |
+|---|---|---|
+| `walk_trace/` | `lab.py`, `record_server.py`, `static/` | `scripts/sim/walk` 생성기, `scripts/spikes/walk_record_lab` 실험·캐시·선택 |
+| `cellophane/` | `lab.py`, `static/` | `app/features/territory` 계산, `scripts/spikes/territory_paint` 실험 |
+| `spatial_diary/` | `lab.py`, `fixture.py`, `static/` | `app/features/spatial_diary` 공용 계약·서비스 |
+| `world_context/` | `lab.py`, `static/` | 기존 세계 자료 생성기·고정 CWD JSON |
+| `territory_game/` | `sites_lab.py`, `season_lab.py`, `local_store.py`, `local_schema.sql`, `static/` | `app/features/territory/game` 정책·계약·PostgreSQL 저장 |
+| `place_ui/` | `lab.py`, `static/` (표본 포함) | `app/place` 검색 구현 |
+| `place_intent/` | `lab.py`, `static/` | `app/discovery/place_intent` planner·lens·관측 저장 |
+| `facility/` | `lab.py`, `static/` | `app/api/places_v2.py`, `app/place` 검색 |
+
+`tests/tools/<도구>/`는 이전 화면·HTTP·로컬 저장 테스트를 소유한다.
+산책 기록 실험의 계산·HTTP 통합 검증은 `tests/spikes/walk_record_lab/`에 둔다.
+`tests/tools/test_tool_imports.py`는 Python 도구를 발견해 import하며, 이동한 산책 lab의
+기존 scripts import 검사도 여기서 이어 간다. 별도 `facility-review` 검사는 위 안내를 따른다.

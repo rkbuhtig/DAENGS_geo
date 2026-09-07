@@ -2,8 +2,8 @@
 
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
-HTML = (ROOT / "app" / "static" / "continuous_hex_comparison.html").read_text(encoding="utf-8")
+ROOT = Path(__file__).resolve().parents[3]
+HTML = (ROOT / "tools" / "cellophane" / "static" / "continuous_hex_comparison.html").read_text(encoding="utf-8")
 
 
 def test_viewer_uses_real_map_with_naver_and_osm_fallback():

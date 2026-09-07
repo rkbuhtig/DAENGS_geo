@@ -2,8 +2,8 @@
 
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
-HTML = (ROOT / "app" / "static" / "cellophane_distribution.html").read_text(encoding="utf-8")
+ROOT = Path(__file__).resolve().parents[3]
+HTML = (ROOT / "tools" / "cellophane" / "static" / "cellophane_distribution.html").read_text(encoding="utf-8")
 
 
 def test_viewer_loads_the_app_naver_map_and_fixed_distribution_payload():

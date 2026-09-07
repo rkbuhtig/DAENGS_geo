@@ -23,7 +23,7 @@ def test_place_ui_lab_is_separate_and_serves_only_static_files():
 
 
 def test_recordings_cover_every_control_combination_without_identity_drift():
-    path = Path(__file__).resolve().parents[2] / "app/static/place_ui_lab/fixtures.json"
+    path = Path(__file__).resolve().parents[3] / "tools/place_ui/static/fixtures.json"
     recordings = json.loads(path.read_text(encoding="utf-8-sig"))["cases"]
     assert len(recordings) == 24
     for region in ("gangnam", "seongsu", "haeundae", "jeju"):

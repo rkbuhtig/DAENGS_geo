@@ -36,7 +36,7 @@ class BlockInfrastructure:
     def find_spec(self, fullname, path=None, target=None):
         if fullname.split('.')[0] in {'fastapi', 'sqlalchemy', 'sqlite3'} or fullname in {
             'app.core.config', 'app.features.territory.game.season',
-            'app.features.territory.game.local_store',
+            'tools.territory_game.local_store',
         }:
             raise RuntimeError('policy requires infrastructure: ' + fullname)
 sys.meta_path.insert(0, BlockInfrastructure())

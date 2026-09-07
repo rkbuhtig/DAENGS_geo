@@ -1,8 +1,10 @@
 """점령지 적재를 눈으로 검수하는 dev 전용 API."""
 
+from pathlib import Path
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -70,3 +72,8 @@ async def search_territory_sites(
             TerritorySiteInspectionOut.model_validate(site, from_attributes=True) for site in sites
         ),
     )
+
+
+@router.get("", include_in_schema=False)
+async def view():
+    return FileResponse(Path(__file__).parent / "static/territory_sites.html", media_type="text/html")

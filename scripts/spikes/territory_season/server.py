@@ -7,7 +7,7 @@ from pathlib import Path
 def main():
     import uvicorn
 
-    from app.features.territory.game.season_lab import build_app
+    from tools.territory_game.season_lab import build_app
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--db", type=Path, default=Path(".local/territory-season.sqlite3"))

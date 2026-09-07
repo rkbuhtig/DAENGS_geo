@@ -12,8 +12,8 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from app.features.territory.game.local_store import LocalGameStore
 from app.features.territory.game.season import DAY_MS, Game, GameError, Rules
+from tools.territory_game.local_store import LocalGameStore
 
 Identifier = Annotated[str, Field(pattern=r"^[A-Za-z0-9_-]{1,80}$")]
 Balance = Annotated[int, Field(strict=True, ge=0, le=1_000_000)]
@@ -145,6 +145,10 @@ def build_app(database_path: Path) -> FastAPI:
     def command(season_id: Identifier, body: Envelope):
         return store.execute(season_id, body.request_id, body.command.model_dump())
 
-    assets = Path(__file__).resolve().parents[3] / "static" / "territory_season_lab"
+    assets = Path(__file__).parent / "static" / "season"
     application.mount("/", StaticFiles(directory=assets, html=True), name="territory-season-lab")
     return application
+
+
+def mount(application: FastAPI, database_path: Path) -> None:
+    application.mount("/territory-season-lab", build_app(database_path))

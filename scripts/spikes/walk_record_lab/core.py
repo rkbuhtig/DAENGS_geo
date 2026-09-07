@@ -9,10 +9,10 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from scripts.sim.walk.bundle import ScenarioArtifacts, build_scenario_from_spec
-from scripts.sim.walk.lab import build_lab_payload
 from scripts.sim.walk.spec import WalkTraceScenarioSpec
 from scripts.spikes.storyboard_and_regions.sources import fingerprint
 from scripts.spikes.walk_record_lab.selection import ReferenceWalk, SelectionPolicy
+from tools.walk_trace.lab import build_lab_payload
 
 LABELS = {"sniffing": "킁킁", "excretion": "배설", "barking": "짖기", "note": "특별한 순간"}
 
