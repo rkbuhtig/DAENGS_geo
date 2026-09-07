@@ -12,7 +12,7 @@ uv run python -m scripts.spikes.territory_paint.mass_conserving_kernel --jitter 
 ```
 
 코드는 `scripts/spikes/territory_paint/mass_conserving_kernel.py`,
-갈래는 [evidence-layer](../explorations/walk/evidence-layer.md).
+갈래는 [evidence-layer](../explorations/walk/spatial/evidence-layer.md).
 
 ## 왜 쟀나
 

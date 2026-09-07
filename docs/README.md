@@ -2,7 +2,7 @@
 
 문서는 한 줄기가 아니라 **갈래**로 자란다. 뭐가 확정이고 뭐가 탐색 중인지 여기서 본다.
 
-- [산책·점령 세션과 통계 working skeleton 설계](explorations/walk/activity-statistics-skeleton.md)
+- [산책·점령 세션과 통계 working skeleton 설계](explorations/walk/statistics/activity-statistics-skeleton.md)
   — 기존 ID 연결, 두 통계의 원본·수명·재생, 최소 실행 흐름과 Geo → DEV → APP 순서.
 
 - [산책·점령 통계 코어 계약과 실행](contracts/activity-statistics-core.md)
@@ -11,7 +11,7 @@
 - [산책·점령 통계 PostgreSQL 저장/처리 계약](contracts/activity-statistics-postgres.md)
   — S3 구현. 실제 DB migration, 원자적 저장·재처리·복원과 Geo 점령 연결. DEV/APP는 후속.
 
-- [산책 점령 게임 구현·이관 인수인계](explorations/walk/territory-game-handoff.md)
+- [산책 점령 게임 구현·이관 인수인계](explorations/walk/game/territory-game-handoff.md)
   — 게임 작업의 시작점. Geo에 있는 이유, DEV·APP에 이미 있는 것, 파일별 매핑·검증·후속 작업.
 
 - [동네 순위·칭호 정책과 계약 초안](contracts/territory-ranking-titles.md)
@@ -23,11 +23,14 @@
 - [점령 정책 연결 계약](contracts/territory-policy-integration.md)
   — #260 입력·트랜잭션·잠금·멱등성·후속 저장 구조와 DB 적용 전 실행 가능한 정책 인터페이스.
 
-- [동네 강자 시즌 게임](explorations/walk/territory-season-game.md)
+- [동네 강자 시즌 게임](explorations/walk/game/territory-season-game.md)
   — 10분 보호·점령 보너스·보유 시간 배율·시즌 기록의 로컬 구현. 실행·검증과 초안 배점 비교.
 
-- [공간 일기 제작·재개 계획](explorations/walk/diary-storyboard-plan.md)
+- [공간 일기 제작·재개 계획](explorations/walk/diary/plan.md)
   — 전체 이해 → 장면별 갱신 → 재검토 → 사용자 검토 → 선택적 일기의 현재 설계와 geo 실험 구현.
+
+- [산책 일기 자료 카탈로그](explorations/walk/diary/evidence-catalog.md)
+  — 값·계산 정의·확보 범위, 과거 공간 경향의 추출 정책과 조각 계약. 제품 연결 범위와 구분.
 
 - [산책 일기 스켈레톤 실행 결과](research/2026-09-06-diary-storyboard-skeleton.md)
   — 실제 Gemini 실행, 상태 전달·생성 선택·재생 검증, 남아 있는 서술 오류.
@@ -85,18 +88,18 @@ backlog.md           갈래에 안 붙는 미결
 제품 범위에서 빠졌다면 `status: parked`, `implementation: working-skeleton`이 될 수 있다.
 
 ## 주제
-- [산책 점령 게임 제작 계획](explorations/walk/territory-production-plan.md) — 미인증 점유·인증 우선권·세션별 점령 규칙과 APP/Dev/Geo의 5단계 제작 순서. 첫 묶음은 지도·실제 촬영·페이크 판정까지
-- [행동 Pin 기반 프로필·개인화](explorations/walk/behavior-profile-and-personalization.md) — 구조화된 행동 증언의 상황별 요약, 근거 장면 회수, 다음 산책 제안 후보. 귀속·분모·정정/삭제·Context 경계를 포함한 상세 설계
+- [산책 점령 게임 제작 계획](explorations/walk/game/territory-production-plan.md) — 미인증 점유·인증 우선권·세션별 점령 규칙과 APP/Dev/Geo의 5단계 제작 순서. 첫 묶음은 지도·실제 촬영·페이크 판정까지
+- [행동 Pin 기반 프로필·개인화](explorations/walk/diary/behavior-profile-and-personalization.md) — 구조화된 행동 증언의 상황별 요약, 근거 장면 회수, 다음 산책 제안 후보. 귀속·분모·정정/삭제·Context 경계를 포함한 상세 설계
 - [공급자 조립 현황](provider-assembly.md) — 현재 선택·폴백·교체 지점·검증 로그
 - [병원 찾기](explorations/hospital-search/README.md) — 장소·거리 코어와 parked 실험을 분리
 - [지도 제공사](explorations/map-provider/README.md)
 - [문화시설](explorations/facility/README.md) — 기반층을 실제로 쓸 수 있게. 병원과 달리 조건 편집의 오른쪽 항이 있다
 - [산책](explorations/walk/README.md) — 수집 코어는 사실 계약, Capsule·Spatial Diary는 그 사실을 별도 권위 경계에서 소비
-- [산책 스토리보드와 동네 구간](explorations/walk/storyboard-and-regions.md) — 실제 SGIS·상가·공원·하천과 합성 산책으로 로컬 장면 재생. 지역 구간·주변 문맥·Pin·게임 성과의 경계를 비교
-- [싸인펜·셀로판·통계층](explorations/walk/cellophane-statistical-layer.md) — 한 산책의 시간 공간장, 산책별 z축 보존, 방문률·체류·공간 이용 분포를 서로 다른 연산으로 분리
-- [반복 체류 영역 — 조작적 정의](explorations/walk/repeated-dwell-area.md) — 의미를 안 붙인 채로 "여러 산책에서 반복해 주변보다 우세한 자리" 를 못 박는다
-- [판단 가능한 상태로 — Evidence 층](explorations/walk/evidence-layer.md) — 원시 행동을 저장하는 게 목적이 아니라 사람과 AI 가 같은 근거를 읽고 판단하게 만드는 것. 지도는 맨 마지막
-- [산책 경험 장면](explorations/walk/experience-scenario.md) — 저녁 산책 직전 화면 한 장이 스펙 전부. 기록·해석·행동 중 무엇이 값어치인지 판정한다
+- [산책 스토리보드와 동네 구간](explorations/walk/diary/storyboard-and-regions.md) — 실제 SGIS·상가·공원·하천과 합성 산책으로 로컬 장면 재생. 지역 구간·주변 문맥·Pin·게임 성과의 경계를 비교
+- [싸인펜·셀로판·통계층](explorations/walk/spatial/cellophane-statistical-layer.md) — 한 산책의 시간 공간장, 산책별 z축 보존, 방문률·체류·공간 이용 분포를 서로 다른 연산으로 분리
+- [반복 체류 영역 — 조작적 정의](explorations/walk/spatial/repeated-dwell-area.md) — 의미를 안 붙인 채로 "여러 산책에서 반복해 주변보다 우세한 자리" 를 못 박는다
+- [판단 가능한 상태로 — Evidence 층](explorations/walk/spatial/evidence-layer.md) — 원시 행동을 저장하는 게 목적이 아니라 사람과 AI 가 같은 근거를 읽고 판단하게 만드는 것. 지도는 맨 마지막
+- [산책 경험 장면](explorations/walk/spatial/experience-scenario.md) — 저녁 산책 직전 화면 한 장이 스펙 전부. 기록·해석·행동 중 무엇이 값어치인지 판정한다
 - [모바일 셸](explorations/mobile-shell/README.md) — 폰에서의 제품 화면. 공간 표면 vs 에피소드 표면
 - [결정 #51 — 병원은 산책의 모드, 산책이 척추](decisions/2026-08-22-walk-as-spine.md) — 08-19 → 08-22의 사슬과 2026-08-24 채택 범위
 - [결정 #65 — Place 우선 장소 발견](decisions/2026-08-26-place-first-discovery.md) — 원천 kind 후보군 → 조건 → 사실 순서, 의미 제안은 선택층
@@ -174,6 +177,10 @@ depends-on: (있으면)
 ---
 ```
 주제 README 표에 한 줄 추가. adopted 되면 `decisions/README.md`에 번호 붙여 한 줄, 갈래 파일은 그대로 둔다.
+
+산책은 [주제별 입구](explorations/walk/README.md)에 따라
+`explorations/walk/{recording,spatial,diary,game,statistics}/` 아래에 둔다.
+계약·결정·날짜별 연구 기록은 문서 유형별 기존 위치를 유지하고 주제 README에서 연결한다.
 
 ## 갈래를 닫을 때 (adopted · rejected)
 `status`를 바꾸는 것으로 끝이 아니다. 그 갈래의 측정 스파이크 폴더

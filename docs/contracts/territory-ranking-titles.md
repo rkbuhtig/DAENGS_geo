@@ -7,13 +7,13 @@ last_verified: 2026-09-06
 
 # 동네 순위·칭호 — 정책과 저장·API 계약 초안
 
-선행 작업은 [산책·점령 세션/통계 기반](../explorations/walk/activity-statistics-skeleton.md)이다.
+선행 작업은 [산책·점령 세션/통계 기반](../explorations/walk/statistics/activity-statistics-skeleton.md)이다.
 산책 확정 분석과 점령 보유 이력을 먼저 기록하고, 여기의 비교·칭호는 버전과 근거가 있는 통계를
 읽는 후속 소비자로 구현한다. 점수에서 사실 통계를 역산하지 않는다.
 
 **이 문서의 동네/칭호 계약은 새로 작성한 검토안이며 구현·합의·운영 채택된 정책이 아니다.**
 이미 있는 기능과 추가할 기능을 분리하고, DEV/APP 작업자가 구현 전에 닫아야 할 결정을 남긴다.
-전체 구현 경위와 이관 순서는 [게임 인수인계](../explorations/walk/territory-game-handoff.md)를 읽는다.
+전체 구현 경위와 이관 순서는 [게임 인수인계](../explorations/walk/game/territory-game-handoff.md)를 읽는다.
 
 문서의 `제안 v0`는 구체적인 검토 기준이다. 사용자가 수치·조건을 승인했다는 뜻이 아니며,
 채택할 때 결정 기록과 계약 버전을 만들고 테스트를 작성한다. 이 문서를 추가하는 PR은

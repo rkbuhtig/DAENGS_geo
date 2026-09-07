@@ -3,7 +3,7 @@
     uv run python -m scripts.spikes.territory_paint.latent_dwell_year \\
         --cache osm.json --json latent.json
 
-갈래는 [repeated-dwell-area](../../../docs/explorations/walk/repeated-dwell-area.md).
+갈래는 [repeated-dwell-area](../../../docs/explorations/walk/spatial/repeated-dwell-area.md).
 
 ## 심는 것은 좌표와 행동이지 **답이 아니다**
 
@@ -31,7 +31,7 @@ field 모양은 **우리도 모른다.** 붓·격자·지터·경로 반복이 �
 ## 대조군이 **셋**인 이유 — 처음에 둘로 했다가 정의와 모순됐다
 
 첫 판은 `planted(A·B·C·D)` 와 `null(B·C)` 둘이었고, null 에서 나오는 것을 "거짓 양성의
-바닥" 이라 불렀다. **그게 [정의](../../../docs/explorations/walk/repeated-dwell-area.md)와
+바닥" 이라 불렀다. **그게 [정의](../../../docs/explorations/walk/spatial/repeated-dwell-area.md)와
 정면으로 어긋난다** — 정의는 "구조적 정지도 반복 체류에 걸린다, 무엇인지는 M4 가 설명한다"
 이므로 B 는 **참 양성**이다. B 가 든 자료를 거짓 양성의 바닥이라 부르면 M3 가 "개 체류냐
 구조적 정지냐" 를 갈라야 하고, 그건 M4 의 일을 검출기에 떠넘기는 것이다.

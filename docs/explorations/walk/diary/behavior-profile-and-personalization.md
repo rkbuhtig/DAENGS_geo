@@ -12,7 +12,7 @@ depends-on: storyboard-and-regions.md, behavior-anchor.md, micro-judgment.md
 
 현재 구현은 아니다. 데이터베이스·API·행동 어휘·판정 문턱·보존 기간·Context capability를
 채택하지 않는다. 아래 객체 이름과 JSON은 설명용 후보이며 실행 계약으로 가져다 쓰지 않는다.
-산책 일기의 현재 설계와 실행은 [산책 일기 계획](diary-storyboard-plan.md)에서 확인한다.
+산책 일기의 현재 설계와 실행은 [산책 일기 계획](plan.md)에서 확인한다.
 
 ## 1. 만들고 싶은 경험
 
@@ -83,7 +83,7 @@ depends-on: storyboard-and-regions.md, behavior-anchor.md, micro-judgment.md
 
 ### 3.2 기존 개인 문장 경계를 지킨다
 
-[Context Plane v0](../../contracts/context-plane.md)는 개인 자유 문장·감정·생각을 Context
+[Context Plane v0](../../../contracts/context-plane.md)는 개인 자유 문장·감정·생각을 Context
 Bundle, 경향, 프로필 갱신, 다른 산책 판단으로 승격하지 않는다. 다음 경로는 이 문서가
 열지 않는다.
 
@@ -204,7 +204,7 @@ Bundle, 경향, 프로필 갱신, 다른 산책 판단으로 승격하지 않는
 
 ### 7.2 기존 low-motion 부정 판정도 행동 음성 정답이 아니다
 
-[Memory Place biography](../../contracts/memory-place-biography.md)의 judgeable 분모는
+[Memory Place biography](../../../contracts/memory-place-biography.md)의 judgeable 분모는
 노출·capability·drift 자격 아래 **low-motion 관측 여부**를 비교하는 계약이다.
 여기서 `not_observed`가 나왔다고 ‘냄새를 맡지 않았다’로 변환할 수 없다.
 저속 현상의 관측 가능성과 특정 행동을 알 수 있는 능력은 다른 축이다.
@@ -444,7 +444,7 @@ LLM 없이 집계와 짧은 설명이 먼저 성립해야 한다. LLM은 허용�
 필요하다. 현재 개인화 제안을 모델 재훈련 승인으로 해석하지 않는다. 첫 projector 단계에는
 학습 모델이 필요하지 않다.
 
-[결정 #85](../../decisions/2026-09-03-walk-diary-route-privacy.md)는 geo에서 영구 연속
+[결정 #85](../../../decisions/2026-09-03-walk-diary-route-privacy.md)는 geo에서 영구 연속
 경로 저장을 열지 않았다. 프로필을 만든다는 이유로 purged 경로를 복원하거나 raw fix 수명을
 늘리지 않는다. 존재하는 Pin·증언·허용된 저장 재료로 답할 수 있는 질문부터 고른다.
 
@@ -532,10 +532,10 @@ LLM 없이 집계와 짧은 설명이 먼저 성립해야 한다. LLM은 허용�
 - [미시 판정](micro-judgment.md): 관측·통계·룰·표현의 경계.
 - [산책 기억 엔진](memory-engine.md): 기존 검출 실험이 드러낸 귀속과 저장의 문제.
 - [스토리보드와 동네](storyboard-and-regions.md): 시간순 장면과 지역/게임의 관계.
-- [반려견 프로필](../../contracts/dog-profile.md), [DogProfile 코드](../../../app/profile/contract.py).
-- [Capsule 계약](../../contracts/walk-capsule.md), [증언·Pin 타입](../../../app/features/spatial_diary/contract.py).
-- [Pin 정정](../../contracts/pin-attestation-correction.md), [Spatial Diary API](../../../app/features/spatial_diary/api.py).
-- [Memory Place biography](../../contracts/memory-place-biography.md).
-- [Context Plane](../../contracts/context-plane.md), [닫힌 registry](../../../app/context_plane/registry.py).
-- [스토리보드 build](../../../scripts/spikes/storyboard_and_regions/build.py): 합성 Pin이 있는 현재 실험.
-- [시즌 점령전](territory-season-scoring.md): 게임 결과의 별도 권위, 행동 성향 근거와 분리.
+- [반려견 프로필](../../../contracts/dog-profile.md), [DogProfile 코드](../../../../app/profile/contract.py).
+- [Capsule 계약](../../../contracts/walk-capsule.md), [증언·Pin 타입](../../../../app/features/spatial_diary/contract.py).
+- [Pin 정정](../../../contracts/pin-attestation-correction.md), [Spatial Diary API](../../../../app/features/spatial_diary/api.py).
+- [Memory Place biography](../../../contracts/memory-place-biography.md).
+- [Context Plane](../../../contracts/context-plane.md), [닫힌 registry](../../../../app/context_plane/registry.py).
+- [스토리보드 build](../../../../scripts/spikes/storyboard_and_regions/build.py): 합성 Pin이 있는 현재 실험.
+- [시즌 점령전](../game/territory-season-scoring.md): 게임 결과의 별도 권위, 행동 성향 근거와 분리.

@@ -14,7 +14,7 @@ adopted_at: 2026-08-26
 이 문서가 그 별도 검토다. 그리고 결론부터 말하면 **여기서 나온 파생은 "좌표 없는" 이 아니다.**
 그래서 `WalkFacts` 와 같은 층에 넣을 수 없고, 층을 하나 더 만들어야 한다.
 
-같은 질문이 [session-continuity-and-dwell §21](../explorations/walk/session-continuity-and-dwell.md)
+같은 질문이 [session-continuity-and-dwell §21](../explorations/walk/recording/session-continuity-and-dwell.md)
 의 territory 항목에도 열려 있었다 — "어떤 공간 자료를 원좌표 purge 뒤 영구 보관할지".
 
 ## 무엇으로 갈랐나
@@ -168,7 +168,7 @@ C 는 정확히 그 반대를 한다 — **의도적으로** 오늘의 격자와
 
 > 실사용 업로드를 켜기 전에 **격자 단위와 붓 프로파일이 결정 문서로 서 있어야 한다.**
 
-지금은 안 서 있다 — [territory-paint §B·§C](../explorations/walk/territory-paint.md) 가 붓
+지금은 안 서 있다 — [territory-paint §B·§C](../explorations/walk/spatial/territory-paint.md) 가 붓
 반경과 등급 문턱을 열어 두고 있고, 둘 다 실기기 데이터를 기다린다. 이 게이트는 #57(보관
 기간)·#58(식별자)과 **별개로** 걸린다. 셋 중 하나가 열려도 나머지는 그대로 닫혀 있다.
 

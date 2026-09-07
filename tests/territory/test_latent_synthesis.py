@@ -91,7 +91,7 @@ def test_the_true_null_has_nothing_planted_at_all():
     """**문턱의 출처**다. 여기 뭐라도 섞이면 거짓 양성의 바닥이 오염된다.
 
     처음엔 대조군이 `B + C` 하나였고 그걸 "거짓 양성의 바닥" 이라 불렀다. **정의와 모순이다**
-    — [정의](../../docs/explorations/walk/repeated-dwell-area.md)상 구조적 정지도 반복
+    — [정의](../../docs/explorations/walk/spatial/repeated-dwell-area.md)상 구조적 정지도 반복
     체류에 걸리는 **참 양성**이므로, B 가 든 자료에서 나온 것은 거짓 양성이 아니다.
     """
     assert _plant(_cohort("N0")) == []

@@ -8,7 +8,7 @@ last_verified: 2026-09-06
 
 전체 개발 경위와 DEV·APP 이관은 [게임 인수인계](territory-game-handoff.md)를 먼저 읽는다.
 이 문서는 로컬 체험과 현재 점수 규칙을 설명한다. 동네 범위와 칭호는
-[미구현 정책/계약 초안](../../contracts/territory-ranking-titles.md)에서 별도로 다룬다.
+[미구현 정책/계약 초안](../../../contracts/territory-ranking-titles.md)에서 별도로 다룬다.
 
 2026-09-06 대화에서 정한 방향을 Geo의 실행 가능한 게임 규칙과 로컬 체험으로 구현한다.
 목표는 산책하며 영역을 차지하고 **우리 강아지를 동네 강자로 알리는 것**이다.
@@ -84,7 +84,7 @@ uv run python -m scripts.spikes.territory_season.server
 
 `policy.py`는 DB·네트워크·시계·앱 인증과 독립인 보호·점수·시즌 계산 모듈이다.
 `policy_service.py`는 저장 인터페이스를 통해 소유권·점수·영수증을 함께 반영한다.
-실제 서버 입력·잠금 순서·후속 스키마는 [점령 정책 연결 계약](../../contracts/territory-policy-integration.md)에 있다.
+실제 서버 입력·잠금 순서·후속 스키마는 [점령 정책 연결 계약](../../../contracts/territory-policy-integration.md)에 있다.
 `season.py`는 같은 계산 모듈을 사용하는 로컬 세션·사진·게임판 흐름이다.
 `Game.transition(command, at_ms=...)`는 새 상태와 결과를 반환한다. 실패는 입력 상태를 바꾸지 않는다.
 
@@ -174,7 +174,7 @@ Edge에서 점령·인증·10분 보호·재시도·새로고침 복구·시즌 
 ## APP·DEV 승격
 
 Geo에서 이 사이클을 개발하는 데 #260 마이그레이션이나 GCP 접속은 필요 없다.
-DEV로 옮길 때는 [연결 계약](../../contracts/territory-policy-integration.md)의 `PolicyTransaction`을
+DEV로 옮길 때는 [연결 계약](../../../contracts/territory-policy-integration.md)의 `PolicyTransaction`을
 실제 DB 어댑터로 구현한다. `Game` 전체 JSON DB나 로컬 API를 복사하지 않고 다음을 연결한다.
 
 1. 실제 세션·참여견 소유권·접촉·사진 판정은 기존 인증된 서비스에서 제공한다.
@@ -184,6 +184,6 @@ DEV로 옮길 때는 [연결 계약](../../contracts/territory-policy-integratio
 4. 대상 DB에 #260과 후속 migration·검증을 먼저 적용한 뒤 해당 서버와 APP을 반영한다.
    Windows 개발 DB와 GCP 운영 DB의 적용은 별개다.
 
-로컬 체험 외에 [Geo PostgreSQL 어댑터와 0033](../../contracts/territory-policy-postgres.md)도 구현했다.
+로컬 체험 외에 [Geo PostgreSQL 어댑터와 0033](../../../contracts/territory-policy-postgres.md)도 구현했다.
 웹 체험은 계속 SQLite를 사용한다. PostgreSQL 체험 연결은 DEV 승격의 필수 조건이 아니다.
 실제 #260 테이블 매핑·APP 확장·운영 적용은 [이관 작업표](territory-game-handoff.md)에 남긴다.

@@ -6,7 +6,7 @@ last_verified: 2026-09-06
 
 # 점령 정책 연결 계약 v1
 
-전체 개발 이유·저장소별 상태·이관 작업은 [게임 인수인계](../explorations/walk/territory-game-handoff.md)를 읽는다.
+전체 개발 이유·저장소별 상태·이관 작업은 [게임 인수인계](../explorations/walk/game/territory-game-handoff.md)를 읽는다.
 동네 순위·칭호는 이 계약의 구현 범위가 아니며 [별도 초안](territory-ranking-titles.md)에 있다.
 
 운영 DB 적용 전에도 구현·검증할 수 있는 정책과 저장 경계를 정의한다. Geo에는 계산 코드,
@@ -16,7 +16,7 @@ DEV #260의 실제 테이블 매핑과 운영 반영은 아직 하지 않았다.
 
 기준은 [DEV #260](https://github.com/SAJOYO/DAENGS_dev/pull/260)의
 `5b2c8a4c57cdf593c8e5be9f11225ffaab599413`이다. 이후 변경되면 연결 위치를 다시 대조한다.
-배점과 제품 미결 사항은 [게임 문서](../explorations/walk/territory-season-game.md)를 따른다.
+배점과 제품 미결 사항은 [게임 문서](../explorations/walk/game/territory-season-game.md)를 따른다.
 
 ## 구현 경계
 

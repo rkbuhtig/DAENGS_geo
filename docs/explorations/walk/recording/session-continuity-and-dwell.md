@@ -4,7 +4,7 @@ implementation: partial
 last_verified: 2026-08-26
 depends-on:
   - contracts/walk-record.md
-  - explorations/walk/territory-paint.md
+  - explorations/walk/spatial/territory-paint.md
   - decisions/2026-08-25-walk-data-retention.md
 ---
 # 산책 세션의 연속성과 붓의 연속성은 다르다 — 중단·재개·체류 설계 초안
@@ -24,7 +24,7 @@ depends-on:
 >
 > GPS가 끊겨도 하나의 산책일 수 있다. 그러나 관측이 끊긴 곳을 붓으로 이어 칠하지 않는다.
 
-`territory-paint.md`의 "산책 한 번 = 셀로판 한 장"과 충돌하지 않는다. 한 장의 셀로판 안에는
+`../spatial/territory-paint.md`의 "산책 한 번 = 셀로판 한 장"과 충돌하지 않는다. 한 장의 셀로판 안에는
 서로 떨어진 여러 관측 구간이 있을 수 있다. 빈 구간은 **모르는 구간**이지 시작점과 끝점을
 연결해야 하는 구간이 아니다.
 
@@ -861,7 +861,7 @@ B: 한 번 갔지만 벤치에서 30분 정지
 
 ## 16. 한 Cellophane 안에 여러 stroke가 있어도 된다
 
-`territory-paint.md`의 "산책 한 번 = 셀로판 한 장"을
+`../spatial/territory-paint.md`의 "산책 한 번 = 셀로판 한 장"을
 "산책 한 번 = 하나의 연속 polyline"으로 읽으면 안 된다.
 
 예:
@@ -1061,7 +1061,7 @@ https://support.coros.com/hc/en-us/articles/4409363080980-How-to-Use-Resume-Late
 
 - `walks`, `occupancy`, dwell을 실제 지도에서 어떤 채널로 표시할지
 - dwell을 `Cellophane` 내부에 넣을지 별도 파생으로 둘지
-- ~~어떤 공간 자료를 원좌표 purge 뒤 영구 보관할지~~ → [결정 #69](../../decisions/2026-08-26-walk-permanent-spatial-form.md) (집계 셀 맵 하나, 궤적은 안 남긴다)
+- ~~어떤 공간 자료를 원좌표 purge 뒤 영구 보관할지~~ → [결정 #69](../../../decisions/2026-08-26-walk-permanent-spatial-form.md) (집계 셀 맵 하나, 궤적은 안 남긴다)
 
 ### 운영
 

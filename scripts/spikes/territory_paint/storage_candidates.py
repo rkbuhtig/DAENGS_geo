@@ -6,7 +6,7 @@
 ## 무엇을 묻나
 
 결정 #57 이 연속 궤적을 finish 직후 purge 한다. 그러면 무엇을 남기나.
-[territory-paint §A](../docs/explorations/walk/territory-paint.md) 가 후보 셋을 열어 뒀는데,
+[territory-paint §A](../../../docs/explorations/walk/spatial/territory-paint.md) 가 후보 셋을 열어 뒀는데,
 거기 적힌 "~80점 / ~200행" 은 **추정이지 실측이 아니다.** 근거 없는 숫자를 결정에 박지 않는
 레포에서 그대로 결정 문서로 넘길 수 없다.
 

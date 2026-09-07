@@ -4,7 +4,7 @@
     uv run python -m scripts.spikes.territory_paint.experience_scene \\
         --personas personas.json --cache-sheets sheets.pkl --out scene.json
 
-갈래는 [experience-scenario](../../../docs/explorations/walk/experience-scenario.md).
+갈래는 [experience-scenario](../../../docs/explorations/walk/spatial/experience-scenario.md).
 
 ## 이 스크립트의 완료 조건
 

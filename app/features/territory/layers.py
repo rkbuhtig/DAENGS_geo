@@ -367,7 +367,7 @@ def region_visit_rate(sheets: Iterable[Cellophane], spec: LayerSpec, region: Reg
 
     **여기서 문턱을 정하지 않는다.** 기본값은 `spec.aggregation.min_peak` 을 따라가고
     (겹치기와 같은 눈으로 보려고), 손잡이만 열어 둔다. 등급 문턱은
-    [territory-paint §C](../../docs/explorations/walk/territory-paint.md) 가 실기기 데이터를
+    [territory-paint §C](../../../docs/explorations/walk/spatial/territory-paint.md) 가 실기기 데이터를
     기다리는 열린 결정이라, 제품 질의가 그걸 몰래 정하면 안 된다.
 
     다만 이 손잡이가 존재할 수 있는 것 자체가 결정 #69 가 `peak` 을 버리지 않은 덕이다.

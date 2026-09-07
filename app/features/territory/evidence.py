@@ -1,6 +1,6 @@
 """근거와 고르기 — 파이프라인의 Evidence · Judgment 두 단.
 
-갈래는 [evidence-layer](../../../docs/explorations/walk/evidence-layer.md).
+갈래는 [evidence-layer](../../../docs/explorations/walk/spatial/evidence-layer.md).
 
     Instruments   방문률·추세          experience.py
     Evidence      "저녁엔 R12 +29%p"   이 파일 — gather()

@@ -4,7 +4,7 @@ implementation: none
 last_verified: 2026-09-02
 depends-on:
   - contracts/walk-record.md
-  - explorations/walk/session-continuity-and-dwell.md
+  - explorations/walk/recording/session-continuity-and-dwell.md
 ---
 # 속도색 산책 동선 — 방향은 GO, 구현은 보류
 
@@ -118,7 +118,7 @@ SpeedBandPath
 
 ### 2026-09-03 후속 실험
 
-[`walk-diary-route`](walk-diary-route.md) Lab은 단일 세션 선의 공간 보호·단순화와 함께
+[`walk-diary-route`](../diary/walk-diary-route.md) Lab은 단일 세션 선의 공간 보호·단순화와 함께
 edge별 세 단계 색이 얼마나 남는지 보기 위해 **세션 내부 상대 분위수**를 임시로 표시한다.
 이는 이 문서의 제품 속도 문턱·EWMA·hysteresis를 채택한 구현이 아니다. 저장 후보의 형태와
 지도 가독성을 보는 실험일 뿐이며, 실제 속도 의미와 Android 렌더링 보류 조건은 그대로다.

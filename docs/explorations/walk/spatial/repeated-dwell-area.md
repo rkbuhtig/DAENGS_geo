@@ -113,10 +113,10 @@ depends-on: evidence-layer.md, research/2026-08-27-mass-conserving-kernel.md
 "몇 배부터 반복 체류인가" 는 손으로 고를 값이 아니다. **체류를 하나도 안 심은 대조 자료**
 에서 이 지표가 얼마나 나오는지가 **거짓 양성의 바닥**이고, 문턱은 그 위로 정해진다.
 
-[회수 실험](../../research/2026-08-26-cellophane-recovery.md)이 ε 를 A 페르소나(패턴을 안
+[회수 실험](../../../research/2026-08-26-cellophane-recovery.md)이 ε 를 A 페르소나(패턴을 안
 심은 사람)에서 얻은 것과 같은 방법이다. 눈으로 "이 정도면 뚜렷하다" 를 판정하지 않는다.
 
-**대조군은 [M2](../../research/2026-08-27-latent-dwell-synthesis.md)에서 만들었고, 첫 측정은
+**대조군은 [M2](../../../research/2026-08-27-latent-dwell-synthesis.md)에서 만들었고, 첫 측정은
 이 방법이 지금 지표로는 안 통한다는 것을 보여줬다** — 아무것도 안 심은 N0 의 field 최고봉이
 31.5x 로 심은 자리 전부(최고 14.3x)를 이긴다. 문턱을 그 위로 잡으면 참 양성이 하나도 안
 남는다. 그러니 M3 의 첫 일은 문턱을 고르는 것이 아니라 **문턱을 걸 수 있는 지표를 찾는 것**이다.
@@ -148,7 +148,7 @@ depends-on: evidence-layer.md, research/2026-08-27-mass-conserving-kernel.md
 
 ### M3 가 안고 시작해야 하는 것 넷
 
-[합성 자료](../../research/2026-08-27-latent-dwell-synthesis.md)를 만들고 정답 자리를
+[합성 자료](../../../research/2026-08-27-latent-dwell-synthesis.md)를 만들고 정답 자리를
 읽어 보니 M3 가 알아야 할 것이 벌써 나왔다.
 
 **1. 세 support 를 갈라 부른다.** 지금 한 낱말로 뭉뚱그려 쓰던 것이 셋이다.
@@ -186,5 +186,5 @@ S 18.4 로 3 배 차이다. 체류를 많이 심을수록 칠해진 칸의 전�
 
 [evidence-layer]: evidence-layer.md
 [experience-scenario]: experience-scenario.md
-[질량 보존 측정]: ../../research/2026-08-27-mass-conserving-kernel.md
-[#69]: ../../decisions/2026-08-26-walk-permanent-spatial-form.md
+[질량 보존 측정]: ../../../research/2026-08-27-mass-conserving-kernel.md
+[#69]: ../../../decisions/2026-08-26-walk-permanent-spatial-form.md

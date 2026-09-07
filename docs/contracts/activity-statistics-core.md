@@ -7,7 +7,7 @@ last_verified: 2026-09-06
 
 # 산책·점령 통계 코어 — 입력 계약과 이관 경계
 
-[working skeleton 설계](../explorations/walk/activity-statistics-skeleton.md)의 S1·S2를 구현했다.
+[working skeleton 설계](../explorations/walk/statistics/activity-statistics-skeleton.md)의 S1·S2를 구현했다.
 기존 ID 연결과 산책/점령의 순수 계산·재생까지 실행할 수 있다. S3의 저장·처리·Geo 정책
 연결은 [PostgreSQL 계약](activity-statistics-postgres.md)에 추가했다. DEV의 실제 산책 분석/점령
 생산자와 HTTP 조회·APP 표시는 아직 없다. 이 코어만 배포해서 제품 기능이 활성화되는 것은 아니다.

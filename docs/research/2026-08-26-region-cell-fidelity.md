@@ -7,8 +7,8 @@
 > 28 단위는 실제 22.2m, 115 단위는 91.2m 다. 셀 할당 자체는 안 바뀌므로 **오차 숫자는 그대로**고
 > 비(比)만 1.26 배로 커진다. 손익분기는 실제 비 **4~5배**이고 규칙은 그대로 선다.
 >
-> **이 측정이 전제한 "사용자가 면을 그린다" 는 [parked](../explorations/walk/drawn-region.md)
-> 됐고, 갈래는 [territory-paint](../explorations/walk/territory-paint.md) 로 이어진다.
+> **이 측정이 전제한 "사용자가 면을 그린다" 는 [parked](../explorations/walk/spatial/drawn-region.md)
+> 됐고, 갈래는 [territory-paint](../explorations/walk/spatial/territory-paint.md) 로 이어진다.
 > 아래 손익분기 규칙과 프라이버시 다이얼 상한은 셀 격자를 쓰는 한 그대로 유효하다** —
 > 붓 모델도 같은 격자 위에 서 있다. 본문은 당시 관찰이므로 현재형으로 다시 쓰지 않는다.
 

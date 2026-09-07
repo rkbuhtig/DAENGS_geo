@@ -3,7 +3,7 @@
     uv run python -m scripts.spikes.territory_paint.world_context_readout \\
         --latent latent.json --cache-world osm_world.json --json world_context.json
 
-갈래는 [memory-engine](../../../docs/explorations/walk/memory-engine.md) §12 —
+갈래는 [memory-engine](../../../docs/explorations/walk/diary/memory-engine.md) §12 —
 Walk Capsule 의 event-context 가 "당시 확보 가능했던 주변" 을 동결한다고 했다.
 이 스크립트는 그 "확보 가능했던" 이 이 bbox 에서 실제로 얼마인지 잰다.
 

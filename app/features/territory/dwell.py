@@ -1,6 +1,6 @@
 """체류를 읽는 장치 — **국소 적분이고, 산책 수로 나눈다.**
 
-갈래는 [repeated-dwell-area](../../../docs/explorations/walk/repeated-dwell-area.md).
+갈래는 [repeated-dwell-area](../../../docs/explorations/walk/spatial/repeated-dwell-area.md).
 파이프라인의 Instruments 단이고, 여기서 근거를 만들지도 고르지도 않는다.
 
 ## 왜 셀 하나로 안 읽나
@@ -51,7 +51,7 @@
 해상도로 물으면 답이 격자 배치에 좌우되므로, **그런 질문은 값을 주지 않고 거절한다.**
 정의가 조건으로 걸어 놓고 코드가 안 막으면 정의가 장식이 된다.
 
-[evidence-layer]: ../../../docs/explorations/walk/evidence-layer.md
+[evidence-layer]: ../../../docs/explorations/walk/spatial/evidence-layer.md
 [#69]: ../../../docs/decisions/2026-08-26-walk-permanent-spatial-form.md
 """
 

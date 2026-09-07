@@ -1,11 +1,11 @@
 # 장면 생성 규칙의 실데이터 이식
 
 제품 방향·결정 이유·현재 진행과 다음 작업은
-[공간 일기 제작·재개 계획](../explorations/walk/diary-storyboard-plan.md)을 먼저 읽는다.
+[공간 일기 제작·재개 계획](../explorations/walk/diary/plan.md)을 먼저 읽는다.
 
 아래는 제품에 연결된 규칙 기반 구현의 이식 계약이다. 전체 이해 → 장면별 갱신 →
 재검토 → 검토본 → 선택적 일기의 LLM 실험은
-[현재 제작 계획](../explorations/walk/diary-storyboard-plan.md)에 구현 범위를 기록한다.
+[현재 제작 계획](../explorations/walk/diary/plan.md)에 구현 범위를 기록한다.
 
 `app/features/storyboard/scenes.py`와 `selection.py`는 시뮬레이터 의존성이 없는
 장면 builder/선택 함수다. GPS lab은 관측 nodes·기록·시간 범위를 만들어 이 함수를 부르고,

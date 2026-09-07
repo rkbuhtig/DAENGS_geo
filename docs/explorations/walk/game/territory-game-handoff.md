@@ -6,10 +6,10 @@ last_verified: 2026-09-06
 
 # 산책 점령 게임 — 구현 근거와 Geo → DEV → APP 인수인계
 
-다음 기반 작업은 [산책·점령 세션과 통계 working skeleton 설계](activity-statistics-skeleton.md)다.
+다음 기반 작업은 [산책·점령 세션과 통계 working skeleton 설계](../statistics/activity-statistics-skeleton.md)다.
 비교 범위·순위·칭호보다 먼저 기존 세션 ID 연결과 두 도메인의 통계 근거를 구축한다.
-아래 게임 구현/이관 현황과 구분한다. [통계 순수 코어](../../contracts/activity-statistics-core.md)는
-구현했고 [DB 저장·재처리 골격](../../contracts/activity-statistics-postgres.md)도 추가했다.
+아래 게임 구현/이관 현황과 구분한다. [통계 순수 코어](../../../contracts/activity-statistics-core.md)는
+구현했고 [DB 저장·재처리 골격](../../../contracts/activity-statistics-postgres.md)도 추가했다.
 DEV/APP 제품 연결은 아직 후속 단계다.
 
 이 문서는 **왜 Geo에 코드가 있는지, 무엇을 만들었는지, DEV·APP에 무엇이 이미 있는지,
@@ -18,7 +18,7 @@ DEV/APP 제품 연결은 아직 후속 단계다.
 
 현재는 보호·점수·시즌 계산과 Geo PostgreSQL 저장 기반까지 구현했다. 동네 범위를 정하는
 정책과 칭호 수여 기능은 구현하지 않았다. 이 문서와 함께 추가한
-[동네 순위·칭호 정책과 계약 초안](../../contracts/territory-ranking-titles.md)은 검토할 설계이며,
+[동네 순위·칭호 정책과 계약 초안](../../../contracts/territory-ranking-titles.md)은 검토할 설계이며,
 그 기능을 구현하거나 제품 정책을 확정했다는 뜻이 아니다.
 
 읽는 순서: [개발 이유](#2-왜-geo에서-만들었는가) → [현재 반영 상태](#3-확인한-기준점과-반영-상태)
@@ -251,7 +251,7 @@ APP 루트는 `app/src/main/java/com/daengs/app/`다. 다음은 기존 코드에
 | `GET /app/territory/seasons/current?scope_id=...` | 선택 범위의 시즌과 시작/종료/상태. 없으면 명시적 미개설 상태 |
 | `GET /app/territory/seasons/{id}/pets/{pet_id}/score` | 소유자용 정확한 점수·현재 보유 수·정산 기준. 서버 권한 검사 |
 | `GET /app/territory/seasons/{id}/results` | 봉인된 성적과 결과 버전. 공개/소유자 조회 구분 |
-| 동네 순위·칭호 경로 | [별도 초안](../../contracts/territory-ranking-titles.md)의 경계·노출·pagination·수여 상태 적용 |
+| 동네 순위·칭호 경로 | [별도 초안](../../../contracts/territory-ranking-titles.md)의 경계·노출·pagination·수여 상태 적용 |
 
 claim 처리 결과는 과거 영수증, 지도와 계정 조회는 현재 상태다. 두 응답의 시점이 다르다는 점을
 계약에 담는다. 구형 APP이 알 수 없는 추가 필드를 안전하게 무시하는지, 구형 서버에서 새 APP이
@@ -332,9 +332,9 @@ CI의 격리된 PostGIS에서 수행했다. Geo 웹의 실제 GPS·VLM·운영 �
 
 - 이 문서: 전체 방향, 저장소별 상태, 작업 순서의 시작점.
 - [시즌 게임](territory-season-game.md): 체험 실행, 초안 배점, 로컬 동작.
-- [정책 연결 계약](../../contracts/territory-policy-integration.md): 현재 Python 입력/출력·잠금·트랜잭션 책임.
-- [PostgreSQL 어댑터](../../contracts/territory-policy-postgres.md): 실제 Geo schema·실행·초기 반영·조회.
-- [동네 순위·칭호](../../contracts/territory-ranking-titles.md): 아직 미구현인 후속 정책과 HTTP/저장 계약 초안.
+- [정책 연결 계약](../../../contracts/territory-policy-integration.md): 현재 Python 입력/출력·잠금·트랜잭션 책임.
+- [PostgreSQL 어댑터](../../../contracts/territory-policy-postgres.md): 실제 Geo schema·실행·초기 반영·조회.
+- [동네 순위·칭호](../../../contracts/territory-ranking-titles.md): 아직 미구현인 후속 정책과 HTTP/저장 계약 초안.
 - [9월 5일 제작 계획](territory-production-plan.md), [정기 정산 탐색](territory-season-scoring.md): 당시 기록. 최신 완료 상태의 원본으로 사용하지 않음.
 
 DEV/APP 채택 PR이 병합된 뒤 채택한 Geo commit, 대상 commit, 의도적으로 달라진 정책/저장

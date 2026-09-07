@@ -1,6 +1,6 @@
 # 관측 GPS 계산을 스토리보드에 연결한 실험
 
-2026-09-06. [산책 일기 계획](../explorations/walk/diary-storyboard-plan.md)의 후속 실험이다.
+2026-09-06. [산책 일기 계획](../explorations/walk/diary/plan.md)의 후속 실험이다.
 [초기 골격 실행](2026-09-06-diary-storyboard-skeleton.md)의 수기 수치를, 합성 관측 GPS에서
 실제 geo 함수로 계산한 자료로 바꿨다. **입력 확보부터 Gemini 스토리보드까지 연결됐지만,
 킁킁 기록을 마킹으로 바꾸는 오류는 최종 재검토에서도 남았다.**

@@ -1,6 +1,6 @@
 # 산책 시나리오 → 주변 문맥 → 스토리보드
 
-[탐색 갈래](../../../docs/explorations/walk/storyboard-and-regions.md)의 개발용 스파이크.
+[탐색 갈래](../../../docs/explorations/walk/diary/storyboard-and-regions.md)의 개발용 스파이크.
 공공데이터는 실제 응답이고, 산책·Pin·게임 결과는 합성이다. 운영 앱·DB에는 쓰지 않는다.
 
 ## 준비와 실행

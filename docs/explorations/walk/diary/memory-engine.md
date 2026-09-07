@@ -3,15 +3,15 @@ status: exploring
 ---
 # 산책 기억 엔진 — 검출기가 막힌 자리에서 캡슐까지
 
-[`repeated-dwell-area`](repeated-dwell-area.md) 의 M3 앞에서 멈춘 기록이다. M2 가 부정 결과를 냈고([PR #134](https://github.com/rkbuhtig/DAENGS_geo/pull/134),
-[latent-dwell-synthesis](../../research/2026-08-27-latent-dwell-synthesis.md)), 그 실패의 원인을 따라가다
+[`repeated-dwell-area`](../spatial/repeated-dwell-area.md) 의 M3 앞에서 멈춘 기록이다. M2 가 부정 결과를 냈고([PR #134](https://github.com/rkbuhtig/DAENGS_geo/pull/134),
+[latent-dwell-synthesis](../../../research/2026-08-27-latent-dwell-synthesis.md)), 그 실패의 원인을 따라가다
 **검출기의 문제가 아니라 이 레포가 무엇을 저장하는 물건인지의 문제**로 옮겨간 과정을 남긴다.
 2026-08-27 ~ 08-28 의 논의다.
 
-이 문서는 **결정이 아니다.** 결정 후보는 §13 에 모았고, 채택하면 `README.md` 의 표로 올라간다.
+이 문서는 **결정이 아니다.** 결정 후보는 §13 에 모았고, 채택하면 `../README.md` 의 표로 올라간다.
 문서 안에서 다음 셋을 섞지 않는다 — 섞으면 이 문서가 스스로 경계하는 병에 그대로 걸린다.
 
-> **2026-09-01 부분 채택.** [결정 #74](../../decisions/2026-09-01-spatial-diary.md)가 Capsule
+> **2026-09-01 부분 채택.** [결정 #74](../../../decisions/2026-09-01-spatial-diary.md)가 Capsule
 > manifest, 원시 MeasurementReceipt, Offer→Attestation→Pin, Spatial Diary 읽기 경계를
 > 채택했다. 이 문서 전체와 Place 형성·나레이션·백업 제안은 계속 탐색 상태다.
 
@@ -1048,16 +1048,16 @@ World 가 없어도 "이 근처" 로 일기는 성립해야 한다. 있으면 "�
 아래는 **제안이지 반영이 아니다.** 이 문서를 채택할 때 각 문서에 손대고, 그 전까지 원문은
 그대로 둔다.
 
-- [`repeated-dwell-area.md`](repeated-dwell-area.md) 의 M3 정의 — "문턱을 찾는다" 에서
+- [`../spatial/repeated-dwell-area.md`](../spatial/repeated-dwell-area.md) 의 M3 정의 — "문턱을 찾는다" 에서
   **"L1 을 탐색 범위 내 detector-agnostic 으로 만들고 지표 후보를 나란히 잰다"** 로 확장된다
-- [`territory-paint.md`](territory-paint.md) §B·§C — 셀로판의 역할이 "체류를 찾는 장치" 에서
+- [`../spatial/territory-paint.md`](../spatial/territory-paint.md) §B·§C — 셀로판의 역할이 "체류를 찾는 장치" 에서
   **"거시 기억판"** 으로 좁혀진다. 미시는 셀로판이 아니라 사건 원장이 담당한다
-- [`session-continuity-and-dwell.md`](session-continuity-and-dwell.md) §21 의 "원좌표 purge 뒤
-  무엇을 남기나" — L0/L1 경계로 답한다. [결정 #69](../../decisions/2026-08-26-walk-permanent-spatial-form.md)
+- [`../recording/session-continuity-and-dwell.md`](../recording/session-continuity-and-dwell.md) §21 의 "원좌표 purge 뒤
+  무엇을 남기나" — L0/L1 경계로 답한다. [결정 #69](../../../decisions/2026-08-26-walk-permanent-spatial-form.md)
   는 그 답의 거시 절반이었다
-- [`experience-scenario.md`](experience-scenario.md) 의 검증 화면 — 저녁 산책 직전이 아니라
+- [`../spatial/experience-scenario.md`](../spatial/experience-scenario.md) 의 검증 화면 — 저녁 산책 직전이 아니라
   **첫 산책 직후**로 바꾼다
-- [`evidence-layer.md`](evidence-layer.md) — 이 문서의 진실성 4층(§11)이 그 갈래의 근거 계약과
+- [`../spatial/evidence-layer.md`](../spatial/evidence-layer.md) — 이 문서의 진실성 4층(§11)이 그 갈래의 근거 계약과
   같은 것을 다른 각도에서 말한다. 합칠지 나눌지는 채택 때 정한다
 
 이후 이 문서에서 갈라져 나간 갈래 (2026-08-28):

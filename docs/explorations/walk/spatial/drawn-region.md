@@ -40,7 +40,7 @@ Segment × Region(폴리곤) → RegionEncounter(진입별 체류)
 
 ## 남는 것 — 5배 규칙
 
-[측정](../../research/2026-08-26-region-cell-fidelity.md) (2026-08-26). 셀 방문 기록으로 면
+[측정](../../../research/2026-08-26-region-cell-fidelity.md) (2026-08-26). 셀 방문 기록으로 면
 체류를 근사할 때, 오차를 정하는 것은 셀 크기도 면 크기도 아니라 **둘의 비**다.
 
 | 면 한 변 ÷ 셀 반지름 | 근사 오차(중앙) |

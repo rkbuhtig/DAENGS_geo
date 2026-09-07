@@ -1,6 +1,6 @@
 """한 산책 안에 관측 공백이 있을 때 붓이 그 공백을 어떻게 다루나.
 
-`docs/explorations/walk/session-continuity-and-dwell.md` §6 이 명시적으로 요구한 테스트다.
+`docs/explorations/walk/recording/session-continuity-and-dwell.md` §6 이 명시적으로 요구한 테스트다.
 
     서로 다른 derived continuity chain 사이에는 paint interpolation 을 만들지 않는다.
 
