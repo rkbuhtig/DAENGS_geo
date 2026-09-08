@@ -135,6 +135,7 @@ LEGACY_MARKERS: tuple[LegacyMarker, ...] = (
     LegacyMarker("0032", "0032_territory_site.py", "territory_site", "site_id"),
     LegacyMarker("0033", "0033_territory_policy.py", "territory_policy_result"),
     LegacyMarker("0034", "0034_activity_statistics.py", "activity_stat_applied"),
+    LegacyMarker("0035", "0035_certified_protection.py", "territory_policy_site", "certified_ms"),
 )
 
 HEAD = LEGACY_MARKERS[-1].revision
