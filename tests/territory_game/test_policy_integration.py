@@ -42,7 +42,7 @@ class BlockInfrastructure:
 sys.meta_path.insert(0, BlockInfrastructure())
 from app.features.territory_game.policy import Rules
 from app.features.territory_game.policy_service import apply_ownership_in_transaction
-assert Rules().protection_ms == 600000
+assert Rules(version="draft-2026-09-06").protection_ms == 600000
 """,
         ],
         capture_output=True,
@@ -87,7 +87,7 @@ async def test_contract_applies_after_locks_and_leaves_commit_to_caller():
 
 @pytest.mark.parametrize("failure", ["scores", "receipt"])
 async def test_partial_adapter_failure_rolls_back_all_writes(failure):
-    db = MemoryDatabase(Rules(repeat_bonus="daily_pet_site"))
+    db = MemoryDatabase(Rules(version="draft-2026-09-06", repeat_bonus="daily_pet_site"))
     before = deepcopy(db.data)
     with pytest.raises(RuntimeError, match="injected"):
         await apply(db, candidate(), failure)
@@ -156,7 +156,7 @@ async def test_photo_service_can_preserve_verified_visit_on_business_rejection()
 
 
 async def test_photo_strengthening_uses_shared_kernel_and_preserves_protection():
-    db = MemoryDatabase(Rules(unverified_scores=False))
+    db = MemoryDatabase(Rules(version="draft-2026-09-06", unverified_scores=False))
     await apply(db, candidate())
     db.now = HOUR_MS
     await apply(db, candidate("photo:c1", version=1, photo=True))
@@ -198,7 +198,7 @@ async def test_competing_photo_candidates_only_one_can_change_version():
 
 
 async def test_daily_bonus_key_is_reserved_in_same_transaction():
-    db = MemoryDatabase(Rules(repeat_bonus="daily_pet_site"))
+    db = MemoryDatabase(Rules(version="draft-2026-09-06", repeat_bonus="daily_pet_site"))
     await apply(db, candidate())
     db.now = 600_000
     await apply(db, candidate("photo:c2", "p2", 1, photo=True))

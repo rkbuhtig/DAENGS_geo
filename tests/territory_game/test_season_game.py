@@ -17,7 +17,7 @@ from app.features.territory_game.season import (
 
 def game(rules=None):
     return Game.create(
-        "season", 0, 7 * DAY_MS, {"p1": "보리", "p2": "두부", "p3": "콩이"}, ["A", "B", "C"], rules
+        "season", 0, 7 * DAY_MS, {"p1": "보리", "p2": "두부", "p3": "콩이"}, ["A", "B", "C"], rules or Rules(version="draft-2026-09-06")
     )
 
 
@@ -166,7 +166,7 @@ def test_pending_rivals_first_committed_photo_wins_without_retroactive_credit():
 
 
 def test_unverified_exclusion_starts_scoring_at_certification_only():
-    g = mark(start(game(Rules(unverified_scores=False))))
+    g = mark(start(game(Rules(version="draft-2026-09-06", unverified_scores=False))))
     g = certify(g, at=HOUR_MS)
     g = act(g, "advance", at=2 * HOUR_MS)
     assert standing(g)["holding_points"] == 10
@@ -175,7 +175,7 @@ def test_unverified_exclusion_starts_scoring_at_certification_only():
 
 @pytest.mark.parametrize("policy,expected", [("every_change", 200), ("daily_pet_site", 100)])
 def test_repeat_bonus_configuration_does_not_block_actual_takeover(policy, expected):
-    g = mark(start(game(Rules(repeat_bonus=policy))))
+    g = mark(start(game(Rules(version="draft-2026-09-06", repeat_bonus=policy))))
     g = start(g, "s2", ["p2"])
     g = certify(mark(g, "s2", "p2", aid="a2", at=600_000), "a2", "c2")
     g = start(g, "s3")
@@ -211,14 +211,14 @@ def test_finalization_boundary_and_clock_reversal():
 
 def test_equal_scores_share_rank_and_cap_does_not_cap_site_count():
     assert [r["rank"] for r in game().standings()] == [1, 1, 1]
-    rules = Rules()
+    rules = Rules(version="draft-2026-09-06")
     assert rules.multiplier(11) == rules.multiplier(20) == 20_000
     with pytest.raises(GameError):
-        Rules(hourly_points=-1)
+        Rules(version="draft-2026-09-06", hourly_points=-1)
 
 
 def test_daily_bonus_resets_at_utc_day_boundary():
-    g = mark(start(game(Rules(repeat_bonus="daily_pet_site"))))
+    g = mark(start(game(Rules(version="draft-2026-09-06", repeat_bonus="daily_pet_site"))))
     g = start(g, "s2", ["p2"])
     g = certify(mark(g, "s2", "p2", aid="a2", at=600_000), "a2", "c2")
     g = start(g, "s3")

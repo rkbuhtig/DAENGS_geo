@@ -39,11 +39,13 @@ MIGRATION = Path(__file__).resolve().parents[2] / "alembic/versions/0033_territo
 
 
 def migrate(connection, direction):
-    spec = importlib.util.spec_from_file_location("policy_revision", MIGRATION)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    with Operations.context(MigrationContext.configure(connection)):
-        getattr(module, direction)()
+    revisions = [MIGRATION, MIGRATION.with_name("0035_certified_protection.py")]
+    for revision in revisions if direction == "upgrade" else reversed(revisions):
+        spec = importlib.util.spec_from_file_location("policy_revision", revision)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        with Operations.context(MigrationContext.configure(connection)):
+            getattr(module, direction)()
 
 
 class Database:
@@ -60,7 +62,7 @@ class Database:
         async with self.sessions.begin() as session:
             await create_season(
                 session,
-                SeasonContext(sid, starts, ends, rules or Rules()),
+                SeasonContext(sid, starts, ends, rules or Rules(version="draft-2026-09-06")),
                 "neighborhood",
                 ["A", "B"],
                 initial_owners=initial_owners,
@@ -152,6 +154,23 @@ async def test_migration_upgrade_downgrade_upgrade_preserves_geo_sites(db):
     assert (await db.apply()).bonus == 100
 
 
+async def test_v2_persists_certification_clock_and_same_claim_reacquisition(db):
+    await db.seed(rules=Rules())
+    original = command()
+    await db.apply(original)
+    assert (await db.query("SELECT certified_ms FROM territory_policy_site WHERE site_id='A'"))[0]["certified_ms"] is None
+    await db.apply(command("photo:b", "p2", 1, photo=True), at=1)
+    row = (await db.query("SELECT occupied_ms, certified_ms FROM territory_policy_site WHERE site_id='A'"))[0]
+    assert row["occupied_ms"] == row["certified_ms"] == 1
+    retry = replace(original, event_id="photo:retry", expected_version=2, certification="VERIFIED", cause="PHOTO_VERIFIED")
+    with pytest.raises(GameError, match="protected"):
+        await db.apply(retry, at=600000)
+    receipt = await db.apply(retry, at=600001)
+    assert receipt.bonus == 100
+    assert await db.apply(retry, at=700000) == receipt
+    assert (await db.query("SELECT certified_ms FROM territory_policy_site WHERE site_id='A'"))[0]["certified_ms"] == 600001
+
+
 async def test_real_transaction_commit_and_fresh_connection_replay(db):
     await db.seed()
     async with db.sessions.begin() as session:
@@ -176,7 +195,7 @@ async def test_sql_failure_after_partial_writes_rolls_back_everything(db, stage)
             if stage == "save_receipt":
                 await self.session.execute(text("SELECT 1 / 0"))
 
-    await db.seed(rules=Rules(repeat_bonus="daily_pet_site"))
+    await db.seed(rules=Rules(version="draft-2026-09-06", repeat_bonus="daily_pet_site"))
     with pytest.raises(DBAPIError):
         await db.apply(adapter=Failing)
     for table in ["account", "bonus", "event", "receipt", "attempt"]:
@@ -210,7 +229,7 @@ async def test_multi_connection_duplicates_and_competing_takeovers(db):
 
 
 async def test_same_dog_different_sites_settles_old_multiplier_and_daily_cap(db):
-    await db.seed(rules=Rules(repeat_bonus="daily_pet_site"))
+    await db.seed(rules=Rules(version="draft-2026-09-06", repeat_bonus="daily_pet_site"))
     await asyncio.gather(db.apply(), db.apply(command("mark:2", site="B")))
     await db.apply(command("photo:3", "p2", 1, photo=True), at=HOUR_MS)
     receipt = await db.apply(command("photo:4", "p1", 2, photo=True), at=2 * HOUR_MS)
@@ -238,7 +257,7 @@ async def test_protected_photo_has_no_policy_writes_and_can_preserve_host_eviden
 
 async def test_backfill_initial_counts_original_time_and_certification(db):
     await db.seed(
-        rules=Rules(unverified_scores=False),
+        rules=Rules(version="draft-2026-09-06", unverified_scores=False),
         starts=1000,
         initial_owners={
             "A": Ownership("p1", "walk:old", "claim:old", "UNVERIFIED", 1),
@@ -385,7 +404,7 @@ async def test_active_scope_and_site_overlap_are_rejected_atomically(db):
     with pytest.raises(GameError, match="site_in_active_season"):
         async with db.sessions.begin() as session:
             await create_season(
-                session, SeasonContext("other", 0, DAY_MS, Rules()), "different", ["A"]
+                session, SeasonContext("other", 0, DAY_MS, Rules(version="draft-2026-09-06")), "different", ["A"]
             )
     assert len(await db.query("SELECT * FROM territory_policy_season")) == 1
 

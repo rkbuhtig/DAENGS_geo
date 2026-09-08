@@ -22,6 +22,7 @@ from app.features.territory_game.policy import (
     is_protected,
     plan_finalization,
     plan_ownership,
+    protected_until,
     require,
     settle,
 )
@@ -192,7 +193,7 @@ class Game:
             else "ALREADY_OWNED"
             if owner["pet_id"] == pet
             else "PHOTO_REQUIRED"
-            if owner["certification"] == "VERIFIED"
+            if owner["certification"] == "VERIFIED" or self.rules.version == "certified-protection-v2"
             else "POLICY_UNDECIDED"
         )
         attempt_id = command["attempt_id"]
@@ -222,10 +223,25 @@ class Game:
                 if attempt["photo"] == "RETRY_PENDING":
                     attempt["photo"] = "PENDING"
                 return {"photo": attempt["photo"]}
-            require(not attempt["resolution_code"], "attempt_closed")
+            v2 = self.rules.version == "certified-protection-v2"
+            require(v2 or not attempt["resolution_code"], "attempt_closed")
             self._session(attempt["session_id"], recording=True)
             self._contact(command)
-            require(attempt["photo"] in {"NOT_SUBMITTED", "REJECTED"}, "photo_not_available")
+            require(
+                attempt["photo"] != "PENDING"
+                if v2
+                else attempt["photo"] in {"NOT_SUBMITTED", "REJECTED"},
+                "photo_not_available",
+            )
+            if v2:
+                site = self.sites[attempt["site_id"]]
+                require(not self._protected(site, attempt["pet_id"]), "protected")
+                require(
+                    not (self._owned(attempt) and site["owner"]["certification"] == "VERIFIED"),
+                    "already_certified",
+                )
+                attempt["expected_version"] = site["version"]
+                attempt["resolution_code"] = None
             require(capture_id not in self.captures, "capture_reused")
             self.captures[capture_id] = attempt["id"]
             attempt.update(capture_id=capture_id, photo="PENDING")
@@ -248,7 +264,12 @@ class Game:
             reason = "site_changed"
         elif self._protected(site, attempt["pet_id"]):
             reason = "protected"
-        elif owner and not self._owned(attempt) and owner["session_id"] == attempt["session_id"]:
+        elif (
+            self.rules.version != "certified-protection-v2"
+            and owner
+            and not self._owned(attempt)
+            and owner["session_id"] == attempt["session_id"]
+        ):
             reason = "new_session_required"
         if reason:
             attempt["resolution_code"] = reason
@@ -356,7 +377,7 @@ class Game:
             "sites": {
                 key: {
                     **deepcopy(site),
-                    "protected_until_ms": site["owner"]["occupied_ms"] + self.rules.protection_ms
+                    "protected_until_ms": protected_until(Ownership(**site["owner"]), self.rules)
                     if site["owner"]
                     else None,
                 }
