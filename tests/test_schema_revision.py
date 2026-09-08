@@ -44,7 +44,7 @@ def test_database_stopped_at_009_stamps_there_and_upgrades_the_rest():
     assert [m.revision for m in detection.missing] == [
         "0010", "0011", "0012", "0013", "0014", "0015", "0016", "0017", "0018",
         "0019", "0020", "0021", "0022", "0023", "0024", "0025", "0026", "0027",
-        "0028", "0029", "0030", "0031", "0032", "0033", "0034",
+        "0028", "0029", "0030", "0031", "0032", "0033", "0034", "0035",
     ]
 
 
@@ -72,6 +72,7 @@ def test_database_missing_only_anchor_is_consistent():
         "0032_territory_site.py",
         "0033_territory_policy.py",
         "0034_activity_statistics.py",
+        "0035_certified_protection.py",
     ]
 
 
@@ -87,7 +88,7 @@ def test_a_hole_in_the_chain_refuses_to_stamp():
     assert [m.revision for m in detection.out_of_order] == [
         "0009", "0010", "0011", "0012", "0013", "0014", "0015", "0017", "0018",
         "0019", "0020", "0021", "0022", "0023", "0024", "0025", "0026", "0027",
-        "0028", "0029", "0030", "0031", "0032", "0033", "0034",
+        "0028", "0029", "0030", "0031", "0032", "0033", "0034", "0035",
     ]
 
 

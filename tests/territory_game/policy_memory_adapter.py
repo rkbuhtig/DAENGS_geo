@@ -22,7 +22,7 @@ from app.features.territory_game.policy import (
 class MemoryDatabase:
     def __init__(self, rules=None):
         self.data = {
-            "seasons": {"s": SeasonContext("s", 0, DAY_MS, rules or Rules())},
+            "seasons": {"s": SeasonContext("s", 0, DAY_MS, rules or Rules(version="draft-2026-09-06"))},
             "sites": {("s", site): SiteSnapshot("s", site, 0, None) for site in ["A", "B"]},
             "scores": {("s", pet): Score() for pet in ["p1", "p2", "p3"]},
             "receipts": {},

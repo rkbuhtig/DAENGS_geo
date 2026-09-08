@@ -185,7 +185,7 @@ class PostgresPolicyTransaction:
             text("""
             UPDATE territory_policy_site SET version=:version, pet_id=:pet_id,
                 session_id=:session_id, attempt_id=:attempt_id, certification=:certification,
-                occupied_ms=:occupied_ms
+                occupied_ms=:occupied_ms, certified_ms=:certified_ms
             WHERE season_id=:sid AND site_id=:site AND version=:expected
         """),
             {
@@ -356,7 +356,7 @@ class PostgresPolicyTransaction:
         await self._rows(
             """
             UPDATE territory_policy_site SET version=version+1, pet_id=NULL, session_id=NULL,
-                attempt_id=NULL, certification=NULL, occupied_ms=NULL
+                attempt_id=NULL, certification=NULL, occupied_ms=NULL, certified_ms=NULL
             WHERE season_id=:sid AND pet_id IS NOT NULL RETURNING 1
         """,
             {"sid": sid},
@@ -447,13 +447,17 @@ async def create_season(
                 season.rules.unverified_scores or owner.certification == "VERIFIED"
             )
         values = asdict(owner) if owner else {f.name: None for f in fields(Ownership)}
+        # Score accrual starts at the new season; certification protection keeps
+        # its original clock, including pre-certified_ms ownership imports.
+        if owner and owner.certification == "VERIFIED" and owner.certified_ms is None:
+            values["certified_ms"] = owner.occupied_ms
         await tx._rows(
             """
             INSERT INTO territory_policy_site
                 (season_id, site_id, version, pet_id, session_id, attempt_id,
-                 certification, occupied_ms, imported_occupied_ms)
+                 certification, occupied_ms, certified_ms, imported_occupied_ms)
             VALUES (:sid, :site, :version, :pet_id, :session_id, :attempt_id,
-                    :certification, :occupied_ms, :original) RETURNING 1
+                    :certification, :occupied_ms, :certified_ms, :original) RETURNING 1
         """,
             {
                 **values,

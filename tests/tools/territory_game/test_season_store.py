@@ -6,13 +6,13 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from app.features.territory_game.season import DAY_MS, Game, GameError
+from app.features.territory_game.season import DAY_MS, Game, GameError, Rules
 from tools.territory_game.local_store import LocalGameStore
 from tools.territory_game.season_lab import build_app
 
 
 def seed(store):
-    g = Game.create("s", 0, DAY_MS, {"p1": "보리", "p2": "두부"}, ["A", "B"])
+    g = Game.create("s", 0, DAY_MS, {"p1": "보리", "p2": "두부"}, ["A", "B"], Rules(version="draft-2026-09-06"))
     store.create(g)
     store.execute("s", "start1", {"action": "start_session", "session_id": "w1", "pet_ids": ["p1"]})
     store.execute("s", "start2", {"action": "start_session", "session_id": "w2", "pet_ids": ["p2"]})
@@ -176,7 +176,7 @@ def test_http_lab_contract_static_assets_and_validation(tmp_path):
         )
         assert response.status_code == 200
         assert response.json()["game"]["standings"][0]["points"] == 100
-        assert client.get("/api/seasons/s").json()["sites"]["A"]["protected_until_ms"] == 600_000
+        assert client.get("/api/seasons/s").json()["sites"]["A"]["protected_until_ms"] is None
 
 
 def test_lab_is_absent_from_the_common_entrypoint():

@@ -38,7 +38,7 @@ def test_late_upload_links_to_real_policy_facts_without_replaying_rewards():
         session("GAME", client=CLIENT_W2, server_id="game-2", pets=("p2",)), started_ms=11 * MINUTE
     )
     assert resolve_session_links([game1])[0].walk is None
-    season = SeasonContext("season-1", 0, 30 * MINUTE, Rules())
+    season = SeasonContext("season-1", 0, 30 * MINUTE, Rules(version="draft-2026-09-06"))
     site = SiteSnapshot("season-1", "A", 0, None)
     scores = {"p1": Score(), "p2": Score()}
     events = [territory_events()[0]]
