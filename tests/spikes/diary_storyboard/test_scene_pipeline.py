@@ -18,7 +18,7 @@ from scripts.spikes.diary_storyboard.scene_pipeline import (
     prepare_scene_plan,
     source_from_how,
 )
-from scripts.spikes.diary_storyboard.stamp_demo import RECORDS, read
+from scripts.spikes.diary_storyboard.stamp_demo import RECORDS, REPO, read
 from scripts.spikes.diary_storyboard.stamp_storyboard import accept_selection, writing_request
 from scripts.spikes.diary_storyboard.stamp_tool import StampTool
 
@@ -238,6 +238,63 @@ def test_record_bound_saved_queries_migrate_without_route_or_retargeting():
     for row in built.query():
         for domain in ("space", "environment", "other"):
             assert all(e["relation_to_stamp"] == "same_core" for e in row["material"]["background"][domain])
+
+
+def test_saved_provider_collection_keeps_record_origin_and_failed_weather_distinct():
+    snapshot = read(REPO / "docs/research/2026-09-08-record-envelope-collection/snapshot.json")
+    built = tool({"session_id": snapshot["records"][0]["session_id"], "records": snapshot})
+    assert snapshot["synthetic"] and snapshot["context_mode"] == "provider"
+    assert len(built.refs) == len(snapshot["records"])
+    assert [c["action"] for c in built.dump()["scene_plan"]["cores"]] == [
+        c["action"] for c in sorted(user_cores(snapshot["records"]),
+                                   key=lambda c: (c["event_at"], c["id"]))]
+    weather = {e["id"]: e for row in built.query()
+               for e in row["material"]["background"]["environment"]}
+    expected = {e["id"]: e for e in snapshot["envelopes"] if "environment.weather" in e["tags"]
+                and e["id"] in snapshot["selected_envelope_ids"]}
+    assert weather.keys() == expected.keys()
+    for eid, saved in expected.items():
+        assert weather[eid]["status"] == saved["status"]
+        assert weather[eid]["reason"] == saved["reason"]
+        assert weather[eid]["temporal_basis"] == saved["provenance"]["temporal_basis"]
+        assert weather[eid]["projection_status"] == "no_payload"
+    assert StampTool.load(built.dump()).dump() == built.dump()
+
+
+def test_new_background_queries_use_context_mode_for_both_core_origins():
+    raw = with_background(source())
+    raw["records"]["context_mode"] = "provider"
+    for saved in raw["background_envelopes"]:
+        saved["provenance"].update(synthetic=False, provider="test-provider")
+        saved["payload_format"] = "test-provider-v1"
+        if "environment.weather" in saved["tags"]:
+            # A provider observation need not cover the walk's time or location.
+            saved["provenance"].update(temporal_basis="source_observation", valid_time={
+                "start_at": "2026-09-09T00:00:00Z", "end_at": "2026-09-09T01:00:00Z"})
+    built = tool(raw)
+    assert {built.anchor(r)["origin"] for r in built.refs} == {"user_record", "derived_observation"}
+    assert all(e["projection_status"] == "not_supported" for row in built.query()
+               for domain in ("space", "environment") for e in row["material"]["background"][domain])
+    assert all(e["temporal_basis"] == "source_observation" for row in built.query()
+               for e in row["material"]["background"]["environment"])
+    assert StampTool.load(built.dump()).dump() == built.dump()
+    raw["background_envelopes"][0]["provenance"]["synthetic"] = True
+    with pytest.raises(ValueError, match="origin"):
+        tool(raw)
+
+
+def test_legacy_context_mode_absence_is_preserved_in_frozen_books():
+    raw = source()
+    raw["records"].pop("context_mode")
+    legacy = tool(raw)
+    assert "context_mode" not in legacy.dump()["source"]["records"]
+    assert StampTool.load(legacy.dump()).dump() == legacy.dump()
+    raw["records"]["context_mode"] = "synthetic"
+    explicit = tool(raw)
+    assert explicit.dump()["source"]["records"]["context_mode"] == "synthetic"
+    assert explicit.source_version != legacy.source_version
+    assert [explicit.project(r)["action"] for r in explicit.refs] == [
+        legacy.project(r)["action"] for r in legacy.refs]
 
 
 def test_core_refs_stay_stable_across_background_policy_but_stamps_do_not():

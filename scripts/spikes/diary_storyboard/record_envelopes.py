@@ -143,7 +143,7 @@ class Provenance(Contract):
     provider: str = Field(min_length=1)
     operation: str = Field(min_length=1)
     retrieved_at: AwareDatetime | None
-    temporal_basis: Literal["event_observation", "lookup_snapshot", "unknown"]
+    temporal_basis: Literal["event_observation", "source_observation", "lookup_snapshot", "unknown"]
     valid_time: TimeRange | None
     policy_version: str = Field(min_length=1)
     synthetic: bool
@@ -190,12 +190,17 @@ class Envelope(Contract):
             span = self.provenance.valid_time
             if span is None or not span.start_at <= self.target.event_at <= span.end_at:
                 raise ValueError("event observation must cover the record time")
+        if (self.provenance.temporal_basis == "source_observation"
+                and self.provenance.valid_time is None):
+            raise ValueError("source observation needs its own time support")
         return self
 
 
 class RecordEnvelopeSnapshot(Contract):
     schema_version: Literal["walk-record-envelopes-v1"]
     synthetic: bool
+    # A synthetic walk can query real public data without relabelling that data as invented.
+    context_mode: Literal["synthetic", "provider"] = "synthetic"
     owner_id: str = Field(min_length=1)
     records: tuple[Record, ...]
     envelopes: tuple[Envelope, ...]
@@ -219,8 +224,8 @@ class RecordEnvelopeSnapshot(Contract):
             point = record.location.point if record.location else None
             if envelope.target.event_at != record.event_at or envelope.target.point != point:
                 raise ValueError("envelope silently changes record time or location")
-            if envelope.provenance.synthetic != self.synthetic:
-                raise ValueError("synthetic evidence must not masquerade as real data")
+            if envelope.provenance.synthetic != (self.context_mode == "synthetic"):
+                raise ValueError("context origin disagrees with snapshot context mode")
             if envelope.supersedes is not None:
                 previous = envelopes.get(envelope.supersedes)
                 if previous is None or (previous.target != envelope.target

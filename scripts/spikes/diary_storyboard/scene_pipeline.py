@@ -174,7 +174,7 @@ def compile_scene_stamps(raw, policy):
     envelopes, selected = _saved_envelopes(source, cores)
     assembled, audit = assemble_backgrounds(
         cores, bindings, motion["catalog"], envelopes, selected, policy.background,
-        synthetic=source.records.synthetic,
+        synthetic=(source.records.context_mode == "synthetic"),
     )
     frames, projections, anchors = [], {}, {}
     for core in cores:
@@ -197,6 +197,10 @@ def compile_scene_stamps(raw, policy):
             "session_id", "event_at", "time_basis", "location", "origin")}
         anchors[id_]["core_ref"] = core["ref"]
     frozen_source = source.model_dump(mode="json")
+    # Books written before the provider collector had no context_mode field.
+    # Preserve that representation so a default does not silently reversion them.
+    if isinstance(raw, dict) and "context_mode" not in raw["records"]:
+        frozen_source["records"].pop("context_mode")
     # A transient calculation failure must remain replayable after recovery.
     # Freeze the stage outcome along with the unchanged raw route/records.
     frozen_source.update(route_status=motion["status"], route_reason=motion["reason"])

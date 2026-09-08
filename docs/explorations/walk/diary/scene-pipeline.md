@@ -64,6 +64,12 @@ flowchart TD
 중심의 시각·위치·출처 참조가 바뀐 캐시는 거절한다. 페이로드 해시, 조회 교체 이력, 선택된 중복 응답,
 합성/실제 출처, 사건 날씨의 유효 시간 검사도 적용한다. 조회 시각의 날씨를 사건 당시 날씨로 투영하지 않는다.
 
+기록별 [수집 계약](record-envelope-collection.md)의 `context_mode`도 유지한다.
+`records.synthetic`은 사용자 기록·동선의 출처이고, `records.context_mode`는 저장 배경의 출처다.
+합성 산책과 실제 공공데이터 응답을 함께 사용할 때 두 값을 같다고 강제하지 않는다.
+공급자 관측 시각(`source_observation`)은 사건 당시·해당 지점의 날씨로 바꾸지 않는다.
+이 필드 도입 전에 저장한 v2 책은 필드가 없던 표현을 유지해 참조 해시와 재생 결과가 바뀌지 않는다.
+
 ## 배경과 보충 정책
 
 `action`은 중심 생성 결과를 그대로 사용한다. `background`에는 공간(`space`), 환경(`environment`),
@@ -97,6 +103,13 @@ flowchart TD
 `test_scene_pipeline.py` 29개와 기존 보충·스탬프·HOW 회귀 58개, **총 87개가 통과**했다.
 변경 Python 6파일의 Ruff 검사도 통과했다. 저장된 v1 보충 실험 6권과 이전 Gemini 작성 실험의 입력·출력을 그대로 재생했다.
 새 모델 호출·외부 API 호출은 0회다.
+
+PR 통합 때 `main`의 기록 봉투 수집 변경(#260)을 반영하고 일기 모듈 267개를 실행했다.
+266개가 통과했고, 실제 저장 날씨가 성공값일 것이라고 가정한 새 검사 1개를 수정했다.
+저장본의 `403` 실패 보존과 별도의 모의 공급자 관측을 구분한 뒤 `test_scene_pipeline.py`의
+32개를 재실행해 모두 통과했다. 일기 모듈 Ruff, v1·v2 저장 책 각 6권의 완전 동일 재생,
+보존된 Gemini 작성 요청·결과 6건의 오프라인 검증도 통과했다.
+이 과정에서도 모델·공공데이터 API를 새로 호출하지 않았다.
 
 ```powershell
 uv run python -m scripts.spikes.diary_storyboard.scene_pipeline_demo --target-scene-count 3 --out ../diary-lab/scene-pipeline-02

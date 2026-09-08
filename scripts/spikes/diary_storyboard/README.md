@@ -98,6 +98,12 @@ uv run pytest tests/spikes/diary_storyboard/test_how_writing_experiment.py -q
 
 ## 구현 위치와 책임
 
+행동·글·사진의 공통 원본 참조와 주변 API 봉투는 [기록 계약](../../../docs/explorations/walk/diary/record-envelopes.md),
+실제 수집·캐시 재생 명령은 [2단위 실행 안내](../../../docs/explorations/walk/diary/record-envelope-collection.md)에 있다.
+`record_envelopes.py`는 검증 계약, `envelope_sources.py`는 명시적 수집과 private cache,
+`collect_record_envelopes.py`는 원본 필드 선별·거리 계산·봉투 연결을 맡는다.
+기존 LLM 실행과 독립이며 이 경로는 모델을 호출하지 않는다.
+
 | 파일 | 책임 |
 |---|---|
 | `contracts.py` | 자료 조각, 잠정 이해, 장면, 갱신·검토·일기 계약과 ID/시간 검사 |

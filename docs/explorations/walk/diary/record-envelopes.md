@@ -5,7 +5,7 @@ last_verified: 2026-09-08
 ---
 # 사용자 산책 기록과 주변 정보 봉투 — 1단위 계약
 
-[일기 입구](README.md) · [제작 계획](plan.md) · [LLM 아키텍처](llm-architecture.md)
+[일기 입구](README.md) · [제작 계획](plan.md) · [LLM 아키텍처](llm-architecture.md) · [2단위 수집 실험](record-envelope-collection.md)
 
 ## 이번 작업의 범위
 
@@ -13,6 +13,9 @@ last_verified: 2026-09-08
 기존 기록을 참조하는 계약, 태그가 달린 정보 봉투, 합성 예시와 오프라인 검증기를 만든다.
 실제 API 조회·DB·근처 검색·HTML·App UI·LLM 입력 연결은 아직 구현하지 않는다.
 아래 JSON은 운영 데이터나 실측 결과가 아니며 장소명·거리·날씨·좌표 연결은 모두 합성이다.
+
+위 범위는 1단위의 기준이다. 후속 2단위에서 API 수집기를 추가했으며, 이 문서의 합성 예시와
+별도로 [실제 응답 결과](../../../research/2026-09-08-record-envelope-collection.md)를 보존한다.
 
 사용자 기록 원본 → 주변 정보 봉투 추가 → 소비할 봉투 선택 → 근처 기억 카드 / LLM 장면 재료.
 봉투를 저장하는 행위는 장면 선택·서술·행동 의미 정규화가 아니다.
@@ -113,6 +116,7 @@ App `dev`의 `5062c03`을 읽었다. 설치된 기기 화면이나 production �
 - `unavailable`: 조회/해석 실패로 사용할 자료가 없음. 성공한 빈 결과로 바꾸지 않는다.
 - `not_requested`: 조회하지 않음. 조회 시각·본문은 null이며 사유를 남긴다.
 - `event_observation`: valid_time이 기록 시각을 포함하는 관측. 예: 해당 시간대 날씨.
+- `source_observation`: 공급자 관측의 시각을 그대로 보존. 핀 시각과 일치하거나 핀에서 측정했다는 뜻은 아님.
 - `lookup_snapshot`: 조회 시점의 자료. 과거 사건 당시에도 같았다고 주장하지 않는다.
 - `unknown`: 원자료의 적용 시점을 모름. retrieved_at은 자료를 얻은 시각일 뿐이다.
 
@@ -124,6 +128,9 @@ App `dev`의 `5062c03`을 읽었다. 설치된 기기 화면이나 production �
 ## 3. Append와 소비 스냅샷
 
 `RecordEnvelopeSnapshot`은 한 계정의 원본 기록 버전 목록, 봉투 이력, `selected_envelope_ids`를 갖는다.
+`synthetic`은 사용자 기록이 합성인지, `context_mode=synthetic|provider`는 봉투의 자료 출처를 뜻한다.
+합성 산책에 실제 API를 조회한 결과는 `synthetic=true`, `context_mode=provider`, 봉투의
+`provenance.synthetic=false`다. 기존 합성 예시는 기본 context_mode=synthetic을 유지한다.
 봉투 배열은 추가 순서로 둔다. supersedes는 먼저 존재한 동일 조회 범위의 봉투만 참조한다.
 스냅샷이 읽을 봉투는 선택 목록으로 명시하고 같은 조회 범위의 두 결과를 동시에 선택하지 않는다.
 선택 목록이 비어 있는 초기 상태도 유효하다. 새 응답이 실패했을 때 이전 성공 자료를 계속 읽을지는
@@ -144,7 +151,7 @@ App `dev`의 `5062c03`을 읽었다. 설치된 기기 화면이나 production �
 |---|---|---|
 | 근처 기억 카드 | 좌표 있는 행동·글·사진 원본, 선택된 짧은 환경 정보 | 검색·노출 정책과 UI 미구현 |
 | LLM Evidence | 원문, 원본 참조, 선택 봉투의 관련 필드와 출처/시각/상태 | 기존 Piece 어댑터 연결 미구현 |
-| SceneComposition | Evidence를 통해 연결된 사건들을 편집상 묶음 | 기존 사건·장면 실험 유지 |
+| SceneComposition | Evidence를 통해 연결된 사건들을 편집상 묶음 | 기존 사건·장면 실험 유지. 현재 조립 경로는 [중심·공통 배경](scene-pipeline.md) 참고 |
 
 ‘현재 강아지의 행동’만 필터링해 같은 세션의 메모·사진을 잃지 않는다. 메모는 pet_id가 없어도
 정상적인 기록이다. 근처 카드용 우선순위와 장면 편집의 중요도 판단은 같은 정책으로 고정하지 않는다.

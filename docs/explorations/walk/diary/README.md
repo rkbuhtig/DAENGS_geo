@@ -30,7 +30,7 @@ Geo 오프라인 어댑터와 저장·재생까지 구현했고, 실제 provider
 
 | 탐색 | 문서 |
 |---|---|
-| 행동·글·사진 원본과 주변 API 봉투 | [기록·봉투 계약과 합성 예시](record-envelopes.md) — [스탬프 툴](stamp-tool.md)에 합성 입력 연결, 실제 수집·UI 연결 전 |
+| 행동·글·사진과 주변 API 봉투 | [기록·봉투 계약](record-envelopes.md), [수집 실험](record-envelope-collection.md) |
 | 동네 구간과 장면 재료 | [스토리보드와 구간](storyboard-and-regions.md) |
 | 순서 있는 일기 경로와 보호 경계 | [일기 동선](walk-diary-route.md) |
 | 관찰 증언과 의미 판단 | [행동 책갈피](behavior-anchor.md), [미시 판정](micro-judgment.md) |
