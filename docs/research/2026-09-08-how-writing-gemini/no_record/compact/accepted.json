@@ -1,0 +1,67 @@
+{
+  "revision": "b03385db79dfc8a9b713393af9d26148135cf367dd54bd942d85e3edece23446",
+  "title": "이동 경로의 전환과 체류 및 회귀 기록",
+  "semantic_status": "not_evaluated",
+  "cards": [
+    {
+      "stamp_ref": {
+        "id": "stamp:how:12081edea0846f8b",
+        "version": "6d93b9b717ee85f052935feb44f0333af31533d66a8d480171d3b62f2a937395"
+      },
+      "title": "경로의 우회전과 직선 주행",
+      "text": "우회전 기동을 중심으로 전후의 직선 주행 구간이 연결되어 이동 경로가 형성되었습니다.",
+      "anchor": {
+        "session_id": "stamp-comparison",
+        "event_at": "2026-09-08T06:01:30+00:00",
+        "time_basis": "geometry_representative_observation",
+        "location": {
+          "point": {
+            "lat": 37.000818017738126,
+            "lng": 130.00000042825502
+          },
+          "observation_ref": "walk-fix:stamp-comparison:18"
+        }
+      }
+    },
+    {
+      "stamp_ref": {
+        "id": "stamp:how:7a66b966562f7523",
+        "version": "e1f64d2b9b68789013f024d28bf69f14bfb28a63a522f135f1ca1deb55213249"
+      },
+      "title": "특정 지점에서의 체류",
+      "text": "직선 주행 경로상에서 80초 동안 관찰된 체류 지점이 기록되었습니다.",
+      "anchor": {
+        "session_id": "stamp-comparison",
+        "event_at": "2026-09-08T06:02:55+00:00",
+        "time_basis": "geometry_representative_observation",
+        "location": {
+          "point": {
+            "lat": 37.00081494523947,
+            "lng": 130.00094909402483
+          },
+          "observation_ref": "walk-fix:stamp-comparison:35"
+        }
+      }
+    },
+    {
+      "stamp_ref": {
+        "id": "stamp:how:beaed9b87b263c05",
+        "version": "9f7eb402bb0667eba9a2353b60da5f74fc9382a9f7a38de9859c22ba3683d987"
+      },
+      "title": "경로 회귀와 방향 전환",
+      "text": "이전 경로를 따라 79.58미터만큼 회귀하며 방향을 반대로 전환하고 새로운 직선 주행을 시작했습니다.",
+      "anchor": {
+        "session_id": "stamp-comparison",
+        "event_at": "2026-09-08T06:05:30+00:00",
+        "time_basis": "geometry_representative_observation",
+        "location": {
+          "point": {
+            "lat": 37.00080039623306,
+            "lng": 130.00201649062487
+          },
+          "observation_ref": "walk-fix:stamp-comparison:66"
+        }
+      }
+    }
+  ]
+}

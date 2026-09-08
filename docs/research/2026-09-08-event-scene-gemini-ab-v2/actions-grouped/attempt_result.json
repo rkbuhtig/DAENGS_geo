@@ -1,0 +1,4 @@
+{
+  "status": "rejected_or_failed",
+  "error": "omissions must cover exactly unused eligible events"
+}

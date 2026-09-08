@@ -1,0 +1,92 @@
+{
+  "kind": "source_and_transport_audit_not_semantic_approval",
+  "cases": [
+    {
+      "id": "movement",
+      "stamps": 7,
+      "selected": 7,
+      "mandatory": 0,
+      "receipts": [
+        {
+          "stage": "select",
+          "request_sha256": "7332c1aaec7390d3791221f3fdd2b3ec0e3cd419c641c986c182eb886902bc4d",
+          "response_sha256": "61ef99bae007c9d439008efb18e9b1fee941eeec3e72c08d910d85e825049d08",
+          "input_tokens": 1771,
+          "output_tokens": 79,
+          "total_tokens": 1850,
+          "latency_s": 1.626
+        },
+        {
+          "stage": "write",
+          "request_sha256": "02cddefda976217fb9d12873dc4102b0982c3674c47c20e51de79eb4f5c7f767",
+          "response_sha256": "b2c0f34bb2cf7c8db3d4febafbd50406b735095b6344e1f14fe0b418c611e8bd",
+          "input_tokens": 1811,
+          "output_tokens": 488,
+          "total_tokens": 2299,
+          "latency_s": 2.295
+        }
+      ],
+      "default_space_capacity_evictions": 0,
+      "one_slot_capacity_evictions": 5,
+      "same_stamp_triggers_with_one_slot": true
+    },
+    {
+      "id": "actions",
+      "stamps": 9,
+      "selected": 7,
+      "mandatory": 2,
+      "receipts": [
+        {
+          "stage": "select",
+          "request_sha256": "b3b79b5aaa4582fecceda37dca67d4503053bdb4c51966bb0bd1e8ee056d0322",
+          "response_sha256": "5a4fa2eefad011c121609a58b78f1b86c63a721b206dd3fd3432abdc7bd12e79",
+          "input_tokens": 2321,
+          "output_tokens": 61,
+          "total_tokens": 2382,
+          "latency_s": 1.275
+        },
+        {
+          "stage": "write",
+          "request_sha256": "da8ebbc8ae7c519c8eb90d6bb279d75d9f38545729109a87ff994fa7a5b1aba0",
+          "response_sha256": "6d7b5e951de24fc6b599828f69b2378aae964e220ad05348a0ced02127c602d7",
+          "input_tokens": 1978,
+          "output_tokens": 529,
+          "total_tokens": 2507,
+          "latency_s": 3.079
+        }
+      ],
+      "default_space_capacity_evictions": 0,
+      "one_slot_capacity_evictions": 5,
+      "same_stamp_triggers_with_one_slot": true
+    },
+    {
+      "id": "gap",
+      "stamps": 10,
+      "selected": 7,
+      "mandatory": 2,
+      "receipts": [
+        {
+          "stage": "select",
+          "request_sha256": "1cdd0b1959748ac86ad79cabfc8250e5423f471bd9f6590c27a7ae5754de8943",
+          "response_sha256": "f4f26361f3c0663968e40fa8921935a59a00833f61668423d5e94bd007ba1f98",
+          "input_tokens": 2629,
+          "output_tokens": 61,
+          "total_tokens": 2690,
+          "latency_s": 1.874
+        },
+        {
+          "stage": "write",
+          "request_sha256": "e838e65fdcf42a3233710f232374e625d322da903a9cfcf3d0a2783c3b44165a",
+          "response_sha256": "73ecf1de89647ee1d3b1c6f8711e1d635993f5d3ac5fa3348e33971f65aabbec",
+          "input_tokens": 1917,
+          "output_tokens": 445,
+          "total_tokens": 2362,
+          "latency_s": 3.208
+        }
+      ],
+      "default_space_capacity_evictions": 0,
+      "one_slot_capacity_evictions": 5,
+      "same_stamp_triggers_with_one_slot": true
+    }
+  ]
+}

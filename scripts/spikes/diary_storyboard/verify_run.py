@@ -4,7 +4,8 @@ import argparse
 import json
 from pathlib import Path
 
-from .contracts import Plan, State, check_plan, check_references
+from .candidates import check_candidate_scene, check_selection
+from .contracts import Plan, SelectionPlan, State, check_plan, check_references
 from .runner import load
 from .storage import digest, read, save
 
@@ -26,9 +27,12 @@ def verify(run: Path, compare_replay: Path | None = None):
             continue
         answer = read(answer_path)
         calls.append((receipt, payload, answer))
-        if receipt["stage"] == "understand":
+        if receipt["stage"] in ("understand", "select", "compose"):
             try:
-                check_plan(Plan.model_validate(answer), evidence)
+                if receipt["stage"] in ("select", "compose"):
+                    check_selection(SelectionPlan.model_validate(answer), evidence)
+                else:
+                    check_plan(Plan.model_validate(answer), evidence)
             except ValueError as exc:
                 rejected_plans.append({"call": path.parent.name, "error": str(exc)})
     checks = []
@@ -36,6 +40,11 @@ def verify(run: Path, compare_replay: Path | None = None):
         assert state.revision == index
         assert state.evidence_sha256 == current.evidence_sha256
         check_references(state, evidence)
+        if state.selection is not None:
+            check_selection(SelectionPlan(understanding=state.understanding,
+                                         outline=state.outline, selection=state.selection), evidence)
+            for scene in state.scenes:
+                check_candidate_scene(scene, state, evidence)
         revision = state.revisions[-1]
         assert revision.revision == index
         if revision.stage == "review":
@@ -89,6 +98,7 @@ def verify(run: Path, compare_replay: Path | None = None):
     report = {
         "model_calls": len([r for r in receipts if r["transport"] == "gemini"]),
         "replay_calls": len([r for r in receipts if r["transport"] == "replay"]),
+        "fixture_calls": len([r for r in receipts if r["transport"] == "fixture"]),
         "total_tokens": sum((r.get("usage") or {}).get("totalTokenCount", 0) for r in receipts),
         "summed_latency_s": round(sum(r["latency_s"] for r in receipts), 3),
         "outline_count": len(current.outline),
@@ -122,7 +132,7 @@ def main():
     args = parser.parse_args()
     result = verify(args.run, args.compare_replay)
     print(
-        f"verified {len(result['verified_transitions'])} model transitions; "
+        f"verified {len(result['verified_transitions'])} recorded transitions; "
         f"{len(result['decisions'])} decisions"
     )
 

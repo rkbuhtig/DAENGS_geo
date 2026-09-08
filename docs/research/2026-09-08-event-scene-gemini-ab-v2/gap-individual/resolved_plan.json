@@ -1,0 +1,255 @@
+{
+  "understanding": {
+    "summary": "보호자와 반려견 두부가 상가 밀집 지역과 공원 인근을 포함한 다양한 환경을 산책하며 냄새 맡기 및 사진 촬영 등의 활동을 수행함.",
+    "observed_flow": [
+      {
+        "text": "상가 밀집 지역으로 진입하여 두부가 냄새를 맡는 활동을 함.",
+        "evidence_ids": [
+          "e03:what0",
+          "e03:where0",
+          "e03:where2",
+          "e04:what0",
+          "e04:where0",
+          "who:dog",
+          "who:guardian"
+        ]
+      },
+      {
+        "text": "늘벗근린공원 인근으로 이동하여 보호자와 두부가 함께 사진을 촬영함.",
+        "evidence_ids": [
+          "e06:what0",
+          "e06:where0",
+          "e06:where2",
+          "e07:what0",
+          "e07:where0",
+          "who:dog",
+          "who:guardian"
+        ]
+      },
+      {
+        "text": "양재천 인근과 상가 지역을 거쳐 독골근린공원 주변을 경유함.",
+        "evidence_ids": [
+          "e10:what0",
+          "e10:where0",
+          "e10:where3",
+          "e11:what0",
+          "e11:where0",
+          "e11:where2",
+          "e13:what0",
+          "e13:where0",
+          "e13:where2",
+          "e14:what0",
+          "e14:where0",
+          "e14:where2",
+          "e15:what0",
+          "e15:where0",
+          "e15:where2",
+          "who:dog",
+          "who:guardian"
+        ]
+      },
+      {
+        "text": "산책을 마무리하며 다시 상가 밀집 지역으로 이동함.",
+        "evidence_ids": [
+          "e17:what0",
+          "e17:where0",
+          "e17:where2",
+          "who:dog",
+          "who:guardian"
+        ]
+      }
+    ],
+    "interpretations": [
+      {
+        "text": "두부는 산책 중 상가 밀집 지역에서 냄새를 맡으며 주변 환경을 탐색함.",
+        "evidence_ids": [
+          "e04:what0",
+          "e04:where0",
+          "who:dog",
+          "who:guardian"
+        ]
+      },
+      {
+        "text": "보호자는 늘벗근린공원 인근에서 두부와의 산책 순간을 사진으로 기록함.",
+        "evidence_ids": [
+          "e07:what0",
+          "e07:where0",
+          "who:dog",
+          "who:guardian"
+        ]
+      }
+    ],
+    "open_questions": [
+      "두부가 냄새를 맡은 특정 대상이 무엇인지",
+      "사진 촬영 당시의 구체적인 배경이나 상황"
+    ]
+  },
+  "outline": [
+    {
+      "scene_id": "scene_01",
+      "start_at": "2026-09-07T09:10:00+09:00",
+      "end_at": "2026-09-07T09:10:00+09:00",
+      "focus": "상가 밀집 지역에서의 냄새 맡기",
+      "evidence_ids": [
+        "e04:what0",
+        "e04:where0",
+        "who:dog",
+        "who:guardian"
+      ]
+    },
+    {
+      "scene_id": "scene_02",
+      "start_at": "2026-09-07T09:15:00+09:00",
+      "end_at": "2026-09-07T09:15:00+09:00",
+      "focus": "늘벗근린공원 인근에서의 사진 촬영",
+      "evidence_ids": [
+        "e07:what0",
+        "e07:where0",
+        "who:dog",
+        "who:guardian"
+      ]
+    }
+  ],
+  "selection": {
+    "title_draft": {
+      "text": "두부와 함께한 상가와 공원 산책",
+      "evidence_ids": [
+        "e04:what0",
+        "e04:where0",
+        "e07:what0",
+        "e07:where0",
+        "who:dog",
+        "who:guardian"
+      ]
+    },
+    "decisions": [
+      {
+        "candidate_id": "e00",
+        "scene_id": null,
+        "code": "connection",
+        "reason": "원본의 카드 비대상 연결 구간",
+        "context_scene_ids": []
+      },
+      {
+        "candidate_id": "e01",
+        "scene_id": null,
+        "code": "connection",
+        "reason": "원본의 카드 비대상 연결 구간",
+        "context_scene_ids": []
+      },
+      {
+        "candidate_id": "e02",
+        "scene_id": null,
+        "code": "connection",
+        "reason": "원본의 카드 비대상 연결 구간",
+        "context_scene_ids": []
+      },
+      {
+        "candidate_id": "e03",
+        "scene_id": null,
+        "code": "redundant",
+        "reason": "e04 장면의 배경 정보로 충분히 유추 가능함.",
+        "context_scene_ids": []
+      },
+      {
+        "candidate_id": "e04",
+        "scene_id": "scene_01",
+        "code": "selected",
+        "reason": "사용자의 직접적인 행동 기록이 포함된 핵심 장면임.",
+        "context_scene_ids": []
+      },
+      {
+        "candidate_id": "e05",
+        "scene_id": null,
+        "code": "connection",
+        "reason": "원본의 카드 비대상 연결 구간",
+        "context_scene_ids": []
+      },
+      {
+        "candidate_id": "e06",
+        "scene_id": null,
+        "code": "redundant",
+        "reason": "e07 장면의 배경 정보로 충분히 유추 가능함.",
+        "context_scene_ids": []
+      },
+      {
+        "candidate_id": "e07",
+        "scene_id": "scene_02",
+        "code": "selected",
+        "reason": "산책 중 보호자와 반려견의 상호작용을 보여주는 중요한 기록임.",
+        "context_scene_ids": []
+      },
+      {
+        "candidate_id": "e08",
+        "scene_id": null,
+        "code": "connection",
+        "reason": "원본의 카드 비대상 연결 구간",
+        "context_scene_ids": []
+      },
+      {
+        "candidate_id": "e09",
+        "scene_id": null,
+        "code": "connection",
+        "reason": "원본의 카드 비대상 연결 구간",
+        "context_scene_ids": []
+      },
+      {
+        "candidate_id": "e10",
+        "scene_id": null,
+        "code": "low_signal",
+        "reason": "단순 이동 경로의 변화로 별도의 장면 구성이 불필요함.",
+        "context_scene_ids": []
+      },
+      {
+        "candidate_id": "e11",
+        "scene_id": null,
+        "code": "low_signal",
+        "reason": "단순 이동 경로의 변화로 별도의 장면 구성이 불필요함.",
+        "context_scene_ids": []
+      },
+      {
+        "candidate_id": "e12",
+        "scene_id": null,
+        "code": "connection",
+        "reason": "원본의 카드 비대상 연결 구간",
+        "context_scene_ids": []
+      },
+      {
+        "candidate_id": "e13",
+        "scene_id": null,
+        "code": "low_signal",
+        "reason": "단순 이동 경로의 변화로 별도의 장면 구성이 불필요함.",
+        "context_scene_ids": []
+      },
+      {
+        "candidate_id": "e14",
+        "scene_id": null,
+        "code": "low_signal",
+        "reason": "단순 이동 경로의 변화로 별도의 장면 구성이 불필요함.",
+        "context_scene_ids": []
+      },
+      {
+        "candidate_id": "e15",
+        "scene_id": null,
+        "code": "low_signal",
+        "reason": "단순 이동 경로의 변화로 별도의 장면 구성이 불필요함.",
+        "context_scene_ids": []
+      },
+      {
+        "candidate_id": "e16",
+        "scene_id": null,
+        "code": "connection",
+        "reason": "원본의 카드 비대상 연결 구간",
+        "context_scene_ids": []
+      },
+      {
+        "candidate_id": "e17",
+        "scene_id": null,
+        "code": "low_signal",
+        "reason": "산책 종료 시점의 단순 이동으로 장면 구성의 우선순위가 낮음.",
+        "context_scene_ids": []
+      }
+    ],
+    "compositions": []
+  }
+}

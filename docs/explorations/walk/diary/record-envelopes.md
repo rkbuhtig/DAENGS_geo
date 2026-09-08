@@ -5,7 +5,7 @@ last_verified: 2026-09-08
 ---
 # 사용자 산책 기록과 주변 정보 봉투 — 1단위 계약
 
-[일기 입구](README.md) · [제작 계획](plan.md) · [2단위 수집 실험](record-envelope-collection.md)
+[일기 입구](README.md) · [제작 계획](plan.md) · [LLM 아키텍처](llm-architecture.md) · [2단위 수집 실험](record-envelope-collection.md)
 
 ## 이번 작업의 범위
 
@@ -151,7 +151,7 @@ App `dev`의 `5062c03`을 읽었다. 설치된 기기 화면이나 production �
 |---|---|---|
 | 근처 기억 카드 | 좌표 있는 행동·글·사진 원본, 선택된 짧은 환경 정보 | 검색·노출 정책과 UI 미구현 |
 | LLM Evidence | 원문, 원본 참조, 선택 봉투의 관련 필드와 출처/시각/상태 | 기존 Piece 어댑터 연결 미구현 |
-| SceneComposition | Evidence를 통해 연결된 사건들을 편집상 묶음 | 별도 진행 중인 LLM 워크트리의 설계이며 본 PR에 포함하지 않음 |
+| SceneComposition | Evidence를 통해 연결된 사건들을 편집상 묶음 | 기존 사건·장면 실험 유지. 현재 조립 경로는 [중심·공통 배경](scene-pipeline.md) 참고 |
 
 ‘현재 강아지의 행동’만 필터링해 같은 세션의 메모·사진을 잃지 않는다. 메모는 pet_id가 없어도
 정상적인 기록이다. 근처 카드용 우선순위와 장면 편집의 중요도 판단은 같은 정책으로 고정하지 않는다.

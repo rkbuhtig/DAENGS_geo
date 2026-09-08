@@ -1,0 +1,51 @@
+{
+  "systemInstruction": {
+    "parts": [
+      {
+        "text": "필수 스탬프는 이미 선택됐다. 추가로 읽을 가치가 있는 스탬프 ID만 남은 카드 수 이내로 골라라. 겹치는 배경 설명을 반복하지 말고 공간 관계의 전개를 고려하라. 스탬프 내부를 수정하거나 병합하지 않는다. 추가 선택이 없으면 빈 배열이다."
+      }
+    ]
+  },
+  "contents": [
+    {
+      "role": "user",
+      "parts": [
+        {
+          "text": "{\"actors\": [{\"id\": \"who:guardian\", \"label\": \"보호자\"}, {\"id\": \"who:dog\", \"label\": \"반려견 두부\"}], \"remaining_cards\": 7, \"mandatory\": [], \"optional\": [{\"id\": \"stamp:e03\", \"tag\": \"transition\", \"support_s\": [480.0, 720.0], \"who\": [\"who:guardian\", \"who:dog\"], \"where\": {\"key\": \"commerce:clustered\", \"tag\": \"commercial_background\", \"distribution\": \"clustered\", \"label\": \"등록 상가가 모인 구간\", \"identity\": \"type_only\"}, \"spatial_change\": {\"type\": \"background_change\", \"from\": {\"key\": \"commerce:scattered\", \"tag\": \"commercial_background\", \"distribution\": \"scattered\", \"label\": \"등록 상가가 산재한 구간\", \"identity\": \"type_only\"}, \"to\": {\"key\": \"commerce:clustered\", \"tag\": \"commercial_background\", \"distribution\": \"clustered\", \"label\": \"등록 상가가 모인 구간\", \"identity\": \"type_only\"}}}, {\"id\": \"stamp:e04\", \"tag\": \"transition\", \"support_s\": [780.0, 960.0], \"who\": [\"who:guardian\", \"who:dog\"], \"where\": {\"key\": \"label:늘벗근린공원\", \"tag\": \"park\", \"label\": \"늘벗근린공원\", \"relation\": \"near\", \"identity\": \"source_label_only\"}, \"spatial_change\": {\"type\": \"background_change\", \"from\": {\"key\": \"commerce:clustered\", \"tag\": \"commercial_background\", \"distribution\": \"clustered\", \"label\": \"등록 상가가 모인 구간\", \"identity\": \"type_only\"}, \"to\": {\"key\": \"label:늘벗근린공원\", \"tag\": \"park\", \"label\": \"늘벗근린공원\", \"relation\": \"near\", \"identity\": \"source_label_only\"}}, \"recent_space_observations\": [{\"where\": {\"key\": \"commerce:clustered\", \"tag\": \"commercial_background\", \"distribution\": \"clustered\", \"label\": \"등록 상가가 모인 구간\", \"identity\": \"type_only\"}, \"seconds_ago\": 240.0}]}, {\"id\": \"stamp:e05\", \"tag\": \"transition\", \"support_s\": [1020.0, 1200.0], \"who\": [\"who:guardian\", \"who:dog\"], \"where\": {\"key\": \"label:양재천\", \"tag\": \"river\", \"label\": \"양재천\", \"relation\": \"near\", \"identity\": \"source_label_only\"}, \"spatial_change\": {\"type\": \"background_change\", \"from\": {\"key\": \"label:늘벗근린공원\", \"tag\": \"park\", \"label\": \"늘벗근린공원\", \"relation\": \"near\", \"identity\": \"source_label_only\"}, \"to\": {\"key\": \"label:양재천\", \"tag\": \"river\", \"label\": \"양재천\", \"relation\": \"near\", \"identity\": \"source_label_only\"}}, \"recent_space_observations\": [{\"where\": {\"key\": \"label:늘벗근린공원\", \"tag\": \"park\", \"label\": \"늘벗근린공원\", \"relation\": \"near\", \"identity\": \"source_label_only\"}, \"seconds_ago\": 240.0}]}, {\"id\": \"stamp:e06\", \"tag\": \"transition\", \"support_s\": [1260.0, 1440.0], \"who\": [\"who:guardian\", \"who:dog\"], \"where\": {\"key\": \"commerce:clustered\", \"tag\": \"commercial_background\", \"distribution\": \"clustered\", \"label\": \"등록 상가가 모인 구간\", \"identity\": \"type_only\"}, \"spatial_change\": {\"type\": \"background_change\", \"from\": {\"key\": \"label:양재천\", \"tag\": \"river\", \"label\": \"양재천\", \"relation\": \"near\", \"identity\": \"source_label_only\"}, \"to\": {\"key\": \"commerce:clustered\", \"tag\": \"commercial_background\", \"distribution\": \"clustered\", \"label\": \"등록 상가가 모인 구간\", \"identity\": \"type_only\"}}, \"recent_space_observations\": [{\"where\": {\"key\": \"label:양재천\", \"tag\": \"river\", \"label\": \"양재천\", \"relation\": \"near\", \"identity\": \"source_label_only\"}, \"seconds_ago\": 240.0}]}, {\"id\": \"stamp:e07\", \"tag\": \"transition\", \"support_s\": [1500.0, 1620.0], \"who\": [\"who:guardian\", \"who:dog\"], \"where\": {\"key\": \"commerce:sparse\", \"tag\": \"commercial_background\", \"distribution\": \"sparse\", \"label\": \"등록 상가가 적은 구간\", \"identity\": \"type_only\"}, \"spatial_change\": {\"type\": \"background_change\", \"from\": {\"key\": \"commerce:clustered\", \"tag\": \"commercial_background\", \"distribution\": \"clustered\", \"label\": \"등록 상가가 모인 구간\", \"identity\": \"type_only\"}, \"to\": {\"key\": \"commerce:sparse\", \"tag\": \"commercial_background\", \"distribution\": \"sparse\", \"label\": \"등록 상가가 적은 구간\", \"identity\": \"type_only\"}}, \"recent_space_observations\": [{\"where\": {\"key\": \"commerce:clustered\", \"tag\": \"commercial_background\", \"distribution\": \"clustered\", \"label\": \"등록 상가가 모인 구간\", \"identity\": \"type_only\"}, \"seconds_ago\": 180.0}]}, {\"id\": \"stamp:e08\", \"tag\": \"transition\", \"support_s\": [1680.0, 1980.0], \"who\": [\"who:guardian\", \"who:dog\"], \"where\": {\"key\": \"label:양재천\", \"tag\": \"river\", \"label\": \"양재천\", \"relation\": \"near\", \"identity\": \"source_label_only\"}, \"spatial_change\": {\"type\": \"distance_trend\", \"target_label\": \"양재천\", \"sequence\": [\"decreasing\", \"increasing\"]}}, {\"id\": \"stamp:e09\", \"tag\": \"transition\", \"support_s\": [2040.0, 2160.0], \"who\": [\"who:guardian\", \"who:dog\"], \"where\": {\"key\": \"commerce:sparse\", \"tag\": \"commercial_background\", \"distribution\": \"sparse\", \"label\": \"등록 상가가 적은 구간\", \"identity\": \"type_only\"}, \"spatial_change\": {\"type\": \"background_change\", \"from\": {\"key\": \"label:양재천\", \"tag\": \"river\", \"label\": \"양재천\", \"relation\": \"near\", \"identity\": \"source_label_only\"}, \"to\": {\"key\": \"commerce:sparse\", \"tag\": \"commercial_background\", \"distribution\": \"sparse\", \"label\": \"등록 상가가 적은 구간\", \"identity\": \"type_only\"}}, \"recent_space_observations\": [{\"where\": {\"key\": \"label:양재천\", \"tag\": \"river\", \"label\": \"양재천\", \"relation\": \"near\", \"identity\": \"source_label_only\"}, \"seconds_ago\": 180.0}]}]}"
+        }
+      ]
+    }
+  ],
+  "generationConfig": {
+    "temperature": 0.2,
+    "maxOutputTokens": 4096,
+    "responseMimeType": "application/json",
+    "responseJsonSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "optional_stamp_ids": {
+          "items": {
+            "enum": [
+              "stamp:e03",
+              "stamp:e04",
+              "stamp:e05",
+              "stamp:e06",
+              "stamp:e07",
+              "stamp:e08",
+              "stamp:e09"
+            ],
+            "type": "string"
+          },
+          "maxItems": 7,
+          "title": "Optional Stamp Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "optional_stamp_ids"
+      ],
+      "title": "StampSelection",
+      "type": "object"
+    }
+  }
+}

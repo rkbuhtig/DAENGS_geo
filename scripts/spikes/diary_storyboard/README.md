@@ -1,5 +1,95 @@
 # 산책 세션 이해 → 스토리보드 → 선택적 일기 실험
 
+## 현재 구현: 중심 생성 → 공통 배경 조립
+
+[장면 조립 경계](../../../docs/explorations/walk/diary/scene-pipeline.md)를 따른다.
+`scene_core.py`가 기록 중심·관측 중심과 보충 선택을, `scene_background.py`가 공통 배경 계약·조립을,
+`scene_pipeline.py`가 준비·조회 요청 명세·고정 스탬프를 연결한다. 사용자 중심에는 동선·배경이 필수가 아니다.
+`StampTool("action_background_v2", source, {"target_scene_count": 3})`로 새 경로를 사용한다.
+`prepare_scene_plan` → `background_requests` → 외부 수집·응답 저장 → `StampTool`의 순서다.
+
+```powershell
+uv run python -m scripts.spikes.diary_storyboard.scene_pipeline_demo --target-scene-count 3 --out ../diary-lab/scene-pipeline-02
+```
+
+데모는 합성 응답을 파일로 저장한 뒤 같은 계약으로 읽는다. 여섯 조건의 `scene_plan.json`,
+`background_requests.json`, `background_snapshot.json`, `prepared_stamps.json`, `stamp_book.json`과 보고서를 남긴다.
+실제 외부 API·LLM 호출은 없다. 다음 v1 및 HOW 경로는 이전 결과 재현용이다.
+
+## 앞선 구현: 행위·배경 분리와 부족분 보충 v1
+
+[행위·배경 정책](../../../docs/explorations/walk/diary/action-background.md)을 따른다.
+`StampTool("action_background", source, {"target_scene_count": 3})`는 사용자 기록을 먼저 보존하고,
+부족한 장면만 체류·지속적인 속도 관측으로 보충한다. 3은 예시 인자이며 제품 기본값이 아니다.
+`action_candidates.py`는 별도 관측 후보 풀, `action_background.py`는 보충 정책과 배경 분리를 소유한다.
+LLM·네트워크 호출 없이 기존 책 조회·저장·재생 인터페이스로 확인할 수 있다.
+
+```powershell
+uv run python -m scripts.spikes.diary_storyboard.action_background_demo --target-scene-count 3 --out ../diary-lab/action-background-01
+```
+
+`report.json`에서 보충·미달을, `*/prepared_stamps.json`에서 행위와 배경을 확인한다.
+`record_how`와 다음 작성 비교 실행기는 과거 실험 재현용으로 유지한다. 새 경로를 자동으로 모델에 발송하지 않는다.
+
+## 공통 인터페이스와 앞선 실험: 독립 스탬프 툴
+
+[스탬프 툴·카드 경계](../../../docs/explorations/walk/diary/stamp-tool.md)를 따른다.
+`stamp_tool.py`는 원본·봉투에서 고정 스탬프를 만들고, `stamp_storyboard.py`는 선택·서술의
+입출력을 처리한다. 카드에 시간·위치를 복사하지 않고 스탬프 버전을 참조한다.
+
+```powershell
+uv run python -m scripts.spikes.diary_storyboard.stamp_demo --out ../diary-lab/stamp-tool-01
+```
+
+합성 기록 6개의 새 입력 생성 + 이전 실제 응답 21카드 재생이다. 새 모델 호출은 없다.
+출력 `records/write_request.json`, `*/storyboard.json`, `*/rendered.json`, `README.md`를 확인한다.
+기존 출력 디렉터리를 덮어쓰지 않는다. 실제 provider 투영·새 HTTP 실행·사용자 편집 연결은 아직 별도 작업이다.
+
+### HOW 추출과 스탬프 조립
+
+별도 [HOW 재료 추출](../../../docs/explorations/walk/diary/how-materials.md)은
+기존 canonical 동선에서 국소 체류·직선·큰 방향 전환·되짚기를 계산한다.
+`how_materials.py`는 순수 계산·후보 조회, `how_demo.py`는 합성 10조건의 JSON·SVG·검토 HTML을 생성한다.
+추출기 자체는 HOW 풀·스탬프 연결과 LLM 호출을 하지 않는다.
+후속 `how_stamps.py`는 `StampTool("record_how", ...)`로 기록과 HOW를 조립한다.
+`how_stamp_demo.py`에서 같은 동선의 사진·메모 6조건과 GPS 공백 1조건을 비교하고 HTML에서 근거를 선택해 본다.
+입력·원본 구간·버전·실험 결과는 [HOW 조립 문서](../../../docs/explorations/walk/diary/how-stamps.md)에 있다.
+
+```powershell
+uv run python -m scripts.spikes.diary_storyboard.how_demo --out ../diary-lab/how-materials-01
+uv run python -m scripts.spikes.diary_storyboard.how_stamp_demo --out ../diary-lab/how-stamps-01
+```
+
+두 실행 모두 네트워크·LLM 호출 없이 새 출력 디렉터리에 생성한다.
+
+후속 [작성용 조각 비교](../../../docs/explorations/walk/diary/how-writing.md)는 스탬프 구성과 기록을 고정한 채
+원래 입력과 짧은 HOW 딕셔너리를 나란히 보여준다. 원본 근거는 같은 책에 보존하며 모델을 호출하지 않는다.
+
+```powershell
+uv run python -m scripts.spikes.diary_storyboard.how_stamp_demo --writing-comparison --out ../diary-lab/how-writing-01
+uv run pytest tests/spikes/diary_storyboard/test_writing_projection.py -q
+```
+
+`writing_comparison.json`의 두 입력·공통 프롬프트/스키마·참조 명세는 모두 준비 상태다.
+`writing_projection.prepare_comparison`은 지정한 선택만 투영하며, `verify_comparison`과 `resolve_how`로 원본을 검산한다.
+바이트 절감과 실제 모델 토큰·비용을 구별한다. 기존 `writing_request` 기본 출력은 바꾸지 않았다.
+
+후속 [실제 HOW 작성 비교](../../../docs/research/2026-09-08-how-writing-gemini.md)는 같은 책·스탬프·프롬프트를
+고정하고 세 조건의 두 입력을 각각 한 번 작성했다. 구조 통과 6/6, 입력 토큰 합계 61.6% 감소이며 의미 과장·문체 문제는 별도 기록했다.
+
+```powershell
+uv run python -m scripts.spikes.diary_storyboard.how_writing_experiment --source ../diary-lab/how-writing-03 --out ../diary-lab/how-writing-gemini-01
+# --run을 붙이면 실제 Gemini 요청 최대 6회. 환경변수 또는 --env-file로 키를 읽는다.
+uv run python -m scripts.spikes.diary_storyboard.how_writing_preview --out ../diary-lab/how-writing-gemini-01
+uv run pytest tests/spikes/diary_storyboard/test_how_writing_experiment.py -q
+```
+
+기본은 입력 준비만 한다. 실패·중단된 요청은 재전송하지 않고 사용량 미확인 시 추가 호출도 멈춘다.
+`manifest.json`은 고정 조건, `*/calls`는 실제 요청·응답·사용량, `results.json`은 구조 결과,
+선택적인 `review.json`은 별도 검토 메모다. HTML 생성기는 저장 자료만 읽고 모델을 호출하지 않는다.
+
+## 이전 전체 제작 흐름과 비교 실행기
+
 [산책 일기 제작 계획](../../../docs/explorations/walk/diary/plan.md)의 실험 골격이다.
 값·계산 정의·확보 범위와 추출 정책은 [자료 카탈로그](../../../docs/explorations/walk/diary/evidence-catalog.md)에 있다.
 `app/`의 운영 경로와 DB에 연결하지 않고 로컬 파일로 전체 흐름을 실행한다.
@@ -34,7 +124,67 @@
 장면의 수·경계는 첫 이해 호출에서 모델이 제안한다. 장면별 중요도 점수나 재료별 우선순위는
 코드에 두지 않았다. 첫 개요의 경계는 이번 실행 동안 유지하며 장면 분할·병합은 미구현이다.
 
+이 설명은 기존 `understand` 흐름이다. 아래 후보 구성 실험은 별도 opt-in `select`/`compose` 단계를 사용하며 초기 구성에서 여러 사건을 묶을 수 있다. 두 흐름 모두 작성 순회 중 구성 변경은 지원하지 않는다.
+
+## 사건/장면 구성 — 미커밋 후보 골격에서 이어받은 오프라인 실험
+
+`selection_adapter.py`는 저장된 Gemini 3차 **입력만** 기존 Evidence와 CandidateCatalog로 옮긴다. 모델의 출력·검토는 근거로 가져오지 않는다. `candidates.py`는 원본 point/interval과 선정 계약을 검사한다. 원본 해시는 유지하며 실험의 절대 시작 시각은 명시적인 합성값이다. 지도 좌표를 보존하지 않은 자료이므로 위치 상태는 unresolved다.
+
+`composition_mode=individual`은 기존 1사건=1장면, `grouped`는 SceneComposition의 포함/맥락 사건과 대표 사건을 통해 여러 사건을 한 장면으로 편집한다. 관측 범위는 합치지 않는다. 필수 행동은 한 장면의 포함 기록으로 남고 맥락은 여러 장면에서 공유할 수 있다. 서로 다른 chain·GPS 공백을 가로지른 묶음, 중복 소유, 필수 행동의 맥락 전용 처리, 대표 사건 시간 확장과 잘못된 생략 이유를 거부한다.
+
+```powershell
+# 키·네트워크 없이 개요만 생성. 새 출력 디렉터리를 사용한다.
+uv run python -m scripts.spikes.diary_storyboard.selection_demo --case actions --composition individual --steps 1 --run ../diary-lab/events-individual
+uv run python -m scripts.spikes.diary_storyboard.selection_demo --case actions --composition grouped --steps 1 --run ../diary-lab/events-grouped
+# 같은 명령에서 --steps를 빼면 가짜 모델로 작성·재검토까지 이어간다.
+uv run python -m scripts.spikes.diary_storyboard.selection_demo --case actions --composition grouped --run ../diary-lab/events-grouped
+uv run python -m scripts.spikes.diary_storyboard.verify_run --run ../diary-lab/events-grouped
+```
+
+`--case movement|actions|gap`으로 세 조건을 읽는다. 기본 archive는 레포의 `docs/research/2026-09-07-walk-diary-evidence/gemini-03.json`이다. FixtureProvider는 네트워크를 호출하지 않는다. 같은 비교 대상 사건을 시간순 최대 3개씩 묶는 것은 **배선 검산용 설정**이며 선정 정책이나 품질 실험이 아니다. 모델 프롬프트에는 이 3개 묶음 규칙이 없다. 사건별 자료와 사용 범위를 유지하면서 구성만 달라지는지 확인한다.
+
+`storyboard.md`는 본문 작성 전에도 구성·원본 시각을 보여준다. 작성 요청과 검토 완료본은 구성 참조와 각 사건의 출처·시각·원문 조각을 갖는다. 개요 시각은 대표 사건의 시각이지 사진·냄새 등의 전체 지속시간이 아니다. 구조 검사 통과는 문장 의미 검증 완료가 아니다.
+
+기존 run은 선택 프롬프트/스키마 지문이 다르면 새 실행을 요구한다. 이 변경으로 예전 미커밋 단계에서 만든 선택 run의 재개는 거부될 수 있다. 원본 run을 덮어쓰지 않는다. 운영 지도 연결, 주장 단위 의미 검사, 동적 재구성은 후속이다.
+
+### 실제 모델의 구성 A/B
+
+```powershell
+# 준비만 수행: 외부 호출 없음
+uv run python -m scripts.spikes.diary_storyboard.composition_experiment --out ../diary-lab/composition-ab
+# GEMINI_API_KEY/GOOGLE_API_KEY 환경변수를 준비한 뒤 실제 구성 호출
+uv run python -m scripts.spikes.diary_storyboard.composition_experiment --out ../diary-lab/composition-ab --run
+```
+
+movement/actions/gap × individual/grouped의 최대 6회 요청이다. 본문 작성과 자동 재시도는 없다. 중단되거나 거부된 호출도 동일 명령 재실행 시 다시 보내지 않는다. 설정·지시·자료가 달라지면 새 출력 디렉터리가 필요하다. 이 실험에는 일반 `advance`를 사용하지 않는다. `--env-file`도 지원한다.
+
+`experiment.json`은 설정과 요청 지문, 각 run의 `planned_request.json`은 전송 예정 요청, `calls`는 실제 요청·응답·영수증, `results.json`과 `README.md`는 승인 상태와 미검증 제안을 구분해 보존한다. 100,000토큰 중단 기준은 다음 요청 전에 확인된 사용량을 검사하는 기준이며 총비용의 엄격한 상한이 아니다.
+
+[첫 실제 비교](../../../docs/research/2026-09-08-event-scene-gemini-ab.md)는 응답 6/6, 구조 통과 0/6이었다. 공용 응답 스키마와 시간 재작성 계약의 문제를 기록했다. 현재 명령은 당시 조건 보존용이며 개선된 계약은 아직 반영하지 않았다.
+
+후속 `editorial_contract.py`는 A/B별 사건 ID 전용 스키마를 제공한다. 모델은 시각·좌표·근거 ID·중복 결정표를 쓰지 않는다. `editorial_experiment.py`가 응답을 검증한 뒤 기존 SelectionPlan으로 변환한다. `resolved_plan.json`과 `resolved_scene_scopes.json`은 시스템 출력이며 API 원문과 구분한다. 대표 사건 시각과 포함 사건의 편집 범위는 다른 값이다. 보존 입력에 없는 좌표는 복원하지 않는다.
+
+```powershell
+uv run python -m scripts.spikes.diary_storyboard.editorial_experiment --out ../diary-lab/editorial-ab
+uv run python -m scripts.spikes.diary_storyboard.editorial_experiment --out ../diary-lab/editorial-ab --run
+```
+
+같은 6회 제한·재전송 금지·준비 전용 기본값을 사용하며 `--env-file`을 지원한다. 전용 명령이 요청·자료·설정·변환 코드 지문을 검사한다. 일반 `advance`나 기존 `verify_run`은 v2 변환 provider를 자동 선택하지 않으므로 이 실행의 재개·재생 검증에 사용하지 않는다. 코드 수준의 정확한 재생은 `EditorialProvider(..., replay_from=source)`와 `step`으로 검증했다. [ID 계약의 실제 비교](../../../docs/research/2026-09-08-event-scene-gemini-ab-v2.md)는 3/6 구조 통과였으며, 편집 모순·GPS 맥락 연결·의미 과장은 별도로 남았다.
+
 ## 실행
+
+### 공간·액션 슬롯 → 스탬프 → 짧은 작성
+
+`stamp_materials.py`는 보존 V3 입력을 제한된 어휘 어댑터로 구조화하고 공간·액션 풀을 따로 관리한다. 스탬프 중심·맥락·상대 시간은 시스템이 고정한다. 원자료 이력과 활성 슬롯을 구분하며, 슬롯 교체는 공간 이탈이나 스탬프 생성 계기가 아니다. 현재 원본 기록/봉투 계약과의 운영 어댑터는 아직 연결하지 않았다.
+
+```powershell
+# 자료와 선택 요청 준비만 수행, 네트워크 없음
+uv run python -m scripts.spikes.diary_storyboard.stamp_experiment --out ../diary-lab/slot-stamps
+# 선택 → 선택된 스탬프만 짧은 작성, 세 조건 최대 6회
+uv run python -m scripts.spikes.diary_storyboard.stamp_experiment --out ../diary-lab/slot-stamps --run
+```
+
+키는 기존 환경변수 또는 `--env-file`로 전달한다. 재개에는 같은 전용 명령을 사용한다. 실패/중단 호출 자동 재시도는 없고 입력·프롬프트·코드 지문이 달라지면 새 출력 디렉터리를 요구한다. 일반 `advance`는 이 별도 실험을 실행하지 않는다. `materials.json`은 원본 스탬프·이력·정책·지문, `select/write/accepted.json`은 구조 검사 후 결과다. accepted는 의미 정확성 승인이 아니다. [실제 첫 스탬프 비교](../../../docs/research/2026-09-08-slot-stamp-gemini.md)에 결과와 남은 오류를 기록했다.
 
 모든 명령은 **Geo 루트** 기준이다. Python 3.12와 `uv sync --frozen`으로 준비하며
 기존 `pydantic`, `httpx` 외 추가 의존성은 없다. 예시의 `../diary-lab/`은 저장소 밖의

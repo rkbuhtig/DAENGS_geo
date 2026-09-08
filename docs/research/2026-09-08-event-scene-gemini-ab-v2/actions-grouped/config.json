@@ -1,0 +1,8 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "evidence_sha256": "bee45c4f28e62629b9bda6356e0af82d83af42be7b0614d20c2d56ca6a07ff65",
+  "prompt_sha256": "308b1890b0227c0677c52657e0baf9fdb7dcdd348612bb20660403ac3154d9b6",
+  "contract_version": "diary-skeleton-v1",
+  "selection_prompt_sha256": "8c4237a257318dcd4ee294497985a49c0eec9e98c39b149d800de4badd69ef45",
+  "selection_schema_sha256": "6e64647ac1eed7da794b23638ce253b3be85cea108612b9b20de3c060bbde2d6"
+}

@@ -4,7 +4,7 @@ import hashlib
 import json
 from pathlib import Path
 
-from .contracts import State
+from .contracts import Evidence, State
 
 
 def read(path: Path):
@@ -49,6 +49,34 @@ def export(run: Path, state: State):
         "",
         state.understanding.summary,
     ]
+    if state.selection is not None:
+        if state.selection.title_draft is not None:
+            lines += ["", "대표 제목 초안: " + state.selection.title_draft.text]
+        lines += ["", "## 후보 선택·생략", ""]
+        lines += [
+            f"- {d.candidate_id} → {d.scene_id or ('맥락' if d.context_scene_ids else '생략')} "
+            f"({d.code}): {d.reason} / 맥락 참조: {', '.join(d.context_scene_ids)}"
+            for d in state.selection.decisions
+        ]
+        if not state.outline:
+            lines += ["", "남길 장면이 없는 정상 구성. 지도 동선과 원본 기록은 별도다."]
+        if state.selection.compositions:
+            from .composition import scene_context
+
+            evidence = Evidence.model_validate(read(run / "evidence_snapshot.json"))
+            lines += ["", "## 장면 구성안 · 문구 작성 전에도 확인 가능", ""]
+            for item in state.outline:
+                context = scene_context(state, item.scene_id, evidence)
+                group = context["composition"]
+                lines += [f"### {item.scene_id} · 대표 사건 {group['primary_candidate_id']}", "",
+                          group["reason"], "", "각 행은 원본 사건의 범위다. 행동 시간을 합치지 않는다.", ""]
+                for event in context["events"]:
+                    lines += [
+                        (f"- {event['candidate_id']} [{event['membership']}] "
+                        f"{event['start_at']} → {event['end_at']} / "
+                        f"{event['source_text'] or '연결 이동'} / 위치 {event['location_status']}")
+                    ]
+                lines += [""]
     edits = {e.scene_id: e for e in state.review.edits} if state.review else {}
     outline = {s.scene_id: s for s in state.outline}
     for scene in state.scenes:

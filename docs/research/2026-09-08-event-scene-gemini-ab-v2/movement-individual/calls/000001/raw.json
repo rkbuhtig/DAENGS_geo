@@ -1,0 +1,31 @@
+{
+  "candidates": [
+    {
+      "content": {
+        "parts": [
+          {
+            "text": "{\n  \"understanding\": {\n    \"summary\": \"보호자와 반려견 두부가 도심의 상가 밀집 지역과 늘벗근린공원, 양재천 인근을 경유하며 산책을 진행했다.\",\n    \"observed_flow\": [\n      {\n        \"text\": \"상가 밀집 지역에서 공원과 하천 인근으로 이동하며 주변 환경이 변화했다.\",\n        \"candidate_ids\": [\"e03\", \"e04\", \"e05\", \"e06\", \"e07\", \"e08\", \"e09\"]\n      }\n    ],\n    \"interpretations\": [\n      {\n        \"text\": \"산책 경로가 상가 지역과 자연 친화적인 공간(공원, 하천)을 교차하며 구성되어 있다.\",\n        \"candidate_ids\": [\"e03\", \"e04\", \"e05\", \"e06\", \"e07\", \"e08\", \"e09\"]\n      }\n    ],\n    \"open_questions\": [\n      \"산책 중 두부가 특정 장소에서 보인 반응이 있었는가?\",\n      \"상가 지역과 자연 공간 중 두부가 더 선호하는 환경은 무엇인가?\"\n    ]\n  },\n  \"title_draft\": {\n    \"text\": \"도심 상가와 자연을 잇는 산책\",\n    \"candidate_ids\": [\"e03\", \"e04\", \"e05\", \"e06\", \"e07\", \"e08\", \"e09\"]\n  },\n  \"scenes\": [\n    {\n      \"candidate_id\": \"e03\",\n      \"focus\": \"상가 밀집 구간으로의 진입\",\n      \"reason\": \"산책의 시작점에서 주변 환경이 상가 밀집 지역으로 변화하는 지점이다.\"\n    },\n    {\n      \"candidate_id\": \"e04\",\n      \"focus\": \"늘벗근린공원 인근으로의 이동\",\n      \"reason\": \"상가 지역에서 공원 인근으로 환경이 전환되는 과정을 보여준다.\"\n    },\n    {\n      \"candidate_id\": \"e05\",\n      \"focus\": \"양재천 인근 구간 진입\",\n      \"reason\": \"공원 인근에서 하천 인근으로 산책 공간의 성격이 변화했다.\"\n    },\n    {\n      \"candidate_id\": \"e06\",\n      \"focus\": \"다시 상가 밀집 구간으로 복귀\",\n      \"reason\": \"하천 인근에서 다시 상가 지역으로 이동하며 경로의 다양성을 보여준다.\"\n    },\n    {\n      \"candidate_id\": \"e07\",\n      \"focus\": \"상가 밀집 지역에서 한적한 구간으로의 이동\",\n      \"reason\": \"상가 밀집도 변화에 따른 공간적 특징의 차이를 보여준다.\"\n    },\n    {\n      \"candidate_id\": \"e08\",\n      \"focus\": \"양재천과의 거리 변화\",\n      \"reason\": \"하천과의 거리가 가까워졌다가 멀어지는 동선상의 변화를 기록한다.\"\n    },\n    {\n      \"candidate_id\": \"e09\",\n      \"focus\": \"산책 후반부의 환경 변화\",\n      \"reason\": \"하천 인근에서 상가가 적은 구간으로 이동하며 산책을 마무리하는 과정이다.\"\n    }\n  ],\n  \"omissions\": []\n}",
+            "thoughtSignature": "EnEKbwERTTIPdexT7V4wu7oWz+qiq+3r2B+9/ysa+NDrkDSerLrsOQQxhd3xQHvrmFuPbH9kSIQORBreN8Hr4+O1TsQL5waaDhM2qKJ7beucSm3tx7cwnARuU8J6NqxJfu0UcVEZyGQNnxSrS9KitNoM7w=="
+          }
+        ],
+        "role": "model"
+      },
+      "finishReason": "STOP",
+      "index": 0
+    }
+  ],
+  "usageMetadata": {
+    "promptTokenCount": 10071,
+    "candidatesTokenCount": 791,
+    "totalTokenCount": 10862,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 10071
+      }
+    ],
+    "serviceTier": "standard"
+  },
+  "modelVersion": "gemini-3.1-flash-lite",
+  "responseId": "jIufasnKJ9TK1e8Pr5rH2Q4"
+}

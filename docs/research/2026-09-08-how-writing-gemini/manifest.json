@@ -1,0 +1,69 @@
+{
+  "version": "how-writing-gemini-v1",
+  "model": "gemini-3.1-flash-lite",
+  "settings": {
+    "temperature": 0.2,
+    "maxOutputTokens": 4096
+  },
+  "order": [
+    [
+      "all_records",
+      "baseline"
+    ],
+    [
+      "all_records",
+      "compact"
+    ],
+    [
+      "no_record",
+      "compact"
+    ],
+    [
+      "no_record",
+      "baseline"
+    ],
+    [
+      "gap",
+      "baseline"
+    ],
+    [
+      "gap",
+      "compact"
+    ]
+  ],
+  "max_attempts": 6,
+  "automatic_retries": 0,
+  "observed_token_stop_threshold": 40000,
+  "stop_on_unknown_usage": true,
+  "max_request_bytes": 100000,
+  "selection": "all_frozen_stamps",
+  "semantic_status": "not_evaluated",
+  "sources": {
+    "all_records": {
+      "stamp_book": "cb956b2501cc735420c198e826e0a197c968fa1db9a1cd130376f8e344a5c45d",
+      "writing_comparison": "648f4593278f52c457c526a9ded6c97603176bd816b579dd52991c678842c86f"
+    },
+    "no_record": {
+      "stamp_book": "0bec85e39750812b79964eb49e4fd47ee887b5a1b53f0a4c20b68474970fdb82",
+      "writing_comparison": "3863a8ac1e6cbfb5d7b3885b9a8675c1c9e8c378477ff0c97e5690f766a83288"
+    },
+    "gap": {
+      "stamp_book": "3b9b1ce3c1c59043faddab927a522032047325994d06838a82e17cda2ad3a68f",
+      "writing_comparison": "7b73029875f4511fb9fe0846bfe934ce54878f8b1adb96e6a267d75463a15426"
+    }
+  },
+  "requests": {
+    "all_records/baseline": "d31e911152e078d79d0a6998f28bafef98bb8b47667952077235806e0299acfa",
+    "all_records/compact": "95ab06b63c31b16b4828e47273c9a184e0b8b890c2b1c6a54c625a215762b393",
+    "no_record/baseline": "85d2a6a5feb8aaddbd45c3f38f1b71d50fa717c53cb42d930240bb37a70ebf57",
+    "no_record/compact": "3debea056a4248a71813b1969f52630142cd42c333aee00ab9ad4ed3fa1162f0",
+    "gap/baseline": "21adf713ccff2ff88fba0fffe556ff480ba433e18fe624f7541daaff845f8d56",
+    "gap/compact": "58b7809dfce8a3e5b1cbd1c5a729519863c7eecb4312756379700faa8cd982e9"
+  },
+  "implementation": {
+    "how_writing_experiment.py": "fc3c856fa08189deb1b6288b54171f93a23f54092afce18f4392845d03ce71b7",
+    "provider.py": "097a72d0f1ab2486ae8c061787ec68b02293843dbafe46a3a12f761dde26487d",
+    "writing_projection.py": "ed74888e52e0b8c882ea5abd7856b0d08240806deaf6a50ea880e6fd047779d4",
+    "stamp_storyboard.py": "55e24179da21ac417fb5abadf48f089faaf36e63b2ccff3bb8209c3698644891"
+  }
+}

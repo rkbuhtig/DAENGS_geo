@@ -1,0 +1,89 @@
+{
+  "systemInstruction": {
+    "parts": [
+      {
+        "text": "제공된 스탬프마다 한국어 제목과 한 문장 기록, 전체 제목을 써라. 현재 공간과 과거 공간을 구별하고 near는 인근으로 표현한다. elapsed_s는 두 관측의 시간차이며 행동 지속시간이 아니다. 기록된 행동·공간 관계·변화 순서를 유지하고 감정·목적·익숙함·시설 진입을 추가하지 않는다."
+      }
+    ]
+  },
+  "contents": [
+    {
+      "role": "user",
+      "parts": [
+        {
+          "text": "{\"actors\": [{\"id\": \"who:guardian\", \"label\": \"보호자\"}, {\"id\": \"who:dog\", \"label\": \"반려견 두부\"}], \"stamps\": [{\"id\": \"stamp:e03\", \"tag\": \"transition\", \"support_s\": [480.0, 540.0], \"who\": [\"who:guardian\", \"who:dog\"], \"where\": {\"key\": \"commerce:clustered\", \"tag\": \"commercial_background\", \"distribution\": \"clustered\", \"label\": \"등록 상가가 모인 구간\", \"identity\": \"type_only\"}, \"spatial_change\": {\"type\": \"background_change\", \"from\": {\"key\": \"commerce:scattered\", \"tag\": \"commercial_background\", \"distribution\": \"scattered\", \"label\": \"등록 상가가 산재한 구간\", \"identity\": \"type_only\"}, \"to\": {\"key\": \"commerce:clustered\", \"tag\": \"commercial_background\", \"distribution\": \"clustered\", \"label\": \"등록 상가가 모인 구간\", \"identity\": \"type_only\"}}}, {\"id\": \"stamp:e04\", \"tag\": \"action\", \"support_s\": [600.0, 600.0], \"who\": [\"who:guardian\", \"who:dog\"], \"where\": {\"key\": \"commerce:clustered\", \"tag\": \"commercial_background\", \"distribution\": \"clustered\", \"label\": \"등록 상가가 모인 구간\", \"identity\": \"type_only\"}, \"action\": {\"code\": \"sniff_recorded\", \"actor_ids\": [\"who:dog\"], \"record_text\": \"두부가 여기서 냄새를 맡았다\", \"target\": null}, \"relations\": [{\"type\": \"since_space_segment_start\", \"event_id\": \"e03\", \"source_segment_start_s\": 480.0, \"elapsed_s\": 120.0, \"continuous_presence\": \"not_established\"}]}, {\"id\": \"stamp:e06\", \"tag\": \"transition\", \"support_s\": [780.0, 840.0], \"who\": [\"who:guardian\", \"who:dog\"], \"where\": {\"key\": \"label:늘벗근린공원\", \"tag\": \"park\", \"label\": \"늘벗근린공원\", \"relation\": \"near\", \"identity\": \"source_label_only\"}, \"spatial_change\": {\"type\": \"background_change\", \"from\": {\"key\": \"commerce:clustered\", \"tag\": \"commercial_background\", \"distribution\": \"clustered\", \"label\": \"등록 상가가 모인 구간\", \"identity\": \"type_only\"}, \"to\": {\"key\": \"label:늘벗근린공원\", \"tag\": \"park\", \"label\": \"늘벗근린공원\", \"relation\": \"near\", \"identity\": \"source_label_only\"}}, \"recent_space_observations\": [{\"where\": {\"key\": \"commerce:clustered\", \"tag\": \"commercial_background\", \"distribution\": \"clustered\", \"label\": \"등록 상가가 모인 구간\", \"identity\": \"type_only\"}, \"seconds_ago\": 240.0}]}, {\"id\": \"stamp:e07\", \"tag\": \"action\", \"support_s\": [900.0, 900.0], \"who\": [\"who:guardian\", \"who:dog\"], \"where\": {\"key\": \"label:늘벗근린공원\", \"tag\": \"park\", \"label\": \"늘벗근린공원\", \"relation\": \"near\", \"identity\": \"source_label_only\"}, \"action\": {\"code\": \"photo_recorded\", \"actor_ids\": [\"who:guardian\", \"who:dog\"], \"record_text\": \"여기서 두부와 함께 사진을 찍었다\", \"target\": null}, \"relations\": [{\"type\": \"after_action_record\", \"event_id\": \"e04\", \"action\": {\"code\": \"sniff_recorded\", \"actor_ids\": [\"who:dog\"], \"record_text\": \"두부가 여기서 냄새를 맡았다\", \"target\": null}, \"elapsed_s\": 300.0}, {\"type\": \"since_space_segment_start\", \"event_id\": \"e06\", \"source_segment_start_s\": 780.0, \"elapsed_s\": 120.0, \"continuous_presence\": \"not_established\"}], \"recent_space_observations\": [{\"where\": {\"key\": \"commerce:clustered\", \"tag\": \"commercial_background\", \"distribution\": \"clustered\", \"label\": \"등록 상가가 모인 구간\", \"identity\": \"type_only\"}, \"seconds_ago\": 300.0}]}, {\"id\": \"stamp:e13\", \"tag\": \"transition\", \"support_s\": [1665.0, 1905.0], \"who\": [\"who:guardian\", \"who:dog\"], \"where\": {\"key\": \"label:양재천\", \"tag\": \"river\", \"label\": \"양재천\", \"relation\": \"near\", \"identity\": \"source_label_only\"}, \"spatial_change\": {\"type\": \"background_change\", \"from\": {\"key\": \"commerce:sparse\", \"tag\": \"commercial_background\", \"distribution\": \"sparse\", \"label\": \"등록 상가가 적은 구간\", \"identity\": \"type_only\"}, \"to\": {\"key\": \"label:양재천\", \"tag\": \"river\", \"label\": \"양재천\", \"relation\": \"near\", \"identity\": \"source_label_only\"}}}, {\"id\": \"stamp:e14\", \"tag\": \"transition\", \"support_s\": [1965.0, 2025.0], \"who\": [\"who:guardian\", \"who:dog\"], \"where\": {\"key\": \"label:독골근린공원\", \"tag\": \"park\", \"label\": \"독골근린공원\", \"relation\": \"near\", \"identity\": \"source_label_only\"}, \"spatial_change\": {\"type\": \"background_change\", \"from\": {\"key\": \"label:양재천\", \"tag\": \"river\", \"label\": \"양재천\", \"relation\": \"near\", \"identity\": \"source_label_only\"}, \"to\": {\"key\": \"label:독골근린공원\", \"tag\": \"park\", \"label\": \"독골근린공원\", \"relation\": \"near\", \"identity\": \"source_label_only\"}}, \"recent_space_observations\": [{\"where\": {\"key\": \"label:양재천\", \"tag\": \"river\", \"label\": \"양재천\", \"relation\": \"near\", \"identity\": \"source_label_only\"}, \"seconds_ago\": 120.0}]}, {\"id\": \"stamp:e15\", \"tag\": \"transition\", \"support_s\": [2085.0, 2145.0], \"who\": [\"who:guardian\", \"who:dog\"], \"where\": {\"key\": \"commerce:sparse\", \"tag\": \"commercial_background\", \"distribution\": \"sparse\", \"label\": \"등록 상가가 적은 구간\", \"identity\": \"type_only\"}, \"spatial_change\": {\"type\": \"background_change\", \"from\": {\"key\": \"label:독골근린공원\", \"tag\": \"park\", \"label\": \"독골근린공원\", \"relation\": \"near\", \"identity\": \"source_label_only\"}, \"to\": {\"key\": \"commerce:sparse\", \"tag\": \"commercial_background\", \"distribution\": \"sparse\", \"label\": \"등록 상가가 적은 구간\", \"identity\": \"type_only\"}}, \"recent_space_observations\": [{\"where\": {\"key\": \"label:독골근린공원\", \"tag\": \"park\", \"label\": \"독골근린공원\", \"relation\": \"near\", \"identity\": \"source_label_only\"}, \"seconds_ago\": 120.0}]}], \"source_limits\": {\"space\": \"archived representative backgrounds; no entry proof\", \"coordinates\": null, \"weather\": null, \"view\": null}}"
+        }
+      ]
+    }
+  ],
+  "generationConfig": {
+    "temperature": 0.2,
+    "maxOutputTokens": 4096,
+    "responseMimeType": "application/json",
+    "responseJsonSchema": {
+      "$defs": {
+        "StampCard": {
+          "additionalProperties": false,
+          "properties": {
+            "stamp_id": {
+              "enum": [
+                "stamp:e03",
+                "stamp:e04",
+                "stamp:e06",
+                "stamp:e07",
+                "stamp:e13",
+                "stamp:e14",
+                "stamp:e15"
+              ],
+              "title": "Stamp Id",
+              "type": "string"
+            },
+            "title": {
+              "maxLength": 80,
+              "minLength": 1,
+              "title": "Title",
+              "type": "string"
+            },
+            "text": {
+              "maxLength": 350,
+              "minLength": 1,
+              "title": "Text",
+              "type": "string"
+            }
+          },
+          "required": [
+            "stamp_id",
+            "title",
+            "text"
+          ],
+          "title": "StampCard",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "maxLength": 100,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "cards": {
+          "items": {
+            "$ref": "#/$defs/StampCard"
+          },
+          "maxItems": 7,
+          "minItems": 7,
+          "title": "Cards",
+          "type": "array"
+        }
+      },
+      "required": [
+        "title",
+        "cards"
+      ],
+      "title": "StampWriting",
+      "type": "object"
+    }
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "note": "Not accepted outputs, not model retries, no checkpoint created. Only first remaining validation failure is reported.",
+  "rows": [
+    {
+      "id": "movement-individual",
+      "request_sha256": "787edca2d15c90c63c6e9d3e6b97ef1b0199f0d8a0520d8cf2a009fda731edb3",
+      "response_sha256": "10bbb34b2973cd8005a2320c8692670f453544fff7cbada5fa50e85ea43e49de",
+      "intervention": "In-memory diagnostic only: remove grouped fields, preserve choices and all other output.",
+      "diagnostic": "structural_pass_after_hypothetical_edit"
+    },
+    {
+      "id": "movement-grouped",
+      "request_sha256": "b85b7796ff3d23390503d620b6d51b937f0b39897dc26e8eef9e79e1b70ba104",
+      "response_sha256": "3de23fdb1810d775edaadd3d44cd15cc76f1a3ab9133017ddde4a87ab92695c1",
+      "intervention": "In-memory diagnostic only: restore representative event times, preserve all other output.",
+      "diagnostic": "context decisions disagree with composition membership"
+    },
+    {
+      "id": "actions-grouped",
+      "request_sha256": "80fe26d8af38f60d5ef4b0c06a7058a03210674dc5cc135f7c531da03c9be86b",
+      "response_sha256": "c026c75a353bbccbf05b9b680c212561d2885a18ad086d50979db4dcff206d77",
+      "intervention": "In-memory diagnostic only: restore representative event times, preserve all other output.",
+      "diagnostic": "structural_pass_after_hypothetical_edit"
+    },
+    {
+      "id": "actions-individual",
+      "request_sha256": "0081ebf3a8537e350f1b6d2508d5e0a9d8a0daf1aefe856609c8422f726b1a6b",
+      "response_sha256": "95ab9cfe5c168c106aa5aadf2f8df37670e8b0bb7510e3c3d4e89be8d10d46a2",
+      "intervention": "In-memory diagnostic only: remove grouped fields, preserve choices and all other output.",
+      "diagnostic": "budget omission while scene capacity remains"
+    },
+    {
+      "id": "gap-individual",
+      "request_sha256": "457124fe0e0ffb33e41e8a73f9ddf2d6b01a8a5e9013c7e215b8a7e7a0c83e67",
+      "response_sha256": "be7c4dadf0d05c879047ddca4dae0456b318ddd5463a0f9c19def852c6115962",
+      "intervention": "In-memory diagnostic only: remove grouped fields, preserve choices and all other output.",
+      "diagnostic": "individual mode cannot use context-only decisions"
+    },
+    {
+      "id": "gap-grouped",
+      "request_sha256": "1f6d0ca2884daa97a25caf7968d4f37401bc33bc0f5516dd180c1f49b1c88a1f",
+      "response_sha256": "8232b49d19738d8ed35afbf327e77c7ba37d8f2e948f696aac3370e2f23b752c",
+      "intervention": "In-memory diagnostic only: restore representative event times, preserve all other output.",
+      "diagnostic": "omitted connection needs connection reason"
+    }
+  ]
+}

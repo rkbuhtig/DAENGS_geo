@@ -1,0 +1,649 @@
+{
+  "id": "actions",
+  "variant": "complete",
+  "model": "gemini-3.1-flash-lite",
+  "model_version": "gemini-3.1-flash-lite",
+  "input": {
+    "format": "scene-purpose-v3",
+    "synthetic_walk": true,
+    "actors": [
+      {
+        "id": "who:guardian",
+        "kind": "who",
+        "text": "보호자",
+        "source": "가상 산책 참가자 설정",
+        "subject_ids": [
+          "who:guardian"
+        ]
+      },
+      {
+        "id": "who:dog",
+        "kind": "who",
+        "text": "반려견 두부",
+        "source": "가상 산책 참가자 설정",
+        "subject_ids": [
+          "who:dog"
+        ]
+      }
+    ],
+    "session": {
+      "start_s": 0,
+      "end_s": 2328.561869,
+      "status": "completed_record",
+      "note": "시작과 종료는 세션 틀이며 별도 카드로 채우지 않음"
+    },
+    "gaps": [],
+    "limits": {
+      "max_scene_seconds": null,
+      "merging": false,
+      "scene_count_min": 0,
+      "scene_count_max": 7
+    },
+    "events": [
+      {
+        "id": "e00",
+        "role": "connection",
+        "card_eligible": false,
+        "start_s": 0.0,
+        "end_s": 0.0,
+        "chain": 0,
+        "why_keep": "뚜렷한 사용자 행동이나 채택 기준에 맞는 공간 변화가 없어 지도 동선으로 연결"
+      },
+      {
+        "id": "e01",
+        "role": "connection",
+        "card_eligible": false,
+        "start_s": 60.0,
+        "end_s": 180.0,
+        "chain": 0,
+        "why_keep": "뚜렷한 사용자 행동이나 채택 기준에 맞는 공간 변화가 없어 지도 동선으로 연결"
+      },
+      {
+        "id": "e02",
+        "role": "connection",
+        "card_eligible": false,
+        "start_s": 240.0,
+        "end_s": 420.0,
+        "chain": 0,
+        "why_keep": "뚜렷한 사용자 행동이나 채택 기준에 맞는 공간 변화가 없어 지도 동선으로 연결"
+      },
+      {
+        "id": "e03",
+        "role": "transition",
+        "card_eligible": true,
+        "required": false,
+        "start_s": 480.0,
+        "end_s": 540.0,
+        "chain": 0,
+        "why_keep": "공간 배경 또는 장소와의 관계가 달라짐: 등록 상가가 산재한 구간에서 등록 상가가 모인 구간으로 주변 특징이 바뀜",
+        "primary_evidence_id": "e03:where2",
+        "who_ids": [
+          "who:guardian",
+          "who:dog"
+        ],
+        "what_ids": [
+          "e03:what0"
+        ],
+        "where_ids": [
+          "e03:where2",
+          "e03:where0"
+        ],
+        "evidence": [
+          {
+            "id": "e03:what0",
+            "kind": "what",
+            "text": "보호자와 두부의 이동 기록",
+            "subject_ids": [
+              "who:guardian",
+              "who:dog"
+            ]
+          },
+          {
+            "id": "e03:where0",
+            "kind": "where",
+            "text": "등록 상가가 모인 구간"
+          },
+          {
+            "id": "e03:where2",
+            "kind": "where",
+            "text": "등록 상가가 산재한 구간에서 등록 상가가 모인 구간으로 주변 특징이 바뀜"
+          }
+        ]
+      },
+      {
+        "id": "e04",
+        "role": "action",
+        "card_eligible": true,
+        "required": true,
+        "start_s": 600.0,
+        "end_s": 600.0,
+        "chain": 0,
+        "why_keep": "사용자가 직접 남긴 행동이 있어 이 시점 자체를 남길 이유가 있음",
+        "primary_evidence_id": "e04:what0",
+        "who_ids": [
+          "who:guardian",
+          "who:dog"
+        ],
+        "what_ids": [
+          "e04:what0"
+        ],
+        "where_ids": [
+          "e04:where0"
+        ],
+        "evidence": [
+          {
+            "id": "e04:what0",
+            "kind": "what",
+            "text": "두부가 여기서 냄새를 맡았다",
+            "subject_ids": [
+              "who:dog"
+            ]
+          },
+          {
+            "id": "e04:where0",
+            "kind": "where",
+            "text": "등록 상가가 모인 구간"
+          }
+        ]
+      },
+      {
+        "id": "e05",
+        "role": "connection",
+        "card_eligible": false,
+        "start_s": 660.0,
+        "end_s": 720.0,
+        "chain": 0,
+        "why_keep": "뚜렷한 사용자 행동이나 채택 기준에 맞는 공간 변화가 없어 지도 동선으로 연결"
+      },
+      {
+        "id": "e06",
+        "role": "transition",
+        "card_eligible": true,
+        "required": false,
+        "start_s": 780.0,
+        "end_s": 840.0,
+        "chain": 0,
+        "why_keep": "공간 배경 또는 장소와의 관계가 달라짐: 등록 상가가 모인 구간에서 늘벗근린공원 가까운 구간으로 주변 특징이 바뀜",
+        "primary_evidence_id": "e06:where2",
+        "who_ids": [
+          "who:guardian",
+          "who:dog"
+        ],
+        "what_ids": [
+          "e06:what0"
+        ],
+        "where_ids": [
+          "e06:where2",
+          "e06:where0"
+        ],
+        "evidence": [
+          {
+            "id": "e06:what0",
+            "kind": "what",
+            "text": "보호자와 두부의 이동 기록",
+            "subject_ids": [
+              "who:guardian",
+              "who:dog"
+            ]
+          },
+          {
+            "id": "e06:where0",
+            "kind": "where",
+            "text": "늘벗근린공원 가까운 구간"
+          },
+          {
+            "id": "e06:where2",
+            "kind": "where",
+            "text": "등록 상가가 모인 구간에서 늘벗근린공원 가까운 구간으로 주변 특징이 바뀜"
+          }
+        ]
+      },
+      {
+        "id": "e07",
+        "role": "action",
+        "card_eligible": true,
+        "required": true,
+        "start_s": 900.0,
+        "end_s": 900.0,
+        "chain": 0,
+        "why_keep": "사용자가 직접 남긴 행동이 있어 이 시점 자체를 남길 이유가 있음",
+        "primary_evidence_id": "e07:what0",
+        "who_ids": [
+          "who:guardian",
+          "who:dog"
+        ],
+        "what_ids": [
+          "e07:what0"
+        ],
+        "where_ids": [
+          "e07:where0"
+        ],
+        "evidence": [
+          {
+            "id": "e07:what0",
+            "kind": "what",
+            "text": "여기서 두부와 함께 사진을 찍었다",
+            "subject_ids": [
+              "who:guardian",
+              "who:dog"
+            ]
+          },
+          {
+            "id": "e07:where0",
+            "kind": "where",
+            "text": "늘벗근린공원 가까운 구간"
+          }
+        ]
+      },
+      {
+        "id": "e08",
+        "role": "connection",
+        "card_eligible": false,
+        "start_s": 960.0,
+        "end_s": 960.0,
+        "chain": 0,
+        "why_keep": "뚜렷한 사용자 행동이나 채택 기준에 맞는 공간 변화가 없어 지도 동선으로 연결"
+      },
+      {
+        "id": "e09",
+        "role": "transition",
+        "card_eligible": true,
+        "required": false,
+        "start_s": 1020.0,
+        "end_s": 1200.0,
+        "chain": 0,
+        "why_keep": "공간 배경 또는 장소와의 관계가 달라짐: 늘벗근린공원 가까운 구간에서 양재천 가까운 구간으로 주변 특징이 바뀜",
+        "primary_evidence_id": "e09:where3",
+        "who_ids": [
+          "who:guardian",
+          "who:dog"
+        ],
+        "what_ids": [
+          "e09:what0"
+        ],
+        "where_ids": [
+          "e09:where3",
+          "e09:where0"
+        ],
+        "evidence": [
+          {
+            "id": "e09:what0",
+            "kind": "what",
+            "text": "보호자와 두부의 이동 기록",
+            "subject_ids": [
+              "who:guardian",
+              "who:dog"
+            ]
+          },
+          {
+            "id": "e09:where0",
+            "kind": "where",
+            "text": "양재천 가까운 구간"
+          },
+          {
+            "id": "e09:where3",
+            "kind": "where",
+            "text": "늘벗근린공원 가까운 구간에서 양재천 가까운 구간으로 주변 특징이 바뀜"
+          }
+        ]
+      },
+      {
+        "id": "e10",
+        "role": "transition",
+        "card_eligible": true,
+        "required": false,
+        "start_s": 1260.0,
+        "end_s": 1440.0,
+        "chain": 0,
+        "why_keep": "공간 배경 또는 장소와의 관계가 달라짐: 양재천 가까운 구간에서 등록 상가가 모인 구간으로 주변 특징이 바뀜",
+        "primary_evidence_id": "e10:where3",
+        "who_ids": [
+          "who:guardian",
+          "who:dog"
+        ],
+        "what_ids": [
+          "e10:what0"
+        ],
+        "where_ids": [
+          "e10:where3",
+          "e10:where0"
+        ],
+        "evidence": [
+          {
+            "id": "e10:what0",
+            "kind": "what",
+            "text": "보호자와 두부의 이동 기록",
+            "subject_ids": [
+              "who:guardian",
+              "who:dog"
+            ]
+          },
+          {
+            "id": "e10:where0",
+            "kind": "where",
+            "text": "등록 상가가 모인 구간"
+          },
+          {
+            "id": "e10:where3",
+            "kind": "where",
+            "text": "양재천 가까운 구간에서 등록 상가가 모인 구간으로 주변 특징이 바뀜"
+          }
+        ]
+      },
+      {
+        "id": "e11",
+        "role": "transition",
+        "card_eligible": true,
+        "required": false,
+        "start_s": 1500.0,
+        "end_s": 1620.0,
+        "chain": 0,
+        "why_keep": "공간 배경 또는 장소와의 관계가 달라짐: 등록 상가가 모인 구간에서 등록 상가가 적은 구간으로 주변 특징이 바뀜",
+        "primary_evidence_id": "e11:where2",
+        "who_ids": [
+          "who:guardian",
+          "who:dog"
+        ],
+        "what_ids": [
+          "e11:what0"
+        ],
+        "where_ids": [
+          "e11:where2",
+          "e11:where0"
+        ],
+        "evidence": [
+          {
+            "id": "e11:what0",
+            "kind": "what",
+            "text": "보호자와 두부의 이동 기록",
+            "subject_ids": [
+              "who:guardian",
+              "who:dog"
+            ]
+          },
+          {
+            "id": "e11:where0",
+            "kind": "where",
+            "text": "등록 상가가 적은 구간"
+          },
+          {
+            "id": "e11:where2",
+            "kind": "where",
+            "text": "등록 상가가 모인 구간에서 등록 상가가 적은 구간으로 주변 특징이 바뀜"
+          }
+        ]
+      },
+      {
+        "id": "e12",
+        "role": "transition",
+        "card_eligible": true,
+        "required": false,
+        "start_s": 1680.0,
+        "end_s": 1980.0,
+        "chain": 0,
+        "why_keep": "공간 배경 또는 장소와의 관계가 달라짐: 양재천까지 거리가 줄었다가 다시 늘어남",
+        "primary_evidence_id": "e12:where3",
+        "who_ids": [
+          "who:guardian",
+          "who:dog"
+        ],
+        "what_ids": [
+          "e12:what0"
+        ],
+        "where_ids": [
+          "e12:where3",
+          "e12:where0"
+        ],
+        "evidence": [
+          {
+            "id": "e12:what0",
+            "kind": "what",
+            "text": "보호자와 두부의 이동 기록",
+            "subject_ids": [
+              "who:guardian",
+              "who:dog"
+            ]
+          },
+          {
+            "id": "e12:where0",
+            "kind": "where",
+            "text": "양재천 가까운 구간"
+          },
+          {
+            "id": "e12:where3",
+            "kind": "where",
+            "text": "양재천까지 거리가 줄었다가 다시 늘어남"
+          }
+        ]
+      },
+      {
+        "id": "e13",
+        "role": "transition",
+        "card_eligible": true,
+        "required": false,
+        "start_s": 2040.0,
+        "end_s": 2160.0,
+        "chain": 0,
+        "why_keep": "공간 배경 또는 장소와의 관계가 달라짐: 양재천 가까운 구간에서 등록 상가가 적은 구간으로 주변 특징이 바뀜",
+        "primary_evidence_id": "e13:where3",
+        "who_ids": [
+          "who:guardian",
+          "who:dog"
+        ],
+        "what_ids": [
+          "e13:what0"
+        ],
+        "where_ids": [
+          "e13:where3",
+          "e13:where0"
+        ],
+        "evidence": [
+          {
+            "id": "e13:what0",
+            "kind": "what",
+            "text": "보호자와 두부의 이동 기록",
+            "subject_ids": [
+              "who:guardian",
+              "who:dog"
+            ]
+          },
+          {
+            "id": "e13:where0",
+            "kind": "where",
+            "text": "등록 상가가 적은 구간"
+          },
+          {
+            "id": "e13:where3",
+            "kind": "where",
+            "text": "양재천 가까운 구간에서 등록 상가가 적은 구간으로 주변 특징이 바뀜"
+          }
+        ]
+      },
+      {
+        "id": "e14",
+        "role": "connection",
+        "card_eligible": false,
+        "start_s": 2220.0,
+        "end_s": 2328.561869,
+        "chain": 0,
+        "why_keep": "뚜렷한 사용자 행동이나 채택 기준에 맞는 공간 변화가 없어 지도 동선으로 연결"
+      }
+    ]
+  },
+  "input_sha256": "94d785116881e7816e4895a6bce9c6f37f445792eee9da4ad927961e062bb1f6",
+  "prompt_sha256": "78215381614ffd9c091eae7cf0a163ccd33a21ca8b663f25fd9f8590ccf0f1ae",
+  "output": {
+    "title": "두부와 함께한 산책",
+    "summary": "보호자와 반려견 두부가 상가와 공원, 하천 주변을 이동하며 산책한 기록입니다.",
+    "limitations": [
+      "GPS 데이터 기반으로 공간 변화를 추론하였으며, 실제 현장의 세부적인 분위기나 감정은 포함되지 않았습니다."
+    ],
+    "scenes": [
+      {
+        "event_id": "e03",
+        "title": "상가 밀집 지역으로 이동",
+        "body": "보호자와 두부가 이동하며 등록 상가가 산재한 구간에서 상가가 모인 구간으로 주변 환경이 바뀌었습니다.",
+        "reason": "공간 배경의 변화가 뚜렷하여 산책 경로의 특징을 보여주기 위해 선정했습니다.",
+        "who_ids": [
+          "who:guardian",
+          "who:dog"
+        ],
+        "what_ids": [
+          "e03:what0"
+        ],
+        "where_ids": [
+          "e03:where2",
+          "e03:where0"
+        ]
+      },
+      {
+        "event_id": "e04",
+        "title": "두부의 냄새 맡기",
+        "body": "상가가 모인 구간에서 두부가 냄새를 맡으며 산책을 이어갔습니다.",
+        "reason": "반려견의 주요 행동인 냄새 맡기가 포함된 필수 사건입니다.",
+        "who_ids": [
+          "who:dog"
+        ],
+        "what_ids": [
+          "e04:what0"
+        ],
+        "where_ids": [
+          "e04:where0"
+        ]
+      },
+      {
+        "event_id": "e06",
+        "title": "공원 인근으로의 이동",
+        "body": "상가가 모인 구간을 지나 늘벗근린공원과 가까운 구간으로 이동했습니다.",
+        "reason": "주변 환경이 상가 지역에서 공원 인근으로 변화하는 지점입니다.",
+        "who_ids": [
+          "who:guardian",
+          "who:dog"
+        ],
+        "what_ids": [
+          "e06:what0"
+        ],
+        "where_ids": [
+          "e06:where2",
+          "e06:where0"
+        ]
+      },
+      {
+        "event_id": "e07",
+        "title": "기념 사진 촬영",
+        "body": "늘벗근린공원 근처에서 보호자와 두부가 함께 사진을 찍었습니다.",
+        "reason": "사용자가 직접 남긴 행동 기록으로 산책 중 중요한 장면입니다.",
+        "who_ids": [
+          "who:guardian",
+          "who:dog"
+        ],
+        "what_ids": [
+          "e07:what0"
+        ],
+        "where_ids": [
+          "e07:where0"
+        ]
+      },
+      {
+        "event_id": "e09",
+        "title": "하천 인근으로의 이동",
+        "body": "늘벗근린공원 주변에서 양재천과 가까운 구간으로 이동하며 주변 환경이 바뀌었습니다.",
+        "reason": "공원 인근에서 하천 인근으로의 공간적 변화를 보여줍니다.",
+        "who_ids": [
+          "who:guardian",
+          "who:dog"
+        ],
+        "what_ids": [
+          "e09:what0"
+        ],
+        "where_ids": [
+          "e09:where3",
+          "e09:where0"
+        ]
+      }
+    ],
+    "skipped": [
+      {
+        "event_id": "e00",
+        "reason": "연결 구간으로 카드 생성 대상이 아님"
+      },
+      {
+        "event_id": "e01",
+        "reason": "연결 구간으로 카드 생성 대상이 아님"
+      },
+      {
+        "event_id": "e02",
+        "reason": "연결 구간으로 카드 생성 대상이 아님"
+      },
+      {
+        "event_id": "e05",
+        "reason": "연결 구간으로 카드 생성 대상이 아님"
+      },
+      {
+        "event_id": "e08",
+        "reason": "연결 구간으로 카드 생성 대상이 아님"
+      },
+      {
+        "event_id": "e10",
+        "reason": "장면 수 제한으로 인한 생략"
+      },
+      {
+        "event_id": "e11",
+        "reason": "장면 수 제한으로 인한 생략"
+      },
+      {
+        "event_id": "e12",
+        "reason": "장면 수 제한으로 인한 생략"
+      },
+      {
+        "event_id": "e13",
+        "reason": "장면 수 제한으로 인한 생략"
+      },
+      {
+        "event_id": "e14",
+        "reason": "연결 구간으로 카드 생성 대상이 아님"
+      }
+    ]
+  },
+  "seconds": 6.344,
+  "usage": {
+    "promptTokenCount": 3868,
+    "candidatesTokenCount": 1231,
+    "totalTokenCount": 5099,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 3868
+      }
+    ],
+    "serviceTier": "standard"
+  },
+  "validation": {
+    "structural_pass": true,
+    "errors": [],
+    "semantic_status": "requires_editorial_review"
+  },
+  "output_sha256": "b5e3e6dd2d9ecbd66ddd12985e54188302e3afaaf760332b2cbeb6665e210d46",
+  "editorial_review": {
+    "output_sha256": "b5e3e6dd2d9ecbd66ddd12985e54188302e3afaaf760332b2cbeb6665e210d46",
+    "summary": "행동 2개와 공간 전환 3개를 선택했다. 공원·하천으로 배경이 바뀌는 흐름은 살아났지만 후반 후보들을 납득하기 어려운 이유로 생략했다.",
+    "issues": [
+      {
+        "scene": 0,
+        "quote": "장면 수 제한으로 인한 생략",
+        "note": "허용 상한은 7개인데 5개만 생성했다. 후반 전환 4개를 모두 이 이유로 뺀 설명은 맞지 않는다. 생략 이유도 검토할 출력이다."
+      },
+      {
+        "scene": 4,
+        "quote": "기념 사진 촬영",
+        "note": "사진 촬영은 있지만 기념 목적은 입력에 없다. 본문은 함께 사진을 찍었다는 기록을 유지했다."
+      },
+      {
+        "scene": 5,
+        "quote": "하천 인근으로의 이동",
+        "note": "마지막 선택 장면의 범위가 17~20분이다. 이후 18분 49초를 끝맺음 카드로 채울 필요는 없지만, 실제 전환 후보를 전부 생략할 만한 이유는 제시하지 못했다."
+      }
+    ]
+  },
+  "review_author": "Codex; separate from Gemini output and not a user evaluation"
+}

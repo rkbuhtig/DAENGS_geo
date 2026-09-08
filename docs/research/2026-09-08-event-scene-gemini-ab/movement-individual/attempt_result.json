@@ -1,0 +1,4 @@
+{
+  "status": "rejected_or_failed",
+  "error": "individual mode cannot contain grouped composition"
+}

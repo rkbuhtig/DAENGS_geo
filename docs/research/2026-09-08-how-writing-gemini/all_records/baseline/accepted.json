@@ -1,0 +1,94 @@
+{
+  "revision": "70746644c999e940da7ab6099f6d35b1e7a238cad76c56dbfce9c96a3933fb81",
+  "title": "산책 중 사진 촬영과 기록",
+  "semantic_status": "not_evaluated",
+  "cards": [
+    {
+      "stamp_ref": {
+        "id": "stamp:walk_photo:synthetic-record-1",
+        "version": "ac268f52fe4e221e6fa3c17e1b6fda864bb8300e475280c1f91592cd06934f20"
+      },
+      "title": "산책 중 사진 촬영",
+      "text": "산책 경로를 따라 이동하며 사진을 촬영했습니다.",
+      "anchor": {
+        "record_ref": {
+          "store": "walk_photo",
+          "id": "synthetic-record-1",
+          "version": "1",
+          "version_kind": "revision"
+        },
+        "session_id": "stamp-comparison",
+        "event_at": "2026-09-08T06:01:30+00:00",
+        "time_basis": "photo_capture",
+        "location": {
+          "point": {
+            "lat": 37.000818017738126,
+            "lng": 130.00000042825502
+          },
+          "captured_at": "2026-09-08T06:01:30Z",
+          "accuracy_m": 5.0,
+          "basis": "device_fix",
+          "observation_ref": "walk-fix:stamp-comparison:18"
+        }
+      }
+    },
+    {
+      "stamp_ref": {
+        "id": "stamp:walk_entry:synthetic-record-2",
+        "version": "928fa9c37f0962c65cfc52c3648f95ba321bbe97852fdaca691f9a807b41a5ed"
+      },
+      "title": "주변 관찰 기록",
+      "text": "사진 촬영 후 이동 중에 잠시 멈춰 주변을 둘러보았습니다.",
+      "anchor": {
+        "record_ref": {
+          "store": "walk_entry",
+          "id": "synthetic-record-2",
+          "version": "1",
+          "version_kind": "revision"
+        },
+        "session_id": "stamp-comparison",
+        "event_at": "2026-09-08T06:03:30+00:00",
+        "time_basis": "recorded_at",
+        "location": {
+          "point": {
+            "lat": 37.0008106745151,
+            "lng": 130.0010226799757
+          },
+          "captured_at": "2026-09-08T06:03:30Z",
+          "accuracy_m": 5.0,
+          "basis": "device_fix",
+          "observation_ref": "walk-fix:stamp-comparison:42"
+        }
+      }
+    },
+    {
+      "stamp_ref": {
+        "id": "stamp:walk_entry:synthetic-record-3",
+        "version": "f10a42dab6b45cc903e6b92a32bc5fc2fbf9ce761024dc3aa5519a81159118b7"
+      },
+      "title": "사진 확인 기록",
+      "text": "산책 경로를 따라 이동하다가 촬영한 사진을 확인했습니다.",
+      "anchor": {
+        "record_ref": {
+          "store": "walk_entry",
+          "id": "synthetic-record-3",
+          "version": "1",
+          "version_kind": "revision"
+        },
+        "session_id": "stamp-comparison",
+        "event_at": "2026-09-08T06:05:35+00:00",
+        "time_basis": "recorded_at",
+        "location": {
+          "point": {
+            "lat": 37.00080088811047,
+            "lng": 130.00198055935206
+          },
+          "captured_at": "2026-09-08T06:05:35Z",
+          "accuracy_m": 5.0,
+          "basis": "device_fix",
+          "observation_ref": "walk-fix:stamp-comparison:67"
+        }
+      }
+    }
+  ]
+}

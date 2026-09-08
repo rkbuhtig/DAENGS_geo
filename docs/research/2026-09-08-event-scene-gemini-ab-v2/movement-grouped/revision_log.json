@@ -1,0 +1,37 @@
+[
+  {
+    "revision": 0,
+    "stage": "compose",
+    "reason": "전체 자료에서 잠정 이해와 장면 개요 작성",
+    "evidence_ids": [
+      "e03:what0",
+      "e03:where0",
+      "e03:where2",
+      "e04:what0",
+      "e04:where0",
+      "e04:where3",
+      "e05:what0",
+      "e05:where0",
+      "e05:where3",
+      "e06:what0",
+      "e06:where0",
+      "e06:where3",
+      "e07:what0",
+      "e07:where0",
+      "e07:where2",
+      "e08:what0",
+      "e08:where0",
+      "e08:where3",
+      "e09:what0",
+      "e09:where0",
+      "e09:where3",
+      "who:dog",
+      "who:guardian"
+    ],
+    "affected_scene_ids": [
+      "scene_01",
+      "scene_02",
+      "scene_03"
+    ]
+  }
+]

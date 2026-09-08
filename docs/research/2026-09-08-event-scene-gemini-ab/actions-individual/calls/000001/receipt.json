@@ -1,0 +1,25 @@
+{
+  "stage": "select",
+  "requested_model": "gemini-3.1-flash-lite",
+  "request_sha256": "0081ebf3a8537e350f1b6d2508d5e0a9d8a0daf1aefe856609c8422f726b1a6b",
+  "transport": "gemini",
+  "http_status": 200,
+  "model": "gemini-3.1-flash-lite",
+  "usage": {
+    "promptTokenCount": 12393,
+    "candidatesTokenCount": 2367,
+    "totalTokenCount": 14760,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 12393
+      }
+    ],
+    "serviceTier": "standard"
+  },
+  "finish_reason": "STOP",
+  "status": "parsed",
+  "latency_s": 7.185,
+  "validation": "rejected",
+  "validation_error": "individual mode cannot contain grouped composition"
+}

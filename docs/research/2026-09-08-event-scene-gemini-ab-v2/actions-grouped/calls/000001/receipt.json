@@ -1,0 +1,25 @@
+{
+  "stage": "compose",
+  "requested_model": "gemini-3.1-flash-lite",
+  "request_sha256": "43305f3ccb6ad8008aa5456fe2da504421872c7ed0421726752172a25e8ef28c",
+  "transport": "gemini",
+  "http_status": 200,
+  "model": "gemini-3.1-flash-lite",
+  "usage": {
+    "promptTokenCount": 12394,
+    "candidatesTokenCount": 1162,
+    "totalTokenCount": 13556,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 12394
+      }
+    ],
+    "serviceTier": "standard"
+  },
+  "finish_reason": "STOP",
+  "status": "parsed",
+  "latency_s": 5.956,
+  "validation": "rejected",
+  "validation_error": "omissions must cover exactly unused eligible events"
+}

@@ -1,0 +1,268 @@
+[
+  {
+    "scene_id": "scene_01",
+    "representative_start_at": "2026-09-07T09:08:00+09:00",
+    "representative_end_at": "2026-09-07T09:12:00+09:00",
+    "included_extent": {
+      "start_at": "2026-09-07T09:08:00+09:00",
+      "end_at": "2026-09-07T09:12:00+09:00",
+      "meaning": "editorial envelope only; not action duration or continuous observation"
+    },
+    "source_events": [
+      {
+        "id": "e03",
+        "role": "transition",
+        "time_kind": "interval",
+        "start_at": "2026-09-07T09:08:00+09:00",
+        "end_at": "2026-09-07T09:12:00+09:00",
+        "chain": 0,
+        "card_eligible": true,
+        "required": false,
+        "why_keep": "공간 배경 또는 장소와의 관계가 달라짐: 등록 상가가 산재한 구간에서 등록 상가가 모인 구간으로 주변 특징이 바뀜",
+        "evidence_ids": [
+          "e03:what0",
+          "e03:where0",
+          "e03:where2"
+        ],
+        "subject_ids": [
+          "who:guardian",
+          "who:dog"
+        ],
+        "primary_evidence_id": "e03:where2",
+        "source_event_id": "e03",
+        "source_input_sha256": "f2ca42c655fb09a61beb45eb61075baba1291681d19c626264b70f39320f6cd0",
+        "location_status": "unresolved",
+        "candidate_id": "e03",
+        "membership": "included"
+      }
+    ]
+  },
+  {
+    "scene_id": "scene_02",
+    "representative_start_at": "2026-09-07T09:13:00+09:00",
+    "representative_end_at": "2026-09-07T09:16:00+09:00",
+    "included_extent": {
+      "start_at": "2026-09-07T09:13:00+09:00",
+      "end_at": "2026-09-07T09:16:00+09:00",
+      "meaning": "editorial envelope only; not action duration or continuous observation"
+    },
+    "source_events": [
+      {
+        "id": "e04",
+        "role": "transition",
+        "time_kind": "interval",
+        "start_at": "2026-09-07T09:13:00+09:00",
+        "end_at": "2026-09-07T09:16:00+09:00",
+        "chain": 0,
+        "card_eligible": true,
+        "required": false,
+        "why_keep": "공간 배경 또는 장소와의 관계가 달라짐: 등록 상가가 모인 구간에서 늘벗근린공원 가까운 구간으로 주변 특징이 바뀜",
+        "evidence_ids": [
+          "e04:what0",
+          "e04:where0",
+          "e04:where3"
+        ],
+        "subject_ids": [
+          "who:guardian",
+          "who:dog"
+        ],
+        "primary_evidence_id": "e04:where3",
+        "source_event_id": "e04",
+        "source_input_sha256": "f2ca42c655fb09a61beb45eb61075baba1291681d19c626264b70f39320f6cd0",
+        "location_status": "unresolved",
+        "candidate_id": "e04",
+        "membership": "included"
+      }
+    ]
+  },
+  {
+    "scene_id": "scene_03",
+    "representative_start_at": "2026-09-07T09:17:00+09:00",
+    "representative_end_at": "2026-09-07T09:20:00+09:00",
+    "included_extent": {
+      "start_at": "2026-09-07T09:17:00+09:00",
+      "end_at": "2026-09-07T09:20:00+09:00",
+      "meaning": "editorial envelope only; not action duration or continuous observation"
+    },
+    "source_events": [
+      {
+        "id": "e05",
+        "role": "transition",
+        "time_kind": "interval",
+        "start_at": "2026-09-07T09:17:00+09:00",
+        "end_at": "2026-09-07T09:20:00+09:00",
+        "chain": 0,
+        "card_eligible": true,
+        "required": false,
+        "why_keep": "공간 배경 또는 장소와의 관계가 달라짐: 늘벗근린공원 가까운 구간에서 양재천 가까운 구간으로 주변 특징이 바뀜",
+        "evidence_ids": [
+          "e05:what0",
+          "e05:where0",
+          "e05:where3"
+        ],
+        "subject_ids": [
+          "who:guardian",
+          "who:dog"
+        ],
+        "primary_evidence_id": "e05:where3",
+        "source_event_id": "e05",
+        "source_input_sha256": "f2ca42c655fb09a61beb45eb61075baba1291681d19c626264b70f39320f6cd0",
+        "location_status": "unresolved",
+        "candidate_id": "e05",
+        "membership": "included"
+      }
+    ]
+  },
+  {
+    "scene_id": "scene_04",
+    "representative_start_at": "2026-09-07T09:21:00+09:00",
+    "representative_end_at": "2026-09-07T09:24:00+09:00",
+    "included_extent": {
+      "start_at": "2026-09-07T09:21:00+09:00",
+      "end_at": "2026-09-07T09:24:00+09:00",
+      "meaning": "editorial envelope only; not action duration or continuous observation"
+    },
+    "source_events": [
+      {
+        "id": "e06",
+        "role": "transition",
+        "time_kind": "interval",
+        "start_at": "2026-09-07T09:21:00+09:00",
+        "end_at": "2026-09-07T09:24:00+09:00",
+        "chain": 0,
+        "card_eligible": true,
+        "required": false,
+        "why_keep": "공간 배경 또는 장소와의 관계가 달라짐: 양재천 가까운 구간에서 등록 상가가 모인 구간으로 주변 특징이 바뀜",
+        "evidence_ids": [
+          "e06:what0",
+          "e06:where0",
+          "e06:where3"
+        ],
+        "subject_ids": [
+          "who:guardian",
+          "who:dog"
+        ],
+        "primary_evidence_id": "e06:where3",
+        "source_event_id": "e06",
+        "source_input_sha256": "f2ca42c655fb09a61beb45eb61075baba1291681d19c626264b70f39320f6cd0",
+        "location_status": "unresolved",
+        "candidate_id": "e06",
+        "membership": "included"
+      }
+    ]
+  },
+  {
+    "scene_id": "scene_05",
+    "representative_start_at": "2026-09-07T09:25:00+09:00",
+    "representative_end_at": "2026-09-07T09:27:00+09:00",
+    "included_extent": {
+      "start_at": "2026-09-07T09:25:00+09:00",
+      "end_at": "2026-09-07T09:27:00+09:00",
+      "meaning": "editorial envelope only; not action duration or continuous observation"
+    },
+    "source_events": [
+      {
+        "id": "e07",
+        "role": "transition",
+        "time_kind": "interval",
+        "start_at": "2026-09-07T09:25:00+09:00",
+        "end_at": "2026-09-07T09:27:00+09:00",
+        "chain": 0,
+        "card_eligible": true,
+        "required": false,
+        "why_keep": "공간 배경 또는 장소와의 관계가 달라짐: 등록 상가가 모인 구간에서 등록 상가가 적은 구간으로 주변 특징이 바뀜",
+        "evidence_ids": [
+          "e07:what0",
+          "e07:where0",
+          "e07:where2"
+        ],
+        "subject_ids": [
+          "who:guardian",
+          "who:dog"
+        ],
+        "primary_evidence_id": "e07:where2",
+        "source_event_id": "e07",
+        "source_input_sha256": "f2ca42c655fb09a61beb45eb61075baba1291681d19c626264b70f39320f6cd0",
+        "location_status": "unresolved",
+        "candidate_id": "e07",
+        "membership": "included"
+      }
+    ]
+  },
+  {
+    "scene_id": "scene_06",
+    "representative_start_at": "2026-09-07T09:28:00+09:00",
+    "representative_end_at": "2026-09-07T09:33:00+09:00",
+    "included_extent": {
+      "start_at": "2026-09-07T09:28:00+09:00",
+      "end_at": "2026-09-07T09:33:00+09:00",
+      "meaning": "editorial envelope only; not action duration or continuous observation"
+    },
+    "source_events": [
+      {
+        "id": "e08",
+        "role": "transition",
+        "time_kind": "interval",
+        "start_at": "2026-09-07T09:28:00+09:00",
+        "end_at": "2026-09-07T09:33:00+09:00",
+        "chain": 0,
+        "card_eligible": true,
+        "required": false,
+        "why_keep": "공간 배경 또는 장소와의 관계가 달라짐: 양재천까지 거리가 줄었다가 다시 늘어남",
+        "evidence_ids": [
+          "e08:what0",
+          "e08:where0",
+          "e08:where3"
+        ],
+        "subject_ids": [
+          "who:guardian",
+          "who:dog"
+        ],
+        "primary_evidence_id": "e08:where3",
+        "source_event_id": "e08",
+        "source_input_sha256": "f2ca42c655fb09a61beb45eb61075baba1291681d19c626264b70f39320f6cd0",
+        "location_status": "unresolved",
+        "candidate_id": "e08",
+        "membership": "included"
+      }
+    ]
+  },
+  {
+    "scene_id": "scene_07",
+    "representative_start_at": "2026-09-07T09:34:00+09:00",
+    "representative_end_at": "2026-09-07T09:36:00+09:00",
+    "included_extent": {
+      "start_at": "2026-09-07T09:34:00+09:00",
+      "end_at": "2026-09-07T09:36:00+09:00",
+      "meaning": "editorial envelope only; not action duration or continuous observation"
+    },
+    "source_events": [
+      {
+        "id": "e09",
+        "role": "transition",
+        "time_kind": "interval",
+        "start_at": "2026-09-07T09:34:00+09:00",
+        "end_at": "2026-09-07T09:36:00+09:00",
+        "chain": 0,
+        "card_eligible": true,
+        "required": false,
+        "why_keep": "공간 배경 또는 장소와의 관계가 달라짐: 양재천 가까운 구간에서 등록 상가가 적은 구간으로 주변 특징이 바뀜",
+        "evidence_ids": [
+          "e09:what0",
+          "e09:where0",
+          "e09:where3"
+        ],
+        "subject_ids": [
+          "who:guardian",
+          "who:dog"
+        ],
+        "primary_evidence_id": "e09:where3",
+        "source_event_id": "e09",
+        "source_input_sha256": "f2ca42c655fb09a61beb45eb61075baba1291681d19c626264b70f39320f6cd0",
+        "location_status": "unresolved",
+        "candidate_id": "e09",
+        "membership": "included"
+      }
+    ]
+  }
+]

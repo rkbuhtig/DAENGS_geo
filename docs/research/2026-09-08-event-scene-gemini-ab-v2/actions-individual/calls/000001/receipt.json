@@ -1,0 +1,25 @@
+{
+  "stage": "select",
+  "requested_model": "gemini-3.1-flash-lite",
+  "request_sha256": "71d73d13a8283487b3525b95e51112e42a712c0524d5a2ae8cfa82b9fdddd1ef",
+  "transport": "gemini",
+  "http_status": 200,
+  "model": "gemini-3.1-flash-lite",
+  "usage": {
+    "promptTokenCount": 12284,
+    "candidatesTokenCount": 930,
+    "totalTokenCount": 13214,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 12284
+      }
+    ],
+    "serviceTier": "standard"
+  },
+  "finish_reason": "STOP",
+  "status": "parsed",
+  "latency_s": 4.637,
+  "validation": "rejected",
+  "validation_error": "title must refer to selected scene events"
+}

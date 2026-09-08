@@ -1,0 +1,4 @@
+{
+  "status": "rejected_or_failed",
+  "error": "scene must preserve representative event bounds"
+}

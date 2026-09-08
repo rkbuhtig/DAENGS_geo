@@ -1,0 +1,752 @@
+{
+  "schema_version": "stamp-book-v1",
+  "source_kind": "record_how",
+  "source": {
+    "schema_version": "record-how-source-v1",
+    "route": {
+      "schema_version": "how-source-v1",
+      "session_id": "gap",
+      "dog_id": "synthetic-dog",
+      "started_at": "2026-09-08T06:00:00Z",
+      "ended_at": "2026-09-08T06:05:00Z",
+      "fixes": [
+        {
+          "client_seq": 0,
+          "chain_index": 0,
+          "at": "2026-09-08T06:00:00Z",
+          "lat": 37.0,
+          "lng": 130.0,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 1,
+          "chain_index": 0,
+          "at": "2026-09-08T06:00:05Z",
+          "lat": 37.000044966080296,
+          "lng": 130.0,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 2,
+          "chain_index": 0,
+          "at": "2026-09-08T06:00:10Z",
+          "lat": 37.00008993216059,
+          "lng": 130.0,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 3,
+          "chain_index": 0,
+          "at": "2026-09-08T06:00:15Z",
+          "lat": 37.00013489824089,
+          "lng": 130.0,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 4,
+          "chain_index": 0,
+          "at": "2026-09-08T06:00:20Z",
+          "lat": 37.00017986432118,
+          "lng": 130.0,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 5,
+          "chain_index": 0,
+          "at": "2026-09-08T06:00:25Z",
+          "lat": 37.00022483040148,
+          "lng": 130.0,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 6,
+          "chain_index": 0,
+          "at": "2026-09-08T06:00:30Z",
+          "lat": 37.000269796481774,
+          "lng": 130.0,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 7,
+          "chain_index": 0,
+          "at": "2026-09-08T06:00:35Z",
+          "lat": 37.00031476256207,
+          "lng": 130.0,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 8,
+          "chain_index": 0,
+          "at": "2026-09-08T06:00:40Z",
+          "lat": 37.000359728642366,
+          "lng": 130.0,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 9,
+          "chain_index": 0,
+          "at": "2026-09-08T06:00:45Z",
+          "lat": 37.00040469472266,
+          "lng": 130.0,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 10,
+          "chain_index": 0,
+          "at": "2026-09-08T06:00:50Z",
+          "lat": 37.00044966080296,
+          "lng": 130.0,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 11,
+          "chain_index": 0,
+          "at": "2026-09-08T06:00:55Z",
+          "lat": 37.00049462688325,
+          "lng": 130.0,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 12,
+          "chain_index": 0,
+          "at": "2026-09-08T06:01:00Z",
+          "lat": 37.00053959296355,
+          "lng": 130.0,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 13,
+          "chain_index": 0,
+          "at": "2026-09-08T06:01:05Z",
+          "lat": 37.000584559043844,
+          "lng": 130.0,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 14,
+          "chain_index": 0,
+          "at": "2026-09-08T06:01:10Z",
+          "lat": 37.00062952512414,
+          "lng": 130.0,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 15,
+          "chain_index": 0,
+          "at": "2026-09-08T06:01:15Z",
+          "lat": 37.00067449120444,
+          "lng": 130.0,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 16,
+          "chain_index": 0,
+          "at": "2026-09-08T06:01:20Z",
+          "lat": 37.00071945728474,
+          "lng": 130.0,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 17,
+          "chain_index": 0,
+          "at": "2026-09-08T06:01:25Z",
+          "lat": 37.000764423365034,
+          "lng": 130.0,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 18,
+          "chain_index": 0,
+          "at": "2026-09-08T06:01:30Z",
+          "lat": 37.00080938944533,
+          "lng": 130.0,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 42,
+          "chain_index": 0,
+          "at": "2026-09-08T06:03:30Z",
+          "lat": 37.00080938944533,
+          "lng": 130.0,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 43,
+          "chain_index": 0,
+          "at": "2026-09-08T06:03:35Z",
+          "lat": 37.00080938944533,
+          "lng": 130.00005630363253,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 44,
+          "chain_index": 0,
+          "at": "2026-09-08T06:03:40Z",
+          "lat": 37.00080938944533,
+          "lng": 130.0001126072651,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 45,
+          "chain_index": 0,
+          "at": "2026-09-08T06:03:45Z",
+          "lat": 37.00080938944533,
+          "lng": 130.00016891089763,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 46,
+          "chain_index": 0,
+          "at": "2026-09-08T06:03:50Z",
+          "lat": 37.00080938944533,
+          "lng": 130.0002252145302,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 47,
+          "chain_index": 0,
+          "at": "2026-09-08T06:03:55Z",
+          "lat": 37.00080938944533,
+          "lng": 130.00028151816272,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 48,
+          "chain_index": 0,
+          "at": "2026-09-08T06:04:00Z",
+          "lat": 37.00080938944533,
+          "lng": 130.00033782179528,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 49,
+          "chain_index": 0,
+          "at": "2026-09-08T06:04:05Z",
+          "lat": 37.00080938944533,
+          "lng": 130.00039412542782,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 50,
+          "chain_index": 0,
+          "at": "2026-09-08T06:04:10Z",
+          "lat": 37.00080938944533,
+          "lng": 130.00045042906038,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 51,
+          "chain_index": 0,
+          "at": "2026-09-08T06:04:15Z",
+          "lat": 37.00080938944533,
+          "lng": 130.0005067326929,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 52,
+          "chain_index": 0,
+          "at": "2026-09-08T06:04:20Z",
+          "lat": 37.00080938944533,
+          "lng": 130.00056303632547,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 53,
+          "chain_index": 0,
+          "at": "2026-09-08T06:04:25Z",
+          "lat": 37.00080938944533,
+          "lng": 130.000619339958,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 54,
+          "chain_index": 0,
+          "at": "2026-09-08T06:04:30Z",
+          "lat": 37.00080938944533,
+          "lng": 130.00067564359054,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 55,
+          "chain_index": 0,
+          "at": "2026-09-08T06:04:35Z",
+          "lat": 37.00080938944533,
+          "lng": 130.0007319472231,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 56,
+          "chain_index": 0,
+          "at": "2026-09-08T06:04:40Z",
+          "lat": 37.00080938944533,
+          "lng": 130.00078825085563,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 57,
+          "chain_index": 0,
+          "at": "2026-09-08T06:04:45Z",
+          "lat": 37.00080938944533,
+          "lng": 130.0008445544882,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 58,
+          "chain_index": 0,
+          "at": "2026-09-08T06:04:50Z",
+          "lat": 37.00080938944533,
+          "lng": 130.00090085812073,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 59,
+          "chain_index": 0,
+          "at": "2026-09-08T06:04:55Z",
+          "lat": 37.00080938944533,
+          "lng": 130.0009571617533,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 60,
+          "chain_index": 0,
+          "at": "2026-09-08T06:05:00Z",
+          "lat": 37.00080938944533,
+          "lng": 130.00101346538582,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        }
+      ]
+    },
+    "records": {
+      "schema_version": "walk-record-envelopes-v1",
+      "synthetic": true,
+      "owner_id": "synthetic-owner",
+      "records": [
+        {
+          "ref": {
+            "store": "walk_photo",
+            "id": "synthetic-record-1",
+            "version": "1",
+            "version_kind": "revision"
+          },
+          "owner_id": "synthetic-owner",
+          "session_id": "gap",
+          "session_pet_ids": [
+            "synthetic-dog"
+          ],
+          "event_at": "2026-09-08T06:01:30Z",
+          "time_basis": "photo_capture",
+          "authored_at": "2026-09-08T06:01:30Z",
+          "location": {
+            "point": {
+              "lat": 37.00080938944533,
+              "lng": 130.0
+            },
+            "captured_at": "2026-09-08T06:01:30Z",
+            "accuracy_m": 5.0,
+            "basis": "device_fix",
+            "observation_ref": "walk-fix:gap:18"
+          },
+          "content": {
+            "kind": "photo",
+            "media_ref": "synthetic-photo"
+          }
+        },
+        {
+          "ref": {
+            "store": "walk_entry",
+            "id": "synthetic-record-2",
+            "version": "1",
+            "version_kind": "revision"
+          },
+          "owner_id": "synthetic-owner",
+          "session_id": "gap",
+          "session_pet_ids": [
+            "synthetic-dog"
+          ],
+          "event_at": "2026-09-08T06:03:30Z",
+          "time_basis": "recorded_at",
+          "authored_at": "2026-09-08T06:03:30Z",
+          "location": {
+            "point": {
+              "lat": 37.00080938944533,
+              "lng": 130.0
+            },
+            "captured_at": "2026-09-08T06:03:30Z",
+            "accuracy_m": 5.0,
+            "basis": "device_fix",
+            "observation_ref": "walk-fix:gap:42"
+          },
+          "content": {
+            "kind": "note",
+            "text": "기록이 다시 잡혔다."
+          }
+        }
+      ],
+      "envelopes": [],
+      "selected_envelope_ids": []
+    },
+    "attachments": [
+      {
+        "record_ref": {
+          "store": "walk_photo",
+          "id": "synthetic-record-1",
+          "version": "1",
+          "version_kind": "revision"
+        },
+        "client_seq": 18
+      },
+      {
+        "record_ref": {
+          "store": "walk_entry",
+          "id": "synthetic-record-2",
+          "version": "1",
+          "version_kind": "revision"
+        },
+        "client_seq": 42
+      }
+    ]
+  },
+  "source_version": "81c8249aa50e0b777f8600e2103fda75e535609673f42496b7333e808a6e566a",
+  "policy": {
+    "version": "how-stamp-v1",
+    "record": {
+      "version": "record-stamp-v1",
+      "space_slots": 3,
+      "action_slots": 2,
+      "environment_slots": 1,
+      "context_age_s": 300,
+      "action_age_s": 600,
+      "max_cards": 7
+    },
+    "geometry": {
+      "version": "how-geometry-v1",
+      "max_accuracy_m": 20.0,
+      "max_speed_mps": 4.0,
+      "simplify_m": 8.0,
+      "stay_diameter_m": 20.0,
+      "stay_min_s": 30.0,
+      "stay_min_fixes": 5,
+      "stay_progress_step_s": 10.0,
+      "stay_progress_max_mps": 0.4,
+      "straight_min_m": 40.0,
+      "turn_leg_min_m": 30.0,
+      "turn_min_deg": 45.0,
+      "reversal_min_deg": 150.0,
+      "retrace_tolerance_m": 10.0,
+      "retrace_min_m": 40.0
+    },
+    "turn_near_s": 20.0,
+    "focus_radius_m": 15.0,
+    "shape_context_slots": 2
+  },
+  "stamps": [
+    {
+      "ref": {
+        "id": "stamp:walk_photo:synthetic-record-1",
+        "version": "a27edb27413ac0b69fcc1d1937cb98a3958e6536ce9bdb6f11bf1897777303f1"
+      },
+      "frame": {
+        "id": "stamp:walk_photo:synthetic-record-1",
+        "required": true,
+        "record_ref": {
+          "store": "walk_photo",
+          "id": "synthetic-record-1",
+          "version": "1",
+          "version_kind": "revision"
+        },
+        "context_envelope_ids": [],
+        "previous_action_id": null,
+        "center": {
+          "kind": "record",
+          "record_ref": {
+            "store": "walk_photo",
+            "id": "synthetic-record-1",
+            "version": "1",
+            "version_kind": "revision"
+          }
+        },
+        "how_members": [
+          {
+            "material_ref": {
+              "id": "how:a5abfbf9845b9655",
+              "version": "a5abfbf9845b9655e8e6b5ac04a6cf140304389498e305c2f46b8f4d85d2d713"
+            },
+            "role": "shape_context",
+            "relation": {
+              "type": "contains_record_observation",
+              "basis": "source_geometry"
+            }
+          }
+        ],
+        "route_binding": "accepted_run"
+      }
+    },
+    {
+      "ref": {
+        "id": "stamp:walk_entry:synthetic-record-2",
+        "version": "499c527bb2dbcd467060d8c302723128aa759d055a398e34c9a93d21939495b8"
+      },
+      "frame": {
+        "id": "stamp:walk_entry:synthetic-record-2",
+        "required": true,
+        "record_ref": {
+          "store": "walk_entry",
+          "id": "synthetic-record-2",
+          "version": "1",
+          "version_kind": "revision"
+        },
+        "context_envelope_ids": [],
+        "previous_action_id": null,
+        "center": {
+          "kind": "record",
+          "record_ref": {
+            "store": "walk_entry",
+            "id": "synthetic-record-2",
+            "version": "1",
+            "version_kind": "revision"
+          }
+        },
+        "how_members": [
+          {
+            "material_ref": {
+              "id": "how:808d757807cba30f",
+              "version": "808d757807cba30f40f2e18ed8043e0fb36cd1b52c3dc1cd08df5e7f7d8463a4"
+            },
+            "role": "shape_context",
+            "relation": {
+              "type": "contains_record_observation",
+              "basis": "source_geometry"
+            }
+          }
+        ],
+        "route_binding": "accepted_run"
+      }
+    }
+  ],
+  "slot_audit": {
+    "record": [
+      {
+        "pool": "action",
+        "id": "stamp:walk_photo:synthetic-record-1",
+        "at": 1788847290.0,
+        "reason": "admit"
+      }
+    ],
+    "how": [
+      {
+        "pool": "how_shape",
+        "stamp_id": "stamp:walk_photo:synthetic-record-1",
+        "id": "how:a5abfbf9845b9655",
+        "reason": "admit"
+      },
+      {
+        "pool": "how_shape",
+        "stamp_id": "stamp:walk_entry:synthetic-record-2",
+        "id": "how:808d757807cba30f",
+        "reason": "admit"
+      }
+    ]
+  },
+  "how_catalog": {
+    "schema_version": "how-materials-v1",
+    "session_id": "gap",
+    "evidence_origin": "mock",
+    "source_sha256": "f1d01920747ef175531bdf03c4d170754adc5fb8156f029f4e28dd47fc4f4716",
+    "policy": {
+      "version": "how-geometry-v1",
+      "max_accuracy_m": 20.0,
+      "max_speed_mps": 4.0,
+      "simplify_m": 8.0,
+      "stay_diameter_m": 20.0,
+      "stay_min_s": 30.0,
+      "stay_min_fixes": 5,
+      "stay_progress_step_s": 10.0,
+      "stay_progress_max_mps": 0.4,
+      "straight_min_m": 40.0,
+      "turn_leg_min_m": 30.0,
+      "turn_min_deg": 45.0,
+      "reversal_min_deg": 150.0,
+      "retrace_tolerance_m": 10.0,
+      "retrace_min_m": 40.0
+    },
+    "calculation_version": 4,
+    "materials": [
+      {
+        "axis": "how",
+        "kind": "straight_run",
+        "status": "candidate",
+        "subject": "recording_device",
+        "support": {
+          "chain_index": 0,
+          "how_run_index": 0,
+          "from_seq": 0,
+          "to_seq": 18,
+          "started_at": "2026-09-08T06:00:00+00:00",
+          "ended_at": "2026-09-08T06:01:30+00:00",
+          "window_s": 90.0,
+          "time_meaning": "observed_support_window"
+        },
+        "anchor": {
+          "client_seq": 0,
+          "at": "2026-09-08T06:00:00+00:00",
+          "lat": 37.0,
+          "lng": 130.0,
+          "route_offset_m": 0.0
+        },
+        "metrics": {
+          "displacement_m": 90.0,
+          "max_deviation_m": 0.0,
+          "tolerance_m": 8.0
+        },
+        "quality": {
+          "fix_count": 19,
+          "accuracy_p50_m": 5.0,
+          "unknown_accuracy_count": 0
+        },
+        "ref": {
+          "id": "how:a5abfbf9845b9655",
+          "version": "a5abfbf9845b9655e8e6b5ac04a6cf140304389498e305c2f46b8f4d85d2d713"
+        }
+      },
+      {
+        "axis": "how",
+        "kind": "straight_run",
+        "status": "candidate",
+        "subject": "recording_device",
+        "support": {
+          "chain_index": 1,
+          "how_run_index": 1,
+          "from_seq": 42,
+          "to_seq": 60,
+          "started_at": "2026-09-08T06:03:30+00:00",
+          "ended_at": "2026-09-08T06:05:00+00:00",
+          "window_s": 90.0,
+          "time_meaning": "observed_support_window"
+        },
+        "anchor": {
+          "client_seq": 42,
+          "at": "2026-09-08T06:03:30+00:00",
+          "lat": 37.00080938944533,
+          "lng": 130.0,
+          "route_offset_m": 90.0
+        },
+        "metrics": {
+          "displacement_m": 90.0,
+          "max_deviation_m": 0.0,
+          "tolerance_m": 8.0
+        },
+        "quality": {
+          "fix_count": 19,
+          "accuracy_p50_m": 5.0,
+          "unknown_accuracy_count": 0
+        },
+        "ref": {
+          "id": "how:808d757807cba30f",
+          "version": "808d757807cba30f40f2e18ed8043e0fb36cd1b52c3dc1cd08df5e7f7d8463a4"
+        }
+      }
+    ],
+    "shape_runs": [
+      {
+        "chain_index": 0,
+        "how_run_index": 0,
+        "tolerance_m": 8.0,
+        "from_seq": 0,
+        "to_seq": 18,
+        "source_fix_count": 19,
+        "vertices": [
+          {
+            "client_seq": 0,
+            "lat": 37.0,
+            "lng": 130.0
+          },
+          {
+            "client_seq": 18,
+            "lat": 37.00080938944533,
+            "lng": 130.0
+          }
+        ]
+      },
+      {
+        "chain_index": 1,
+        "how_run_index": 1,
+        "tolerance_m": 8.0,
+        "from_seq": 42,
+        "to_seq": 60,
+        "source_fix_count": 19,
+        "vertices": [
+          {
+            "client_seq": 42,
+            "lat": 37.00080938944533,
+            "lng": 130.0
+          },
+          {
+            "client_seq": 60,
+            "lat": 37.00080938944533,
+            "lng": 130.00101346538582
+          }
+        ]
+      }
+    ],
+    "quality_audit": [],
+    "canonical_quality": {
+      "received": 38,
+      "accepted": 38,
+      "rejected_low_accuracy": 0,
+      "rejected_out_of_order": 0,
+      "rejected_before_start": 0,
+      "rejected_after_end": 0,
+      "unknown_accuracy": 0,
+      "jump_breaks": 0,
+      "gap_breaks": 1,
+      "explicit_breaks": 0,
+      "dropped_at_capacity": 0,
+      "mock_fixes": 38
+    },
+    "limits": {
+      "calibration": "synthetic_only",
+      "where": "not_evaluated",
+      "purpose": "not_inferred",
+      "gradual_curve": "not_classified",
+      "retrace": "adjacent_simplified_legs_only"
+    }
+  }
+}

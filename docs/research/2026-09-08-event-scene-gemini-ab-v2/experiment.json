@@ -1,0 +1,36 @@
+{
+  "version": "event-scene-planning-ab-v2",
+  "model": "gemini-3.1-flash-lite",
+  "settings": {
+    "temperature": 0.2,
+    "maxOutputTokens": 8192
+  },
+  "order": [
+    "movement-individual",
+    "movement-grouped",
+    "actions-grouped",
+    "actions-individual",
+    "gap-individual",
+    "gap-grouped"
+  ],
+  "shared_evidence_sha256": {
+    "movement": "80170e0aa15d9a21a92e89a4a38368ac787e472679fc74c39c6aebb0930bf4ba",
+    "actions": "4b2a32df250366882950a5bc16577ec7ce6fc2817d2b413a7b2db9ccdfa60509",
+    "gap": "04436d8652e6f4f64edac9880de358749d1a26c9ea6860f354ab7f2ac85650b3"
+  },
+  "requests": {
+    "movement-individual": "ceee16cf1b04580584ecd8182392ebe45d162d2a1977bc0aaeb3b1c99c6f0f3e",
+    "movement-grouped": "a5e4548774c8f2135031231670acf1df3a4be71c70c82e635d2cd1deb9a85722",
+    "actions-grouped": "43305f3ccb6ad8008aa5456fe2da504421872c7ed0421726752172a25e8ef28c",
+    "actions-individual": "71d73d13a8283487b3525b95e51112e42a712c0524d5a2ae8cfa82b9fdddd1ef",
+    "gap-individual": "023fa56d7ca8b083a923ed046a77fce4fc6f22d5d3e54b028a40753a2fb4ff16",
+    "gap-grouped": "7abb75e557ba210e42aefebabcb43b6771fc9949d6a8fa5dbafc64782e440deb"
+  },
+  "max_attempts": 6,
+  "automatic_retries": 0,
+  "max_request_bytes": 150000,
+  "observed_token_stop_threshold": 100000,
+  "budget_note": "Known usage checked before next request; not a hard total token cap. Unknown failed-call usage remains unknown.",
+  "comparison_note": "Input differs only in composition mode. Instructions grant different editorial rights; common factual guidance and generation settings match.",
+  "resolution_sha256": "01e75d1859519673255a8920fe38248bc4a9fc741fce1f948fbf609bddbe1dfb"
+}

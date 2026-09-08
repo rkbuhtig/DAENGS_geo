@@ -1,0 +1,31 @@
+{
+  "candidates": [
+    {
+      "content": {
+        "parts": [
+          {
+            "text": "{\n  \"title\": \"반려견 두부와 함께한 산책 경로 기록\",\n  \"cards\": [\n    {\n      \"stamp_id\": \"stamp:e03\",\n      \"title\": \"상가 밀집 지역으로의 이동\",\n      \"text\": \"보호자와 반려견 두부가 등록 상가가 산재한 구간에서 등록 상가가 모인 구간으로 이동하였다.\"\n    },\n    {\n      \"stamp_id\": \"stamp:e04\",\n      \"title\": \"늘벗근린공원 인근으로 이동\",\n      \"text\": \"등록 상가가 모인 구간에서 240초 후 늘벗근린공원 인근으로 이동하였다.\"\n    },\n    {\n      \"stamp_id\": \"stamp:e05\",\n      \"title\": \"양재천 인근으로 이동\",\n      \"text\": \"늘벗근린공원 인근에서 240초 후 양재천 인근으로 이동하였다.\"\n    },\n    {\n      \"stamp_id\": \"stamp:e06\",\n      \"title\": \"상가 밀집 지역으로 복귀\",\n      \"text\": \"양재천 인근에서 240초 후 등록 상가가 모인 구간으로 이동하였다.\"\n    },\n    {\n      \"stamp_id\": \"stamp:e07\",\n      \"title\": \"상가 적은 구간으로 이동\",\n      \"text\": \"등록 상가가 모인 구간에서 180초 후 등록 상가가 적은 구간으로 이동하였다.\"\n    },\n    {\n      \"stamp_id\": \"stamp:e08\",\n      \"title\": \"양재천 인근에서의 거리 변화\",\n      \"text\": \"양재천 인근에서 머무르며 양재천과의 거리가 가까워졌다가 다시 멀어지는 변화가 있었다.\"\n    },\n    {\n      \"stamp_id\": \"stamp:e09\",\n      \"title\": \"상가 적은 구간으로 재진입\",\n      \"text\": \"양재천 인근에서 180초 후 등록 상가가 적은 구간으로 이동하였다.\"\n    }\n  ]\n}",
+            "thoughtSignature": "EnEKbwERTTIPUOq+e4ZzvMDmmwI4HFvEOyfqj4/qxG2bqt4KvA6ry5MGGHda5BtAONXC/CH6B2djm0x/axsAGCfRD57+FyfCKzgkV6QnqqBjf/TGy5TRdPnkIp/Svrp8qG1n1DFt6mm/heh7GMjdv9S9EQ=="
+          }
+        ],
+        "role": "model"
+      },
+      "finishReason": "STOP",
+      "index": 0
+    }
+  ],
+  "usageMetadata": {
+    "promptTokenCount": 1811,
+    "candidatesTokenCount": 488,
+    "totalTokenCount": 2299,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 1811
+      }
+    ],
+    "serviceTier": "standard"
+  },
+  "modelVersion": "gemini-3.1-flash-lite",
+  "responseId": "W6GfapjTNtSp2roPlvWEwQc"
+}

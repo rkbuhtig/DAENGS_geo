@@ -1,0 +1,71 @@
+{
+  "note": "Read-only source audit. Hypothetical edits applied in memory only; never accepted as model output, no retry or checkpoint.",
+  "rows": [
+    {
+      "id": "movement-individual",
+      "request_sha256": "ceee16cf1b04580584ecd8182392ebe45d162d2a1977bc0aaeb3b1c99c6f0f3e",
+      "response_sha256": "b24520339152c696c818c225f9f60ef21a0c048af29b19f6c8a38315cabcf087",
+      "status": "accepted",
+      "error": null,
+      "source_time_restoration": "verified"
+    },
+    {
+      "id": "movement-grouped",
+      "request_sha256": "a5e4548774c8f2135031231670acf1df3a4be71c70c82e635d2cd1deb9a85722",
+      "response_sha256": "bddb98cd91040ed2b96e27efca46479cbf72e83b0409054542402612d470e366",
+      "status": "accepted",
+      "error": null,
+      "source_time_restoration": "verified"
+    },
+    {
+      "id": "actions-grouped",
+      "request_sha256": "43305f3ccb6ad8008aa5456fe2da504421872c7ed0421726752172a25e8ef28c",
+      "response_sha256": "f492cd02f5f8e813d32cd5e5df61f41547d43bbd727c5b5e1d79709089787e4d",
+      "status": "rejected_or_failed",
+      "error": "omissions must cover exactly unused eligible events",
+      "hypothetical_edit": "Remove six connection/context entries from omissions; keep scenes unchanged.",
+      "contradictory_omissions": [
+        "e00",
+        "e01",
+        "e02",
+        "e05",
+        "e08",
+        "e14"
+      ],
+      "diagnostic": "structural_pass_after_hypothetical_edit"
+    },
+    {
+      "id": "actions-individual",
+      "request_sha256": "71d73d13a8283487b3525b95e51112e42a712c0524d5a2ae8cfa82b9fdddd1ef",
+      "response_sha256": "8a8bdc64149c9f8056936fb22cf3aaaca6787668f1f38d507bdcf9dfe15f83d7",
+      "status": "rejected_or_failed",
+      "error": "title must refer to selected scene events",
+      "title_refs_to_omitted_events": [
+        "e12",
+        "e13"
+      ],
+      "hypothetical_edit": "Filter title references to selected events, without rewriting the title.",
+      "diagnostic": "structural_pass_after_hypothetical_edit"
+    },
+    {
+      "id": "gap-individual",
+      "request_sha256": "023fa56d7ca8b083a923ed046a77fce4fc6f22d5d3e54b028a40753a2fb4ff16",
+      "response_sha256": "2e79f360e88ec80b84c33e6b860aaf01ec93f51f1bd92c8390e87072376926a6",
+      "status": "accepted",
+      "error": null,
+      "source_time_restoration": "verified"
+    },
+    {
+      "id": "gap-grouped",
+      "request_sha256": "7abb75e557ba210e42aefebabcb43b6771fc9949d6a8fa5dbafc64782e440deb",
+      "response_sha256": "9ed24017c4fc4c93dd12c1d416c7ac5a09db475a466adcd26c1cbc092fa1e412",
+      "status": "rejected_or_failed",
+      "error": "composition cannot join GPS chains",
+      "cross_chain_context": [
+        "e08"
+      ],
+      "hypothetical_edit": "Remove only cross-chain context, without rewriting model text.",
+      "diagnostic": "structural_pass_after_hypothetical_edit"
+    }
+  ]
+}

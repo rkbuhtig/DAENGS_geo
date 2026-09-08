@@ -1,0 +1,810 @@
+{
+  "schema_version": "diary-evidence-v1",
+  "session_id": "archived-v3-movement",
+  "started_at": "2026-09-07T09:00:00+09:00",
+  "ended_at": "2026-09-07T09:38:48.561869+09:00",
+  "context": {
+    "candidate_catalog": {
+      "version": "candidate-catalog-v1",
+      "policy_id": "scene-purpose-v3-archived",
+      "source_revision": "f2ca42c655fb09a61beb45eb61075baba1291681d19c626264b70f39320f6cd0",
+      "max_scenes": 7,
+      "candidates": [
+        {
+          "id": "e00",
+          "role": "connection",
+          "time_kind": "point",
+          "start_at": "2026-09-07T09:00:00+09:00",
+          "end_at": "2026-09-07T09:00:00+09:00",
+          "chain": 0,
+          "card_eligible": false,
+          "required": false,
+          "why_keep": "뚜렷한 사용자 행동이나 채택 기준에 맞는 공간 변화가 없어 지도 동선으로 연결",
+          "evidence_ids": [],
+          "subject_ids": [],
+          "primary_evidence_id": null,
+          "source_event_id": "e00",
+          "source_input_sha256": "f2ca42c655fb09a61beb45eb61075baba1291681d19c626264b70f39320f6cd0",
+          "location_status": "unresolved"
+        },
+        {
+          "id": "e01",
+          "role": "connection",
+          "time_kind": "interval",
+          "start_at": "2026-09-07T09:01:00+09:00",
+          "end_at": "2026-09-07T09:03:00+09:00",
+          "chain": 0,
+          "card_eligible": false,
+          "required": false,
+          "why_keep": "뚜렷한 사용자 행동이나 채택 기준에 맞는 공간 변화가 없어 지도 동선으로 연결",
+          "evidence_ids": [],
+          "subject_ids": [],
+          "primary_evidence_id": null,
+          "source_event_id": "e01",
+          "source_input_sha256": "f2ca42c655fb09a61beb45eb61075baba1291681d19c626264b70f39320f6cd0",
+          "location_status": "unresolved"
+        },
+        {
+          "id": "e02",
+          "role": "connection",
+          "time_kind": "interval",
+          "start_at": "2026-09-07T09:04:00+09:00",
+          "end_at": "2026-09-07T09:07:00+09:00",
+          "chain": 0,
+          "card_eligible": false,
+          "required": false,
+          "why_keep": "뚜렷한 사용자 행동이나 채택 기준에 맞는 공간 변화가 없어 지도 동선으로 연결",
+          "evidence_ids": [],
+          "subject_ids": [],
+          "primary_evidence_id": null,
+          "source_event_id": "e02",
+          "source_input_sha256": "f2ca42c655fb09a61beb45eb61075baba1291681d19c626264b70f39320f6cd0",
+          "location_status": "unresolved"
+        },
+        {
+          "id": "e03",
+          "role": "transition",
+          "time_kind": "interval",
+          "start_at": "2026-09-07T09:08:00+09:00",
+          "end_at": "2026-09-07T09:12:00+09:00",
+          "chain": 0,
+          "card_eligible": true,
+          "required": false,
+          "why_keep": "공간 배경 또는 장소와의 관계가 달라짐: 등록 상가가 산재한 구간에서 등록 상가가 모인 구간으로 주변 특징이 바뀜",
+          "evidence_ids": [
+            "e03:what0",
+            "e03:where0",
+            "e03:where2"
+          ],
+          "subject_ids": [
+            "who:guardian",
+            "who:dog"
+          ],
+          "primary_evidence_id": "e03:where2",
+          "source_event_id": "e03",
+          "source_input_sha256": "f2ca42c655fb09a61beb45eb61075baba1291681d19c626264b70f39320f6cd0",
+          "location_status": "unresolved"
+        },
+        {
+          "id": "e04",
+          "role": "transition",
+          "time_kind": "interval",
+          "start_at": "2026-09-07T09:13:00+09:00",
+          "end_at": "2026-09-07T09:16:00+09:00",
+          "chain": 0,
+          "card_eligible": true,
+          "required": false,
+          "why_keep": "공간 배경 또는 장소와의 관계가 달라짐: 등록 상가가 모인 구간에서 늘벗근린공원 가까운 구간으로 주변 특징이 바뀜",
+          "evidence_ids": [
+            "e04:what0",
+            "e04:where0",
+            "e04:where3"
+          ],
+          "subject_ids": [
+            "who:guardian",
+            "who:dog"
+          ],
+          "primary_evidence_id": "e04:where3",
+          "source_event_id": "e04",
+          "source_input_sha256": "f2ca42c655fb09a61beb45eb61075baba1291681d19c626264b70f39320f6cd0",
+          "location_status": "unresolved"
+        },
+        {
+          "id": "e05",
+          "role": "transition",
+          "time_kind": "interval",
+          "start_at": "2026-09-07T09:17:00+09:00",
+          "end_at": "2026-09-07T09:20:00+09:00",
+          "chain": 0,
+          "card_eligible": true,
+          "required": false,
+          "why_keep": "공간 배경 또는 장소와의 관계가 달라짐: 늘벗근린공원 가까운 구간에서 양재천 가까운 구간으로 주변 특징이 바뀜",
+          "evidence_ids": [
+            "e05:what0",
+            "e05:where0",
+            "e05:where3"
+          ],
+          "subject_ids": [
+            "who:guardian",
+            "who:dog"
+          ],
+          "primary_evidence_id": "e05:where3",
+          "source_event_id": "e05",
+          "source_input_sha256": "f2ca42c655fb09a61beb45eb61075baba1291681d19c626264b70f39320f6cd0",
+          "location_status": "unresolved"
+        },
+        {
+          "id": "e06",
+          "role": "transition",
+          "time_kind": "interval",
+          "start_at": "2026-09-07T09:21:00+09:00",
+          "end_at": "2026-09-07T09:24:00+09:00",
+          "chain": 0,
+          "card_eligible": true,
+          "required": false,
+          "why_keep": "공간 배경 또는 장소와의 관계가 달라짐: 양재천 가까운 구간에서 등록 상가가 모인 구간으로 주변 특징이 바뀜",
+          "evidence_ids": [
+            "e06:what0",
+            "e06:where0",
+            "e06:where3"
+          ],
+          "subject_ids": [
+            "who:guardian",
+            "who:dog"
+          ],
+          "primary_evidence_id": "e06:where3",
+          "source_event_id": "e06",
+          "source_input_sha256": "f2ca42c655fb09a61beb45eb61075baba1291681d19c626264b70f39320f6cd0",
+          "location_status": "unresolved"
+        },
+        {
+          "id": "e07",
+          "role": "transition",
+          "time_kind": "interval",
+          "start_at": "2026-09-07T09:25:00+09:00",
+          "end_at": "2026-09-07T09:27:00+09:00",
+          "chain": 0,
+          "card_eligible": true,
+          "required": false,
+          "why_keep": "공간 배경 또는 장소와의 관계가 달라짐: 등록 상가가 모인 구간에서 등록 상가가 적은 구간으로 주변 특징이 바뀜",
+          "evidence_ids": [
+            "e07:what0",
+            "e07:where0",
+            "e07:where2"
+          ],
+          "subject_ids": [
+            "who:guardian",
+            "who:dog"
+          ],
+          "primary_evidence_id": "e07:where2",
+          "source_event_id": "e07",
+          "source_input_sha256": "f2ca42c655fb09a61beb45eb61075baba1291681d19c626264b70f39320f6cd0",
+          "location_status": "unresolved"
+        },
+        {
+          "id": "e08",
+          "role": "transition",
+          "time_kind": "interval",
+          "start_at": "2026-09-07T09:28:00+09:00",
+          "end_at": "2026-09-07T09:33:00+09:00",
+          "chain": 0,
+          "card_eligible": true,
+          "required": false,
+          "why_keep": "공간 배경 또는 장소와의 관계가 달라짐: 양재천까지 거리가 줄었다가 다시 늘어남",
+          "evidence_ids": [
+            "e08:what0",
+            "e08:where0",
+            "e08:where3"
+          ],
+          "subject_ids": [
+            "who:guardian",
+            "who:dog"
+          ],
+          "primary_evidence_id": "e08:where3",
+          "source_event_id": "e08",
+          "source_input_sha256": "f2ca42c655fb09a61beb45eb61075baba1291681d19c626264b70f39320f6cd0",
+          "location_status": "unresolved"
+        },
+        {
+          "id": "e09",
+          "role": "transition",
+          "time_kind": "interval",
+          "start_at": "2026-09-07T09:34:00+09:00",
+          "end_at": "2026-09-07T09:36:00+09:00",
+          "chain": 0,
+          "card_eligible": true,
+          "required": false,
+          "why_keep": "공간 배경 또는 장소와의 관계가 달라짐: 양재천 가까운 구간에서 등록 상가가 적은 구간으로 주변 특징이 바뀜",
+          "evidence_ids": [
+            "e09:what0",
+            "e09:where0",
+            "e09:where3"
+          ],
+          "subject_ids": [
+            "who:guardian",
+            "who:dog"
+          ],
+          "primary_evidence_id": "e09:where3",
+          "source_event_id": "e09",
+          "source_input_sha256": "f2ca42c655fb09a61beb45eb61075baba1291681d19c626264b70f39320f6cd0",
+          "location_status": "unresolved"
+        },
+        {
+          "id": "e10",
+          "role": "connection",
+          "time_kind": "interval",
+          "start_at": "2026-09-07T09:37:00+09:00",
+          "end_at": "2026-09-07T09:38:48.561869+09:00",
+          "chain": 0,
+          "card_eligible": false,
+          "required": false,
+          "why_keep": "뚜렷한 사용자 행동이나 채택 기준에 맞는 공간 변화가 없어 지도 동선으로 연결",
+          "evidence_ids": [],
+          "subject_ids": [],
+          "primary_evidence_id": null,
+          "source_event_id": "e10",
+          "source_input_sha256": "f2ca42c655fb09a61beb45eb61075baba1291681d19c626264b70f39320f6cd0",
+          "location_status": "unresolved"
+        }
+      ],
+      "gaps": [],
+      "composition_mode": "individual"
+    },
+    "synthetic_walk": true,
+    "source_input_sha256": "f2ca42c655fb09a61beb45eb61075baba1291681d19c626264b70f39320f6cd0",
+    "synthetic_started_at": true,
+    "adapter_version": "scene-purpose-to-evidence-v1",
+    "location_note": "Archive contains event IDs, not observation coordinates; unresolved"
+  },
+  "pieces": [
+    {
+      "id": "who:guardian",
+      "kind": "who",
+      "session_links": {},
+      "value": {
+        "id": "who:guardian",
+        "kind": "who",
+        "text": "보호자",
+        "source": "가상 산책 참가자 설정",
+        "subject_ids": [
+          "who:guardian"
+        ]
+      },
+      "meaning": "보호자",
+      "provenance": {
+        "source_input_sha256": "f2ca42c655fb09a61beb45eb61075baba1291681d19c626264b70f39320f6cd0"
+      },
+      "measurement_status": "synthetic_actor"
+    },
+    {
+      "id": "who:dog",
+      "kind": "who",
+      "session_links": {},
+      "value": {
+        "id": "who:dog",
+        "kind": "who",
+        "text": "반려견 두부",
+        "source": "가상 산책 참가자 설정",
+        "subject_ids": [
+          "who:dog"
+        ]
+      },
+      "meaning": "반려견 두부",
+      "provenance": {
+        "source_input_sha256": "f2ca42c655fb09a61beb45eb61075baba1291681d19c626264b70f39320f6cd0"
+      },
+      "measurement_status": "synthetic_actor"
+    },
+    {
+      "id": "e03:what0",
+      "kind": "what",
+      "session_links": {
+        "candidate_id": "e03",
+        "chain": 0,
+        "from": "2026-09-07T09:08:00+09:00",
+        "to": "2026-09-07T09:12:00+09:00"
+      },
+      "value": {
+        "id": "e03:what0",
+        "kind": "what",
+        "text": "보호자와 두부의 이동 기록",
+        "subject_ids": [
+          "who:guardian",
+          "who:dog"
+        ]
+      },
+      "meaning": "보호자와 두부의 이동 기록",
+      "provenance": {
+        "source_input_sha256": "f2ca42c655fb09a61beb45eb61075baba1291681d19c626264b70f39320f6cd0",
+        "source_event_id": "e03",
+        "kind": "archived_derived_evidence",
+        "note": "Public spatial cache with synthetic route/pins; not recomputed"
+      },
+      "measurement_status": "archived_synthetic_experiment"
+    },
+    {
+      "id": "e03:where0",
+      "kind": "where",
+      "session_links": {
+        "candidate_id": "e03",
+        "chain": 0,
+        "from": "2026-09-07T09:08:00+09:00",
+        "to": "2026-09-07T09:12:00+09:00"
+      },
+      "value": {
+        "id": "e03:where0",
+        "kind": "where",
+        "text": "등록 상가가 모인 구간"
+      },
+      "meaning": "등록 상가가 모인 구간",
+      "provenance": {
+        "source_input_sha256": "f2ca42c655fb09a61beb45eb61075baba1291681d19c626264b70f39320f6cd0",
+        "source_event_id": "e03",
+        "kind": "archived_derived_evidence",
+        "note": "Public spatial cache with synthetic route/pins; not recomputed"
+      },
+      "measurement_status": "archived_synthetic_experiment"
+    },
+    {
+      "id": "e03:where2",
+      "kind": "where",
+      "session_links": {
+        "candidate_id": "e03",
+        "chain": 0,
+        "from": "2026-09-07T09:08:00+09:00",
+        "to": "2026-09-07T09:12:00+09:00"
+      },
+      "value": {
+        "id": "e03:where2",
+        "kind": "where",
+        "text": "등록 상가가 산재한 구간에서 등록 상가가 모인 구간으로 주변 특징이 바뀜"
+      },
+      "meaning": "등록 상가가 산재한 구간에서 등록 상가가 모인 구간으로 주변 특징이 바뀜",
+      "provenance": {
+        "source_input_sha256": "f2ca42c655fb09a61beb45eb61075baba1291681d19c626264b70f39320f6cd0",
+        "source_event_id": "e03",
+        "kind": "archived_derived_evidence",
+        "note": "Public spatial cache with synthetic route/pins; not recomputed"
+      },
+      "measurement_status": "archived_synthetic_experiment"
+    },
+    {
+      "id": "e04:what0",
+      "kind": "what",
+      "session_links": {
+        "candidate_id": "e04",
+        "chain": 0,
+        "from": "2026-09-07T09:13:00+09:00",
+        "to": "2026-09-07T09:16:00+09:00"
+      },
+      "value": {
+        "id": "e04:what0",
+        "kind": "what",
+        "text": "보호자와 두부의 이동 기록",
+        "subject_ids": [
+          "who:guardian",
+          "who:dog"
+        ]
+      },
+      "meaning": "보호자와 두부의 이동 기록",
+      "provenance": {
+        "source_input_sha256": "f2ca42c655fb09a61beb45eb61075baba1291681d19c626264b70f39320f6cd0",
+        "source_event_id": "e04",
+        "kind": "archived_derived_evidence",
+        "note": "Public spatial cache with synthetic route/pins; not recomputed"
+      },
+      "measurement_status": "archived_synthetic_experiment"
+    },
+    {
+      "id": "e04:where0",
+      "kind": "where",
+      "session_links": {
+        "candidate_id": "e04",
+        "chain": 0,
+        "from": "2026-09-07T09:13:00+09:00",
+        "to": "2026-09-07T09:16:00+09:00"
+      },
+      "value": {
+        "id": "e04:where0",
+        "kind": "where",
+        "text": "늘벗근린공원 가까운 구간"
+      },
+      "meaning": "늘벗근린공원 가까운 구간",
+      "provenance": {
+        "source_input_sha256": "f2ca42c655fb09a61beb45eb61075baba1291681d19c626264b70f39320f6cd0",
+        "source_event_id": "e04",
+        "kind": "archived_derived_evidence",
+        "note": "Public spatial cache with synthetic route/pins; not recomputed"
+      },
+      "measurement_status": "archived_synthetic_experiment"
+    },
+    {
+      "id": "e04:where3",
+      "kind": "where",
+      "session_links": {
+        "candidate_id": "e04",
+        "chain": 0,
+        "from": "2026-09-07T09:13:00+09:00",
+        "to": "2026-09-07T09:16:00+09:00"
+      },
+      "value": {
+        "id": "e04:where3",
+        "kind": "where",
+        "text": "등록 상가가 모인 구간에서 늘벗근린공원 가까운 구간으로 주변 특징이 바뀜"
+      },
+      "meaning": "등록 상가가 모인 구간에서 늘벗근린공원 가까운 구간으로 주변 특징이 바뀜",
+      "provenance": {
+        "source_input_sha256": "f2ca42c655fb09a61beb45eb61075baba1291681d19c626264b70f39320f6cd0",
+        "source_event_id": "e04",
+        "kind": "archived_derived_evidence",
+        "note": "Public spatial cache with synthetic route/pins; not recomputed"
+      },
+      "measurement_status": "archived_synthetic_experiment"
+    },
+    {
+      "id": "e05:what0",
+      "kind": "what",
+      "session_links": {
+        "candidate_id": "e05",
+        "chain": 0,
+        "from": "2026-09-07T09:17:00+09:00",
+        "to": "2026-09-07T09:20:00+09:00"
+      },
+      "value": {
+        "id": "e05:what0",
+        "kind": "what",
+        "text": "보호자와 두부의 이동 기록",
+        "subject_ids": [
+          "who:guardian",
+          "who:dog"
+        ]
+      },
+      "meaning": "보호자와 두부의 이동 기록",
+      "provenance": {
+        "source_input_sha256": "f2ca42c655fb09a61beb45eb61075baba1291681d19c626264b70f39320f6cd0",
+        "source_event_id": "e05",
+        "kind": "archived_derived_evidence",
+        "note": "Public spatial cache with synthetic route/pins; not recomputed"
+      },
+      "measurement_status": "archived_synthetic_experiment"
+    },
+    {
+      "id": "e05:where0",
+      "kind": "where",
+      "session_links": {
+        "candidate_id": "e05",
+        "chain": 0,
+        "from": "2026-09-07T09:17:00+09:00",
+        "to": "2026-09-07T09:20:00+09:00"
+      },
+      "value": {
+        "id": "e05:where0",
+        "kind": "where",
+        "text": "양재천 가까운 구간"
+      },
+      "meaning": "양재천 가까운 구간",
+      "provenance": {
+        "source_input_sha256": "f2ca42c655fb09a61beb45eb61075baba1291681d19c626264b70f39320f6cd0",
+        "source_event_id": "e05",
+        "kind": "archived_derived_evidence",
+        "note": "Public spatial cache with synthetic route/pins; not recomputed"
+      },
+      "measurement_status": "archived_synthetic_experiment"
+    },
+    {
+      "id": "e05:where3",
+      "kind": "where",
+      "session_links": {
+        "candidate_id": "e05",
+        "chain": 0,
+        "from": "2026-09-07T09:17:00+09:00",
+        "to": "2026-09-07T09:20:00+09:00"
+      },
+      "value": {
+        "id": "e05:where3",
+        "kind": "where",
+        "text": "늘벗근린공원 가까운 구간에서 양재천 가까운 구간으로 주변 특징이 바뀜"
+      },
+      "meaning": "늘벗근린공원 가까운 구간에서 양재천 가까운 구간으로 주변 특징이 바뀜",
+      "provenance": {
+        "source_input_sha256": "f2ca42c655fb09a61beb45eb61075baba1291681d19c626264b70f39320f6cd0",
+        "source_event_id": "e05",
+        "kind": "archived_derived_evidence",
+        "note": "Public spatial cache with synthetic route/pins; not recomputed"
+      },
+      "measurement_status": "archived_synthetic_experiment"
+    },
+    {
+      "id": "e06:what0",
+      "kind": "what",
+      "session_links": {
+        "candidate_id": "e06",
+        "chain": 0,
+        "from": "2026-09-07T09:21:00+09:00",
+        "to": "2026-09-07T09:24:00+09:00"
+      },
+      "value": {
+        "id": "e06:what0",
+        "kind": "what",
+        "text": "보호자와 두부의 이동 기록",
+        "subject_ids": [
+          "who:guardian",
+          "who:dog"
+        ]
+      },
+      "meaning": "보호자와 두부의 이동 기록",
+      "provenance": {
+        "source_input_sha256": "f2ca42c655fb09a61beb45eb61075baba1291681d19c626264b70f39320f6cd0",
+        "source_event_id": "e06",
+        "kind": "archived_derived_evidence",
+        "note": "Public spatial cache with synthetic route/pins; not recomputed"
+      },
+      "measurement_status": "archived_synthetic_experiment"
+    },
+    {
+      "id": "e06:where0",
+      "kind": "where",
+      "session_links": {
+        "candidate_id": "e06",
+        "chain": 0,
+        "from": "2026-09-07T09:21:00+09:00",
+        "to": "2026-09-07T09:24:00+09:00"
+      },
+      "value": {
+        "id": "e06:where0",
+        "kind": "where",
+        "text": "등록 상가가 모인 구간"
+      },
+      "meaning": "등록 상가가 모인 구간",
+      "provenance": {
+        "source_input_sha256": "f2ca42c655fb09a61beb45eb61075baba1291681d19c626264b70f39320f6cd0",
+        "source_event_id": "e06",
+        "kind": "archived_derived_evidence",
+        "note": "Public spatial cache with synthetic route/pins; not recomputed"
+      },
+      "measurement_status": "archived_synthetic_experiment"
+    },
+    {
+      "id": "e06:where3",
+      "kind": "where",
+      "session_links": {
+        "candidate_id": "e06",
+        "chain": 0,
+        "from": "2026-09-07T09:21:00+09:00",
+        "to": "2026-09-07T09:24:00+09:00"
+      },
+      "value": {
+        "id": "e06:where3",
+        "kind": "where",
+        "text": "양재천 가까운 구간에서 등록 상가가 모인 구간으로 주변 특징이 바뀜"
+      },
+      "meaning": "양재천 가까운 구간에서 등록 상가가 모인 구간으로 주변 특징이 바뀜",
+      "provenance": {
+        "source_input_sha256": "f2ca42c655fb09a61beb45eb61075baba1291681d19c626264b70f39320f6cd0",
+        "source_event_id": "e06",
+        "kind": "archived_derived_evidence",
+        "note": "Public spatial cache with synthetic route/pins; not recomputed"
+      },
+      "measurement_status": "archived_synthetic_experiment"
+    },
+    {
+      "id": "e07:what0",
+      "kind": "what",
+      "session_links": {
+        "candidate_id": "e07",
+        "chain": 0,
+        "from": "2026-09-07T09:25:00+09:00",
+        "to": "2026-09-07T09:27:00+09:00"
+      },
+      "value": {
+        "id": "e07:what0",
+        "kind": "what",
+        "text": "보호자와 두부의 이동 기록",
+        "subject_ids": [
+          "who:guardian",
+          "who:dog"
+        ]
+      },
+      "meaning": "보호자와 두부의 이동 기록",
+      "provenance": {
+        "source_input_sha256": "f2ca42c655fb09a61beb45eb61075baba1291681d19c626264b70f39320f6cd0",
+        "source_event_id": "e07",
+        "kind": "archived_derived_evidence",
+        "note": "Public spatial cache with synthetic route/pins; not recomputed"
+      },
+      "measurement_status": "archived_synthetic_experiment"
+    },
+    {
+      "id": "e07:where0",
+      "kind": "where",
+      "session_links": {
+        "candidate_id": "e07",
+        "chain": 0,
+        "from": "2026-09-07T09:25:00+09:00",
+        "to": "2026-09-07T09:27:00+09:00"
+      },
+      "value": {
+        "id": "e07:where0",
+        "kind": "where",
+        "text": "등록 상가가 적은 구간"
+      },
+      "meaning": "등록 상가가 적은 구간",
+      "provenance": {
+        "source_input_sha256": "f2ca42c655fb09a61beb45eb61075baba1291681d19c626264b70f39320f6cd0",
+        "source_event_id": "e07",
+        "kind": "archived_derived_evidence",
+        "note": "Public spatial cache with synthetic route/pins; not recomputed"
+      },
+      "measurement_status": "archived_synthetic_experiment"
+    },
+    {
+      "id": "e07:where2",
+      "kind": "where",
+      "session_links": {
+        "candidate_id": "e07",
+        "chain": 0,
+        "from": "2026-09-07T09:25:00+09:00",
+        "to": "2026-09-07T09:27:00+09:00"
+      },
+      "value": {
+        "id": "e07:where2",
+        "kind": "where",
+        "text": "등록 상가가 모인 구간에서 등록 상가가 적은 구간으로 주변 특징이 바뀜"
+      },
+      "meaning": "등록 상가가 모인 구간에서 등록 상가가 적은 구간으로 주변 특징이 바뀜",
+      "provenance": {
+        "source_input_sha256": "f2ca42c655fb09a61beb45eb61075baba1291681d19c626264b70f39320f6cd0",
+        "source_event_id": "e07",
+        "kind": "archived_derived_evidence",
+        "note": "Public spatial cache with synthetic route/pins; not recomputed"
+      },
+      "measurement_status": "archived_synthetic_experiment"
+    },
+    {
+      "id": "e08:what0",
+      "kind": "what",
+      "session_links": {
+        "candidate_id": "e08",
+        "chain": 0,
+        "from": "2026-09-07T09:28:00+09:00",
+        "to": "2026-09-07T09:33:00+09:00"
+      },
+      "value": {
+        "id": "e08:what0",
+        "kind": "what",
+        "text": "보호자와 두부의 이동 기록",
+        "subject_ids": [
+          "who:guardian",
+          "who:dog"
+        ]
+      },
+      "meaning": "보호자와 두부의 이동 기록",
+      "provenance": {
+        "source_input_sha256": "f2ca42c655fb09a61beb45eb61075baba1291681d19c626264b70f39320f6cd0",
+        "source_event_id": "e08",
+        "kind": "archived_derived_evidence",
+        "note": "Public spatial cache with synthetic route/pins; not recomputed"
+      },
+      "measurement_status": "archived_synthetic_experiment"
+    },
+    {
+      "id": "e08:where0",
+      "kind": "where",
+      "session_links": {
+        "candidate_id": "e08",
+        "chain": 0,
+        "from": "2026-09-07T09:28:00+09:00",
+        "to": "2026-09-07T09:33:00+09:00"
+      },
+      "value": {
+        "id": "e08:where0",
+        "kind": "where",
+        "text": "양재천 가까운 구간"
+      },
+      "meaning": "양재천 가까운 구간",
+      "provenance": {
+        "source_input_sha256": "f2ca42c655fb09a61beb45eb61075baba1291681d19c626264b70f39320f6cd0",
+        "source_event_id": "e08",
+        "kind": "archived_derived_evidence",
+        "note": "Public spatial cache with synthetic route/pins; not recomputed"
+      },
+      "measurement_status": "archived_synthetic_experiment"
+    },
+    {
+      "id": "e08:where3",
+      "kind": "where",
+      "session_links": {
+        "candidate_id": "e08",
+        "chain": 0,
+        "from": "2026-09-07T09:28:00+09:00",
+        "to": "2026-09-07T09:33:00+09:00"
+      },
+      "value": {
+        "id": "e08:where3",
+        "kind": "where",
+        "text": "양재천까지 거리가 줄었다가 다시 늘어남"
+      },
+      "meaning": "양재천까지 거리가 줄었다가 다시 늘어남",
+      "provenance": {
+        "source_input_sha256": "f2ca42c655fb09a61beb45eb61075baba1291681d19c626264b70f39320f6cd0",
+        "source_event_id": "e08",
+        "kind": "archived_derived_evidence",
+        "note": "Public spatial cache with synthetic route/pins; not recomputed"
+      },
+      "measurement_status": "archived_synthetic_experiment"
+    },
+    {
+      "id": "e09:what0",
+      "kind": "what",
+      "session_links": {
+        "candidate_id": "e09",
+        "chain": 0,
+        "from": "2026-09-07T09:34:00+09:00",
+        "to": "2026-09-07T09:36:00+09:00"
+      },
+      "value": {
+        "id": "e09:what0",
+        "kind": "what",
+        "text": "보호자와 두부의 이동 기록",
+        "subject_ids": [
+          "who:guardian",
+          "who:dog"
+        ]
+      },
+      "meaning": "보호자와 두부의 이동 기록",
+      "provenance": {
+        "source_input_sha256": "f2ca42c655fb09a61beb45eb61075baba1291681d19c626264b70f39320f6cd0",
+        "source_event_id": "e09",
+        "kind": "archived_derived_evidence",
+        "note": "Public spatial cache with synthetic route/pins; not recomputed"
+      },
+      "measurement_status": "archived_synthetic_experiment"
+    },
+    {
+      "id": "e09:where0",
+      "kind": "where",
+      "session_links": {
+        "candidate_id": "e09",
+        "chain": 0,
+        "from": "2026-09-07T09:34:00+09:00",
+        "to": "2026-09-07T09:36:00+09:00"
+      },
+      "value": {
+        "id": "e09:where0",
+        "kind": "where",
+        "text": "등록 상가가 적은 구간"
+      },
+      "meaning": "등록 상가가 적은 구간",
+      "provenance": {
+        "source_input_sha256": "f2ca42c655fb09a61beb45eb61075baba1291681d19c626264b70f39320f6cd0",
+        "source_event_id": "e09",
+        "kind": "archived_derived_evidence",
+        "note": "Public spatial cache with synthetic route/pins; not recomputed"
+      },
+      "measurement_status": "archived_synthetic_experiment"
+    },
+    {
+      "id": "e09:where3",
+      "kind": "where",
+      "session_links": {
+        "candidate_id": "e09",
+        "chain": 0,
+        "from": "2026-09-07T09:34:00+09:00",
+        "to": "2026-09-07T09:36:00+09:00"
+      },
+      "value": {
+        "id": "e09:where3",
+        "kind": "where",
+        "text": "양재천 가까운 구간에서 등록 상가가 적은 구간으로 주변 특징이 바뀜"
+      },
+      "meaning": "양재천 가까운 구간에서 등록 상가가 적은 구간으로 주변 특징이 바뀜",
+      "provenance": {
+        "source_input_sha256": "f2ca42c655fb09a61beb45eb61075baba1291681d19c626264b70f39320f6cd0",
+        "source_event_id": "e09",
+        "kind": "archived_derived_evidence",
+        "note": "Public spatial cache with synthetic route/pins; not recomputed"
+      },
+      "measurement_status": "archived_synthetic_experiment"
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "version": "slot-stamp-experiment-v1",
+  "model": "gemini-3.1-flash-lite",
+  "settings": {
+    "temperature": 0.2,
+    "maxOutputTokens": 4096
+  },
+  "max_attempts": 6,
+  "automatic_retries": 0,
+  "observed_token_stop_threshold": 100000,
+  "max_request_bytes": 100000,
+  "source_input_sha256": {
+    "movement": "f2ca42c655fb09a61beb45eb61075baba1291681d19c626264b70f39320f6cd0",
+    "actions": "94d785116881e7816e4895a6bce9c6f37f445792eee9da4ad927961e062bb1f6",
+    "gap": "0fa7af0d7444eb6067a6c209efad1834a3f7006212b15e5bd323c66f2a08b2f9"
+  },
+  "materials_sha256": {
+    "movement": "dcaa5c7e50dea7f897bbe15cac280961a0c597b86d44b66ee3fb782b4814b8c2",
+    "actions": "d28a2fb931c051e508ba15b520b1cfa402c995e6f3fc76f873c539430554ff75",
+    "gap": "e623df290d8ffce4a76631518dab6dbe8f09b102529a02cbcae207fc45e43d3e"
+  },
+  "select_request_sha256": {
+    "movement": "7332c1aaec7390d3791221f3fdd2b3ec0e3cd419c641c986c182eb886902bc4d",
+    "actions": "b3b79b5aaa4582fecceda37dca67d4503053bdb4c51966bb0bd1e8ee056d0322",
+    "gap": "1cdd0b1959748ac86ad79cabfc8250e5423f471bd9f6590c27a7ae5754de8943"
+  },
+  "prompts_sha256": "9342233c52d3746f0344c676beecf1aa2f010853b791037fc940db1aec1bced4",
+  "implementation_sha256": "962b5673985344113a87f7a82a1710eadf31a78b374f1ffca1f6f55bd0aa548a",
+  "note": "Selection and writing differ from v2 planning-only. No direct quality/cost equivalence. Token threshold checks known usage before next call, not a hard cost ceiling."
+}
