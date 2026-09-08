@@ -283,6 +283,26 @@ async def test_backfill_initial_counts_original_time_and_certification(db):
     ] == 1000
 
 
+@pytest.mark.parametrize("certified_ms", [None, 0, HOUR_MS - 300_000])
+async def test_v2_import_preserves_expired_or_remaining_protection(db, certified_ms):
+    await db.seed(
+        rules=Rules(),
+        starts=HOUR_MS,
+        initial_owners={
+            "A": Ownership("p1", "walk:old", "claim:old", "VERIFIED", 0, certified_ms),
+        },
+    )
+    row = (await db.query("SELECT * FROM territory_policy_site WHERE site_id='A'"))[0]
+    assert row["occupied_ms"] == HOUR_MS
+    assert row["certified_ms"] == (0 if certified_ms is None else certified_ms)
+    available_at = max(HOUR_MS, row["certified_ms"] + 600_000)
+    candidate = command("photo:takeover", "p2", 1, photo=True)
+    if available_at > HOUR_MS:
+        with pytest.raises(GameError, match="protected"):
+            await db.apply(candidate, at=available_at - 1)
+    assert (await db.apply(candidate, at=available_at)).bonus == 100
+
+
 async def test_finalize_rollback_history_immutability_and_late_callback(db):
     class Failing(ClockedTransaction):
         async def finalize(self, plan):

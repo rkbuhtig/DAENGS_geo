@@ -447,6 +447,10 @@ async def create_season(
                 season.rules.unverified_scores or owner.certification == "VERIFIED"
             )
         values = asdict(owner) if owner else {f.name: None for f in fields(Ownership)}
+        # Score accrual starts at the new season; certification protection keeps
+        # its original clock, including pre-certified_ms ownership imports.
+        if owner and owner.certification == "VERIFIED" and owner.certified_ms is None:
+            values["certified_ms"] = owner.occupied_ms
         await tx._rows(
             """
             INSERT INTO territory_policy_site
