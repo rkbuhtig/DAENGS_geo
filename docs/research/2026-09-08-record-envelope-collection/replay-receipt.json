@@ -1,0 +1,26 @@
+{
+  "policy": "record-envelope-gangnam-v1",
+  "input_sha256": "10c8394f5b53ad3bd415caaae3507ed0140c41d70690131b4c6debff766ef6b6",
+  "snapshot_sha256": "10c8394f5b53ad3bd415caaae3507ed0140c41d70690131b4c6debff766ef6b6",
+  "synthetic_records": true,
+  "context_mode": "provider",
+  "http_requests": 0,
+  "cache_hits": 6,
+  "query_groups": 6,
+  "records": 6,
+  "envelopes": 24,
+  "selected_statuses": {
+    "known": 5,
+    "partial": 10,
+    "unavailable": 5,
+    "not_requested": 4
+  },
+  "source_receipt_sha256": [
+    "53e084615c6aa4420e79c2447dffa54435e3adff64aeb7d16b64f41eddd1f40f",
+    "5cde5c00a74c7f8affa0372a71fc05cd585128ea914ee44c074b342e2c04bd4c",
+    "6d05039d88f0cfeba7355d2b6b60325053b57c9a1594fa921e0cda5a4036dfec",
+    "7facd868250daaa64863b847a46ad5fedd84e7c39d50af16eef97b53ecc8deb4",
+    "8aac795e9abbf5c918286c9f01ee52a65b469e92974f31ffc667108e45c8f7f0",
+    "d014e64ebe21c88cafa9b5dc0bce88bd5248a1cc70b650e249f6dd1a326fdef0"
+  ]
+}

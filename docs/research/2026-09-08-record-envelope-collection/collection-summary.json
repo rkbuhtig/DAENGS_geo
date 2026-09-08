@@ -1,0 +1,131 @@
+{
+  "type": "public-source-collection-summary-v1",
+  "http_requests": 8,
+  "query_groups": 6,
+  "sources": [
+    {
+      "identity": {
+        "source": "commerce",
+        "query": {
+          "cx": 127.054,
+          "cy": 37.4843,
+          "radius": 250
+        },
+        "max_pages": 3,
+        "collector_version": "record-source-v1"
+      },
+      "endpoint": "https://apis.data.go.kr/B553077/api/open/sdsc2/storeListInRadius",
+      "source_url": "https://www.data.go.kr/data/15012005/openapi.do",
+      "retrieved_at": "2026-09-08T04:52:26.388633+00:00",
+      "status": "known",
+      "reason": null,
+      "reported_total": 113,
+      "sha256": "8aac795e9abbf5c918286c9f01ee52a65b469e92974f31ffc667108e45c8f7f0",
+      "successful_pages": 1,
+      "read_rows": 113
+    },
+    {
+      "identity": {
+        "source": "commerce",
+        "query": {
+          "cx": 127.05633,
+          "cy": 37.48928,
+          "radius": 250
+        },
+        "max_pages": 3,
+        "collector_version": "record-source-v1"
+      },
+      "endpoint": "https://apis.data.go.kr/B553077/api/open/sdsc2/storeListInRadius",
+      "source_url": "https://www.data.go.kr/data/15012005/openapi.do",
+      "retrieved_at": "2026-09-08T04:52:26.166343+00:00",
+      "status": "known",
+      "reason": null,
+      "reported_total": 77,
+      "sha256": "6d05039d88f0cfeba7355d2b6b60325053b57c9a1594fa921e0cda5a4036dfec",
+      "successful_pages": 1,
+      "read_rows": 77
+    },
+    {
+      "identity": {
+        "source": "commerce",
+        "query": {
+          "cx": 127.052,
+          "cy": 37.487,
+          "radius": 250
+        },
+        "max_pages": 3,
+        "collector_version": "record-source-v1"
+      },
+      "endpoint": "https://apis.data.go.kr/B553077/api/open/sdsc2/storeListInRadius",
+      "source_url": "https://www.data.go.kr/data/15012005/openapi.do",
+      "retrieved_at": "2026-09-08T04:52:26.535195+00:00",
+      "status": "known",
+      "reason": null,
+      "reported_total": 257,
+      "sha256": "7facd868250daaa64863b847a46ad5fedd84e7c39d50af16eef97b53ecc8deb4",
+      "successful_pages": 1,
+      "read_rows": 257
+    },
+    {
+      "identity": {
+        "source": "parks",
+        "query": {
+          "instt_nm": "서울특별시 강남구"
+        },
+        "max_pages": 3,
+        "collector_version": "record-source-v1"
+      },
+      "endpoint": "https://api.data.go.kr/openapi/tn_pubr_public_cty_park_info_api",
+      "source_url": "https://www.data.go.kr/data/15012890/standard.do",
+      "retrieved_at": "2026-09-08T04:52:25.510192+00:00",
+      "status": "known",
+      "reason": null,
+      "reported_total": 146,
+      "sha256": "53e084615c6aa4420e79c2447dffa54435e3adff64aeb7d16b64f41eddd1f40f",
+      "successful_pages": 1,
+      "read_rows": 146
+    },
+    {
+      "identity": {
+        "source": "rivers",
+        "query": {},
+        "max_pages": 3,
+        "collector_version": "record-source-v1"
+      },
+      "endpoint": "https://api.data.go.kr/openapi/tn_pubr_public_river_info_api",
+      "source_url": "https://www.data.go.kr/data/15139206/standard.do",
+      "retrieved_at": "2026-09-08T04:52:25.755592+00:00",
+      "status": "known",
+      "reason": null,
+      "reported_total": 2558,
+      "sha256": "d014e64ebe21c88cafa9b5dc0bce88bd5248a1cc70b650e249f6dd1a326fdef0",
+      "successful_pages": 3,
+      "read_rows": 2558
+    },
+    {
+      "identity": {
+        "source": "weather",
+        "query": {
+          "dataCd": "ASOS",
+          "dateCd": "HR",
+          "startDt": "20260907",
+          "startHh": "15",
+          "endDt": "20260907",
+          "endHh": "15",
+          "stnIds": "108"
+        },
+        "max_pages": 3,
+        "collector_version": "record-source-v1"
+      },
+      "endpoint": "https://apis.data.go.kr/1360000/AsosHourlyInfoService/getWthrDataList",
+      "source_url": "https://www.data.go.kr/data/15057210/openapi.do",
+      "retrieved_at": "2026-09-08T04:52:26.303874+00:00",
+      "status": "unavailable",
+      "reason": "http_403",
+      "reported_total": null,
+      "sha256": "5cde5c00a74c7f8affa0372a71fc05cd585128ea914ee44c074b342e2c04bd4c",
+      "successful_pages": 0,
+      "read_rows": 0
+    }
+  ]
+}

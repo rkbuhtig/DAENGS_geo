@@ -1,0 +1,182 @@
+{
+  "schema_version": "walk-record-envelopes-v1",
+  "synthetic": true,
+  "owner_id": "synthetic-owner",
+  "records": [
+    {
+      "ref": {
+        "store": "walk_entry",
+        "id": "gangnam-behavior-01",
+        "version": "1",
+        "version_kind": "revision"
+      },
+      "owner_id": "synthetic-owner",
+      "session_id": "synthetic-gangnam-20260907",
+      "session_pet_ids": [
+        "synthetic-dubu"
+      ],
+      "event_at": "2026-09-07T15:03:00+09:00",
+      "time_basis": "recorded_at",
+      "authored_at": "2026-09-07T15:03:00+09:00",
+      "location": {
+        "point": {
+          "lat": 37.48928,
+          "lng": 127.05633
+        },
+        "captured_at": "2026-09-07T15:03:00+09:00",
+        "accuracy_m": 8,
+        "basis": "device_fix",
+        "observation_ref": "synthetic-gangnam-20260907/fix-gangnam-behavior-01"
+      },
+      "content": {
+        "kind": "behavior",
+        "code": "sniffing",
+        "pet_id": "synthetic-dubu"
+      }
+    },
+    {
+      "ref": {
+        "store": "walk_entry",
+        "id": "gangnam-note-01",
+        "version": "1",
+        "version_kind": "revision"
+      },
+      "owner_id": "synthetic-owner",
+      "session_id": "synthetic-gangnam-20260907",
+      "session_pet_ids": [
+        "synthetic-dubu"
+      ],
+      "event_at": "2026-09-07T15:03:00+09:00",
+      "time_basis": "recorded_at",
+      "authored_at": "2026-09-07T15:03:00+09:00",
+      "location": {
+        "point": {
+          "lat": 37.48928,
+          "lng": 127.05633
+        },
+        "captured_at": "2026-09-07T15:03:00+09:00",
+        "accuracy_m": 8,
+        "basis": "device_fix",
+        "observation_ref": "synthetic-gangnam-20260907/fix-gangnam-note-01"
+      },
+      "content": {
+        "kind": "note",
+        "text": "  바람이 불어서 잠깐 쉬었다.\n오늘은 천천히 걷고 싶었다.  "
+      }
+    },
+    {
+      "ref": {
+        "store": "walk_photo",
+        "id": "gangnam-photo-01",
+        "version": "eadace911a345f43b456264ef27b61eeb095ee10c3309d86d63ebc30104cc193",
+        "version_kind": "sha256"
+      },
+      "owner_id": "synthetic-owner",
+      "session_id": "synthetic-gangnam-20260907",
+      "session_pet_ids": [
+        "synthetic-dubu"
+      ],
+      "event_at": "2026-09-07T15:05:00+09:00",
+      "time_basis": "photo_capture",
+      "authored_at": "2026-09-07T15:05:00+09:00",
+      "location": {
+        "point": {
+          "lat": 37.4843,
+          "lng": 127.054
+        },
+        "captured_at": "2026-09-07T15:05:00+09:00",
+        "accuracy_m": 8,
+        "basis": "device_fix",
+        "observation_ref": "synthetic-gangnam-20260907/fix-gangnam-photo-01"
+      },
+      "content": {
+        "kind": "photo",
+        "media_ref": "fixture-media:gangnam-photo-01"
+      }
+    },
+    {
+      "ref": {
+        "store": "walk_entry",
+        "id": "gangnam-note-later",
+        "version": "1",
+        "version_kind": "revision"
+      },
+      "owner_id": "synthetic-owner",
+      "session_id": "synthetic-gangnam-20260907",
+      "session_pet_ids": [
+        "synthetic-dubu"
+      ],
+      "event_at": "2026-09-07T15:06:00+09:00",
+      "time_basis": "route_observation",
+      "authored_at": "2026-09-08T21:10:00+09:00",
+      "location": {
+        "point": {
+          "lat": 37.487,
+          "lng": 127.052
+        },
+        "captured_at": "2026-09-07T15:06:00+09:00",
+        "accuracy_m": 8,
+        "basis": "route_observation",
+        "observation_ref": "synthetic-gangnam-20260907/fix-gangnam-note-later"
+      },
+      "content": {
+        "kind": "note",
+        "text": "어제 이곳에서 노을을 보며 쉬었다. 오래 기억하고 싶은 순간."
+      }
+    },
+    {
+      "ref": {
+        "store": "walk_entry",
+        "id": "gangnam-note-unlocated",
+        "version": "1",
+        "version_kind": "revision"
+      },
+      "owner_id": "synthetic-owner",
+      "session_id": "synthetic-gangnam-20260907",
+      "session_pet_ids": [
+        "synthetic-dubu"
+      ],
+      "event_at": "2026-09-07T15:40:00+09:00",
+      "time_basis": "recorded_at",
+      "authored_at": "2026-09-07T15:40:00+09:00",
+      "location": null,
+      "content": {
+        "kind": "note",
+        "text": "오늘 산책은 마음을 정리하는 시간이었다."
+      }
+    },
+    {
+      "ref": {
+        "store": "walk_entry",
+        "id": "gangnam-note-legacy",
+        "version": "1",
+        "version_kind": "revision"
+      },
+      "owner_id": "synthetic-owner",
+      "session_id": "synthetic-gangnam-20260907",
+      "session_pet_ids": [
+        "synthetic-dubu"
+      ],
+      "event_at": "2026-09-07T15:08:00+09:00",
+      "time_basis": "route_observation",
+      "authored_at": null,
+      "location": {
+        "point": {
+          "lat": 37.48928,
+          "lng": 127.05633
+        },
+        "captured_at": "2026-09-07T15:08:00+09:00",
+        "accuracy_m": 8,
+        "basis": "route_observation",
+        "observation_ref": "synthetic-gangnam-20260907/fix-gangnam-note-legacy"
+      },
+      "content": {
+        "kind": "note",
+        "text": "집에 돌아와 덧붙인 메모. 실제 작성 시각은 기존 자료에 없다."
+      }
+    }
+  ],
+  "envelopes": [],
+  "selected_envelope_ids": [],
+  "context_mode": "provider"
+}

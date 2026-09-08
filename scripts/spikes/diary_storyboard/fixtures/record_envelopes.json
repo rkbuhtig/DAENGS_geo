@@ -1,0 +1,517 @@
+{
+  "schema_version": "walk-record-envelopes-v1",
+  "synthetic": true,
+  "owner_id": "synthetic-owner",
+  "records": [
+    {
+      "ref": {
+        "store": "walk_entry",
+        "id": "behavior-01",
+        "version": "1",
+        "version_kind": "revision"
+      },
+      "owner_id": "synthetic-owner",
+      "session_id": "synthetic-walk-01",
+      "session_pet_ids": [
+        "synthetic-dubu"
+      ],
+      "event_at": "2026-09-07T15:03:00+09:00",
+      "time_basis": "recorded_at",
+      "authored_at": "2026-09-07T15:03:00+09:00",
+      "location": {
+        "point": {
+          "lat": 37.5665,
+          "lng": 126.978
+        },
+        "captured_at": "2026-09-07T15:03:00+09:00",
+        "accuracy_m": 8,
+        "basis": "device_fix",
+        "observation_ref": "synthetic-walk-01/fix-behavior-01"
+      },
+      "content": {
+        "kind": "behavior",
+        "code": "sniffing",
+        "pet_id": "synthetic-dubu"
+      }
+    },
+    {
+      "ref": {
+        "store": "walk_entry",
+        "id": "note-01",
+        "version": "1",
+        "version_kind": "revision"
+      },
+      "owner_id": "synthetic-owner",
+      "session_id": "synthetic-walk-01",
+      "session_pet_ids": [
+        "synthetic-dubu"
+      ],
+      "event_at": "2026-09-07T15:03:00+09:00",
+      "time_basis": "recorded_at",
+      "authored_at": "2026-09-07T15:03:00+09:00",
+      "location": {
+        "point": {
+          "lat": 37.5665,
+          "lng": 126.978
+        },
+        "captured_at": "2026-09-07T15:03:00+09:00",
+        "accuracy_m": 8,
+        "basis": "device_fix",
+        "observation_ref": "synthetic-walk-01/fix-note-01"
+      },
+      "content": {
+        "kind": "note",
+        "text": "  바람이 불어서 잠깐 쉬었다.\n오늘은 천천히 걷고 싶었다.  "
+      }
+    },
+    {
+      "ref": {
+        "store": "walk_photo",
+        "id": "photo-01",
+        "version": "cae1a235ad157fa053790ca0f6c4aeef346c7e862e839f1d9fe9cdb8371cff14",
+        "version_kind": "sha256"
+      },
+      "owner_id": "synthetic-owner",
+      "session_id": "synthetic-walk-01",
+      "session_pet_ids": [
+        "synthetic-dubu"
+      ],
+      "event_at": "2026-09-07T15:05:00+09:00",
+      "time_basis": "photo_capture",
+      "authored_at": "2026-09-07T15:05:00+09:00",
+      "location": {
+        "point": {
+          "lat": 37.5665,
+          "lng": 126.978
+        },
+        "captured_at": "2026-09-07T15:05:00+09:00",
+        "accuracy_m": 8,
+        "basis": "device_fix",
+        "observation_ref": "synthetic-walk-01/fix-photo-01"
+      },
+      "content": {
+        "kind": "photo",
+        "media_ref": "fixture-media:photo-01"
+      }
+    },
+    {
+      "ref": {
+        "store": "walk_entry",
+        "id": "note-later",
+        "version": "1",
+        "version_kind": "revision"
+      },
+      "owner_id": "synthetic-owner",
+      "session_id": "synthetic-walk-01",
+      "session_pet_ids": [
+        "synthetic-dubu"
+      ],
+      "event_at": "2026-09-07T15:06:00+09:00",
+      "time_basis": "route_observation",
+      "authored_at": "2026-09-08T21:10:00+09:00",
+      "location": {
+        "point": {
+          "lat": 37.5665,
+          "lng": 126.978
+        },
+        "captured_at": "2026-09-07T15:06:00+09:00",
+        "accuracy_m": 8,
+        "basis": "route_observation",
+        "observation_ref": "synthetic-walk-01/fix-note-later"
+      },
+      "content": {
+        "kind": "note",
+        "text": "어제 이곳에서 노을을 보며 쉬었다. 오래 기억하고 싶은 순간."
+      }
+    },
+    {
+      "ref": {
+        "store": "walk_entry",
+        "id": "note-unlocated",
+        "version": "1",
+        "version_kind": "revision"
+      },
+      "owner_id": "synthetic-owner",
+      "session_id": "synthetic-walk-01",
+      "session_pet_ids": [
+        "synthetic-dubu"
+      ],
+      "event_at": "2026-09-07T15:40:00+09:00",
+      "time_basis": "recorded_at",
+      "authored_at": "2026-09-07T15:40:00+09:00",
+      "location": null,
+      "content": {
+        "kind": "note",
+        "text": "오늘 산책은 마음을 정리하는 시간이었다."
+      }
+    },
+    {
+      "ref": {
+        "store": "walk_entry",
+        "id": "note-legacy",
+        "version": "1",
+        "version_kind": "revision"
+      },
+      "owner_id": "synthetic-owner",
+      "session_id": "synthetic-walk-01",
+      "session_pet_ids": [
+        "synthetic-dubu"
+      ],
+      "event_at": "2026-09-07T15:08:00+09:00",
+      "time_basis": "route_observation",
+      "authored_at": null,
+      "location": {
+        "point": {
+          "lat": 37.5665,
+          "lng": 126.978
+        },
+        "captured_at": "2026-09-07T15:08:00+09:00",
+        "accuracy_m": 8,
+        "basis": "route_observation",
+        "observation_ref": "synthetic-walk-01/fix-note-legacy"
+      },
+      "content": {
+        "kind": "note",
+        "text": "집에 돌아와 덧붙인 메모. 실제 작성 시각은 기존 자료에 없다."
+      }
+    }
+  ],
+  "envelopes": [
+    {
+      "id": "park-01",
+      "target": {
+        "record": {
+          "store": "walk_entry",
+          "id": "behavior-01",
+          "version": "1",
+          "version_kind": "revision"
+        },
+        "event_at": "2026-09-07T15:03:00+09:00",
+        "point": {
+          "lat": 37.5665,
+          "lng": 126.978
+        },
+        "radius_m": 100
+      },
+      "tags": [
+        "space.park"
+      ],
+      "status": "known",
+      "reason": null,
+      "provenance": {
+        "provider": "synthetic-provider",
+        "operation": "space.park",
+        "retrieved_at": "2026-09-07T16:00:00+09:00",
+        "temporal_basis": "lookup_snapshot",
+        "valid_time": null,
+        "policy_version": "fixture-policy-v1",
+        "synthetic": true
+      },
+      "payload_format": "synthetic-provider-response-v1",
+      "payload": {
+        "features": [
+          {
+            "id": "synthetic-park-01",
+            "name": "가상 공원",
+            "geometry_reference": "representative_point",
+            "distance_m": 65
+          }
+        ],
+        "query_radius_m": 100
+      },
+      "payload_sha256": "4b66f569d076c128fcf5d4f70835a7321700e1eb515b46f146cc8c13bb77b80f",
+      "supersedes": null
+    },
+    {
+      "id": "river-01",
+      "target": {
+        "record": {
+          "store": "walk_entry",
+          "id": "note-01",
+          "version": "1",
+          "version_kind": "revision"
+        },
+        "event_at": "2026-09-07T15:03:00+09:00",
+        "point": {
+          "lat": 37.5665,
+          "lng": 126.978
+        },
+        "radius_m": 100
+      },
+      "tags": [
+        "space.river"
+      ],
+      "status": "known",
+      "reason": null,
+      "provenance": {
+        "provider": "synthetic-provider",
+        "operation": "space.river",
+        "retrieved_at": "2026-09-07T16:00:00+09:00",
+        "temporal_basis": "lookup_snapshot",
+        "valid_time": null,
+        "policy_version": "fixture-policy-v1",
+        "synthetic": true
+      },
+      "payload_format": "synthetic-provider-response-v1",
+      "payload": {
+        "features": [
+          {
+            "id": "synthetic-river-01",
+            "name": "가상 하천",
+            "geometry_reference": "line",
+            "distance_m": 40
+          }
+        ],
+        "query_radius_m": 100
+      },
+      "payload_sha256": "c62142198fe49b5b88db92293d732cd1f04adc0ad71e79cf5181937be1bde3ef",
+      "supersedes": null
+    },
+    {
+      "id": "facilities-partial",
+      "target": {
+        "record": {
+          "store": "walk_entry",
+          "id": "note-01",
+          "version": "1",
+          "version_kind": "revision"
+        },
+        "event_at": "2026-09-07T15:03:00+09:00",
+        "point": {
+          "lat": 37.5665,
+          "lng": 126.978
+        },
+        "radius_m": 100
+      },
+      "tags": [
+        "space.facility"
+      ],
+      "status": "partial",
+      "reason": "result_limit",
+      "provenance": {
+        "provider": "synthetic-provider",
+        "operation": "space.facility",
+        "retrieved_at": "2026-09-07T16:00:00+09:00",
+        "temporal_basis": "lookup_snapshot",
+        "valid_time": null,
+        "policy_version": "fixture-policy-v1",
+        "synthetic": true
+      },
+      "payload_format": "synthetic-provider-response-v1",
+      "payload": {
+        "results": [
+          {
+            "id": "synthetic-cafe-01",
+            "category": "cafe",
+            "distance_m": 75
+          }
+        ],
+        "truncated": true
+      },
+      "payload_sha256": "04d88569a9a6753e727ace94102947f5506cca0666f03a70ce71cf3a2c7a0ca9",
+      "supersedes": null
+    },
+    {
+      "id": "facilities-empty",
+      "target": {
+        "record": {
+          "store": "walk_photo",
+          "id": "photo-01",
+          "version": "cae1a235ad157fa053790ca0f6c4aeef346c7e862e839f1d9fe9cdb8371cff14",
+          "version_kind": "sha256"
+        },
+        "event_at": "2026-09-07T15:05:00+09:00",
+        "point": {
+          "lat": 37.5665,
+          "lng": 126.978
+        },
+        "radius_m": 100
+      },
+      "tags": [
+        "space.facility"
+      ],
+      "status": "empty",
+      "reason": null,
+      "provenance": {
+        "provider": "synthetic-provider",
+        "operation": "space.facility",
+        "retrieved_at": "2026-09-07T16:00:00+09:00",
+        "temporal_basis": "lookup_snapshot",
+        "valid_time": null,
+        "policy_version": "fixture-policy-v1",
+        "synthetic": true
+      },
+      "payload_format": "synthetic-provider-response-v1",
+      "payload": {
+        "results": [],
+        "truncated": false
+      },
+      "payload_sha256": "f15f1e9287d9b4b2f53cf4a2d76872a83d6417cd4e253668efce11ececd528de",
+      "supersedes": null
+    },
+    {
+      "id": "weather-historical",
+      "target": {
+        "record": {
+          "store": "walk_entry",
+          "id": "note-later",
+          "version": "1",
+          "version_kind": "revision"
+        },
+        "event_at": "2026-09-07T15:06:00+09:00",
+        "point": {
+          "lat": 37.5665,
+          "lng": 126.978
+        },
+        "radius_m": 100
+      },
+      "tags": [
+        "environment.weather"
+      ],
+      "status": "known",
+      "reason": null,
+      "provenance": {
+        "provider": "synthetic-provider",
+        "operation": "environment.weather",
+        "retrieved_at": "2026-09-08T21:11:00+09:00",
+        "temporal_basis": "event_observation",
+        "valid_time": {
+          "start_at": "2026-09-07T15:00:00+09:00",
+          "end_at": "2026-09-07T16:00:00+09:00"
+        },
+        "policy_version": "fixture-policy-v1",
+        "synthetic": true
+      },
+      "payload_format": "synthetic-provider-response-v1",
+      "payload": {
+        "temperature_c": 24,
+        "precipitation_mm": 0,
+        "station_id": "synthetic-station"
+      },
+      "payload_sha256": "3c4cf4b4aaba4eb8e4f3b7c37ab94d0d9d88c1fbe6dde38dcea04d2b00a03188",
+      "supersedes": null
+    },
+    {
+      "id": "unlocated-not-requested",
+      "target": {
+        "record": {
+          "store": "walk_entry",
+          "id": "note-unlocated",
+          "version": "1",
+          "version_kind": "revision"
+        },
+        "event_at": "2026-09-07T15:40:00+09:00",
+        "point": null,
+        "radius_m": null
+      },
+      "tags": [
+        "space.park"
+      ],
+      "status": "not_requested",
+      "reason": "location_missing",
+      "provenance": {
+        "provider": "synthetic-provider",
+        "operation": "space.park",
+        "retrieved_at": null,
+        "temporal_basis": "unknown",
+        "valid_time": null,
+        "policy_version": "fixture-policy-v1",
+        "synthetic": true
+      },
+      "payload_format": "synthetic-provider-response-v1",
+      "payload": null,
+      "payload_sha256": null,
+      "supersedes": null
+    },
+    {
+      "id": "weather-unavailable",
+      "target": {
+        "record": {
+          "store": "walk_entry",
+          "id": "note-legacy",
+          "version": "1",
+          "version_kind": "revision"
+        },
+        "event_at": "2026-09-07T15:08:00+09:00",
+        "point": {
+          "lat": 37.5665,
+          "lng": 126.978
+        },
+        "radius_m": 100
+      },
+      "tags": [
+        "environment.weather"
+      ],
+      "status": "unavailable",
+      "reason": "provider_timeout",
+      "provenance": {
+        "provider": "synthetic-provider",
+        "operation": "environment.weather",
+        "retrieved_at": "2026-09-07T16:00:00+09:00",
+        "temporal_basis": "unknown",
+        "valid_time": null,
+        "policy_version": "fixture-policy-v1",
+        "synthetic": true
+      },
+      "payload_format": "synthetic-provider-response-v1",
+      "payload": null,
+      "payload_sha256": null,
+      "supersedes": null
+    },
+    {
+      "id": "park-02",
+      "target": {
+        "record": {
+          "store": "walk_entry",
+          "id": "behavior-01",
+          "version": "1",
+          "version_kind": "revision"
+        },
+        "event_at": "2026-09-07T15:03:00+09:00",
+        "point": {
+          "lat": 37.5665,
+          "lng": 126.978
+        },
+        "radius_m": 100
+      },
+      "tags": [
+        "space.park"
+      ],
+      "status": "known",
+      "reason": null,
+      "provenance": {
+        "provider": "synthetic-provider",
+        "operation": "space.park",
+        "retrieved_at": "2026-09-08T18:00:00+09:00",
+        "temporal_basis": "lookup_snapshot",
+        "valid_time": null,
+        "policy_version": "fixture-policy-v1",
+        "synthetic": true
+      },
+      "payload_format": "synthetic-provider-response-v1",
+      "payload": {
+        "features": [
+          {
+            "id": "synthetic-park-01",
+            "name": "가상 공원",
+            "geometry_reference": "representative_point",
+            "distance_m": 65
+          }
+        ],
+        "query_radius_m": 100,
+        "data_revision": "fixture-r2"
+      },
+      "payload_sha256": "9d81d7b2125f1066b3ae2d4b1e37a652be6371173ea8be9c7944ad505d5e61cc",
+      "supersedes": "park-01"
+    }
+  ],
+  "selected_envelope_ids": [
+    "river-01",
+    "facilities-partial",
+    "facilities-empty",
+    "weather-historical",
+    "unlocated-not-requested",
+    "weather-unavailable",
+    "park-02"
+  ]
+}

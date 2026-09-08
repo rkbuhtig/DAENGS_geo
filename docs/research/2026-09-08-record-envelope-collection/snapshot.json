@@ -1,0 +1,4521 @@
+{
+  "schema_version": "walk-record-envelopes-v1",
+  "synthetic": true,
+  "context_mode": "provider",
+  "owner_id": "synthetic-owner",
+  "records": [
+    {
+      "ref": {
+        "store": "walk_entry",
+        "id": "gangnam-behavior-01",
+        "version": "1",
+        "version_kind": "revision"
+      },
+      "owner_id": "synthetic-owner",
+      "session_id": "synthetic-gangnam-20260907",
+      "session_pet_ids": [
+        "synthetic-dubu"
+      ],
+      "event_at": "2026-09-07T15:03:00+09:00",
+      "time_basis": "recorded_at",
+      "authored_at": "2026-09-07T15:03:00+09:00",
+      "location": {
+        "point": {
+          "lat": 37.48928,
+          "lng": 127.05633
+        },
+        "captured_at": "2026-09-07T15:03:00+09:00",
+        "accuracy_m": 8.0,
+        "basis": "device_fix",
+        "observation_ref": "synthetic-gangnam-20260907/fix-gangnam-behavior-01"
+      },
+      "content": {
+        "kind": "behavior",
+        "code": "sniffing",
+        "pet_id": "synthetic-dubu"
+      }
+    },
+    {
+      "ref": {
+        "store": "walk_entry",
+        "id": "gangnam-note-01",
+        "version": "1",
+        "version_kind": "revision"
+      },
+      "owner_id": "synthetic-owner",
+      "session_id": "synthetic-gangnam-20260907",
+      "session_pet_ids": [
+        "synthetic-dubu"
+      ],
+      "event_at": "2026-09-07T15:03:00+09:00",
+      "time_basis": "recorded_at",
+      "authored_at": "2026-09-07T15:03:00+09:00",
+      "location": {
+        "point": {
+          "lat": 37.48928,
+          "lng": 127.05633
+        },
+        "captured_at": "2026-09-07T15:03:00+09:00",
+        "accuracy_m": 8.0,
+        "basis": "device_fix",
+        "observation_ref": "synthetic-gangnam-20260907/fix-gangnam-note-01"
+      },
+      "content": {
+        "kind": "note",
+        "text": "  바람이 불어서 잠깐 쉬었다.\n오늘은 천천히 걷고 싶었다.  "
+      }
+    },
+    {
+      "ref": {
+        "store": "walk_photo",
+        "id": "gangnam-photo-01",
+        "version": "eadace911a345f43b456264ef27b61eeb095ee10c3309d86d63ebc30104cc193",
+        "version_kind": "sha256"
+      },
+      "owner_id": "synthetic-owner",
+      "session_id": "synthetic-gangnam-20260907",
+      "session_pet_ids": [
+        "synthetic-dubu"
+      ],
+      "event_at": "2026-09-07T15:05:00+09:00",
+      "time_basis": "photo_capture",
+      "authored_at": "2026-09-07T15:05:00+09:00",
+      "location": {
+        "point": {
+          "lat": 37.4843,
+          "lng": 127.054
+        },
+        "captured_at": "2026-09-07T15:05:00+09:00",
+        "accuracy_m": 8.0,
+        "basis": "device_fix",
+        "observation_ref": "synthetic-gangnam-20260907/fix-gangnam-photo-01"
+      },
+      "content": {
+        "kind": "photo",
+        "media_ref": "fixture-media:gangnam-photo-01"
+      }
+    },
+    {
+      "ref": {
+        "store": "walk_entry",
+        "id": "gangnam-note-later",
+        "version": "1",
+        "version_kind": "revision"
+      },
+      "owner_id": "synthetic-owner",
+      "session_id": "synthetic-gangnam-20260907",
+      "session_pet_ids": [
+        "synthetic-dubu"
+      ],
+      "event_at": "2026-09-07T15:06:00+09:00",
+      "time_basis": "route_observation",
+      "authored_at": "2026-09-08T21:10:00+09:00",
+      "location": {
+        "point": {
+          "lat": 37.487,
+          "lng": 127.052
+        },
+        "captured_at": "2026-09-07T15:06:00+09:00",
+        "accuracy_m": 8.0,
+        "basis": "route_observation",
+        "observation_ref": "synthetic-gangnam-20260907/fix-gangnam-note-later"
+      },
+      "content": {
+        "kind": "note",
+        "text": "어제 이곳에서 노을을 보며 쉬었다. 오래 기억하고 싶은 순간."
+      }
+    },
+    {
+      "ref": {
+        "store": "walk_entry",
+        "id": "gangnam-note-unlocated",
+        "version": "1",
+        "version_kind": "revision"
+      },
+      "owner_id": "synthetic-owner",
+      "session_id": "synthetic-gangnam-20260907",
+      "session_pet_ids": [
+        "synthetic-dubu"
+      ],
+      "event_at": "2026-09-07T15:40:00+09:00",
+      "time_basis": "recorded_at",
+      "authored_at": "2026-09-07T15:40:00+09:00",
+      "location": null,
+      "content": {
+        "kind": "note",
+        "text": "오늘 산책은 마음을 정리하는 시간이었다."
+      }
+    },
+    {
+      "ref": {
+        "store": "walk_entry",
+        "id": "gangnam-note-legacy",
+        "version": "1",
+        "version_kind": "revision"
+      },
+      "owner_id": "synthetic-owner",
+      "session_id": "synthetic-gangnam-20260907",
+      "session_pet_ids": [
+        "synthetic-dubu"
+      ],
+      "event_at": "2026-09-07T15:08:00+09:00",
+      "time_basis": "route_observation",
+      "authored_at": null,
+      "location": {
+        "point": {
+          "lat": 37.48928,
+          "lng": 127.05633
+        },
+        "captured_at": "2026-09-07T15:08:00+09:00",
+        "accuracy_m": 8.0,
+        "basis": "route_observation",
+        "observation_ref": "synthetic-gangnam-20260907/fix-gangnam-note-legacy"
+      },
+      "content": {
+        "kind": "note",
+        "text": "집에 돌아와 덧붙인 메모. 실제 작성 시각은 기존 자료에 없다."
+      }
+    }
+  ],
+  "envelopes": [
+    {
+      "id": "env-2d17500ea2d758a9282ebce045c5e6cd",
+      "target": {
+        "record": {
+          "store": "walk_entry",
+          "id": "gangnam-behavior-01",
+          "version": "1",
+          "version_kind": "revision"
+        },
+        "event_at": "2026-09-07T15:03:00+09:00",
+        "point": {
+          "lat": 37.48928,
+          "lng": 127.05633
+        },
+        "radius_m": 250.0
+      },
+      "tags": [
+        "space.park"
+      ],
+      "status": "known",
+      "reason": null,
+      "provenance": {
+        "provider": "data.go.kr",
+        "operation": "parks",
+        "retrieved_at": "2026-09-08T04:52:25.510192Z",
+        "temporal_basis": "lookup_snapshot",
+        "valid_time": null,
+        "policy_version": "record-envelope-gangnam-v1",
+        "synthetic": false
+      },
+      "payload_format": "data-go-kr-field-projection-v1",
+      "payload": {
+        "query": {
+          "instt_nm": "서울특별시 강남구"
+        },
+        "source_url": "https://www.data.go.kr/data/15012890/standard.do",
+        "source_receipt_sha256": "53e084615c6aa4420e79c2447dffa54435e3adff64aeb7d16b64f41eddd1f40f",
+        "page_sha256": [
+          "87304417a849a609471808f362c72df5815cd34f89291fc976443756455fc076"
+        ],
+        "provider_metadata": [],
+        "coverage": {
+          "source_status": "known",
+          "source_reason": null,
+          "reported_total": 146,
+          "read_rows": 146,
+          "unusable_rows": 0,
+          "matched_rows": 1,
+          "returned_rows": 1
+        },
+        "items": [
+          {
+            "source_row_index": 20,
+            "provider_fields": {
+              "manageNo": "11680-00008",
+              "parkNm": "늘벗근린공원",
+              "parkSe": "근린공원",
+              "latitude": "37.48928087",
+              "longitude": "127.0563303",
+              "referenceDate": "2026-01-29",
+              "insttNm": "서울특별시 강남구"
+            },
+            "relation": {
+              "distance_m": 0.1,
+              "geometry_reference": "park_representative_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          }
+        ],
+        "limits": [
+          "Registered source geometry is not proof of a visit or behavior cause.",
+          "Source coverage is limited to the provider query and successfully read pages."
+        ]
+      },
+      "payload_sha256": "f6a77428e0b3fa69b9ebcde1608683e2c93b4fe10c68b6c1ea646d480b02b0b6",
+      "supersedes": null
+    },
+    {
+      "id": "env-e64e56139c69728c487ef94ba68989d1",
+      "target": {
+        "record": {
+          "store": "walk_entry",
+          "id": "gangnam-behavior-01",
+          "version": "1",
+          "version_kind": "revision"
+        },
+        "event_at": "2026-09-07T15:03:00+09:00",
+        "point": {
+          "lat": 37.48928,
+          "lng": 127.05633
+        },
+        "radius_m": 250.0
+      },
+      "tags": [
+        "space.river"
+      ],
+      "status": "partial",
+      "reason": "unusable_source_rows",
+      "provenance": {
+        "provider": "data.go.kr",
+        "operation": "rivers",
+        "retrieved_at": "2026-09-08T04:52:25.755592Z",
+        "temporal_basis": "lookup_snapshot",
+        "valid_time": null,
+        "policy_version": "record-envelope-gangnam-v1",
+        "synthetic": false
+      },
+      "payload_format": "data-go-kr-field-projection-v1",
+      "payload": {
+        "query": {},
+        "source_url": "https://www.data.go.kr/data/15139206/standard.do",
+        "source_receipt_sha256": "d014e64ebe21c88cafa9b5dc0bce88bd5248a1cc70b650e249f6dd1a326fdef0",
+        "page_sha256": [
+          "45e52f5b9cb8e17e3ab7601aab028e70c65d07732094b96322af6cc11c740600",
+          "b7c8a6b14b18567ec596d8bd28d9182d67619a8a29eebd5766aebe9096e9aa58",
+          "59441db4867dc74dde544c6ac713542b8e358a674788039cca62c42be5f88a7a"
+        ],
+        "provider_metadata": [],
+        "coverage": {
+          "source_status": "known",
+          "source_reason": null,
+          "reported_total": 2558,
+          "read_rows": 2558,
+          "unusable_rows": 2364,
+          "matched_rows": 0,
+          "returned_rows": 0
+        },
+        "items": [],
+        "limits": [
+          "Registered source geometry is not proof of a visit or behavior cause.",
+          "Source coverage is limited to the provider query and successfully read pages."
+        ]
+      },
+      "payload_sha256": "f2b5fc7f9c65b79e4161d760162a6912ad9cb91331b21686c6c5aa5c7147719e",
+      "supersedes": null
+    },
+    {
+      "id": "env-452b1b41ebd15fd61349254987007024",
+      "target": {
+        "record": {
+          "store": "walk_entry",
+          "id": "gangnam-behavior-01",
+          "version": "1",
+          "version_kind": "revision"
+        },
+        "event_at": "2026-09-07T15:03:00+09:00",
+        "point": {
+          "lat": 37.48928,
+          "lng": 127.05633
+        },
+        "radius_m": 250.0
+      },
+      "tags": [
+        "space.facility"
+      ],
+      "status": "partial",
+      "reason": "projection_limit",
+      "provenance": {
+        "provider": "data.go.kr",
+        "operation": "commerce",
+        "retrieved_at": "2026-09-08T04:52:26.166343Z",
+        "temporal_basis": "lookup_snapshot",
+        "valid_time": null,
+        "policy_version": "record-envelope-gangnam-v1",
+        "synthetic": false
+      },
+      "payload_format": "data-go-kr-field-projection-v1",
+      "payload": {
+        "query": {
+          "cx": 127.05633,
+          "cy": 37.48928,
+          "radius": 250
+        },
+        "source_url": "https://www.data.go.kr/data/15012005/openapi.do",
+        "source_receipt_sha256": "6d05039d88f0cfeba7355d2b6b60325053b57c9a1594fa921e0cda5a4036dfec",
+        "page_sha256": [
+          "992b3adff5987767c1da562317dae392d0ec9c9e6c6ff8dd206c25f27e25e59d"
+        ],
+        "provider_metadata": [
+          {
+            "stdrYm": "202606"
+          }
+        ],
+        "coverage": {
+          "source_status": "known",
+          "source_reason": null,
+          "reported_total": 77,
+          "read_rows": 77,
+          "unusable_rows": 0,
+          "matched_rows": 60,
+          "returned_rows": 30
+        },
+        "items": [
+          {
+            "source_row_index": 12,
+            "provider_fields": {
+              "bizesId": "MA0101202305A0015639",
+              "bizesNm": "공차SSG푸드마켓",
+              "indsLclsCd": "I2",
+              "indsLclsNm": "음식",
+              "indsMclsCd": "I212",
+              "indsMclsNm": "비알코올 ",
+              "indsSclsCd": "I21201",
+              "indsSclsNm": "카페",
+              "lat": 37.4898406898267,
+              "lon": 127.055123720764
+            },
+            "relation": {
+              "distance_m": 123.35,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 39,
+            "provider_fields": {
+              "bizesId": "MA0101202408A0016723",
+              "bizesNm": "도곡수련관VTA",
+              "indsLclsCd": "P1",
+              "indsLclsNm": "교육",
+              "indsMclsCd": "P106",
+              "indsMclsNm": "기타 교육",
+              "indsSclsCd": "P10601",
+              "indsSclsNm": "태권도/무술학원",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 40,
+            "provider_fields": {
+              "bizesId": "MA0101202308A0095964",
+              "bizesNm": "감성헤어",
+              "indsLclsCd": "S2",
+              "indsLclsNm": "수리·개인",
+              "indsMclsCd": "S207",
+              "indsMclsNm": "이용·미용",
+              "indsSclsCd": "S20701",
+              "indsSclsNm": "미용실",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 41,
+            "provider_fields": {
+              "bizesId": "MA0101202408A0055935",
+              "bizesNm": "피아노에튀드음악교습소",
+              "indsLclsCd": "P1",
+              "indsLclsNm": "교육",
+              "indsMclsCd": "P106",
+              "indsMclsNm": "기타 교육",
+              "indsSclsCd": "P10609",
+              "indsSclsNm": "음악학원",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 42,
+            "provider_fields": {
+              "bizesId": "MA010120220810248740",
+              "bizesNm": "삼성타워공인중개사사무소",
+              "indsLclsCd": "L1",
+              "indsLclsNm": "부동산",
+              "indsMclsCd": "L102",
+              "indsMclsNm": "부동산 서비스",
+              "indsSclsCd": "L10203",
+              "indsSclsNm": "부동산 중개/대리업",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 43,
+            "provider_fields": {
+              "bizesId": "MA0101202311A0010463",
+              "bizesNm": "매화연",
+              "indsLclsCd": "I2",
+              "indsLclsNm": "음식",
+              "indsMclsCd": "I212",
+              "indsMclsNm": "비알코올 ",
+              "indsSclsCd": "I21201",
+              "indsSclsNm": "카페",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 44,
+            "provider_fields": {
+              "bizesId": "MA010120220801045265",
+              "bizesNm": "오구사구공인중개사사무소단지내",
+              "indsLclsCd": "L1",
+              "indsLclsNm": "부동산",
+              "indsMclsCd": "L102",
+              "indsMclsNm": "부동산 서비스",
+              "indsSclsCd": "L10203",
+              "indsSclsNm": "부동산 중개/대리업",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 45,
+            "provider_fields": {
+              "bizesId": "MA010120220801048421",
+              "bizesNm": "국제피트니스전문지도자협회",
+              "indsLclsCd": "R1",
+              "indsLclsNm": "예술·스포츠",
+              "indsMclsCd": "R103",
+              "indsMclsNm": "스포츠 서비스",
+              "indsSclsCd": "R10307",
+              "indsSclsNm": "헬스장",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 46,
+            "provider_fields": {
+              "bizesId": "MA0101202211A0063339",
+              "bizesNm": "우성공인중개사사무소단지내",
+              "indsLclsCd": "L1",
+              "indsLclsNm": "부동산",
+              "indsMclsCd": "L102",
+              "indsMclsNm": "부동산 서비스",
+              "indsSclsCd": "L10203",
+              "indsSclsNm": "부동산 중개/대리업",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 47,
+            "provider_fields": {
+              "bizesId": "MA0101202301A0040323",
+              "bizesNm": "타워진부동산공인중개사사무소",
+              "indsLclsCd": "L1",
+              "indsLclsNm": "부동산",
+              "indsMclsCd": "L102",
+              "indsMclsNm": "부동산 서비스",
+              "indsSclsCd": "L10203",
+              "indsSclsNm": "부동산 중개/대리업",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 48,
+            "provider_fields": {
+              "bizesId": "MA010120220812298569",
+              "bizesNm": "피카브로우",
+              "indsLclsCd": "S2",
+              "indsLclsNm": "수리·개인",
+              "indsMclsCd": "S207",
+              "indsMclsNm": "이용·미용",
+              "indsSclsCd": "S20701",
+              "indsSclsNm": "미용실",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 49,
+            "provider_fields": {
+              "bizesId": "MA0106202201A0955254",
+              "bizesNm": "씨제이푸드빌빕스도곡역",
+              "indsLclsCd": "I2",
+              "indsLclsNm": "음식",
+              "indsMclsCd": "I204",
+              "indsMclsNm": "서양식",
+              "indsSclsCd": "I20403",
+              "indsSclsNm": "패밀리레스토랑",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 50,
+            "provider_fields": {
+              "bizesId": "MA010120220808178893",
+              "bizesNm": "웰니스라운지",
+              "indsLclsCd": "S2",
+              "indsLclsNm": "수리·개인",
+              "indsMclsCd": "S207",
+              "indsMclsNm": "이용·미용",
+              "indsSclsCd": "S20702",
+              "indsSclsNm": "피부 관리실",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 51,
+            "provider_fields": {
+              "bizesId": "MA010120220803468005",
+              "bizesNm": "비노",
+              "indsLclsCd": "G2",
+              "indsLclsNm": "소매",
+              "indsMclsCd": "G209",
+              "indsMclsNm": "섬유·의복·신발 소매",
+              "indsSclsCd": "G20902",
+              "indsSclsNm": "여성 의류 소매업",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 52,
+            "provider_fields": {
+              "bizesId": "MA010120220805935075",
+              "bizesNm": "라온제나헤어",
+              "indsLclsCd": "S2",
+              "indsLclsNm": "수리·개인",
+              "indsMclsCd": "S207",
+              "indsMclsNm": "이용·미용",
+              "indsSclsCd": "S20701",
+              "indsSclsNm": "미용실",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 53,
+            "provider_fields": {
+              "bizesId": "MA010120220810328058",
+              "bizesNm": "매쓰무적학원",
+              "indsLclsCd": "P1",
+              "indsLclsNm": "교육",
+              "indsMclsCd": "P105",
+              "indsMclsNm": "일반 교육",
+              "indsSclsCd": "P10501",
+              "indsSclsNm": "입시·교과학원",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 54,
+            "provider_fields": {
+              "bizesId": "MA010120220800954017",
+              "bizesNm": "무앙",
+              "indsLclsCd": "I2",
+              "indsLclsNm": "음식",
+              "indsMclsCd": "I210",
+              "indsMclsNm": "기타 간이",
+              "indsSclsCd": "I21001",
+              "indsSclsNm": "빵/도넛",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 55,
+            "provider_fields": {
+              "bizesId": "MA010120220807298747",
+              "bizesNm": "미스터헤어",
+              "indsLclsCd": "S2",
+              "indsLclsNm": "수리·개인",
+              "indsMclsCd": "S207",
+              "indsMclsNm": "이용·미용",
+              "indsSclsCd": "S20701",
+              "indsSclsNm": "미용실",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 56,
+            "provider_fields": {
+              "bizesId": "MA010120220804018974",
+              "bizesNm": "위드공인중개사사무소",
+              "indsLclsCd": "L1",
+              "indsLclsNm": "부동산",
+              "indsMclsCd": "L102",
+              "indsMclsNm": "부동산 서비스",
+              "indsSclsCd": "L10203",
+              "indsSclsNm": "부동산 중개/대리업",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 57,
+            "provider_fields": {
+              "bizesId": "MA010120220807150850",
+              "bizesNm": "타워박사공인중개사사무소",
+              "indsLclsCd": "L1",
+              "indsLclsNm": "부동산",
+              "indsMclsCd": "L102",
+              "indsMclsNm": "부동산 서비스",
+              "indsSclsCd": "L10203",
+              "indsSclsNm": "부동산 중개/대리업",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 58,
+            "provider_fields": {
+              "bizesId": "MA010120220800990473",
+              "bizesNm": "리더스",
+              "indsLclsCd": "M1",
+              "indsLclsNm": "과학·기술",
+              "indsMclsCd": "M107",
+              "indsMclsNm": "본사·경영 컨설팅",
+              "indsSclsCd": "M10703",
+              "indsSclsNm": "경영 컨설팅업",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 59,
+            "provider_fields": {
+              "bizesId": "MA010120220806870117",
+              "bizesNm": "서울부동산공인중개사사무소",
+              "indsLclsCd": "L1",
+              "indsLclsNm": "부동산",
+              "indsMclsCd": "L102",
+              "indsMclsNm": "부동산 서비스",
+              "indsSclsCd": "L10203",
+              "indsSclsNm": "부동산 중개/대리업",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 60,
+            "provider_fields": {
+              "bizesId": "MA0101202603A0032054",
+              "bizesNm": "그랑프리문구",
+              "indsLclsCd": "G2",
+              "indsLclsNm": "소매",
+              "indsMclsCd": "G213",
+              "indsMclsNm": "오락용품 소매",
+              "indsSclsCd": "G21302",
+              "indsSclsNm": "문구/회화용품 소매업",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 61,
+            "provider_fields": {
+              "bizesId": "MA010120220806664156",
+              "bizesNm": "행복공인중개사사무소단지내",
+              "indsLclsCd": "L1",
+              "indsLclsNm": "부동산",
+              "indsMclsCd": "L102",
+              "indsMclsNm": "부동산 서비스",
+              "indsSclsCd": "L10203",
+              "indsSclsNm": "부동산 중개/대리업",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 62,
+            "provider_fields": {
+              "bizesId": "MA010120220809269104",
+              "bizesNm": "제이유피부과의원",
+              "indsLclsCd": "Q1",
+              "indsLclsNm": "보건의료",
+              "indsMclsCd": "Q102",
+              "indsMclsNm": "의원",
+              "indsSclsCd": "Q10204",
+              "indsSclsNm": "피부/비뇨기과 의원",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 63,
+            "provider_fields": {
+              "bizesId": "MA010120220811684776",
+              "bizesNm": "지에스25도곡역점",
+              "indsLclsCd": "G2",
+              "indsLclsNm": "소매",
+              "indsMclsCd": "G204",
+              "indsMclsNm": "종합 소매",
+              "indsSclsCd": "G20405",
+              "indsSclsNm": "편의점",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 64,
+            "provider_fields": {
+              "bizesId": "MA0101202510A0006843",
+              "bizesNm": "네일도예쁨",
+              "indsLclsCd": "S2",
+              "indsLclsNm": "수리·개인",
+              "indsMclsCd": "S207",
+              "indsMclsNm": "이용·미용",
+              "indsSclsCd": "S20703",
+              "indsSclsNm": "네일숍",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 65,
+            "provider_fields": {
+              "bizesId": "MA0101202504A0113770",
+              "bizesNm": "귀편한세상보청기",
+              "indsLclsCd": "G2",
+              "indsLclsNm": "소매",
+              "indsMclsCd": "G215",
+              "indsMclsNm": "의약·화장품 소매",
+              "indsSclsCd": "G21502",
+              "indsSclsNm": "의료기기 소매업",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 66,
+            "provider_fields": {
+              "bizesId": "MA010120220809832195",
+              "bizesNm": "도담",
+              "indsLclsCd": "M1",
+              "indsLclsNm": "과학·기술",
+              "indsMclsCd": "M107",
+              "indsMclsNm": "본사·경영 컨설팅",
+              "indsSclsCd": "M10703",
+              "indsSclsNm": "경영 컨설팅업",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 67,
+            "provider_fields": {
+              "bizesId": "MA0101202503A0012747",
+              "bizesNm": "도곡성모이비인후과의원",
+              "indsLclsCd": "Q1",
+              "indsLclsNm": "보건의료",
+              "indsMclsCd": "Q102",
+              "indsMclsNm": "의원",
+              "indsSclsCd": "Q10206",
+              "indsSclsNm": "이비인후과 의원",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          }
+        ],
+        "limits": [
+          "Registered source geometry is not proof of a visit or behavior cause.",
+          "Source coverage is limited to the provider query and successfully read pages."
+        ]
+      },
+      "payload_sha256": "f87df2c9281c6d9e9549cb0e2faf1abe3628ce2059c2d4a1d20fa523bad6b0e3",
+      "supersedes": null
+    },
+    {
+      "id": "env-bfadf9f56b80bba013a135deb57e3669",
+      "target": {
+        "record": {
+          "store": "walk_entry",
+          "id": "gangnam-behavior-01",
+          "version": "1",
+          "version_kind": "revision"
+        },
+        "event_at": "2026-09-07T15:03:00+09:00",
+        "point": {
+          "lat": 37.48928,
+          "lng": 127.05633
+        },
+        "radius_m": null
+      },
+      "tags": [
+        "environment.weather"
+      ],
+      "status": "unavailable",
+      "reason": "http_403",
+      "provenance": {
+        "provider": "data.go.kr",
+        "operation": "weather",
+        "retrieved_at": "2026-09-08T04:52:26.303874Z",
+        "temporal_basis": "unknown",
+        "valid_time": null,
+        "policy_version": "record-envelope-gangnam-v1",
+        "synthetic": false
+      },
+      "payload_format": "data-go-kr-field-projection-v1",
+      "payload": null,
+      "payload_sha256": null,
+      "supersedes": null
+    },
+    {
+      "id": "env-a4f2da1edaaa1b04ce0d029403673e76",
+      "target": {
+        "record": {
+          "store": "walk_entry",
+          "id": "gangnam-note-01",
+          "version": "1",
+          "version_kind": "revision"
+        },
+        "event_at": "2026-09-07T15:03:00+09:00",
+        "point": {
+          "lat": 37.48928,
+          "lng": 127.05633
+        },
+        "radius_m": 250.0
+      },
+      "tags": [
+        "space.park"
+      ],
+      "status": "known",
+      "reason": null,
+      "provenance": {
+        "provider": "data.go.kr",
+        "operation": "parks",
+        "retrieved_at": "2026-09-08T04:52:25.510192Z",
+        "temporal_basis": "lookup_snapshot",
+        "valid_time": null,
+        "policy_version": "record-envelope-gangnam-v1",
+        "synthetic": false
+      },
+      "payload_format": "data-go-kr-field-projection-v1",
+      "payload": {
+        "query": {
+          "instt_nm": "서울특별시 강남구"
+        },
+        "source_url": "https://www.data.go.kr/data/15012890/standard.do",
+        "source_receipt_sha256": "53e084615c6aa4420e79c2447dffa54435e3adff64aeb7d16b64f41eddd1f40f",
+        "page_sha256": [
+          "87304417a849a609471808f362c72df5815cd34f89291fc976443756455fc076"
+        ],
+        "provider_metadata": [],
+        "coverage": {
+          "source_status": "known",
+          "source_reason": null,
+          "reported_total": 146,
+          "read_rows": 146,
+          "unusable_rows": 0,
+          "matched_rows": 1,
+          "returned_rows": 1
+        },
+        "items": [
+          {
+            "source_row_index": 20,
+            "provider_fields": {
+              "manageNo": "11680-00008",
+              "parkNm": "늘벗근린공원",
+              "parkSe": "근린공원",
+              "latitude": "37.48928087",
+              "longitude": "127.0563303",
+              "referenceDate": "2026-01-29",
+              "insttNm": "서울특별시 강남구"
+            },
+            "relation": {
+              "distance_m": 0.1,
+              "geometry_reference": "park_representative_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          }
+        ],
+        "limits": [
+          "Registered source geometry is not proof of a visit or behavior cause.",
+          "Source coverage is limited to the provider query and successfully read pages."
+        ]
+      },
+      "payload_sha256": "f6a77428e0b3fa69b9ebcde1608683e2c93b4fe10c68b6c1ea646d480b02b0b6",
+      "supersedes": null
+    },
+    {
+      "id": "env-a69a6817801a344227bb51db43d18d18",
+      "target": {
+        "record": {
+          "store": "walk_entry",
+          "id": "gangnam-note-01",
+          "version": "1",
+          "version_kind": "revision"
+        },
+        "event_at": "2026-09-07T15:03:00+09:00",
+        "point": {
+          "lat": 37.48928,
+          "lng": 127.05633
+        },
+        "radius_m": 250.0
+      },
+      "tags": [
+        "space.river"
+      ],
+      "status": "partial",
+      "reason": "unusable_source_rows",
+      "provenance": {
+        "provider": "data.go.kr",
+        "operation": "rivers",
+        "retrieved_at": "2026-09-08T04:52:25.755592Z",
+        "temporal_basis": "lookup_snapshot",
+        "valid_time": null,
+        "policy_version": "record-envelope-gangnam-v1",
+        "synthetic": false
+      },
+      "payload_format": "data-go-kr-field-projection-v1",
+      "payload": {
+        "query": {},
+        "source_url": "https://www.data.go.kr/data/15139206/standard.do",
+        "source_receipt_sha256": "d014e64ebe21c88cafa9b5dc0bce88bd5248a1cc70b650e249f6dd1a326fdef0",
+        "page_sha256": [
+          "45e52f5b9cb8e17e3ab7601aab028e70c65d07732094b96322af6cc11c740600",
+          "b7c8a6b14b18567ec596d8bd28d9182d67619a8a29eebd5766aebe9096e9aa58",
+          "59441db4867dc74dde544c6ac713542b8e358a674788039cca62c42be5f88a7a"
+        ],
+        "provider_metadata": [],
+        "coverage": {
+          "source_status": "known",
+          "source_reason": null,
+          "reported_total": 2558,
+          "read_rows": 2558,
+          "unusable_rows": 2364,
+          "matched_rows": 0,
+          "returned_rows": 0
+        },
+        "items": [],
+        "limits": [
+          "Registered source geometry is not proof of a visit or behavior cause.",
+          "Source coverage is limited to the provider query and successfully read pages."
+        ]
+      },
+      "payload_sha256": "f2b5fc7f9c65b79e4161d760162a6912ad9cb91331b21686c6c5aa5c7147719e",
+      "supersedes": null
+    },
+    {
+      "id": "env-7cc07c248ea0e7b2def8059c0a6c4f4a",
+      "target": {
+        "record": {
+          "store": "walk_entry",
+          "id": "gangnam-note-01",
+          "version": "1",
+          "version_kind": "revision"
+        },
+        "event_at": "2026-09-07T15:03:00+09:00",
+        "point": {
+          "lat": 37.48928,
+          "lng": 127.05633
+        },
+        "radius_m": 250.0
+      },
+      "tags": [
+        "space.facility"
+      ],
+      "status": "partial",
+      "reason": "projection_limit",
+      "provenance": {
+        "provider": "data.go.kr",
+        "operation": "commerce",
+        "retrieved_at": "2026-09-08T04:52:26.166343Z",
+        "temporal_basis": "lookup_snapshot",
+        "valid_time": null,
+        "policy_version": "record-envelope-gangnam-v1",
+        "synthetic": false
+      },
+      "payload_format": "data-go-kr-field-projection-v1",
+      "payload": {
+        "query": {
+          "cx": 127.05633,
+          "cy": 37.48928,
+          "radius": 250
+        },
+        "source_url": "https://www.data.go.kr/data/15012005/openapi.do",
+        "source_receipt_sha256": "6d05039d88f0cfeba7355d2b6b60325053b57c9a1594fa921e0cda5a4036dfec",
+        "page_sha256": [
+          "992b3adff5987767c1da562317dae392d0ec9c9e6c6ff8dd206c25f27e25e59d"
+        ],
+        "provider_metadata": [
+          {
+            "stdrYm": "202606"
+          }
+        ],
+        "coverage": {
+          "source_status": "known",
+          "source_reason": null,
+          "reported_total": 77,
+          "read_rows": 77,
+          "unusable_rows": 0,
+          "matched_rows": 60,
+          "returned_rows": 30
+        },
+        "items": [
+          {
+            "source_row_index": 12,
+            "provider_fields": {
+              "bizesId": "MA0101202305A0015639",
+              "bizesNm": "공차SSG푸드마켓",
+              "indsLclsCd": "I2",
+              "indsLclsNm": "음식",
+              "indsMclsCd": "I212",
+              "indsMclsNm": "비알코올 ",
+              "indsSclsCd": "I21201",
+              "indsSclsNm": "카페",
+              "lat": 37.4898406898267,
+              "lon": 127.055123720764
+            },
+            "relation": {
+              "distance_m": 123.35,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 39,
+            "provider_fields": {
+              "bizesId": "MA0101202408A0016723",
+              "bizesNm": "도곡수련관VTA",
+              "indsLclsCd": "P1",
+              "indsLclsNm": "교육",
+              "indsMclsCd": "P106",
+              "indsMclsNm": "기타 교육",
+              "indsSclsCd": "P10601",
+              "indsSclsNm": "태권도/무술학원",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 40,
+            "provider_fields": {
+              "bizesId": "MA0101202308A0095964",
+              "bizesNm": "감성헤어",
+              "indsLclsCd": "S2",
+              "indsLclsNm": "수리·개인",
+              "indsMclsCd": "S207",
+              "indsMclsNm": "이용·미용",
+              "indsSclsCd": "S20701",
+              "indsSclsNm": "미용실",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 41,
+            "provider_fields": {
+              "bizesId": "MA0101202408A0055935",
+              "bizesNm": "피아노에튀드음악교습소",
+              "indsLclsCd": "P1",
+              "indsLclsNm": "교육",
+              "indsMclsCd": "P106",
+              "indsMclsNm": "기타 교육",
+              "indsSclsCd": "P10609",
+              "indsSclsNm": "음악학원",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 42,
+            "provider_fields": {
+              "bizesId": "MA010120220810248740",
+              "bizesNm": "삼성타워공인중개사사무소",
+              "indsLclsCd": "L1",
+              "indsLclsNm": "부동산",
+              "indsMclsCd": "L102",
+              "indsMclsNm": "부동산 서비스",
+              "indsSclsCd": "L10203",
+              "indsSclsNm": "부동산 중개/대리업",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 43,
+            "provider_fields": {
+              "bizesId": "MA0101202311A0010463",
+              "bizesNm": "매화연",
+              "indsLclsCd": "I2",
+              "indsLclsNm": "음식",
+              "indsMclsCd": "I212",
+              "indsMclsNm": "비알코올 ",
+              "indsSclsCd": "I21201",
+              "indsSclsNm": "카페",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 44,
+            "provider_fields": {
+              "bizesId": "MA010120220801045265",
+              "bizesNm": "오구사구공인중개사사무소단지내",
+              "indsLclsCd": "L1",
+              "indsLclsNm": "부동산",
+              "indsMclsCd": "L102",
+              "indsMclsNm": "부동산 서비스",
+              "indsSclsCd": "L10203",
+              "indsSclsNm": "부동산 중개/대리업",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 45,
+            "provider_fields": {
+              "bizesId": "MA010120220801048421",
+              "bizesNm": "국제피트니스전문지도자협회",
+              "indsLclsCd": "R1",
+              "indsLclsNm": "예술·스포츠",
+              "indsMclsCd": "R103",
+              "indsMclsNm": "스포츠 서비스",
+              "indsSclsCd": "R10307",
+              "indsSclsNm": "헬스장",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 46,
+            "provider_fields": {
+              "bizesId": "MA0101202211A0063339",
+              "bizesNm": "우성공인중개사사무소단지내",
+              "indsLclsCd": "L1",
+              "indsLclsNm": "부동산",
+              "indsMclsCd": "L102",
+              "indsMclsNm": "부동산 서비스",
+              "indsSclsCd": "L10203",
+              "indsSclsNm": "부동산 중개/대리업",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 47,
+            "provider_fields": {
+              "bizesId": "MA0101202301A0040323",
+              "bizesNm": "타워진부동산공인중개사사무소",
+              "indsLclsCd": "L1",
+              "indsLclsNm": "부동산",
+              "indsMclsCd": "L102",
+              "indsMclsNm": "부동산 서비스",
+              "indsSclsCd": "L10203",
+              "indsSclsNm": "부동산 중개/대리업",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 48,
+            "provider_fields": {
+              "bizesId": "MA010120220812298569",
+              "bizesNm": "피카브로우",
+              "indsLclsCd": "S2",
+              "indsLclsNm": "수리·개인",
+              "indsMclsCd": "S207",
+              "indsMclsNm": "이용·미용",
+              "indsSclsCd": "S20701",
+              "indsSclsNm": "미용실",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 49,
+            "provider_fields": {
+              "bizesId": "MA0106202201A0955254",
+              "bizesNm": "씨제이푸드빌빕스도곡역",
+              "indsLclsCd": "I2",
+              "indsLclsNm": "음식",
+              "indsMclsCd": "I204",
+              "indsMclsNm": "서양식",
+              "indsSclsCd": "I20403",
+              "indsSclsNm": "패밀리레스토랑",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 50,
+            "provider_fields": {
+              "bizesId": "MA010120220808178893",
+              "bizesNm": "웰니스라운지",
+              "indsLclsCd": "S2",
+              "indsLclsNm": "수리·개인",
+              "indsMclsCd": "S207",
+              "indsMclsNm": "이용·미용",
+              "indsSclsCd": "S20702",
+              "indsSclsNm": "피부 관리실",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 51,
+            "provider_fields": {
+              "bizesId": "MA010120220803468005",
+              "bizesNm": "비노",
+              "indsLclsCd": "G2",
+              "indsLclsNm": "소매",
+              "indsMclsCd": "G209",
+              "indsMclsNm": "섬유·의복·신발 소매",
+              "indsSclsCd": "G20902",
+              "indsSclsNm": "여성 의류 소매업",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 52,
+            "provider_fields": {
+              "bizesId": "MA010120220805935075",
+              "bizesNm": "라온제나헤어",
+              "indsLclsCd": "S2",
+              "indsLclsNm": "수리·개인",
+              "indsMclsCd": "S207",
+              "indsMclsNm": "이용·미용",
+              "indsSclsCd": "S20701",
+              "indsSclsNm": "미용실",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 53,
+            "provider_fields": {
+              "bizesId": "MA010120220810328058",
+              "bizesNm": "매쓰무적학원",
+              "indsLclsCd": "P1",
+              "indsLclsNm": "교육",
+              "indsMclsCd": "P105",
+              "indsMclsNm": "일반 교육",
+              "indsSclsCd": "P10501",
+              "indsSclsNm": "입시·교과학원",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 54,
+            "provider_fields": {
+              "bizesId": "MA010120220800954017",
+              "bizesNm": "무앙",
+              "indsLclsCd": "I2",
+              "indsLclsNm": "음식",
+              "indsMclsCd": "I210",
+              "indsMclsNm": "기타 간이",
+              "indsSclsCd": "I21001",
+              "indsSclsNm": "빵/도넛",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 55,
+            "provider_fields": {
+              "bizesId": "MA010120220807298747",
+              "bizesNm": "미스터헤어",
+              "indsLclsCd": "S2",
+              "indsLclsNm": "수리·개인",
+              "indsMclsCd": "S207",
+              "indsMclsNm": "이용·미용",
+              "indsSclsCd": "S20701",
+              "indsSclsNm": "미용실",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 56,
+            "provider_fields": {
+              "bizesId": "MA010120220804018974",
+              "bizesNm": "위드공인중개사사무소",
+              "indsLclsCd": "L1",
+              "indsLclsNm": "부동산",
+              "indsMclsCd": "L102",
+              "indsMclsNm": "부동산 서비스",
+              "indsSclsCd": "L10203",
+              "indsSclsNm": "부동산 중개/대리업",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 57,
+            "provider_fields": {
+              "bizesId": "MA010120220807150850",
+              "bizesNm": "타워박사공인중개사사무소",
+              "indsLclsCd": "L1",
+              "indsLclsNm": "부동산",
+              "indsMclsCd": "L102",
+              "indsMclsNm": "부동산 서비스",
+              "indsSclsCd": "L10203",
+              "indsSclsNm": "부동산 중개/대리업",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 58,
+            "provider_fields": {
+              "bizesId": "MA010120220800990473",
+              "bizesNm": "리더스",
+              "indsLclsCd": "M1",
+              "indsLclsNm": "과학·기술",
+              "indsMclsCd": "M107",
+              "indsMclsNm": "본사·경영 컨설팅",
+              "indsSclsCd": "M10703",
+              "indsSclsNm": "경영 컨설팅업",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 59,
+            "provider_fields": {
+              "bizesId": "MA010120220806870117",
+              "bizesNm": "서울부동산공인중개사사무소",
+              "indsLclsCd": "L1",
+              "indsLclsNm": "부동산",
+              "indsMclsCd": "L102",
+              "indsMclsNm": "부동산 서비스",
+              "indsSclsCd": "L10203",
+              "indsSclsNm": "부동산 중개/대리업",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 60,
+            "provider_fields": {
+              "bizesId": "MA0101202603A0032054",
+              "bizesNm": "그랑프리문구",
+              "indsLclsCd": "G2",
+              "indsLclsNm": "소매",
+              "indsMclsCd": "G213",
+              "indsMclsNm": "오락용품 소매",
+              "indsSclsCd": "G21302",
+              "indsSclsNm": "문구/회화용품 소매업",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 61,
+            "provider_fields": {
+              "bizesId": "MA010120220806664156",
+              "bizesNm": "행복공인중개사사무소단지내",
+              "indsLclsCd": "L1",
+              "indsLclsNm": "부동산",
+              "indsMclsCd": "L102",
+              "indsMclsNm": "부동산 서비스",
+              "indsSclsCd": "L10203",
+              "indsSclsNm": "부동산 중개/대리업",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 62,
+            "provider_fields": {
+              "bizesId": "MA010120220809269104",
+              "bizesNm": "제이유피부과의원",
+              "indsLclsCd": "Q1",
+              "indsLclsNm": "보건의료",
+              "indsMclsCd": "Q102",
+              "indsMclsNm": "의원",
+              "indsSclsCd": "Q10204",
+              "indsSclsNm": "피부/비뇨기과 의원",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 63,
+            "provider_fields": {
+              "bizesId": "MA010120220811684776",
+              "bizesNm": "지에스25도곡역점",
+              "indsLclsCd": "G2",
+              "indsLclsNm": "소매",
+              "indsMclsCd": "G204",
+              "indsMclsNm": "종합 소매",
+              "indsSclsCd": "G20405",
+              "indsSclsNm": "편의점",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 64,
+            "provider_fields": {
+              "bizesId": "MA0101202510A0006843",
+              "bizesNm": "네일도예쁨",
+              "indsLclsCd": "S2",
+              "indsLclsNm": "수리·개인",
+              "indsMclsCd": "S207",
+              "indsMclsNm": "이용·미용",
+              "indsSclsCd": "S20703",
+              "indsSclsNm": "네일숍",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 65,
+            "provider_fields": {
+              "bizesId": "MA0101202504A0113770",
+              "bizesNm": "귀편한세상보청기",
+              "indsLclsCd": "G2",
+              "indsLclsNm": "소매",
+              "indsMclsCd": "G215",
+              "indsMclsNm": "의약·화장품 소매",
+              "indsSclsCd": "G21502",
+              "indsSclsNm": "의료기기 소매업",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 66,
+            "provider_fields": {
+              "bizesId": "MA010120220809832195",
+              "bizesNm": "도담",
+              "indsLclsCd": "M1",
+              "indsLclsNm": "과학·기술",
+              "indsMclsCd": "M107",
+              "indsMclsNm": "본사·경영 컨설팅",
+              "indsSclsCd": "M10703",
+              "indsSclsNm": "경영 컨설팅업",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 67,
+            "provider_fields": {
+              "bizesId": "MA0101202503A0012747",
+              "bizesNm": "도곡성모이비인후과의원",
+              "indsLclsCd": "Q1",
+              "indsLclsNm": "보건의료",
+              "indsMclsCd": "Q102",
+              "indsMclsNm": "의원",
+              "indsSclsCd": "Q10206",
+              "indsSclsNm": "이비인후과 의원",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          }
+        ],
+        "limits": [
+          "Registered source geometry is not proof of a visit or behavior cause.",
+          "Source coverage is limited to the provider query and successfully read pages."
+        ]
+      },
+      "payload_sha256": "f87df2c9281c6d9e9549cb0e2faf1abe3628ce2059c2d4a1d20fa523bad6b0e3",
+      "supersedes": null
+    },
+    {
+      "id": "env-33fdb38679a12e478b161bf3e542b35f",
+      "target": {
+        "record": {
+          "store": "walk_entry",
+          "id": "gangnam-note-01",
+          "version": "1",
+          "version_kind": "revision"
+        },
+        "event_at": "2026-09-07T15:03:00+09:00",
+        "point": {
+          "lat": 37.48928,
+          "lng": 127.05633
+        },
+        "radius_m": null
+      },
+      "tags": [
+        "environment.weather"
+      ],
+      "status": "unavailable",
+      "reason": "http_403",
+      "provenance": {
+        "provider": "data.go.kr",
+        "operation": "weather",
+        "retrieved_at": "2026-09-08T04:52:26.303874Z",
+        "temporal_basis": "unknown",
+        "valid_time": null,
+        "policy_version": "record-envelope-gangnam-v1",
+        "synthetic": false
+      },
+      "payload_format": "data-go-kr-field-projection-v1",
+      "payload": null,
+      "payload_sha256": null,
+      "supersedes": null
+    },
+    {
+      "id": "env-8eabf7a59db1be82f715f39eaecbdefb",
+      "target": {
+        "record": {
+          "store": "walk_photo",
+          "id": "gangnam-photo-01",
+          "version": "eadace911a345f43b456264ef27b61eeb095ee10c3309d86d63ebc30104cc193",
+          "version_kind": "sha256"
+        },
+        "event_at": "2026-09-07T15:05:00+09:00",
+        "point": {
+          "lat": 37.4843,
+          "lng": 127.054
+        },
+        "radius_m": 250.0
+      },
+      "tags": [
+        "space.park"
+      ],
+      "status": "known",
+      "reason": null,
+      "provenance": {
+        "provider": "data.go.kr",
+        "operation": "parks",
+        "retrieved_at": "2026-09-08T04:52:25.510192Z",
+        "temporal_basis": "lookup_snapshot",
+        "valid_time": null,
+        "policy_version": "record-envelope-gangnam-v1",
+        "synthetic": false
+      },
+      "payload_format": "data-go-kr-field-projection-v1",
+      "payload": {
+        "query": {
+          "instt_nm": "서울특별시 강남구"
+        },
+        "source_url": "https://www.data.go.kr/data/15012890/standard.do",
+        "source_receipt_sha256": "53e084615c6aa4420e79c2447dffa54435e3adff64aeb7d16b64f41eddd1f40f",
+        "page_sha256": [
+          "87304417a849a609471808f362c72df5815cd34f89291fc976443756455fc076"
+        ],
+        "provider_metadata": [],
+        "coverage": {
+          "source_status": "known",
+          "source_reason": null,
+          "reported_total": 146,
+          "read_rows": 146,
+          "unusable_rows": 0,
+          "matched_rows": 1,
+          "returned_rows": 1
+        },
+        "items": [
+          {
+            "source_row_index": 23,
+            "provider_fields": {
+              "manageNo": "11680-00011",
+              "parkNm": "청룡근린공원",
+              "parkSe": "근린공원",
+              "latitude": "37.48528514",
+              "longitude": "127.0537972",
+              "referenceDate": "2026-01-29",
+              "insttNm": "서울특별시 강남구"
+            },
+            "relation": {
+              "distance_m": 110.99,
+              "geometry_reference": "park_representative_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          }
+        ],
+        "limits": [
+          "Registered source geometry is not proof of a visit or behavior cause.",
+          "Source coverage is limited to the provider query and successfully read pages."
+        ]
+      },
+      "payload_sha256": "19c6b5bb1778d19794baed0fdb8c22ee7f1fb9ebacb0f0801b9e5ad876ae819e",
+      "supersedes": null
+    },
+    {
+      "id": "env-ef110bff4506550b3cdc8f52f0b7b561",
+      "target": {
+        "record": {
+          "store": "walk_photo",
+          "id": "gangnam-photo-01",
+          "version": "eadace911a345f43b456264ef27b61eeb095ee10c3309d86d63ebc30104cc193",
+          "version_kind": "sha256"
+        },
+        "event_at": "2026-09-07T15:05:00+09:00",
+        "point": {
+          "lat": 37.4843,
+          "lng": 127.054
+        },
+        "radius_m": 250.0
+      },
+      "tags": [
+        "space.river"
+      ],
+      "status": "partial",
+      "reason": "unusable_source_rows",
+      "provenance": {
+        "provider": "data.go.kr",
+        "operation": "rivers",
+        "retrieved_at": "2026-09-08T04:52:25.755592Z",
+        "temporal_basis": "lookup_snapshot",
+        "valid_time": null,
+        "policy_version": "record-envelope-gangnam-v1",
+        "synthetic": false
+      },
+      "payload_format": "data-go-kr-field-projection-v1",
+      "payload": {
+        "query": {},
+        "source_url": "https://www.data.go.kr/data/15139206/standard.do",
+        "source_receipt_sha256": "d014e64ebe21c88cafa9b5dc0bce88bd5248a1cc70b650e249f6dd1a326fdef0",
+        "page_sha256": [
+          "45e52f5b9cb8e17e3ab7601aab028e70c65d07732094b96322af6cc11c740600",
+          "b7c8a6b14b18567ec596d8bd28d9182d67619a8a29eebd5766aebe9096e9aa58",
+          "59441db4867dc74dde544c6ac713542b8e358a674788039cca62c42be5f88a7a"
+        ],
+        "provider_metadata": [],
+        "coverage": {
+          "source_status": "known",
+          "source_reason": null,
+          "reported_total": 2558,
+          "read_rows": 2558,
+          "unusable_rows": 2364,
+          "matched_rows": 0,
+          "returned_rows": 0
+        },
+        "items": [],
+        "limits": [
+          "Registered source geometry is not proof of a visit or behavior cause.",
+          "Source coverage is limited to the provider query and successfully read pages."
+        ]
+      },
+      "payload_sha256": "f2b5fc7f9c65b79e4161d760162a6912ad9cb91331b21686c6c5aa5c7147719e",
+      "supersedes": null
+    },
+    {
+      "id": "env-4965ed3ac244d5915b30cef3d69c4391",
+      "target": {
+        "record": {
+          "store": "walk_photo",
+          "id": "gangnam-photo-01",
+          "version": "eadace911a345f43b456264ef27b61eeb095ee10c3309d86d63ebc30104cc193",
+          "version_kind": "sha256"
+        },
+        "event_at": "2026-09-07T15:05:00+09:00",
+        "point": {
+          "lat": 37.4843,
+          "lng": 127.054
+        },
+        "radius_m": 250.0
+      },
+      "tags": [
+        "space.facility"
+      ],
+      "status": "partial",
+      "reason": "projection_limit",
+      "provenance": {
+        "provider": "data.go.kr",
+        "operation": "commerce",
+        "retrieved_at": "2026-09-08T04:52:26.388633Z",
+        "temporal_basis": "lookup_snapshot",
+        "valid_time": null,
+        "policy_version": "record-envelope-gangnam-v1",
+        "synthetic": false
+      },
+      "payload_format": "data-go-kr-field-projection-v1",
+      "payload": {
+        "query": {
+          "cx": 127.054,
+          "cy": 37.4843,
+          "radius": 250
+        },
+        "source_url": "https://www.data.go.kr/data/15012005/openapi.do",
+        "source_receipt_sha256": "8aac795e9abbf5c918286c9f01ee52a65b469e92974f31ffc667108e45c8f7f0",
+        "page_sha256": [
+          "61755f4209498b266a7c98fe7c0490e05251b4563e05032c7466572801ca29c0"
+        ],
+        "provider_metadata": [
+          {
+            "stdrYm": "202606"
+          }
+        ],
+        "coverage": {
+          "source_status": "known",
+          "source_reason": null,
+          "reported_total": 113,
+          "read_rows": 113,
+          "unusable_rows": 0,
+          "matched_rows": 113,
+          "returned_rows": 30
+        },
+        "items": [
+          {
+            "source_row_index": 9,
+            "provider_fields": {
+              "bizesId": "MA010120220806579505",
+              "bizesNm": "경남명문공인중개사사무소",
+              "indsLclsCd": "L1",
+              "indsLclsNm": "부동산",
+              "indsMclsCd": "L102",
+              "indsMclsNm": "부동산 서비스",
+              "indsSclsCd": "L10203",
+              "indsSclsNm": "부동산 중개/대리업",
+              "lat": 37.4840299640512,
+              "lon": 127.053434774937
+            },
+            "relation": {
+              "distance_m": 58.21,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 10,
+            "provider_fields": {
+              "bizesId": "MA010120220807031682",
+              "bizesNm": "닥터큐화장품",
+              "indsLclsCd": "G2",
+              "indsLclsNm": "소매",
+              "indsMclsCd": "G215",
+              "indsMclsNm": "의약·화장품 소매",
+              "indsSclsCd": "G21503",
+              "indsSclsNm": "화장품 소매업",
+              "lat": 37.483281688673,
+              "lon": 127.054395289481
+            },
+            "relation": {
+              "distance_m": 118.48,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 11,
+            "provider_fields": {
+              "bizesId": "MA010120220803966353",
+              "bizesNm": "현대인테리어",
+              "indsLclsCd": "M1",
+              "indsLclsNm": "과학·기술",
+              "indsMclsCd": "M112",
+              "indsMclsNm": "전문 디자인",
+              "indsSclsCd": "M11201",
+              "indsSclsNm": "인테리어 디자인업",
+              "lat": 37.483281688673,
+              "lon": 127.054395289481
+            },
+            "relation": {
+              "distance_m": 118.48,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 12,
+            "provider_fields": {
+              "bizesId": "MA010120220806588164",
+              "bizesNm": "봉화장",
+              "indsLclsCd": "I2",
+              "indsLclsNm": "음식",
+              "indsMclsCd": "I202",
+              "indsMclsNm": "중식",
+              "indsSclsCd": "I20201",
+              "indsSclsNm": "중국집",
+              "lat": 37.483281688673,
+              "lon": 127.054395289481
+            },
+            "relation": {
+              "distance_m": 118.48,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 13,
+            "provider_fields": {
+              "bizesId": "MA010120220801048669",
+              "bizesNm": "현대조은집공인중개사사무소",
+              "indsLclsCd": "L1",
+              "indsLclsNm": "부동산",
+              "indsMclsCd": "L102",
+              "indsMclsNm": "부동산 서비스",
+              "indsSclsCd": "L10203",
+              "indsSclsNm": "부동산 중개/대리업",
+              "lat": 37.483281688673,
+              "lon": 127.054395289481
+            },
+            "relation": {
+              "distance_m": 118.48,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 14,
+            "provider_fields": {
+              "bizesId": "MA0101202303A0049183",
+              "bizesNm": "개포현대수선",
+              "indsLclsCd": "S2",
+              "indsLclsNm": "수리·개인",
+              "indsMclsCd": "S206",
+              "indsMclsNm": "기타 가정용품 수리",
+              "indsSclsCd": "S20601",
+              "indsSclsNm": "의류/이불 수선업",
+              "lat": 37.483281688673,
+              "lon": 127.054395289481
+            },
+            "relation": {
+              "distance_m": 118.48,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 15,
+            "provider_fields": {
+              "bizesId": "MA010120220812434470",
+              "bizesNm": "G플레이스",
+              "indsLclsCd": "N1",
+              "indsLclsNm": "시설관리·임대",
+              "indsMclsCd": "N110",
+              "indsMclsNm": "가정용품 대여",
+              "indsSclsCd": "N11099",
+              "indsSclsNm": "기타 개인/가정용품 대여업",
+              "lat": 37.483281688673,
+              "lon": 127.054395289481
+            },
+            "relation": {
+              "distance_m": 118.48,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 16,
+            "provider_fields": {
+              "bizesId": "MA010120220800160388",
+              "bizesNm": "우성단지내공인중개사사무소",
+              "indsLclsCd": "L1",
+              "indsLclsNm": "부동산",
+              "indsMclsCd": "L102",
+              "indsMclsNm": "부동산 서비스",
+              "indsSclsCd": "L10203",
+              "indsSclsNm": "부동산 중개/대리업",
+              "lat": 37.483281688673,
+              "lon": 127.054395289481
+            },
+            "relation": {
+              "distance_m": 118.48,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 17,
+            "provider_fields": {
+              "bizesId": "MA010120220801043991",
+              "bizesNm": "현대식당",
+              "indsLclsCd": "I2",
+              "indsLclsNm": "음식",
+              "indsMclsCd": "I201",
+              "indsMclsNm": "한식",
+              "indsSclsCd": "I20101",
+              "indsSclsNm": "백반/한정식",
+              "lat": 37.483281688673,
+              "lon": 127.054395289481
+            },
+            "relation": {
+              "distance_m": 118.48,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 18,
+            "provider_fields": {
+              "bizesId": "MA010120220812896906",
+              "bizesNm": "개포골드공인중개사사무소",
+              "indsLclsCd": "L1",
+              "indsLclsNm": "부동산",
+              "indsMclsCd": "L102",
+              "indsMclsNm": "부동산 서비스",
+              "indsSclsCd": "L10203",
+              "indsSclsNm": "부동산 중개/대리업",
+              "lat": 37.483281688673,
+              "lon": 127.054395289481
+            },
+            "relation": {
+              "distance_m": 118.48,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 19,
+            "provider_fields": {
+              "bizesId": "MA010120220801031171",
+              "bizesNm": "김민지헤어샵",
+              "indsLclsCd": "S2",
+              "indsLclsNm": "수리·개인",
+              "indsMclsCd": "S207",
+              "indsMclsNm": "이용·미용",
+              "indsSclsCd": "S20701",
+              "indsSclsNm": "미용실",
+              "lat": 37.483281688673,
+              "lon": 127.054395289481
+            },
+            "relation": {
+              "distance_m": 118.48,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 20,
+            "provider_fields": {
+              "bizesId": "MA010120220800783590",
+              "bizesNm": "하나테크",
+              "indsLclsCd": "G2",
+              "indsLclsNm": "소매",
+              "indsMclsCd": "G208",
+              "indsMclsNm": "가전·통신 소매",
+              "indsSclsCd": "G20801",
+              "indsSclsNm": "컴퓨터/소프트웨어 소매업",
+              "lat": 37.483281688673,
+              "lon": 127.054395289481
+            },
+            "relation": {
+              "distance_m": 118.48,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 21,
+            "provider_fields": {
+              "bizesId": "MA010120220800370846",
+              "bizesNm": "현대1차명문공인중개사사무소",
+              "indsLclsCd": "L1",
+              "indsLclsNm": "부동산",
+              "indsMclsCd": "L102",
+              "indsMclsNm": "부동산 서비스",
+              "indsSclsCd": "L10203",
+              "indsSclsNm": "부동산 중개/대리업",
+              "lat": 37.483281688673,
+              "lon": 127.054395289481
+            },
+            "relation": {
+              "distance_m": 118.48,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 22,
+            "provider_fields": {
+              "bizesId": "MA0101202602A0019833",
+              "bizesNm": "개포메디칼약국",
+              "indsLclsCd": "G2",
+              "indsLclsNm": "소매",
+              "indsMclsCd": "G215",
+              "indsMclsNm": "의약·화장품 소매",
+              "indsSclsCd": "G21501",
+              "indsSclsNm": "약국",
+              "lat": 37.483281688673,
+              "lon": 127.054395289481
+            },
+            "relation": {
+              "distance_m": 118.48,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 23,
+            "provider_fields": {
+              "bizesId": "MA0101202601A0022745",
+              "bizesNm": "바로약국",
+              "indsLclsCd": "G2",
+              "indsLclsNm": "소매",
+              "indsMclsCd": "G215",
+              "indsMclsNm": "의약·화장품 소매",
+              "indsSclsCd": "G21501",
+              "indsSclsNm": "약국",
+              "lat": 37.483281688673,
+              "lon": 127.054395289481
+            },
+            "relation": {
+              "distance_m": 118.48,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 24,
+            "provider_fields": {
+              "bizesId": "MA010120220801042023",
+              "bizesNm": "디올세탁소",
+              "indsLclsCd": "S2",
+              "indsLclsNm": "수리·개인",
+              "indsMclsCd": "S209",
+              "indsMclsNm": "세탁",
+              "indsSclsCd": "S20901",
+              "indsSclsNm": "세탁소",
+              "lat": 37.483281688673,
+              "lon": 127.054395289481
+            },
+            "relation": {
+              "distance_m": 118.48,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 25,
+            "provider_fields": {
+              "bizesId": "MA0101202505A0012518",
+              "bizesNm": "네일지안",
+              "indsLclsCd": "S2",
+              "indsLclsNm": "수리·개인",
+              "indsMclsCd": "S207",
+              "indsMclsNm": "이용·미용",
+              "indsSclsCd": "S20703",
+              "indsSclsNm": "네일숍",
+              "lat": 37.483281688673,
+              "lon": 127.054395289481
+            },
+            "relation": {
+              "distance_m": 118.48,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 26,
+            "provider_fields": {
+              "bizesId": "MA0101202511A0005083",
+              "bizesNm": "화요일",
+              "indsLclsCd": "G2",
+              "indsLclsNm": "소매",
+              "indsMclsCd": "G219",
+              "indsMclsNm": "식물 소매",
+              "indsSclsCd": "G21901",
+              "indsSclsNm": "꽃집",
+              "lat": 37.483281688673,
+              "lon": 127.054395289481
+            },
+            "relation": {
+              "distance_m": 118.48,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 27,
+            "provider_fields": {
+              "bizesId": "MA0101202510A0005893",
+              "bizesNm": "주갤러리",
+              "indsLclsCd": "M1",
+              "indsLclsNm": "과학·기술",
+              "indsMclsCd": "M115",
+              "indsMclsNm": "기타 전문 과학",
+              "indsSclsCd": "M11504",
+              "indsSclsNm": "사업/무형 재산권 중개업",
+              "lat": 37.483281688673,
+              "lon": 127.054395289481
+            },
+            "relation": {
+              "distance_m": 118.48,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 28,
+            "provider_fields": {
+              "bizesId": "MA0101202505A0041529",
+              "bizesNm": "개포크라운공인중개사사무소",
+              "indsLclsCd": "L1",
+              "indsLclsNm": "부동산",
+              "indsMclsCd": "L102",
+              "indsMclsNm": "부동산 서비스",
+              "indsSclsCd": "L10203",
+              "indsSclsNm": "부동산 중개/대리업",
+              "lat": 37.483281688673,
+              "lon": 127.054395289481
+            },
+            "relation": {
+              "distance_m": 118.48,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 29,
+            "provider_fields": {
+              "bizesId": "MA010120220804142568",
+              "bizesNm": "현대미니슈퍼",
+              "indsLclsCd": "G2",
+              "indsLclsNm": "소매",
+              "indsMclsCd": "G204",
+              "indsMclsNm": "종합 소매",
+              "indsSclsCd": "G20404",
+              "indsSclsNm": "슈퍼마켓",
+              "lat": 37.483281688673,
+              "lon": 127.054395289481
+            },
+            "relation": {
+              "distance_m": 118.48,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 30,
+            "provider_fields": {
+              "bizesId": "MA0101202410A0297666",
+              "bizesNm": "이원경내과의원",
+              "indsLclsCd": "Q1",
+              "indsLclsNm": "보건의료",
+              "indsMclsCd": "Q102",
+              "indsMclsNm": "의원",
+              "indsSclsCd": "Q10201",
+              "indsSclsNm": "내과/소아과 의원",
+              "lat": 37.483281688673,
+              "lon": 127.054395289481
+            },
+            "relation": {
+              "distance_m": 118.48,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 31,
+            "provider_fields": {
+              "bizesId": "MA010120220813874363",
+              "bizesNm": "럭키공인중개사사무소",
+              "indsLclsCd": "L1",
+              "indsLclsNm": "부동산",
+              "indsMclsCd": "L102",
+              "indsMclsNm": "부동산 서비스",
+              "indsSclsCd": "L10203",
+              "indsSclsNm": "부동산 중개/대리업",
+              "lat": 37.4854079268687,
+              "lon": 127.054702113557
+            },
+            "relation": {
+              "distance_m": 137.9,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 32,
+            "provider_fields": {
+              "bizesId": "MA0101202410A0706206",
+              "bizesNm": "ON플라워",
+              "indsLclsCd": "G2",
+              "indsLclsNm": "소매",
+              "indsMclsCd": "G219",
+              "indsMclsNm": "식물 소매",
+              "indsSclsCd": "G21901",
+              "indsSclsNm": "꽃집",
+              "lat": 37.4854079268687,
+              "lon": 127.054702113557
+            },
+            "relation": {
+              "distance_m": 137.9,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 33,
+            "provider_fields": {
+              "bizesId": "MA0101202306A0065554",
+              "bizesNm": "강남공인중개사사무소",
+              "indsLclsCd": "L1",
+              "indsLclsNm": "부동산",
+              "indsMclsCd": "L102",
+              "indsMclsNm": "부동산 서비스",
+              "indsSclsCd": "L10203",
+              "indsSclsNm": "부동산 중개/대리업",
+              "lat": 37.4854079268687,
+              "lon": 127.054702113557
+            },
+            "relation": {
+              "distance_m": 137.9,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 34,
+            "provider_fields": {
+              "bizesId": "MA0101202307A0053593",
+              "bizesNm": "고대공인중개사사무소",
+              "indsLclsCd": "L1",
+              "indsLclsNm": "부동산",
+              "indsMclsCd": "L102",
+              "indsMclsNm": "부동산 서비스",
+              "indsSclsCd": "L10203",
+              "indsSclsNm": "부동산 중개/대리업",
+              "lat": 37.4854079268687,
+              "lon": 127.054702113557
+            },
+            "relation": {
+              "distance_m": 137.9,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 35,
+            "provider_fields": {
+              "bizesId": "MA010120220804985740",
+              "bizesNm": "이마트24강남",
+              "indsLclsCd": "G2",
+              "indsLclsNm": "소매",
+              "indsMclsCd": "G204",
+              "indsMclsNm": "종합 소매",
+              "indsSclsCd": "G20405",
+              "indsSclsNm": "편의점",
+              "lat": 37.4854079268687,
+              "lon": 127.054702113557
+            },
+            "relation": {
+              "distance_m": 137.9,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 36,
+            "provider_fields": {
+              "bizesId": "MA010120220802891384",
+              "bizesNm": "더디자인",
+              "indsLclsCd": "M1",
+              "indsLclsNm": "과학·기술",
+              "indsMclsCd": "M112",
+              "indsMclsNm": "전문 디자인",
+              "indsSclsCd": "M11201",
+              "indsSclsNm": "인테리어 디자인업",
+              "lat": 37.4854079268687,
+              "lon": 127.054702113557
+            },
+            "relation": {
+              "distance_m": 137.9,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 37,
+            "provider_fields": {
+              "bizesId": "MA010120220806411970",
+              "bizesNm": "연세로운치과의원",
+              "indsLclsCd": "Q1",
+              "indsLclsNm": "보건의료",
+              "indsMclsCd": "Q102",
+              "indsMclsNm": "의원",
+              "indsSclsCd": "Q10210",
+              "indsSclsNm": "치과의원",
+              "lat": 37.4854079268687,
+              "lon": 127.054702113557
+            },
+            "relation": {
+              "distance_m": 137.9,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 38,
+            "provider_fields": {
+              "bizesId": "MA010120220801044631",
+              "bizesNm": "개포에이스공인중개사사무소",
+              "indsLclsCd": "L1",
+              "indsLclsNm": "부동산",
+              "indsMclsCd": "L102",
+              "indsMclsNm": "부동산 서비스",
+              "indsSclsCd": "L10203",
+              "indsSclsNm": "부동산 중개/대리업",
+              "lat": 37.4854079268687,
+              "lon": 127.054702113557
+            },
+            "relation": {
+              "distance_m": 137.9,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          }
+        ],
+        "limits": [
+          "Registered source geometry is not proof of a visit or behavior cause.",
+          "Source coverage is limited to the provider query and successfully read pages."
+        ]
+      },
+      "payload_sha256": "3324a7933f83d7b9ef9a858730948b7c59b5b314733b2c98beb58017ec9cd704",
+      "supersedes": null
+    },
+    {
+      "id": "env-fedc0c64598d4537d6cfceaba2dc266b",
+      "target": {
+        "record": {
+          "store": "walk_photo",
+          "id": "gangnam-photo-01",
+          "version": "eadace911a345f43b456264ef27b61eeb095ee10c3309d86d63ebc30104cc193",
+          "version_kind": "sha256"
+        },
+        "event_at": "2026-09-07T15:05:00+09:00",
+        "point": {
+          "lat": 37.4843,
+          "lng": 127.054
+        },
+        "radius_m": null
+      },
+      "tags": [
+        "environment.weather"
+      ],
+      "status": "unavailable",
+      "reason": "http_403",
+      "provenance": {
+        "provider": "data.go.kr",
+        "operation": "weather",
+        "retrieved_at": "2026-09-08T04:52:26.303874Z",
+        "temporal_basis": "unknown",
+        "valid_time": null,
+        "policy_version": "record-envelope-gangnam-v1",
+        "synthetic": false
+      },
+      "payload_format": "data-go-kr-field-projection-v1",
+      "payload": null,
+      "payload_sha256": null,
+      "supersedes": null
+    },
+    {
+      "id": "env-d92535685c4ede6ae9ea72bc1a4933eb",
+      "target": {
+        "record": {
+          "store": "walk_entry",
+          "id": "gangnam-note-later",
+          "version": "1",
+          "version_kind": "revision"
+        },
+        "event_at": "2026-09-07T15:06:00+09:00",
+        "point": {
+          "lat": 37.487,
+          "lng": 127.052
+        },
+        "radius_m": 250.0
+      },
+      "tags": [
+        "space.park"
+      ],
+      "status": "known",
+      "reason": null,
+      "provenance": {
+        "provider": "data.go.kr",
+        "operation": "parks",
+        "retrieved_at": "2026-09-08T04:52:25.510192Z",
+        "temporal_basis": "lookup_snapshot",
+        "valid_time": null,
+        "policy_version": "record-envelope-gangnam-v1",
+        "synthetic": false
+      },
+      "payload_format": "data-go-kr-field-projection-v1",
+      "payload": {
+        "query": {
+          "instt_nm": "서울특별시 강남구"
+        },
+        "source_url": "https://www.data.go.kr/data/15012890/standard.do",
+        "source_receipt_sha256": "53e084615c6aa4420e79c2447dffa54435e3adff64aeb7d16b64f41eddd1f40f",
+        "page_sha256": [
+          "87304417a849a609471808f362c72df5815cd34f89291fc976443756455fc076"
+        ],
+        "provider_metadata": [],
+        "coverage": {
+          "source_status": "known",
+          "source_reason": null,
+          "reported_total": 146,
+          "read_rows": 146,
+          "unusable_rows": 0,
+          "matched_rows": 1,
+          "returned_rows": 1
+        },
+        "items": [
+          {
+            "source_row_index": 23,
+            "provider_fields": {
+              "manageNo": "11680-00011",
+              "parkNm": "청룡근린공원",
+              "parkSe": "근린공원",
+              "latitude": "37.48528514",
+              "longitude": "127.0537972",
+              "referenceDate": "2026-01-29",
+              "insttNm": "서울특별시 강남구"
+            },
+            "relation": {
+              "distance_m": 248.0,
+              "geometry_reference": "park_representative_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          }
+        ],
+        "limits": [
+          "Registered source geometry is not proof of a visit or behavior cause.",
+          "Source coverage is limited to the provider query and successfully read pages."
+        ]
+      },
+      "payload_sha256": "cfb6a98f707d28c0fc1adb3fff142421583ee0b66fe060b4d0dcda8f1e0814d4",
+      "supersedes": null
+    },
+    {
+      "id": "env-7fbfc12fabcdc11e043d9b98fbef5946",
+      "target": {
+        "record": {
+          "store": "walk_entry",
+          "id": "gangnam-note-later",
+          "version": "1",
+          "version_kind": "revision"
+        },
+        "event_at": "2026-09-07T15:06:00+09:00",
+        "point": {
+          "lat": 37.487,
+          "lng": 127.052
+        },
+        "radius_m": 250.0
+      },
+      "tags": [
+        "space.river"
+      ],
+      "status": "partial",
+      "reason": "unusable_source_rows",
+      "provenance": {
+        "provider": "data.go.kr",
+        "operation": "rivers",
+        "retrieved_at": "2026-09-08T04:52:25.755592Z",
+        "temporal_basis": "lookup_snapshot",
+        "valid_time": null,
+        "policy_version": "record-envelope-gangnam-v1",
+        "synthetic": false
+      },
+      "payload_format": "data-go-kr-field-projection-v1",
+      "payload": {
+        "query": {},
+        "source_url": "https://www.data.go.kr/data/15139206/standard.do",
+        "source_receipt_sha256": "d014e64ebe21c88cafa9b5dc0bce88bd5248a1cc70b650e249f6dd1a326fdef0",
+        "page_sha256": [
+          "45e52f5b9cb8e17e3ab7601aab028e70c65d07732094b96322af6cc11c740600",
+          "b7c8a6b14b18567ec596d8bd28d9182d67619a8a29eebd5766aebe9096e9aa58",
+          "59441db4867dc74dde544c6ac713542b8e358a674788039cca62c42be5f88a7a"
+        ],
+        "provider_metadata": [],
+        "coverage": {
+          "source_status": "known",
+          "source_reason": null,
+          "reported_total": 2558,
+          "read_rows": 2558,
+          "unusable_rows": 2364,
+          "matched_rows": 0,
+          "returned_rows": 0
+        },
+        "items": [],
+        "limits": [
+          "Registered source geometry is not proof of a visit or behavior cause.",
+          "Source coverage is limited to the provider query and successfully read pages."
+        ]
+      },
+      "payload_sha256": "f2b5fc7f9c65b79e4161d760162a6912ad9cb91331b21686c6c5aa5c7147719e",
+      "supersedes": null
+    },
+    {
+      "id": "env-5636c218306cbac363458ebd8fc9c8f7",
+      "target": {
+        "record": {
+          "store": "walk_entry",
+          "id": "gangnam-note-later",
+          "version": "1",
+          "version_kind": "revision"
+        },
+        "event_at": "2026-09-07T15:06:00+09:00",
+        "point": {
+          "lat": 37.487,
+          "lng": 127.052
+        },
+        "radius_m": 250.0
+      },
+      "tags": [
+        "space.facility"
+      ],
+      "status": "partial",
+      "reason": "projection_limit",
+      "provenance": {
+        "provider": "data.go.kr",
+        "operation": "commerce",
+        "retrieved_at": "2026-09-08T04:52:26.535195Z",
+        "temporal_basis": "lookup_snapshot",
+        "valid_time": null,
+        "policy_version": "record-envelope-gangnam-v1",
+        "synthetic": false
+      },
+      "payload_format": "data-go-kr-field-projection-v1",
+      "payload": {
+        "query": {
+          "cx": 127.052,
+          "cy": 37.487,
+          "radius": 250
+        },
+        "source_url": "https://www.data.go.kr/data/15012005/openapi.do",
+        "source_receipt_sha256": "7facd868250daaa64863b847a46ad5fedd84e7c39d50af16eef97b53ecc8deb4",
+        "page_sha256": [
+          "3418add2a60a9ac7257e2284e523c6f7d507e99710c18c7e6b3c617c66fdba31"
+        ],
+        "provider_metadata": [
+          {
+            "stdrYm": "202606"
+          }
+        ],
+        "coverage": {
+          "source_status": "known",
+          "source_reason": null,
+          "reported_total": 257,
+          "read_rows": 257,
+          "unusable_rows": 0,
+          "matched_rows": 257,
+          "returned_rows": 30
+        },
+        "items": [
+          {
+            "source_row_index": 107,
+            "provider_fields": {
+              "bizesId": "MA010120220812990900",
+              "bizesNm": "클라임라이트",
+              "indsLclsCd": "G2",
+              "indsLclsNm": "소매",
+              "indsMclsCd": "G209",
+              "indsMclsNm": "섬유·의복·신발 소매",
+              "indsSclsCd": "G20905",
+              "indsSclsNm": "기타 의류 소매업",
+              "lat": 37.4869229049442,
+              "lon": 127.051853856887
+            },
+            "relation": {
+              "distance_m": 15.48,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 108,
+            "provider_fields": {
+              "bizesId": "MA010120220806946139",
+              "bizesNm": "안남",
+              "indsLclsCd": "I2",
+              "indsLclsNm": "음식",
+              "indsMclsCd": "I205",
+              "indsMclsNm": "동남아시아",
+              "indsSclsCd": "I20501",
+              "indsSclsNm": "베트남식 전문",
+              "lat": 37.4869229049442,
+              "lon": 127.051853856887
+            },
+            "relation": {
+              "distance_m": 15.48,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 109,
+            "provider_fields": {
+              "bizesId": "MA010120220805435780",
+              "bizesNm": "자마이카휘트니스",
+              "indsLclsCd": "R1",
+              "indsLclsNm": "예술·스포츠",
+              "indsMclsCd": "R103",
+              "indsMclsNm": "스포츠 서비스",
+              "indsSclsCd": "R10307",
+              "indsSclsNm": "헬스장",
+              "lat": 37.4869229049442,
+              "lon": 127.051853856887
+            },
+            "relation": {
+              "distance_m": 15.48,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 110,
+            "provider_fields": {
+              "bizesId": "MA010120220807157625",
+              "bizesNm": "마끼에타워",
+              "indsLclsCd": "S2",
+              "indsLclsNm": "수리·개인",
+              "indsMclsCd": "S207",
+              "indsMclsNm": "이용·미용",
+              "indsSclsCd": "S20701",
+              "indsSclsNm": "미용실",
+              "lat": 37.4869229049442,
+              "lon": 127.051853856887
+            },
+            "relation": {
+              "distance_m": 15.48,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 111,
+            "provider_fields": {
+              "bizesId": "MA0101202305A0168079",
+              "bizesNm": "에스비골프",
+              "indsLclsCd": "G2",
+              "indsLclsNm": "소매",
+              "indsMclsCd": "G213",
+              "indsMclsNm": "오락용품 소매",
+              "indsSclsCd": "G21304",
+              "indsSclsNm": "운동용품 소매업",
+              "lat": 37.4869229049442,
+              "lon": 127.051853856887
+            },
+            "relation": {
+              "distance_m": 15.48,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 112,
+            "provider_fields": {
+              "bizesId": "MA0101202311A0072290",
+              "bizesNm": "브이브이엠",
+              "indsLclsCd": "S2",
+              "indsLclsNm": "수리·개인",
+              "indsMclsCd": "S208",
+              "indsMclsNm": "욕탕·신체관리",
+              "indsSclsCd": "S20803",
+              "indsSclsNm": "체형/비만 관리",
+              "lat": 37.4869229049442,
+              "lon": 127.051853856887
+            },
+            "relation": {
+              "distance_m": 15.48,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 113,
+            "provider_fields": {
+              "bizesId": "MA010120220804199745",
+              "bizesNm": "팰리스",
+              "indsLclsCd": "G2",
+              "indsLclsNm": "소매",
+              "indsMclsCd": "G215",
+              "indsMclsNm": "의약·화장품 소매",
+              "indsSclsCd": "G21503",
+              "indsSclsNm": "화장품 소매업",
+              "lat": 37.4869229049442,
+              "lon": 127.051853856887
+            },
+            "relation": {
+              "distance_m": 15.48,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 114,
+            "provider_fields": {
+              "bizesId": "MA010120220812574849",
+              "bizesNm": "로직에듀",
+              "indsLclsCd": "P1",
+              "indsLclsNm": "교육",
+              "indsMclsCd": "P106",
+              "indsMclsNm": "기타 교육",
+              "indsSclsCd": "P10629",
+              "indsSclsNm": "그 외 기타 교육기관",
+              "lat": 37.4869229049442,
+              "lon": 127.051853856887
+            },
+            "relation": {
+              "distance_m": 15.48,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 115,
+            "provider_fields": {
+              "bizesId": "MA010120220801918949",
+              "bizesNm": "솔토",
+              "indsLclsCd": "M1",
+              "indsLclsNm": "과학·기술",
+              "indsMclsCd": "M109",
+              "indsMclsNm": "기술 서비스",
+              "indsSclsCd": "M10903",
+              "indsSclsNm": "건물 및 토목 엔지니어링 서비스업",
+              "lat": 37.4869229049442,
+              "lon": 127.051853856887
+            },
+            "relation": {
+              "distance_m": 15.48,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 116,
+            "provider_fields": {
+              "bizesId": "MA010120220805850610",
+              "bizesNm": "오웬클럽",
+              "indsLclsCd": "R1",
+              "indsLclsNm": "예술·스포츠",
+              "indsMclsCd": "R103",
+              "indsMclsNm": "스포츠 서비스",
+              "indsSclsCd": "R10307",
+              "indsSclsNm": "헬스장",
+              "lat": 37.4869229049442,
+              "lon": 127.051853856887
+            },
+            "relation": {
+              "distance_m": 15.48,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 117,
+            "provider_fields": {
+              "bizesId": "MA010120220807086917",
+              "bizesNm": "이안네트워크",
+              "indsLclsCd": "M1",
+              "indsLclsNm": "과학·기술",
+              "indsMclsCd": "M107",
+              "indsMclsNm": "본사·경영 컨설팅",
+              "indsSclsCd": "M10703",
+              "indsSclsNm": "경영 컨설팅업",
+              "lat": 37.4869229049442,
+              "lon": 127.051853856887
+            },
+            "relation": {
+              "distance_m": 15.48,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 118,
+            "provider_fields": {
+              "bizesId": "MA010120220813700195",
+              "bizesNm": "로하스킨",
+              "indsLclsCd": "S2",
+              "indsLclsNm": "수리·개인",
+              "indsMclsCd": "S207",
+              "indsMclsNm": "이용·미용",
+              "indsSclsCd": "S20702",
+              "indsSclsNm": "피부 관리실",
+              "lat": 37.4869229049442,
+              "lon": 127.051853856887
+            },
+            "relation": {
+              "distance_m": 15.48,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 119,
+            "provider_fields": {
+              "bizesId": "MA010120220805181327",
+              "bizesNm": "리비필라테스평생교육원",
+              "indsLclsCd": "P1",
+              "indsLclsNm": "교육",
+              "indsMclsCd": "P106",
+              "indsMclsNm": "기타 교육",
+              "indsSclsCd": "P10603",
+              "indsSclsNm": "요가/필라테스 학원",
+              "lat": 37.4869229049442,
+              "lon": 127.051853856887
+            },
+            "relation": {
+              "distance_m": 15.48,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 120,
+            "provider_fields": {
+              "bizesId": "MA010120220813622474",
+              "bizesNm": "제이카페",
+              "indsLclsCd": "I2",
+              "indsLclsNm": "음식",
+              "indsMclsCd": "I212",
+              "indsMclsNm": "비알코올 ",
+              "indsSclsCd": "I21201",
+              "indsSclsNm": "카페",
+              "lat": 37.4869229049442,
+              "lon": 127.051853856887
+            },
+            "relation": {
+              "distance_m": 15.48,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 121,
+            "provider_fields": {
+              "bizesId": "MA010120220813202665",
+              "bizesNm": "마끼에A",
+              "indsLclsCd": "S2",
+              "indsLclsNm": "수리·개인",
+              "indsMclsCd": "S207",
+              "indsMclsNm": "이용·미용",
+              "indsSclsCd": "S20701",
+              "indsSclsNm": "미용실",
+              "lat": 37.4869229049442,
+              "lon": 127.051853856887
+            },
+            "relation": {
+              "distance_m": 15.48,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 122,
+            "provider_fields": {
+              "bizesId": "MA010120220804008302",
+              "bizesNm": "유니크헤어",
+              "indsLclsCd": "S2",
+              "indsLclsNm": "수리·개인",
+              "indsMclsCd": "S207",
+              "indsMclsNm": "이용·미용",
+              "indsSclsCd": "S20701",
+              "indsSclsNm": "미용실",
+              "lat": 37.4869229049442,
+              "lon": 127.051853856887
+            },
+            "relation": {
+              "distance_m": 15.48,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 123,
+            "provider_fields": {
+              "bizesId": "MA010120220802829272",
+              "bizesNm": "수스포츠도곡",
+              "indsLclsCd": "G2",
+              "indsLclsNm": "소매",
+              "indsMclsCd": "G213",
+              "indsMclsNm": "오락용품 소매",
+              "indsSclsCd": "G21304",
+              "indsSclsNm": "운동용품 소매업",
+              "lat": 37.4869229049442,
+              "lon": 127.051853856887
+            },
+            "relation": {
+              "distance_m": 15.48,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 124,
+            "provider_fields": {
+              "bizesId": "MA010120220812381301",
+              "bizesNm": "새론공인중개사사무소",
+              "indsLclsCd": "L1",
+              "indsLclsNm": "부동산",
+              "indsMclsCd": "L102",
+              "indsMclsNm": "부동산 서비스",
+              "indsSclsCd": "L10203",
+              "indsSclsNm": "부동산 중개/대리업",
+              "lat": 37.4869229049442,
+              "lon": 127.051853856887
+            },
+            "relation": {
+              "distance_m": 15.48,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 125,
+            "provider_fields": {
+              "bizesId": "MA010120220804017689",
+              "bizesNm": "프로방스",
+              "indsLclsCd": "S2",
+              "indsLclsNm": "수리·개인",
+              "indsMclsCd": "S207",
+              "indsMclsNm": "이용·미용",
+              "indsSclsCd": "S20701",
+              "indsSclsNm": "미용실",
+              "lat": 37.4869229049442,
+              "lon": 127.051853856887
+            },
+            "relation": {
+              "distance_m": 15.48,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 126,
+            "provider_fields": {
+              "bizesId": "MA010120220800803129",
+              "bizesNm": "네일잇문",
+              "indsLclsCd": "S2",
+              "indsLclsNm": "수리·개인",
+              "indsMclsCd": "S207",
+              "indsMclsNm": "이용·미용",
+              "indsSclsCd": "S20703",
+              "indsSclsNm": "네일숍",
+              "lat": 37.4869229049442,
+              "lon": 127.051853856887
+            },
+            "relation": {
+              "distance_m": 15.48,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 127,
+            "provider_fields": {
+              "bizesId": "MA010120220803021773",
+              "bizesNm": "타워팰리스공인중개사사무소",
+              "indsLclsCd": "L1",
+              "indsLclsNm": "부동산",
+              "indsMclsCd": "L102",
+              "indsMclsNm": "부동산 서비스",
+              "indsSclsCd": "L10203",
+              "indsSclsNm": "부동산 중개/대리업",
+              "lat": 37.4869229049442,
+              "lon": 127.051853856887
+            },
+            "relation": {
+              "distance_m": 15.48,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 128,
+            "provider_fields": {
+              "bizesId": "MA010120220808001517",
+              "bizesNm": "자마이카피트니스",
+              "indsLclsCd": "R1",
+              "indsLclsNm": "예술·스포츠",
+              "indsMclsCd": "R103",
+              "indsMclsNm": "스포츠 서비스",
+              "indsSclsCd": "R10307",
+              "indsSclsNm": "헬스장",
+              "lat": 37.4869229049442,
+              "lon": 127.051853856887
+            },
+            "relation": {
+              "distance_m": 15.48,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 129,
+            "provider_fields": {
+              "bizesId": "MA010120220813256122",
+              "bizesNm": "다정한상",
+              "indsLclsCd": "I2",
+              "indsLclsNm": "음식",
+              "indsMclsCd": "I201",
+              "indsMclsNm": "한식",
+              "indsSclsCd": "I20101",
+              "indsSclsNm": "백반/한정식",
+              "lat": 37.4869229049442,
+              "lon": 127.051853856887
+            },
+            "relation": {
+              "distance_m": 15.48,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 130,
+            "provider_fields": {
+              "bizesId": "MA010120220811142876",
+              "bizesNm": "오커피",
+              "indsLclsCd": "I2",
+              "indsLclsNm": "음식",
+              "indsMclsCd": "I212",
+              "indsMclsNm": "비알코올 ",
+              "indsSclsCd": "I21201",
+              "indsSclsNm": "카페",
+              "lat": 37.4869229049442,
+              "lon": 127.051853856887
+            },
+            "relation": {
+              "distance_m": 15.48,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 131,
+            "provider_fields": {
+              "bizesId": "MA010120220804467907",
+              "bizesNm": "뚝뗀",
+              "indsLclsCd": "I2",
+              "indsLclsNm": "음식",
+              "indsMclsCd": "I201",
+              "indsMclsNm": "한식",
+              "indsSclsCd": "I20101",
+              "indsSclsNm": "백반/한정식",
+              "lat": 37.4869229049442,
+              "lon": 127.051853856887
+            },
+            "relation": {
+              "distance_m": 15.48,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 132,
+            "provider_fields": {
+              "bizesId": "MA010120220807007789",
+              "bizesNm": "뚝뗀",
+              "indsLclsCd": "I2",
+              "indsLclsNm": "음식",
+              "indsMclsCd": "I201",
+              "indsMclsNm": "한식",
+              "indsSclsCd": "I20101",
+              "indsSclsNm": "백반/한정식",
+              "lat": 37.4869229049442,
+              "lon": 127.051853856887
+            },
+            "relation": {
+              "distance_m": 15.48,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 133,
+            "provider_fields": {
+              "bizesId": "MA010120220809265469",
+              "bizesNm": "아로마스파장미원",
+              "indsLclsCd": "S2",
+              "indsLclsNm": "수리·개인",
+              "indsMclsCd": "S207",
+              "indsMclsNm": "이용·미용",
+              "indsSclsCd": "S20702",
+              "indsSclsNm": "피부 관리실",
+              "lat": 37.4869229049442,
+              "lon": 127.051853856887
+            },
+            "relation": {
+              "distance_m": 15.48,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 134,
+            "provider_fields": {
+              "bizesId": "MA010120220810042340",
+              "bizesNm": "맥영타워공인중개사사무소",
+              "indsLclsCd": "L1",
+              "indsLclsNm": "부동산",
+              "indsMclsCd": "L102",
+              "indsMclsNm": "부동산 서비스",
+              "indsSclsCd": "L10203",
+              "indsSclsNm": "부동산 중개/대리업",
+              "lat": 37.4869229049442,
+              "lon": 127.051853856887
+            },
+            "relation": {
+              "distance_m": 15.48,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 135,
+            "provider_fields": {
+              "bizesId": "MA010120220808284794",
+              "bizesNm": "타워미래공인중개사사무소",
+              "indsLclsCd": "L1",
+              "indsLclsNm": "부동산",
+              "indsMclsCd": "L102",
+              "indsMclsNm": "부동산 서비스",
+              "indsSclsCd": "L10203",
+              "indsSclsNm": "부동산 중개/대리업",
+              "lat": 37.4869229049442,
+              "lon": 127.051853856887
+            },
+            "relation": {
+              "distance_m": 15.48,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 136,
+            "provider_fields": {
+              "bizesId": "MA010120220813405908",
+              "bizesNm": "타워드림공인중개사사무소",
+              "indsLclsCd": "L1",
+              "indsLclsNm": "부동산",
+              "indsMclsCd": "L102",
+              "indsMclsNm": "부동산 서비스",
+              "indsSclsCd": "L10203",
+              "indsSclsNm": "부동산 중개/대리업",
+              "lat": 37.4869229049442,
+              "lon": 127.051853856887
+            },
+            "relation": {
+              "distance_m": 15.48,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          }
+        ],
+        "limits": [
+          "Registered source geometry is not proof of a visit or behavior cause.",
+          "Source coverage is limited to the provider query and successfully read pages."
+        ]
+      },
+      "payload_sha256": "b2f59beff7f21ec28fc0831a3581a83fadcfc5a35af4678f1e9b2629b6e109ac",
+      "supersedes": null
+    },
+    {
+      "id": "env-9256f1e00a2d2c19441eafdf798c4112",
+      "target": {
+        "record": {
+          "store": "walk_entry",
+          "id": "gangnam-note-later",
+          "version": "1",
+          "version_kind": "revision"
+        },
+        "event_at": "2026-09-07T15:06:00+09:00",
+        "point": {
+          "lat": 37.487,
+          "lng": 127.052
+        },
+        "radius_m": null
+      },
+      "tags": [
+        "environment.weather"
+      ],
+      "status": "unavailable",
+      "reason": "http_403",
+      "provenance": {
+        "provider": "data.go.kr",
+        "operation": "weather",
+        "retrieved_at": "2026-09-08T04:52:26.303874Z",
+        "temporal_basis": "unknown",
+        "valid_time": null,
+        "policy_version": "record-envelope-gangnam-v1",
+        "synthetic": false
+      },
+      "payload_format": "data-go-kr-field-projection-v1",
+      "payload": null,
+      "payload_sha256": null,
+      "supersedes": null
+    },
+    {
+      "id": "env-b7dcba09367aa12d810fb6fdc8e70d28",
+      "target": {
+        "record": {
+          "store": "walk_entry",
+          "id": "gangnam-note-unlocated",
+          "version": "1",
+          "version_kind": "revision"
+        },
+        "event_at": "2026-09-07T15:40:00+09:00",
+        "point": null,
+        "radius_m": null
+      },
+      "tags": [
+        "space.park"
+      ],
+      "status": "not_requested",
+      "reason": "location_missing",
+      "provenance": {
+        "provider": "data.go.kr",
+        "operation": "parks",
+        "retrieved_at": null,
+        "temporal_basis": "unknown",
+        "valid_time": null,
+        "policy_version": "record-envelope-gangnam-v1",
+        "synthetic": false
+      },
+      "payload_format": "data-go-kr-field-projection-v1",
+      "payload": null,
+      "payload_sha256": null,
+      "supersedes": null
+    },
+    {
+      "id": "env-fa6ddf9aa7e3d540b90179acffec24d7",
+      "target": {
+        "record": {
+          "store": "walk_entry",
+          "id": "gangnam-note-unlocated",
+          "version": "1",
+          "version_kind": "revision"
+        },
+        "event_at": "2026-09-07T15:40:00+09:00",
+        "point": null,
+        "radius_m": null
+      },
+      "tags": [
+        "space.river"
+      ],
+      "status": "not_requested",
+      "reason": "location_missing",
+      "provenance": {
+        "provider": "data.go.kr",
+        "operation": "rivers",
+        "retrieved_at": null,
+        "temporal_basis": "unknown",
+        "valid_time": null,
+        "policy_version": "record-envelope-gangnam-v1",
+        "synthetic": false
+      },
+      "payload_format": "data-go-kr-field-projection-v1",
+      "payload": null,
+      "payload_sha256": null,
+      "supersedes": null
+    },
+    {
+      "id": "env-b3ce9a8021a4056cbb46c8dd0fd62a27",
+      "target": {
+        "record": {
+          "store": "walk_entry",
+          "id": "gangnam-note-unlocated",
+          "version": "1",
+          "version_kind": "revision"
+        },
+        "event_at": "2026-09-07T15:40:00+09:00",
+        "point": null,
+        "radius_m": null
+      },
+      "tags": [
+        "space.facility"
+      ],
+      "status": "not_requested",
+      "reason": "location_missing",
+      "provenance": {
+        "provider": "data.go.kr",
+        "operation": "commerce",
+        "retrieved_at": null,
+        "temporal_basis": "unknown",
+        "valid_time": null,
+        "policy_version": "record-envelope-gangnam-v1",
+        "synthetic": false
+      },
+      "payload_format": "data-go-kr-field-projection-v1",
+      "payload": null,
+      "payload_sha256": null,
+      "supersedes": null
+    },
+    {
+      "id": "env-63264473326e6cc08df84d83613d0cfd",
+      "target": {
+        "record": {
+          "store": "walk_entry",
+          "id": "gangnam-note-unlocated",
+          "version": "1",
+          "version_kind": "revision"
+        },
+        "event_at": "2026-09-07T15:40:00+09:00",
+        "point": null,
+        "radius_m": null
+      },
+      "tags": [
+        "environment.weather"
+      ],
+      "status": "not_requested",
+      "reason": "location_missing",
+      "provenance": {
+        "provider": "data.go.kr",
+        "operation": "weather",
+        "retrieved_at": null,
+        "temporal_basis": "unknown",
+        "valid_time": null,
+        "policy_version": "record-envelope-gangnam-v1",
+        "synthetic": false
+      },
+      "payload_format": "data-go-kr-field-projection-v1",
+      "payload": null,
+      "payload_sha256": null,
+      "supersedes": null
+    },
+    {
+      "id": "env-f84bcc944fe538af760e4ff7a41518a2",
+      "target": {
+        "record": {
+          "store": "walk_entry",
+          "id": "gangnam-note-legacy",
+          "version": "1",
+          "version_kind": "revision"
+        },
+        "event_at": "2026-09-07T15:08:00+09:00",
+        "point": {
+          "lat": 37.48928,
+          "lng": 127.05633
+        },
+        "radius_m": 250.0
+      },
+      "tags": [
+        "space.park"
+      ],
+      "status": "known",
+      "reason": null,
+      "provenance": {
+        "provider": "data.go.kr",
+        "operation": "parks",
+        "retrieved_at": "2026-09-08T04:52:25.510192Z",
+        "temporal_basis": "lookup_snapshot",
+        "valid_time": null,
+        "policy_version": "record-envelope-gangnam-v1",
+        "synthetic": false
+      },
+      "payload_format": "data-go-kr-field-projection-v1",
+      "payload": {
+        "query": {
+          "instt_nm": "서울특별시 강남구"
+        },
+        "source_url": "https://www.data.go.kr/data/15012890/standard.do",
+        "source_receipt_sha256": "53e084615c6aa4420e79c2447dffa54435e3adff64aeb7d16b64f41eddd1f40f",
+        "page_sha256": [
+          "87304417a849a609471808f362c72df5815cd34f89291fc976443756455fc076"
+        ],
+        "provider_metadata": [],
+        "coverage": {
+          "source_status": "known",
+          "source_reason": null,
+          "reported_total": 146,
+          "read_rows": 146,
+          "unusable_rows": 0,
+          "matched_rows": 1,
+          "returned_rows": 1
+        },
+        "items": [
+          {
+            "source_row_index": 20,
+            "provider_fields": {
+              "manageNo": "11680-00008",
+              "parkNm": "늘벗근린공원",
+              "parkSe": "근린공원",
+              "latitude": "37.48928087",
+              "longitude": "127.0563303",
+              "referenceDate": "2026-01-29",
+              "insttNm": "서울특별시 강남구"
+            },
+            "relation": {
+              "distance_m": 0.1,
+              "geometry_reference": "park_representative_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          }
+        ],
+        "limits": [
+          "Registered source geometry is not proof of a visit or behavior cause.",
+          "Source coverage is limited to the provider query and successfully read pages."
+        ]
+      },
+      "payload_sha256": "f6a77428e0b3fa69b9ebcde1608683e2c93b4fe10c68b6c1ea646d480b02b0b6",
+      "supersedes": null
+    },
+    {
+      "id": "env-292c7efbdd73a68fcb90b74d428ba246",
+      "target": {
+        "record": {
+          "store": "walk_entry",
+          "id": "gangnam-note-legacy",
+          "version": "1",
+          "version_kind": "revision"
+        },
+        "event_at": "2026-09-07T15:08:00+09:00",
+        "point": {
+          "lat": 37.48928,
+          "lng": 127.05633
+        },
+        "radius_m": 250.0
+      },
+      "tags": [
+        "space.river"
+      ],
+      "status": "partial",
+      "reason": "unusable_source_rows",
+      "provenance": {
+        "provider": "data.go.kr",
+        "operation": "rivers",
+        "retrieved_at": "2026-09-08T04:52:25.755592Z",
+        "temporal_basis": "lookup_snapshot",
+        "valid_time": null,
+        "policy_version": "record-envelope-gangnam-v1",
+        "synthetic": false
+      },
+      "payload_format": "data-go-kr-field-projection-v1",
+      "payload": {
+        "query": {},
+        "source_url": "https://www.data.go.kr/data/15139206/standard.do",
+        "source_receipt_sha256": "d014e64ebe21c88cafa9b5dc0bce88bd5248a1cc70b650e249f6dd1a326fdef0",
+        "page_sha256": [
+          "45e52f5b9cb8e17e3ab7601aab028e70c65d07732094b96322af6cc11c740600",
+          "b7c8a6b14b18567ec596d8bd28d9182d67619a8a29eebd5766aebe9096e9aa58",
+          "59441db4867dc74dde544c6ac713542b8e358a674788039cca62c42be5f88a7a"
+        ],
+        "provider_metadata": [],
+        "coverage": {
+          "source_status": "known",
+          "source_reason": null,
+          "reported_total": 2558,
+          "read_rows": 2558,
+          "unusable_rows": 2364,
+          "matched_rows": 0,
+          "returned_rows": 0
+        },
+        "items": [],
+        "limits": [
+          "Registered source geometry is not proof of a visit or behavior cause.",
+          "Source coverage is limited to the provider query and successfully read pages."
+        ]
+      },
+      "payload_sha256": "f2b5fc7f9c65b79e4161d760162a6912ad9cb91331b21686c6c5aa5c7147719e",
+      "supersedes": null
+    },
+    {
+      "id": "env-b2d923c3ccab0e028e5cfd38fc6cff23",
+      "target": {
+        "record": {
+          "store": "walk_entry",
+          "id": "gangnam-note-legacy",
+          "version": "1",
+          "version_kind": "revision"
+        },
+        "event_at": "2026-09-07T15:08:00+09:00",
+        "point": {
+          "lat": 37.48928,
+          "lng": 127.05633
+        },
+        "radius_m": 250.0
+      },
+      "tags": [
+        "space.facility"
+      ],
+      "status": "partial",
+      "reason": "projection_limit",
+      "provenance": {
+        "provider": "data.go.kr",
+        "operation": "commerce",
+        "retrieved_at": "2026-09-08T04:52:26.166343Z",
+        "temporal_basis": "lookup_snapshot",
+        "valid_time": null,
+        "policy_version": "record-envelope-gangnam-v1",
+        "synthetic": false
+      },
+      "payload_format": "data-go-kr-field-projection-v1",
+      "payload": {
+        "query": {
+          "cx": 127.05633,
+          "cy": 37.48928,
+          "radius": 250
+        },
+        "source_url": "https://www.data.go.kr/data/15012005/openapi.do",
+        "source_receipt_sha256": "6d05039d88f0cfeba7355d2b6b60325053b57c9a1594fa921e0cda5a4036dfec",
+        "page_sha256": [
+          "992b3adff5987767c1da562317dae392d0ec9c9e6c6ff8dd206c25f27e25e59d"
+        ],
+        "provider_metadata": [
+          {
+            "stdrYm": "202606"
+          }
+        ],
+        "coverage": {
+          "source_status": "known",
+          "source_reason": null,
+          "reported_total": 77,
+          "read_rows": 77,
+          "unusable_rows": 0,
+          "matched_rows": 60,
+          "returned_rows": 30
+        },
+        "items": [
+          {
+            "source_row_index": 12,
+            "provider_fields": {
+              "bizesId": "MA0101202305A0015639",
+              "bizesNm": "공차SSG푸드마켓",
+              "indsLclsCd": "I2",
+              "indsLclsNm": "음식",
+              "indsMclsCd": "I212",
+              "indsMclsNm": "비알코올 ",
+              "indsSclsCd": "I21201",
+              "indsSclsNm": "카페",
+              "lat": 37.4898406898267,
+              "lon": 127.055123720764
+            },
+            "relation": {
+              "distance_m": 123.35,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 39,
+            "provider_fields": {
+              "bizesId": "MA0101202408A0016723",
+              "bizesNm": "도곡수련관VTA",
+              "indsLclsCd": "P1",
+              "indsLclsNm": "교육",
+              "indsMclsCd": "P106",
+              "indsMclsNm": "기타 교육",
+              "indsSclsCd": "P10601",
+              "indsSclsNm": "태권도/무술학원",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 40,
+            "provider_fields": {
+              "bizesId": "MA0101202308A0095964",
+              "bizesNm": "감성헤어",
+              "indsLclsCd": "S2",
+              "indsLclsNm": "수리·개인",
+              "indsMclsCd": "S207",
+              "indsMclsNm": "이용·미용",
+              "indsSclsCd": "S20701",
+              "indsSclsNm": "미용실",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 41,
+            "provider_fields": {
+              "bizesId": "MA0101202408A0055935",
+              "bizesNm": "피아노에튀드음악교습소",
+              "indsLclsCd": "P1",
+              "indsLclsNm": "교육",
+              "indsMclsCd": "P106",
+              "indsMclsNm": "기타 교육",
+              "indsSclsCd": "P10609",
+              "indsSclsNm": "음악학원",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 42,
+            "provider_fields": {
+              "bizesId": "MA010120220810248740",
+              "bizesNm": "삼성타워공인중개사사무소",
+              "indsLclsCd": "L1",
+              "indsLclsNm": "부동산",
+              "indsMclsCd": "L102",
+              "indsMclsNm": "부동산 서비스",
+              "indsSclsCd": "L10203",
+              "indsSclsNm": "부동산 중개/대리업",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 43,
+            "provider_fields": {
+              "bizesId": "MA0101202311A0010463",
+              "bizesNm": "매화연",
+              "indsLclsCd": "I2",
+              "indsLclsNm": "음식",
+              "indsMclsCd": "I212",
+              "indsMclsNm": "비알코올 ",
+              "indsSclsCd": "I21201",
+              "indsSclsNm": "카페",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 44,
+            "provider_fields": {
+              "bizesId": "MA010120220801045265",
+              "bizesNm": "오구사구공인중개사사무소단지내",
+              "indsLclsCd": "L1",
+              "indsLclsNm": "부동산",
+              "indsMclsCd": "L102",
+              "indsMclsNm": "부동산 서비스",
+              "indsSclsCd": "L10203",
+              "indsSclsNm": "부동산 중개/대리업",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 45,
+            "provider_fields": {
+              "bizesId": "MA010120220801048421",
+              "bizesNm": "국제피트니스전문지도자협회",
+              "indsLclsCd": "R1",
+              "indsLclsNm": "예술·스포츠",
+              "indsMclsCd": "R103",
+              "indsMclsNm": "스포츠 서비스",
+              "indsSclsCd": "R10307",
+              "indsSclsNm": "헬스장",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 46,
+            "provider_fields": {
+              "bizesId": "MA0101202211A0063339",
+              "bizesNm": "우성공인중개사사무소단지내",
+              "indsLclsCd": "L1",
+              "indsLclsNm": "부동산",
+              "indsMclsCd": "L102",
+              "indsMclsNm": "부동산 서비스",
+              "indsSclsCd": "L10203",
+              "indsSclsNm": "부동산 중개/대리업",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 47,
+            "provider_fields": {
+              "bizesId": "MA0101202301A0040323",
+              "bizesNm": "타워진부동산공인중개사사무소",
+              "indsLclsCd": "L1",
+              "indsLclsNm": "부동산",
+              "indsMclsCd": "L102",
+              "indsMclsNm": "부동산 서비스",
+              "indsSclsCd": "L10203",
+              "indsSclsNm": "부동산 중개/대리업",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 48,
+            "provider_fields": {
+              "bizesId": "MA010120220812298569",
+              "bizesNm": "피카브로우",
+              "indsLclsCd": "S2",
+              "indsLclsNm": "수리·개인",
+              "indsMclsCd": "S207",
+              "indsMclsNm": "이용·미용",
+              "indsSclsCd": "S20701",
+              "indsSclsNm": "미용실",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 49,
+            "provider_fields": {
+              "bizesId": "MA0106202201A0955254",
+              "bizesNm": "씨제이푸드빌빕스도곡역",
+              "indsLclsCd": "I2",
+              "indsLclsNm": "음식",
+              "indsMclsCd": "I204",
+              "indsMclsNm": "서양식",
+              "indsSclsCd": "I20403",
+              "indsSclsNm": "패밀리레스토랑",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 50,
+            "provider_fields": {
+              "bizesId": "MA010120220808178893",
+              "bizesNm": "웰니스라운지",
+              "indsLclsCd": "S2",
+              "indsLclsNm": "수리·개인",
+              "indsMclsCd": "S207",
+              "indsMclsNm": "이용·미용",
+              "indsSclsCd": "S20702",
+              "indsSclsNm": "피부 관리실",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 51,
+            "provider_fields": {
+              "bizesId": "MA010120220803468005",
+              "bizesNm": "비노",
+              "indsLclsCd": "G2",
+              "indsLclsNm": "소매",
+              "indsMclsCd": "G209",
+              "indsMclsNm": "섬유·의복·신발 소매",
+              "indsSclsCd": "G20902",
+              "indsSclsNm": "여성 의류 소매업",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 52,
+            "provider_fields": {
+              "bizesId": "MA010120220805935075",
+              "bizesNm": "라온제나헤어",
+              "indsLclsCd": "S2",
+              "indsLclsNm": "수리·개인",
+              "indsMclsCd": "S207",
+              "indsMclsNm": "이용·미용",
+              "indsSclsCd": "S20701",
+              "indsSclsNm": "미용실",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 53,
+            "provider_fields": {
+              "bizesId": "MA010120220810328058",
+              "bizesNm": "매쓰무적학원",
+              "indsLclsCd": "P1",
+              "indsLclsNm": "교육",
+              "indsMclsCd": "P105",
+              "indsMclsNm": "일반 교육",
+              "indsSclsCd": "P10501",
+              "indsSclsNm": "입시·교과학원",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 54,
+            "provider_fields": {
+              "bizesId": "MA010120220800954017",
+              "bizesNm": "무앙",
+              "indsLclsCd": "I2",
+              "indsLclsNm": "음식",
+              "indsMclsCd": "I210",
+              "indsMclsNm": "기타 간이",
+              "indsSclsCd": "I21001",
+              "indsSclsNm": "빵/도넛",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 55,
+            "provider_fields": {
+              "bizesId": "MA010120220807298747",
+              "bizesNm": "미스터헤어",
+              "indsLclsCd": "S2",
+              "indsLclsNm": "수리·개인",
+              "indsMclsCd": "S207",
+              "indsMclsNm": "이용·미용",
+              "indsSclsCd": "S20701",
+              "indsSclsNm": "미용실",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 56,
+            "provider_fields": {
+              "bizesId": "MA010120220804018974",
+              "bizesNm": "위드공인중개사사무소",
+              "indsLclsCd": "L1",
+              "indsLclsNm": "부동산",
+              "indsMclsCd": "L102",
+              "indsMclsNm": "부동산 서비스",
+              "indsSclsCd": "L10203",
+              "indsSclsNm": "부동산 중개/대리업",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 57,
+            "provider_fields": {
+              "bizesId": "MA010120220807150850",
+              "bizesNm": "타워박사공인중개사사무소",
+              "indsLclsCd": "L1",
+              "indsLclsNm": "부동산",
+              "indsMclsCd": "L102",
+              "indsMclsNm": "부동산 서비스",
+              "indsSclsCd": "L10203",
+              "indsSclsNm": "부동산 중개/대리업",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 58,
+            "provider_fields": {
+              "bizesId": "MA010120220800990473",
+              "bizesNm": "리더스",
+              "indsLclsCd": "M1",
+              "indsLclsNm": "과학·기술",
+              "indsMclsCd": "M107",
+              "indsMclsNm": "본사·경영 컨설팅",
+              "indsSclsCd": "M10703",
+              "indsSclsNm": "경영 컨설팅업",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 59,
+            "provider_fields": {
+              "bizesId": "MA010120220806870117",
+              "bizesNm": "서울부동산공인중개사사무소",
+              "indsLclsCd": "L1",
+              "indsLclsNm": "부동산",
+              "indsMclsCd": "L102",
+              "indsMclsNm": "부동산 서비스",
+              "indsSclsCd": "L10203",
+              "indsSclsNm": "부동산 중개/대리업",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 60,
+            "provider_fields": {
+              "bizesId": "MA0101202603A0032054",
+              "bizesNm": "그랑프리문구",
+              "indsLclsCd": "G2",
+              "indsLclsNm": "소매",
+              "indsMclsCd": "G213",
+              "indsMclsNm": "오락용품 소매",
+              "indsSclsCd": "G21302",
+              "indsSclsNm": "문구/회화용품 소매업",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 61,
+            "provider_fields": {
+              "bizesId": "MA010120220806664156",
+              "bizesNm": "행복공인중개사사무소단지내",
+              "indsLclsCd": "L1",
+              "indsLclsNm": "부동산",
+              "indsMclsCd": "L102",
+              "indsMclsNm": "부동산 서비스",
+              "indsSclsCd": "L10203",
+              "indsSclsNm": "부동산 중개/대리업",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 62,
+            "provider_fields": {
+              "bizesId": "MA010120220809269104",
+              "bizesNm": "제이유피부과의원",
+              "indsLclsCd": "Q1",
+              "indsLclsNm": "보건의료",
+              "indsMclsCd": "Q102",
+              "indsMclsNm": "의원",
+              "indsSclsCd": "Q10204",
+              "indsSclsNm": "피부/비뇨기과 의원",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 63,
+            "provider_fields": {
+              "bizesId": "MA010120220811684776",
+              "bizesNm": "지에스25도곡역점",
+              "indsLclsCd": "G2",
+              "indsLclsNm": "소매",
+              "indsMclsCd": "G204",
+              "indsMclsNm": "종합 소매",
+              "indsSclsCd": "G20405",
+              "indsSclsNm": "편의점",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 64,
+            "provider_fields": {
+              "bizesId": "MA0101202510A0006843",
+              "bizesNm": "네일도예쁨",
+              "indsLclsCd": "S2",
+              "indsLclsNm": "수리·개인",
+              "indsMclsCd": "S207",
+              "indsMclsNm": "이용·미용",
+              "indsSclsCd": "S20703",
+              "indsSclsNm": "네일숍",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 65,
+            "provider_fields": {
+              "bizesId": "MA0101202504A0113770",
+              "bizesNm": "귀편한세상보청기",
+              "indsLclsCd": "G2",
+              "indsLclsNm": "소매",
+              "indsMclsCd": "G215",
+              "indsMclsNm": "의약·화장품 소매",
+              "indsSclsCd": "G21502",
+              "indsSclsNm": "의료기기 소매업",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 66,
+            "provider_fields": {
+              "bizesId": "MA010120220809832195",
+              "bizesNm": "도담",
+              "indsLclsCd": "M1",
+              "indsLclsNm": "과학·기술",
+              "indsMclsCd": "M107",
+              "indsMclsNm": "본사·경영 컨설팅",
+              "indsSclsCd": "M10703",
+              "indsSclsNm": "경영 컨설팅업",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          },
+          {
+            "source_row_index": 67,
+            "provider_fields": {
+              "bizesId": "MA0101202503A0012747",
+              "bizesNm": "도곡성모이비인후과의원",
+              "indsLclsCd": "Q1",
+              "indsLclsNm": "보건의료",
+              "indsMclsCd": "Q102",
+              "indsMclsNm": "의원",
+              "indsSclsCd": "Q10206",
+              "indsSclsNm": "이비인후과 의원",
+              "lat": 37.490705177511,
+              "lon": 127.056142036381
+            },
+            "relation": {
+              "distance_m": 159.34,
+              "geometry_reference": "registered_shop_point",
+              "calculation": "haversine-radius-6371008.8-v1"
+            }
+          }
+        ],
+        "limits": [
+          "Registered source geometry is not proof of a visit or behavior cause.",
+          "Source coverage is limited to the provider query and successfully read pages."
+        ]
+      },
+      "payload_sha256": "f87df2c9281c6d9e9549cb0e2faf1abe3628ce2059c2d4a1d20fa523bad6b0e3",
+      "supersedes": null
+    },
+    {
+      "id": "env-cd9f1f42aee885df851a6b29684e7577",
+      "target": {
+        "record": {
+          "store": "walk_entry",
+          "id": "gangnam-note-legacy",
+          "version": "1",
+          "version_kind": "revision"
+        },
+        "event_at": "2026-09-07T15:08:00+09:00",
+        "point": {
+          "lat": 37.48928,
+          "lng": 127.05633
+        },
+        "radius_m": null
+      },
+      "tags": [
+        "environment.weather"
+      ],
+      "status": "unavailable",
+      "reason": "http_403",
+      "provenance": {
+        "provider": "data.go.kr",
+        "operation": "weather",
+        "retrieved_at": "2026-09-08T04:52:26.303874Z",
+        "temporal_basis": "unknown",
+        "valid_time": null,
+        "policy_version": "record-envelope-gangnam-v1",
+        "synthetic": false
+      },
+      "payload_format": "data-go-kr-field-projection-v1",
+      "payload": null,
+      "payload_sha256": null,
+      "supersedes": null
+    }
+  ],
+  "selected_envelope_ids": [
+    "env-2d17500ea2d758a9282ebce045c5e6cd",
+    "env-e64e56139c69728c487ef94ba68989d1",
+    "env-452b1b41ebd15fd61349254987007024",
+    "env-bfadf9f56b80bba013a135deb57e3669",
+    "env-a4f2da1edaaa1b04ce0d029403673e76",
+    "env-a69a6817801a344227bb51db43d18d18",
+    "env-7cc07c248ea0e7b2def8059c0a6c4f4a",
+    "env-33fdb38679a12e478b161bf3e542b35f",
+    "env-8eabf7a59db1be82f715f39eaecbdefb",
+    "env-ef110bff4506550b3cdc8f52f0b7b561",
+    "env-4965ed3ac244d5915b30cef3d69c4391",
+    "env-fedc0c64598d4537d6cfceaba2dc266b",
+    "env-d92535685c4ede6ae9ea72bc1a4933eb",
+    "env-7fbfc12fabcdc11e043d9b98fbef5946",
+    "env-5636c218306cbac363458ebd8fc9c8f7",
+    "env-9256f1e00a2d2c19441eafdf798c4112",
+    "env-b7dcba09367aa12d810fb6fdc8e70d28",
+    "env-fa6ddf9aa7e3d540b90179acffec24d7",
+    "env-b3ce9a8021a4056cbb46c8dd0fd62a27",
+    "env-63264473326e6cc08df84d83613d0cfd",
+    "env-f84bcc944fe538af760e4ff7a41518a2",
+    "env-292c7efbdd73a68fcb90b74d428ba246",
+    "env-b2d923c3ccab0e028e5cfd38fc6cff23",
+    "env-cd9f1f42aee885df851a6b29684e7577"
+  ]
+}
