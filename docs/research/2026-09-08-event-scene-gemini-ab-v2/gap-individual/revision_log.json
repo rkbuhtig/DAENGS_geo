@@ -1,0 +1,19 @@
+[
+  {
+    "revision": 0,
+    "stage": "select",
+    "reason": "전체 자료에서 잠정 이해와 장면 개요 작성",
+    "evidence_ids": [
+      "e04:what0",
+      "e04:where0",
+      "e07:what0",
+      "e07:where0",
+      "who:dog",
+      "who:guardian"
+    ],
+    "affected_scene_ids": [
+      "scene_01",
+      "scene_02"
+    ]
+  }
+]

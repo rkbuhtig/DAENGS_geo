@@ -1,0 +1,283 @@
+{
+  "systemInstruction": {
+    "parts": [
+      {
+        "text": "너는 이번 산책 세션의 시간적 스토리보드를 구성하는 작성자다.\n순서는 전체 세션 이해 → 장면별 순차 작성과 이해 갱신 → 전체 재검토 → 사용자 검토 →\n별도 선택에 따른 일기 생성이다. 현재 지정된 단계의 결과만 반환한다.\n미시 동선, 이번 산책의 거시 흐름, 환경, 행동핀, 과거 공간 경향을 함께 읽고 관련성과\n쓰임을 판단한다. 초기 이해는 수정 가능한 해석이며 이후 장면을 맞춰야 할 정답이 아니다.\n관측과 해석, 미확인 사항을 구별하고 evidence_ids로 원자료를 참조한다.\n이전 모델 출력은 원자료를 대체하지 않는다. 원자료의 수치·단위·수집 조건을 함께 확인한다.\n한국어로 작성한다. 추론 과정 독백 대신 결과, 변경 이유와 근거를 간결하게 기록한다.\n\n전체 산책 자료를 이해하고 시간순 장면 개요를 선택한다. 본문은 아직 쓰지 않는다.\nevidence_snapshot.context.candidate_catalog가 사건 범위와 선택 정책의 원본이다.\n카드 자격이 없는 연결 구간은 connection 이유로 생략하고 required 후보는 보존한다.\n모든 후보를 selection.decisions에 정확히 한 번 기록한다. 선택은 code=selected와 scene_id,\n생략은 scene_id=null과 실제 이유 코드/설명을 반환한다. 후보 하나에 장면 하나만 연결한다.\n장면 수가 max_scenes보다 적으면 budget 때문에 생략했다고 하지 않는다.\n장면 수를 채우지 않는다. 남길 이유가 없으면 outline=[]도 정상이다.\n선택한 사건의 시작/끝 시각을 그대로 유지한다. point 사건은 시작과 끝이 같다.\n각 장면은 해당 후보의 중심 근거를 포함하고 다른 후보의 근거를 가져오지 않는다.\ntitle_draft는 선택한 내용에 근거한 제목과 evidence_ids다. 빈 구성에서는 null을 허용한다.\n이해는 잠정적이다. 구조 검사 통과가 서술의 사실성 보장은 아니다.\n\n이번 실행은 구성안 비교다. 장면 본문은 쓰지 않는다.\n자료가 지지하는 관측과 잠정 해석을 구분한다. 냄새 기록은 정지·휴식의 근거가 아니며,\n사진 기록은 촬영 목적·사진 내용의 근거가 아니다. 장소 근접은 내부 진입·이용의 근거가 아니다.\n같은 공간 유형의 재등장을 동일 장소로의 복귀로 쓰지 않는다. 감정·선호·익숙함을 단정하지 않는다.\n선정/묶기/생략은 전체 산책에서 추가로 전달하는 내용과 반복을 고려한다. 원본 사건 시간은 보존한다.\n"
+      }
+    ]
+  },
+  "contents": [
+    {
+      "role": "user",
+      "parts": [
+        {
+          "text": "{\"evidence_snapshot\": {\"schema_version\": \"diary-evidence-v1\", \"session_id\": \"archived-v3-gap\", \"started_at\": \"2026-09-07T09:00:00+09:00\", \"ended_at\": \"2026-09-07T09:38:48.561869+09:00\", \"context\": {\"candidate_catalog\": {\"version\": \"candidate-catalog-v1\", \"policy_id\": \"scene-purpose-v3-archived\", \"source_revision\": \"0fa7af0d7444eb6067a6c209efad1834a3f7006212b15e5bd323c66f2a08b2f9\", \"max_scenes\": 7, \"candidates\": [{\"id\": \"e00\", \"role\": \"connection\", \"time_kind\": \"point\", \"start_at\": \"2026-09-07T09:00:00+09:00\", \"end_at\": \"2026-09-07T09:00:00+09:00\", \"chain\": 0, \"card_eligible\": false, \"required\": false, \"why_keep\": \"뚜렷한 사용자 행동이나 채택 기준에 맞는 공간 변화가 없어 지도 동선으로 연결\", \"evidence_ids\": [], \"subject_ids\": [], \"primary_evidence_id\": null, \"source_event_id\": \"e00\", \"source_input_sha256\": \"0fa7af0d7444eb6067a6c209efad1834a3f7006212b15e5bd323c66f2a08b2f9\", \"location_status\": \"unresolved\"}, {\"id\": \"e01\", \"role\": \"connection\", \"time_kind\": \"interval\", \"start_at\": \"2026-09-07T09:01:00+09:00\", \"end_at\": \"2026-09-07T09:03:00+09:00\", \"chain\": 0, \"card_eligible\": false, \"required\": false, \"why_keep\": \"뚜렷한 사용자 행동이나 채택 기준에 맞는 공간 변화가 없어 지도 동선으로 연결\", \"evidence_ids\": [], \"subject_ids\": [], \"primary_evidence_id\": null, \"source_event_id\": \"e01\", \"source_input_sha256\": \"0fa7af0d7444eb6067a6c209efad1834a3f7006212b15e5bd323c66f2a08b2f9\", \"location_status\": \"unresolved\"}, {\"id\": \"e02\", \"role\": \"connection\", \"time_kind\": \"interval\", \"start_at\": \"2026-09-07T09:04:00+09:00\", \"end_at\": \"2026-09-07T09:07:00+09:00\", \"chain\": 0, \"card_eligible\": false, \"required\": false, \"why_keep\": \"뚜렷한 사용자 행동이나 채택 기준에 맞는 공간 변화가 없어 지도 동선으로 연결\", \"evidence_ids\": [], \"subject_ids\": [], \"primary_evidence_id\": null, \"source_event_id\": \"e02\", \"source_input_sha256\": \"0fa7af0d7444eb6067a6c209efad1834a3f7006212b15e5bd323c66f2a08b2f9\", \"location_status\": \"unresolved\"}, {\"id\": \"e03\", \"role\": \"transition\", \"time_kind\": \"interval\", \"start_at\": \"2026-09-07T09:08:00+09:00\", \"end_at\": \"2026-09-07T09:09:00+09:00\", \"chain\": 0, \"card_eligible\": true, \"required\": false, \"why_keep\": \"공간 배경 또는 장소와의 관계가 달라짐: 등록 상가가 산재한 구간에서 등록 상가가 모인 구간으로 주변 특징이 바뀜\", \"evidence_ids\": [\"e03:what0\", \"e03:where0\", \"e03:where2\"], \"subject_ids\": [\"who:guardian\", \"who:dog\"], \"primary_evidence_id\": \"e03:where2\", \"source_event_id\": \"e03\", \"source_input_sha256\": \"0fa7af0d7444eb6067a6c209efad1834a3f7006212b15e5bd323c66f2a08b2f9\", \"location_status\": \"unresolved\"}, {\"id\": \"e04\", \"role\": \"action\", \"time_kind\": \"point\", \"start_at\": \"2026-09-07T09:10:00+09:00\", \"end_at\": \"2026-09-07T09:10:00+09:00\", \"chain\": 0, \"card_eligible\": true, \"required\": true, \"why_keep\": \"사용자가 직접 남긴 행동이 있어 이 시점 자체를 남길 이유가 있음\", \"evidence_ids\": [\"e04:what0\", \"e04:where0\"], \"subject_ids\": [\"who:guardian\", \"who:dog\"], \"primary_evidence_id\": \"e04:what0\", \"source_event_id\": \"e04\", \"source_input_sha256\": \"0fa7af0d7444eb6067a6c209efad1834a3f7006212b15e5bd323c66f2a08b2f9\", \"location_status\": \"unresolved\"}, {\"id\": \"e05\", \"role\": \"connection\", \"time_kind\": \"interval\", \"start_at\": \"2026-09-07T09:11:00+09:00\", \"end_at\": \"2026-09-07T09:12:00+09:00\", \"chain\": 0, \"card_eligible\": false, \"required\": false, \"why_keep\": \"뚜렷한 사용자 행동이나 채택 기준에 맞는 공간 변화가 없어 지도 동선으로 연결\", \"evidence_ids\": [], \"subject_ids\": [], \"primary_evidence_id\": null, \"source_event_id\": \"e05\", \"source_input_sha256\": \"0fa7af0d7444eb6067a6c209efad1834a3f7006212b15e5bd323c66f2a08b2f9\", \"location_status\": \"unresolved\"}, {\"id\": \"e06\", \"role\": \"transition\", \"time_kind\": \"interval\", \"start_at\": \"2026-09-07T09:13:00+09:00\", \"end_at\": \"2026-09-07T09:14:00+09:00\", \"chain\": 0, \"card_eligible\": true, \"required\": false, \"why_keep\": \"공간 배경 또는 장소와의 관계가 달라짐: 등록 상가가 모인 구간에서 늘벗근린공원 가까운 구간으로 주변 특징이 바뀜\", \"evidence_ids\": [\"e06:what0\", \"e06:where0\", \"e06:where2\"], \"subject_ids\": [\"who:guardian\", \"who:dog\"], \"primary_evidence_id\": \"e06:where2\", \"source_event_id\": \"e06\", \"source_input_sha256\": \"0fa7af0d7444eb6067a6c209efad1834a3f7006212b15e5bd323c66f2a08b2f9\", \"location_status\": \"unresolved\"}, {\"id\": \"e07\", \"role\": \"action\", \"time_kind\": \"point\", \"start_at\": \"2026-09-07T09:15:00+09:00\", \"end_at\": \"2026-09-07T09:15:00+09:00\", \"chain\": 0, \"card_eligible\": true, \"required\": true, \"why_keep\": \"사용자가 직접 남긴 행동이 있어 이 시점 자체를 남길 이유가 있음\", \"evidence_ids\": [\"e07:what0\", \"e07:where0\"], \"subject_ids\": [\"who:guardian\", \"who:dog\"], \"primary_evidence_id\": \"e07:what0\", \"source_event_id\": \"e07\", \"source_input_sha256\": \"0fa7af0d7444eb6067a6c209efad1834a3f7006212b15e5bd323c66f2a08b2f9\", \"location_status\": \"unresolved\"}, {\"id\": \"e08\", \"role\": \"connection\", \"time_kind\": \"interval\", \"start_at\": \"2026-09-07T09:16:00+09:00\", \"end_at\": \"2026-09-07T09:16:35+09:00\", \"chain\": 0, \"card_eligible\": false, \"required\": false, \"why_keep\": \"뚜렷한 사용자 행동이나 채택 기준에 맞는 공간 변화가 없어 지도 동선으로 연결\", \"evidence_ids\": [], \"subject_ids\": [], \"primary_evidence_id\": null, \"source_event_id\": \"e08\", \"source_input_sha256\": \"0fa7af0d7444eb6067a6c209efad1834a3f7006212b15e5bd323c66f2a08b2f9\", \"location_status\": \"unresolved\"}, {\"id\": \"e09\", \"role\": \"connection\", \"time_kind\": \"point\", \"start_at\": \"2026-09-07T09:19:45+09:00\", \"end_at\": \"2026-09-07T09:19:45+09:00\", \"chain\": 1, \"card_eligible\": false, \"required\": false, \"why_keep\": \"뚜렷한 사용자 행동이나 채택 기준에 맞는 공간 변화가 없어 지도 동선으로 연결\", \"evidence_ids\": [], \"subject_ids\": [], \"primary_evidence_id\": null, \"source_event_id\": \"e09\", \"source_input_sha256\": \"0fa7af0d7444eb6067a6c209efad1834a3f7006212b15e5bd323c66f2a08b2f9\", \"location_status\": \"unresolved\"}, {\"id\": \"e10\", \"role\": \"transition\", \"time_kind\": \"interval\", \"start_at\": \"2026-09-07T09:20:45+09:00\", \"end_at\": \"2026-09-07T09:22:45+09:00\", \"chain\": 1, \"card_eligible\": true, \"required\": false, \"why_keep\": \"공간 배경 또는 장소와의 관계가 달라짐: 양재천 가까운 구간에서 등록 상가가 모인 구간으로 주변 특징이 바뀜\", \"evidence_ids\": [\"e10:what0\", \"e10:where0\", \"e10:where3\"], \"subject_ids\": [\"who:guardian\", \"who:dog\"], \"primary_evidence_id\": \"e10:where3\", \"source_event_id\": \"e10\", \"source_input_sha256\": \"0fa7af0d7444eb6067a6c209efad1834a3f7006212b15e5bd323c66f2a08b2f9\", \"location_status\": \"unresolved\"}, {\"id\": \"e11\", \"role\": \"transition\", \"time_kind\": \"interval\", \"start_at\": \"2026-09-07T09:23:45+09:00\", \"end_at\": \"2026-09-07T09:24:45+09:00\", \"chain\": 1, \"card_eligible\": true, \"required\": false, \"why_keep\": \"공간 배경 또는 장소와의 관계가 달라짐: 등록 상가가 모인 구간에서 등록 상가가 산재한 구간으로 주변 특징이 바뀜\", \"evidence_ids\": [\"e11:what0\", \"e11:where0\", \"e11:where2\"], \"subject_ids\": [\"who:guardian\", \"who:dog\"], \"primary_evidence_id\": \"e11:where2\", \"source_event_id\": \"e11\", \"source_input_sha256\": \"0fa7af0d7444eb6067a6c209efad1834a3f7006212b15e5bd323c66f2a08b2f9\", \"location_status\": \"unresolved\"}, {\"id\": \"e12\", \"role\": \"connection\", \"time_kind\": \"interval\", \"start_at\": \"2026-09-07T09:25:45+09:00\", \"end_at\": \"2026-09-07T09:26:45+09:00\", \"chain\": 1, \"card_eligible\": false, \"required\": false, \"why_keep\": \"뚜렷한 사용자 행동이나 채택 기준에 맞는 공간 변화가 없어 지도 동선으로 연결\", \"evidence_ids\": [], \"subject_ids\": [], \"primary_evidence_id\": null, \"source_event_id\": \"e12\", \"source_input_sha256\": \"0fa7af0d7444eb6067a6c209efad1834a3f7006212b15e5bd323c66f2a08b2f9\", \"location_status\": \"unresolved\"}, {\"id\": \"e13\", \"role\": \"transition\", \"time_kind\": \"interval\", \"start_at\": \"2026-09-07T09:27:45+09:00\", \"end_at\": \"2026-09-07T09:31:45+09:00\", \"chain\": 1, \"card_eligible\": true, \"required\": false, \"why_keep\": \"공간 배경 또는 장소와의 관계가 달라짐: 등록 상가가 적은 구간에서 양재천 가까운 구간으로 주변 특징이 바뀜\", \"evidence_ids\": [\"e13:what0\", \"e13:where0\", \"e13:where2\"], \"subject_ids\": [\"who:guardian\", \"who:dog\"], \"primary_evidence_id\": \"e13:where2\", \"source_event_id\": \"e13\", \"source_input_sha256\": \"0fa7af0d7444eb6067a6c209efad1834a3f7006212b15e5bd323c66f2a08b2f9\", \"location_status\": \"unresolved\"}, {\"id\": \"e14\", \"role\": \"transition\", \"time_kind\": \"interval\", \"start_at\": \"2026-09-07T09:32:45+09:00\", \"end_at\": \"2026-09-07T09:33:45+09:00\", \"chain\": 1, \"card_eligible\": true, \"required\": false, \"why_keep\": \"공간 배경 또는 장소와의 관계가 달라짐: 양재천 가까운 구간에서 독골근린공원 가까운 구간으로 주변 특징이 바뀜\", \"evidence_ids\": [\"e14:what0\", \"e14:where0\", \"e14:where2\"], \"subject_ids\": [\"who:guardian\", \"who:dog\"], \"primary_evidence_id\": \"e14:where2\", \"source_event_id\": \"e14\", \"source_input_sha256\": \"0fa7af0d7444eb6067a6c209efad1834a3f7006212b15e5bd323c66f2a08b2f9\", \"location_status\": \"unresolved\"}, {\"id\": \"e15\", \"role\": \"transition\", \"time_kind\": \"interval\", \"start_at\": \"2026-09-07T09:34:45+09:00\", \"end_at\": \"2026-09-07T09:35:45+09:00\", \"chain\": 1, \"card_eligible\": true, \"required\": false, \"why_keep\": \"공간 배경 또는 장소와의 관계가 달라짐: 독골근린공원 가까운 구간에서 등록 상가가 적은 구간으로 주변 특징이 바뀜\", \"evidence_ids\": [\"e15:what0\", \"e15:where0\", \"e15:where2\"], \"subject_ids\": [\"who:guardian\", \"who:dog\"], \"primary_evidence_id\": \"e15:where2\", \"source_event_id\": \"e15\", \"source_input_sha256\": \"0fa7af0d7444eb6067a6c209efad1834a3f7006212b15e5bd323c66f2a08b2f9\", \"location_status\": \"unresolved\"}, {\"id\": \"e16\", \"role\": \"connection\", \"time_kind\": \"interval\", \"start_at\": \"2026-09-07T09:36:45+09:00\", \"end_at\": \"2026-09-07T09:37:45+09:00\", \"chain\": 1, \"card_eligible\": false, \"required\": false, \"why_keep\": \"뚜렷한 사용자 행동이나 채택 기준에 맞는 공간 변화가 없어 지도 동선으로 연결\", \"evidence_ids\": [], \"subject_ids\": [], \"primary_evidence_id\": null, \"source_event_id\": \"e16\", \"source_input_sha256\": \"0fa7af0d7444eb6067a6c209efad1834a3f7006212b15e5bd323c66f2a08b2f9\", \"location_status\": \"unresolved\"}, {\"id\": \"e17\", \"role\": \"transition\", \"time_kind\": \"interval\", \"start_at\": \"2026-09-07T09:38:45+09:00\", \"end_at\": \"2026-09-07T09:38:48.561869+09:00\", \"chain\": 1, \"card_eligible\": true, \"required\": false, \"why_keep\": \"공간 배경 또는 장소와의 관계가 달라짐: 등록 상가가 산재한 구간에서 등록 상가가 모인 구간으로 주변 특징이 바뀜\", \"evidence_ids\": [\"e17:what0\", \"e17:where0\", \"e17:where2\"], \"subject_ids\": [\"who:guardian\", \"who:dog\"], \"primary_evidence_id\": \"e17:where2\", \"source_event_id\": \"e17\", \"source_input_sha256\": \"0fa7af0d7444eb6067a6c209efad1834a3f7006212b15e5bd323c66f2a08b2f9\", \"location_status\": \"unresolved\"}], \"gaps\": [{\"start_at\": \"2026-09-07T09:16:35+09:00\", \"end_at\": \"2026-09-07T09:19:45+09:00\"}], \"composition_mode\": \"individual\"}, \"synthetic_walk\": true, \"source_input_sha256\": \"0fa7af0d7444eb6067a6c209efad1834a3f7006212b15e5bd323c66f2a08b2f9\", \"synthetic_started_at\": true, \"adapter_version\": \"scene-purpose-to-evidence-v1\", \"location_note\": \"Archive contains event IDs, not observation coordinates; unresolved\"}, \"pieces\": [{\"id\": \"who:guardian\", \"kind\": \"who\", \"session_links\": {}, \"value\": {\"id\": \"who:guardian\", \"kind\": \"who\", \"text\": \"보호자\", \"source\": \"가상 산책 참가자 설정\", \"subject_ids\": [\"who:guardian\"]}, \"meaning\": \"보호자\", \"provenance\": {\"source_input_sha256\": \"0fa7af0d7444eb6067a6c209efad1834a3f7006212b15e5bd323c66f2a08b2f9\"}, \"measurement_status\": \"synthetic_actor\"}, {\"id\": \"who:dog\", \"kind\": \"who\", \"session_links\": {}, \"value\": {\"id\": \"who:dog\", \"kind\": \"who\", \"text\": \"반려견 두부\", \"source\": \"가상 산책 참가자 설정\", \"subject_ids\": [\"who:dog\"]}, \"meaning\": \"반려견 두부\", \"provenance\": {\"source_input_sha256\": \"0fa7af0d7444eb6067a6c209efad1834a3f7006212b15e5bd323c66f2a08b2f9\"}, \"measurement_status\": \"synthetic_actor\"}, {\"id\": \"e03:what0\", \"kind\": \"what\", \"session_links\": {\"candidate_id\": \"e03\", \"chain\": 0, \"from\": \"2026-09-07T09:08:00+09:00\", \"to\": \"2026-09-07T09:09:00+09:00\"}, \"value\": {\"id\": \"e03:what0\", \"kind\": \"what\", \"text\": \"보호자와 두부의 이동 기록\", \"subject_ids\": [\"who:guardian\", \"who:dog\"]}, \"meaning\": \"보호자와 두부의 이동 기록\", \"provenance\": {\"source_input_sha256\": \"0fa7af0d7444eb6067a6c209efad1834a3f7006212b15e5bd323c66f2a08b2f9\", \"source_event_id\": \"e03\", \"kind\": \"archived_derived_evidence\", \"note\": \"Public spatial cache with synthetic route/pins; not recomputed\"}, \"measurement_status\": \"archived_synthetic_experiment\"}, {\"id\": \"e03:where0\", \"kind\": \"where\", \"session_links\": {\"candidate_id\": \"e03\", \"chain\": 0, \"from\": \"2026-09-07T09:08:00+09:00\", \"to\": \"2026-09-07T09:09:00+09:00\"}, \"value\": {\"id\": \"e03:where0\", \"kind\": \"where\", \"text\": \"등록 상가가 모인 구간\"}, \"meaning\": \"등록 상가가 모인 구간\", \"provenance\": {\"source_input_sha256\": \"0fa7af0d7444eb6067a6c209efad1834a3f7006212b15e5bd323c66f2a08b2f9\", \"source_event_id\": \"e03\", \"kind\": \"archived_derived_evidence\", \"note\": \"Public spatial cache with synthetic route/pins; not recomputed\"}, \"measurement_status\": \"archived_synthetic_experiment\"}, {\"id\": \"e03:where2\", \"kind\": \"where\", \"session_links\": {\"candidate_id\": \"e03\", \"chain\": 0, \"from\": \"2026-09-07T09:08:00+09:00\", \"to\": \"2026-09-07T09:09:00+09:00\"}, \"value\": {\"id\": \"e03:where2\", \"kind\": \"where\", \"text\": \"등록 상가가 산재한 구간에서 등록 상가가 모인 구간으로 주변 특징이 바뀜\"}, \"meaning\": \"등록 상가가 산재한 구간에서 등록 상가가 모인 구간으로 주변 특징이 바뀜\", \"provenance\": {\"source_input_sha256\": \"0fa7af0d7444eb6067a6c209efad1834a3f7006212b15e5bd323c66f2a08b2f9\", \"source_event_id\": \"e03\", \"kind\": \"archived_derived_evidence\", \"note\": \"Public spatial cache with synthetic route/pins; not recomputed\"}, \"measurement_status\": \"archived_synthetic_experiment\"}, {\"id\": \"e04:what0\", \"kind\": \"what\", \"session_links\": {\"candidate_id\": \"e04\", \"chain\": 0, \"from\": \"2026-09-07T09:10:00+09:00\", \"to\": \"2026-09-07T09:10:00+09:00\"}, \"value\": {\"id\": \"e04:what0\", \"kind\": \"what\", \"text\": \"두부가 여기서 냄새를 맡았다\", \"subject_ids\": [\"who:dog\"]}, \"meaning\": \"두부가 여기서 냄새를 맡았다\", \"provenance\": {\"source_input_sha256\": \"0fa7af0d7444eb6067a6c209efad1834a3f7006212b15e5bd323c66f2a08b2f9\", \"source_event_id\": \"e04\", \"kind\": \"archived_derived_evidence\", \"note\": \"Public spatial cache with synthetic route/pins; not recomputed\"}, \"measurement_status\": \"archived_synthetic_experiment\"}, {\"id\": \"e04:where0\", \"kind\": \"where\", \"session_links\": {\"candidate_id\": \"e04\", \"chain\": 0, \"from\": \"2026-09-07T09:10:00+09:00\", \"to\": \"2026-09-07T09:10:00+09:00\"}, \"value\": {\"id\": \"e04:where0\", \"kind\": \"where\", \"text\": \"등록 상가가 모인 구간\"}, \"meaning\": \"등록 상가가 모인 구간\", \"provenance\": {\"source_input_sha256\": \"0fa7af0d7444eb6067a6c209efad1834a3f7006212b15e5bd323c66f2a08b2f9\", \"source_event_id\": \"e04\", \"kind\": \"archived_derived_evidence\", \"note\": \"Public spatial cache with synthetic route/pins; not recomputed\"}, \"measurement_status\": \"archived_synthetic_experiment\"}, {\"id\": \"e06:what0\", \"kind\": \"what\", \"session_links\": {\"candidate_id\": \"e06\", \"chain\": 0, \"from\": \"2026-09-07T09:13:00+09:00\", \"to\": \"2026-09-07T09:14:00+09:00\"}, \"value\": {\"id\": \"e06:what0\", \"kind\": \"what\", \"text\": \"보호자와 두부의 이동 기록\", \"subject_ids\": [\"who:guardian\", \"who:dog\"]}, \"meaning\": \"보호자와 두부의 이동 기록\", \"provenance\": {\"source_input_sha256\": \"0fa7af0d7444eb6067a6c209efad1834a3f7006212b15e5bd323c66f2a08b2f9\", \"source_event_id\": \"e06\", \"kind\": \"archived_derived_evidence\", \"note\": \"Public spatial cache with synthetic route/pins; not recomputed\"}, \"measurement_status\": \"archived_synthetic_experiment\"}, {\"id\": \"e06:where0\", \"kind\": \"where\", \"session_links\": {\"candidate_id\": \"e06\", \"chain\": 0, \"from\": \"2026-09-07T09:13:00+09:00\", \"to\": \"2026-09-07T09:14:00+09:00\"}, \"value\": {\"id\": \"e06:where0\", \"kind\": \"where\", \"text\": \"늘벗근린공원 가까운 구간\"}, \"meaning\": \"늘벗근린공원 가까운 구간\", \"provenance\": {\"source_input_sha256\": \"0fa7af0d7444eb6067a6c209efad1834a3f7006212b15e5bd323c66f2a08b2f9\", \"source_event_id\": \"e06\", \"kind\": \"archived_derived_evidence\", \"note\": \"Public spatial cache with synthetic route/pins; not recomputed\"}, \"measurement_status\": \"archived_synthetic_experiment\"}, {\"id\": \"e06:where2\", \"kind\": \"where\", \"session_links\": {\"candidate_id\": \"e06\", \"chain\": 0, \"from\": \"2026-09-07T09:13:00+09:00\", \"to\": \"2026-09-07T09:14:00+09:00\"}, \"value\": {\"id\": \"e06:where2\", \"kind\": \"where\", \"text\": \"등록 상가가 모인 구간에서 늘벗근린공원 가까운 구간으로 주변 특징이 바뀜\"}, \"meaning\": \"등록 상가가 모인 구간에서 늘벗근린공원 가까운 구간으로 주변 특징이 바뀜\", \"provenance\": {\"source_input_sha256\": \"0fa7af0d7444eb6067a6c209efad1834a3f7006212b15e5bd323c66f2a08b2f9\", \"source_event_id\": \"e06\", \"kind\": \"archived_derived_evidence\", \"note\": \"Public spatial cache with synthetic route/pins; not recomputed\"}, \"measurement_status\": \"archived_synthetic_experiment\"}, {\"id\": \"e07:what0\", \"kind\": \"what\", \"session_links\": {\"candidate_id\": \"e07\", \"chain\": 0, \"from\": \"2026-09-07T09:15:00+09:00\", \"to\": \"2026-09-07T09:15:00+09:00\"}, \"value\": {\"id\": \"e07:what0\", \"kind\": \"what\", \"text\": \"여기서 두부와 함께 사진을 찍었다\", \"subject_ids\": [\"who:guardian\", \"who:dog\"]}, \"meaning\": \"여기서 두부와 함께 사진을 찍었다\", \"provenance\": {\"source_input_sha256\": \"0fa7af0d7444eb6067a6c209efad1834a3f7006212b15e5bd323c66f2a08b2f9\", \"source_event_id\": \"e07\", \"kind\": \"archived_derived_evidence\", \"note\": \"Public spatial cache with synthetic route/pins; not recomputed\"}, \"measurement_status\": \"archived_synthetic_experiment\"}, {\"id\": \"e07:where0\", \"kind\": \"where\", \"session_links\": {\"candidate_id\": \"e07\", \"chain\": 0, \"from\": \"2026-09-07T09:15:00+09:00\", \"to\": \"2026-09-07T09:15:00+09:00\"}, \"value\": {\"id\": \"e07:where0\", \"kind\": \"where\", \"text\": \"늘벗근린공원 가까운 구간\"}, \"meaning\": \"늘벗근린공원 가까운 구간\", \"provenance\": {\"source_input_sha256\": \"0fa7af0d7444eb6067a6c209efad1834a3f7006212b15e5bd323c66f2a08b2f9\", \"source_event_id\": \"e07\", \"kind\": \"archived_derived_evidence\", \"note\": \"Public spatial cache with synthetic route/pins; not recomputed\"}, \"measurement_status\": \"archived_synthetic_experiment\"}, {\"id\": \"e10:what0\", \"kind\": \"what\", \"session_links\": {\"candidate_id\": \"e10\", \"chain\": 1, \"from\": \"2026-09-07T09:20:45+09:00\", \"to\": \"2026-09-07T09:22:45+09:00\"}, \"value\": {\"id\": \"e10:what0\", \"kind\": \"what\", \"text\": \"보호자와 두부의 이동 기록\", \"subject_ids\": [\"who:guardian\", \"who:dog\"]}, \"meaning\": \"보호자와 두부의 이동 기록\", \"provenance\": {\"source_input_sha256\": \"0fa7af0d7444eb6067a6c209efad1834a3f7006212b15e5bd323c66f2a08b2f9\", \"source_event_id\": \"e10\", \"kind\": \"archived_derived_evidence\", \"note\": \"Public spatial cache with synthetic route/pins; not recomputed\"}, \"measurement_status\": \"archived_synthetic_experiment\"}, {\"id\": \"e10:where0\", \"kind\": \"where\", \"session_links\": {\"candidate_id\": \"e10\", \"chain\": 1, \"from\": \"2026-09-07T09:20:45+09:00\", \"to\": \"2026-09-07T09:22:45+09:00\"}, \"value\": {\"id\": \"e10:where0\", \"kind\": \"where\", \"text\": \"등록 상가가 모인 구간\"}, \"meaning\": \"등록 상가가 모인 구간\", \"provenance\": {\"source_input_sha256\": \"0fa7af0d7444eb6067a6c209efad1834a3f7006212b15e5bd323c66f2a08b2f9\", \"source_event_id\": \"e10\", \"kind\": \"archived_derived_evidence\", \"note\": \"Public spatial cache with synthetic route/pins; not recomputed\"}, \"measurement_status\": \"archived_synthetic_experiment\"}, {\"id\": \"e10:where3\", \"kind\": \"where\", \"session_links\": {\"candidate_id\": \"e10\", \"chain\": 1, \"from\": \"2026-09-07T09:20:45+09:00\", \"to\": \"2026-09-07T09:22:45+09:00\"}, \"value\": {\"id\": \"e10:where3\", \"kind\": \"where\", \"text\": \"양재천 가까운 구간에서 등록 상가가 모인 구간으로 주변 특징이 바뀜\"}, \"meaning\": \"양재천 가까운 구간에서 등록 상가가 모인 구간으로 주변 특징이 바뀜\", \"provenance\": {\"source_input_sha256\": \"0fa7af0d7444eb6067a6c209efad1834a3f7006212b15e5bd323c66f2a08b2f9\", \"source_event_id\": \"e10\", \"kind\": \"archived_derived_evidence\", \"note\": \"Public spatial cache with synthetic route/pins; not recomputed\"}, \"measurement_status\": \"archived_synthetic_experiment\"}, {\"id\": \"e11:what0\", \"kind\": \"what\", \"session_links\": {\"candidate_id\": \"e11\", \"chain\": 1, \"from\": \"2026-09-07T09:23:45+09:00\", \"to\": \"2026-09-07T09:24:45+09:00\"}, \"value\": {\"id\": \"e11:what0\", \"kind\": \"what\", \"text\": \"보호자와 두부의 이동 기록\", \"subject_ids\": [\"who:guardian\", \"who:dog\"]}, \"meaning\": \"보호자와 두부의 이동 기록\", \"provenance\": {\"source_input_sha256\": \"0fa7af0d7444eb6067a6c209efad1834a3f7006212b15e5bd323c66f2a08b2f9\", \"source_event_id\": \"e11\", \"kind\": \"archived_derived_evidence\", \"note\": \"Public spatial cache with synthetic route/pins; not recomputed\"}, \"measurement_status\": \"archived_synthetic_experiment\"}, {\"id\": \"e11:where0\", \"kind\": \"where\", \"session_links\": {\"candidate_id\": \"e11\", \"chain\": 1, \"from\": \"2026-09-07T09:23:45+09:00\", \"to\": \"2026-09-07T09:24:45+09:00\"}, \"value\": {\"id\": \"e11:where0\", \"kind\": \"where\", \"text\": \"등록 상가가 산재한 구간\"}, \"meaning\": \"등록 상가가 산재한 구간\", \"provenance\": {\"source_input_sha256\": \"0fa7af0d7444eb6067a6c209efad1834a3f7006212b15e5bd323c66f2a08b2f9\", \"source_event_id\": \"e11\", \"kind\": \"archived_derived_evidence\", \"note\": \"Public spatial cache with synthetic route/pins; not recomputed\"}, \"measurement_status\": \"archived_synthetic_experiment\"}, {\"id\": \"e11:where2\", \"kind\": \"where\", \"session_links\": {\"candidate_id\": \"e11\", \"chain\": 1, \"from\": \"2026-09-07T09:23:45+09:00\", \"to\": \"2026-09-07T09:24:45+09:00\"}, \"value\": {\"id\": \"e11:where2\", \"kind\": \"where\", \"text\": \"등록 상가가 모인 구간에서 등록 상가가 산재한 구간으로 주변 특징이 바뀜\"}, \"meaning\": \"등록 상가가 모인 구간에서 등록 상가가 산재한 구간으로 주변 특징이 바뀜\", \"provenance\": {\"source_input_sha256\": \"0fa7af0d7444eb6067a6c209efad1834a3f7006212b15e5bd323c66f2a08b2f9\", \"source_event_id\": \"e11\", \"kind\": \"archived_derived_evidence\", \"note\": \"Public spatial cache with synthetic route/pins; not recomputed\"}, \"measurement_status\": \"archived_synthetic_experiment\"}, {\"id\": \"e13:what0\", \"kind\": \"what\", \"session_links\": {\"candidate_id\": \"e13\", \"chain\": 1, \"from\": \"2026-09-07T09:27:45+09:00\", \"to\": \"2026-09-07T09:31:45+09:00\"}, \"value\": {\"id\": \"e13:what0\", \"kind\": \"what\", \"text\": \"보호자와 두부의 이동 기록\", \"subject_ids\": [\"who:guardian\", \"who:dog\"]}, \"meaning\": \"보호자와 두부의 이동 기록\", \"provenance\": {\"source_input_sha256\": \"0fa7af0d7444eb6067a6c209efad1834a3f7006212b15e5bd323c66f2a08b2f9\", \"source_event_id\": \"e13\", \"kind\": \"archived_derived_evidence\", \"note\": \"Public spatial cache with synthetic route/pins; not recomputed\"}, \"measurement_status\": \"archived_synthetic_experiment\"}, {\"id\": \"e13:where0\", \"kind\": \"where\", \"session_links\": {\"candidate_id\": \"e13\", \"chain\": 1, \"from\": \"2026-09-07T09:27:45+09:00\", \"to\": \"2026-09-07T09:31:45+09:00\"}, \"value\": {\"id\": \"e13:where0\", \"kind\": \"where\", \"text\": \"양재천 가까운 구간\"}, \"meaning\": \"양재천 가까운 구간\", \"provenance\": {\"source_input_sha256\": \"0fa7af0d7444eb6067a6c209efad1834a3f7006212b15e5bd323c66f2a08b2f9\", \"source_event_id\": \"e13\", \"kind\": \"archived_derived_evidence\", \"note\": \"Public spatial cache with synthetic route/pins; not recomputed\"}, \"measurement_status\": \"archived_synthetic_experiment\"}, {\"id\": \"e13:where2\", \"kind\": \"where\", \"session_links\": {\"candidate_id\": \"e13\", \"chain\": 1, \"from\": \"2026-09-07T09:27:45+09:00\", \"to\": \"2026-09-07T09:31:45+09:00\"}, \"value\": {\"id\": \"e13:where2\", \"kind\": \"where\", \"text\": \"등록 상가가 적은 구간에서 양재천 가까운 구간으로 주변 특징이 바뀜\"}, \"meaning\": \"등록 상가가 적은 구간에서 양재천 가까운 구간으로 주변 특징이 바뀜\", \"provenance\": {\"source_input_sha256\": \"0fa7af0d7444eb6067a6c209efad1834a3f7006212b15e5bd323c66f2a08b2f9\", \"source_event_id\": \"e13\", \"kind\": \"archived_derived_evidence\", \"note\": \"Public spatial cache with synthetic route/pins; not recomputed\"}, \"measurement_status\": \"archived_synthetic_experiment\"}, {\"id\": \"e14:what0\", \"kind\": \"what\", \"session_links\": {\"candidate_id\": \"e14\", \"chain\": 1, \"from\": \"2026-09-07T09:32:45+09:00\", \"to\": \"2026-09-07T09:33:45+09:00\"}, \"value\": {\"id\": \"e14:what0\", \"kind\": \"what\", \"text\": \"보호자와 두부의 이동 기록\", \"subject_ids\": [\"who:guardian\", \"who:dog\"]}, \"meaning\": \"보호자와 두부의 이동 기록\", \"provenance\": {\"source_input_sha256\": \"0fa7af0d7444eb6067a6c209efad1834a3f7006212b15e5bd323c66f2a08b2f9\", \"source_event_id\": \"e14\", \"kind\": \"archived_derived_evidence\", \"note\": \"Public spatial cache with synthetic route/pins; not recomputed\"}, \"measurement_status\": \"archived_synthetic_experiment\"}, {\"id\": \"e14:where0\", \"kind\": \"where\", \"session_links\": {\"candidate_id\": \"e14\", \"chain\": 1, \"from\": \"2026-09-07T09:32:45+09:00\", \"to\": \"2026-09-07T09:33:45+09:00\"}, \"value\": {\"id\": \"e14:where0\", \"kind\": \"where\", \"text\": \"독골근린공원 가까운 구간\"}, \"meaning\": \"독골근린공원 가까운 구간\", \"provenance\": {\"source_input_sha256\": \"0fa7af0d7444eb6067a6c209efad1834a3f7006212b15e5bd323c66f2a08b2f9\", \"source_event_id\": \"e14\", \"kind\": \"archived_derived_evidence\", \"note\": \"Public spatial cache with synthetic route/pins; not recomputed\"}, \"measurement_status\": \"archived_synthetic_experiment\"}, {\"id\": \"e14:where2\", \"kind\": \"where\", \"session_links\": {\"candidate_id\": \"e14\", \"chain\": 1, \"from\": \"2026-09-07T09:32:45+09:00\", \"to\": \"2026-09-07T09:33:45+09:00\"}, \"value\": {\"id\": \"e14:where2\", \"kind\": \"where\", \"text\": \"양재천 가까운 구간에서 독골근린공원 가까운 구간으로 주변 특징이 바뀜\"}, \"meaning\": \"양재천 가까운 구간에서 독골근린공원 가까운 구간으로 주변 특징이 바뀜\", \"provenance\": {\"source_input_sha256\": \"0fa7af0d7444eb6067a6c209efad1834a3f7006212b15e5bd323c66f2a08b2f9\", \"source_event_id\": \"e14\", \"kind\": \"archived_derived_evidence\", \"note\": \"Public spatial cache with synthetic route/pins; not recomputed\"}, \"measurement_status\": \"archived_synthetic_experiment\"}, {\"id\": \"e15:what0\", \"kind\": \"what\", \"session_links\": {\"candidate_id\": \"e15\", \"chain\": 1, \"from\": \"2026-09-07T09:34:45+09:00\", \"to\": \"2026-09-07T09:35:45+09:00\"}, \"value\": {\"id\": \"e15:what0\", \"kind\": \"what\", \"text\": \"보호자와 두부의 이동 기록\", \"subject_ids\": [\"who:guardian\", \"who:dog\"]}, \"meaning\": \"보호자와 두부의 이동 기록\", \"provenance\": {\"source_input_sha256\": \"0fa7af0d7444eb6067a6c209efad1834a3f7006212b15e5bd323c66f2a08b2f9\", \"source_event_id\": \"e15\", \"kind\": \"archived_derived_evidence\", \"note\": \"Public spatial cache with synthetic route/pins; not recomputed\"}, \"measurement_status\": \"archived_synthetic_experiment\"}, {\"id\": \"e15:where0\", \"kind\": \"where\", \"session_links\": {\"candidate_id\": \"e15\", \"chain\": 1, \"from\": \"2026-09-07T09:34:45+09:00\", \"to\": \"2026-09-07T09:35:45+09:00\"}, \"value\": {\"id\": \"e15:where0\", \"kind\": \"where\", \"text\": \"등록 상가가 적은 구간\"}, \"meaning\": \"등록 상가가 적은 구간\", \"provenance\": {\"source_input_sha256\": \"0fa7af0d7444eb6067a6c209efad1834a3f7006212b15e5bd323c66f2a08b2f9\", \"source_event_id\": \"e15\", \"kind\": \"archived_derived_evidence\", \"note\": \"Public spatial cache with synthetic route/pins; not recomputed\"}, \"measurement_status\": \"archived_synthetic_experiment\"}, {\"id\": \"e15:where2\", \"kind\": \"where\", \"session_links\": {\"candidate_id\": \"e15\", \"chain\": 1, \"from\": \"2026-09-07T09:34:45+09:00\", \"to\": \"2026-09-07T09:35:45+09:00\"}, \"value\": {\"id\": \"e15:where2\", \"kind\": \"where\", \"text\": \"독골근린공원 가까운 구간에서 등록 상가가 적은 구간으로 주변 특징이 바뀜\"}, \"meaning\": \"독골근린공원 가까운 구간에서 등록 상가가 적은 구간으로 주변 특징이 바뀜\", \"provenance\": {\"source_input_sha256\": \"0fa7af0d7444eb6067a6c209efad1834a3f7006212b15e5bd323c66f2a08b2f9\", \"source_event_id\": \"e15\", \"kind\": \"archived_derived_evidence\", \"note\": \"Public spatial cache with synthetic route/pins; not recomputed\"}, \"measurement_status\": \"archived_synthetic_experiment\"}, {\"id\": \"e17:what0\", \"kind\": \"what\", \"session_links\": {\"candidate_id\": \"e17\", \"chain\": 1, \"from\": \"2026-09-07T09:38:45+09:00\", \"to\": \"2026-09-07T09:38:48.561869+09:00\"}, \"value\": {\"id\": \"e17:what0\", \"kind\": \"what\", \"text\": \"보호자와 두부의 이동 기록\", \"subject_ids\": [\"who:guardian\", \"who:dog\"]}, \"meaning\": \"보호자와 두부의 이동 기록\", \"provenance\": {\"source_input_sha256\": \"0fa7af0d7444eb6067a6c209efad1834a3f7006212b15e5bd323c66f2a08b2f9\", \"source_event_id\": \"e17\", \"kind\": \"archived_derived_evidence\", \"note\": \"Public spatial cache with synthetic route/pins; not recomputed\"}, \"measurement_status\": \"archived_synthetic_experiment\"}, {\"id\": \"e17:where0\", \"kind\": \"where\", \"session_links\": {\"candidate_id\": \"e17\", \"chain\": 1, \"from\": \"2026-09-07T09:38:45+09:00\", \"to\": \"2026-09-07T09:38:48.561869+09:00\"}, \"value\": {\"id\": \"e17:where0\", \"kind\": \"where\", \"text\": \"등록 상가가 모인 구간\"}, \"meaning\": \"등록 상가가 모인 구간\", \"provenance\": {\"source_input_sha256\": \"0fa7af0d7444eb6067a6c209efad1834a3f7006212b15e5bd323c66f2a08b2f9\", \"source_event_id\": \"e17\", \"kind\": \"archived_derived_evidence\", \"note\": \"Public spatial cache with synthetic route/pins; not recomputed\"}, \"measurement_status\": \"archived_synthetic_experiment\"}, {\"id\": \"e17:where2\", \"kind\": \"where\", \"session_links\": {\"candidate_id\": \"e17\", \"chain\": 1, \"from\": \"2026-09-07T09:38:45+09:00\", \"to\": \"2026-09-07T09:38:48.561869+09:00\"}, \"value\": {\"id\": \"e17:where2\", \"kind\": \"where\", \"text\": \"등록 상가가 산재한 구간에서 등록 상가가 모인 구간으로 주변 특징이 바뀜\"}, \"meaning\": \"등록 상가가 산재한 구간에서 등록 상가가 모인 구간으로 주변 특징이 바뀜\", \"provenance\": {\"source_input_sha256\": \"0fa7af0d7444eb6067a6c209efad1834a3f7006212b15e5bd323c66f2a08b2f9\", \"source_event_id\": \"e17\", \"kind\": \"archived_derived_evidence\", \"note\": \"Public spatial cache with synthetic route/pins; not recomputed\"}, \"measurement_status\": \"archived_synthetic_experiment\"}]}}"
+        }
+      ]
+    }
+  ],
+  "generationConfig": {
+    "responseMimeType": "application/json",
+    "responseJsonSchema": {
+      "$defs": {
+        "Claim": {
+          "additionalProperties": false,
+          "properties": {
+            "text": {
+              "title": "Text",
+              "type": "string"
+            },
+            "evidence_ids": {
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1,
+              "title": "Evidence Ids",
+              "type": "array"
+            }
+          },
+          "required": [
+            "text",
+            "evidence_ids"
+          ],
+          "title": "Claim",
+          "type": "object"
+        },
+        "Outline": {
+          "additionalProperties": false,
+          "properties": {
+            "scene_id": {
+              "title": "Scene Id",
+              "type": "string"
+            },
+            "start_at": {
+              "format": "date-time",
+              "title": "Start At",
+              "type": "string"
+            },
+            "end_at": {
+              "format": "date-time",
+              "title": "End At",
+              "type": "string"
+            },
+            "focus": {
+              "title": "Focus",
+              "type": "string"
+            },
+            "evidence_ids": {
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1,
+              "title": "Evidence Ids",
+              "type": "array"
+            }
+          },
+          "required": [
+            "scene_id",
+            "start_at",
+            "end_at",
+            "focus",
+            "evidence_ids"
+          ],
+          "title": "Outline",
+          "type": "object"
+        },
+        "SceneComposition": {
+          "additionalProperties": false,
+          "description": "Editorial membership only; event times and locations stay in the source catalog.",
+          "properties": {
+            "scene_id": {
+              "title": "Scene Id",
+              "type": "string"
+            },
+            "primary_candidate_id": {
+              "title": "Primary Candidate Id",
+              "type": "string"
+            },
+            "included_candidate_ids": {
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1,
+              "title": "Included Candidate Ids",
+              "type": "array"
+            },
+            "context_candidate_ids": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Context Candidate Ids",
+              "type": "array"
+            },
+            "reason": {
+              "minLength": 1,
+              "title": "Reason",
+              "type": "string"
+            }
+          },
+          "required": [
+            "scene_id",
+            "primary_candidate_id",
+            "included_candidate_ids",
+            "context_candidate_ids",
+            "reason"
+          ],
+          "title": "SceneComposition",
+          "type": "object"
+        },
+        "SelectionDecision": {
+          "additionalProperties": false,
+          "properties": {
+            "candidate_id": {
+              "title": "Candidate Id",
+              "type": "string"
+            },
+            "scene_id": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Scene Id"
+            },
+            "code": {
+              "enum": [
+                "selected",
+                "context",
+                "connection",
+                "redundant",
+                "low_signal",
+                "insufficient",
+                "budget"
+              ],
+              "title": "Code",
+              "type": "string"
+            },
+            "reason": {
+              "minLength": 1,
+              "title": "Reason",
+              "type": "string"
+            },
+            "context_scene_ids": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Context Scene Ids",
+              "type": "array"
+            }
+          },
+          "required": [
+            "candidate_id",
+            "scene_id",
+            "code",
+            "reason"
+          ],
+          "title": "SelectionDecision",
+          "type": "object"
+        },
+        "SelectionMetadata": {
+          "additionalProperties": false,
+          "properties": {
+            "title_draft": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Claim"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "decisions": {
+              "items": {
+                "$ref": "#/$defs/SelectionDecision"
+              },
+              "title": "Decisions",
+              "type": "array"
+            },
+            "compositions": {
+              "items": {
+                "$ref": "#/$defs/SceneComposition"
+              },
+              "title": "Compositions",
+              "type": "array"
+            }
+          },
+          "required": [
+            "title_draft",
+            "decisions"
+          ],
+          "title": "SelectionMetadata",
+          "type": "object"
+        },
+        "Understanding": {
+          "additionalProperties": false,
+          "properties": {
+            "summary": {
+              "title": "Summary",
+              "type": "string"
+            },
+            "observed_flow": {
+              "items": {
+                "$ref": "#/$defs/Claim"
+              },
+              "title": "Observed Flow",
+              "type": "array"
+            },
+            "interpretations": {
+              "items": {
+                "$ref": "#/$defs/Claim"
+              },
+              "title": "Interpretations",
+              "type": "array"
+            },
+            "open_questions": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Open Questions",
+              "type": "array"
+            }
+          },
+          "required": [
+            "summary",
+            "observed_flow",
+            "interpretations",
+            "open_questions"
+          ],
+          "title": "Understanding",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "understanding": {
+          "$ref": "#/$defs/Understanding"
+        },
+        "outline": {
+          "items": {
+            "$ref": "#/$defs/Outline"
+          },
+          "title": "Outline",
+          "type": "array"
+        },
+        "selection": {
+          "$ref": "#/$defs/SelectionMetadata"
+        }
+      },
+      "required": [
+        "understanding",
+        "outline",
+        "selection"
+      ],
+      "title": "SelectionPlan",
+      "type": "object"
+    },
+    "temperature": 0.2,
+    "maxOutputTokens": 8192
+  }
+}

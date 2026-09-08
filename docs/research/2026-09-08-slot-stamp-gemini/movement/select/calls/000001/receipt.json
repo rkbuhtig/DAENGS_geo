@@ -1,0 +1,24 @@
+{
+  "stage": "stamp_select",
+  "requested_model": "gemini-3.1-flash-lite",
+  "request_sha256": "7332c1aaec7390d3791221f3fdd2b3ec0e3cd419c641c986c182eb886902bc4d",
+  "transport": "gemini",
+  "http_status": 200,
+  "model": "gemini-3.1-flash-lite",
+  "usage": {
+    "promptTokenCount": 1771,
+    "candidatesTokenCount": 79,
+    "totalTokenCount": 1850,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 1771
+      }
+    ],
+    "serviceTier": "standard"
+  },
+  "finish_reason": "STOP",
+  "status": "parsed",
+  "latency_s": 1.626,
+  "validation": "accepted"
+}

@@ -1,0 +1,65 @@
+{
+  "revision": "cae31a3d4da449ed4851910207af6d8ad038f7f10075cc986e62c13dd2b197ef",
+  "title": "2026년 9월 8일의 산책 기록",
+  "semantic_status": "not_evaluated",
+  "cards": [
+    {
+      "stamp_ref": {
+        "id": "stamp:walk_photo:synthetic-record-1",
+        "version": "a27edb27413ac0b69fcc1d1937cb98a3958e6536ce9bdb6f11bf1897777303f1"
+      },
+      "title": "산책 중 촬영한 사진",
+      "text": "2026년 9월 8일 06시 01분 30초에 촬영된 사진 기록입니다.",
+      "anchor": {
+        "record_ref": {
+          "store": "walk_photo",
+          "id": "synthetic-record-1",
+          "version": "1",
+          "version_kind": "revision"
+        },
+        "session_id": "gap",
+        "event_at": "2026-09-08T06:01:30+00:00",
+        "time_basis": "photo_capture",
+        "location": {
+          "point": {
+            "lat": 37.00080938944533,
+            "lng": 130.0
+          },
+          "captured_at": "2026-09-08T06:01:30Z",
+          "accuracy_m": 5.0,
+          "basis": "device_fix",
+          "observation_ref": "walk-fix:gap:18"
+        }
+      }
+    },
+    {
+      "stamp_ref": {
+        "id": "stamp:walk_entry:synthetic-record-2",
+        "version": "499c527bb2dbcd467060d8c302723128aa759d055a398e34c9a93d21939495b8"
+      },
+      "title": "기록 재개 메모",
+      "text": "2026년 9월 8일 06시 03분 30초에 기록이 다시 잡혔다는 메모를 남겼습니다.",
+      "anchor": {
+        "record_ref": {
+          "store": "walk_entry",
+          "id": "synthetic-record-2",
+          "version": "1",
+          "version_kind": "revision"
+        },
+        "session_id": "gap",
+        "event_at": "2026-09-08T06:03:30+00:00",
+        "time_basis": "recorded_at",
+        "location": {
+          "point": {
+            "lat": 37.00080938944533,
+            "lng": 130.0
+          },
+          "captured_at": "2026-09-08T06:03:30Z",
+          "accuracy_m": 5.0,
+          "basis": "device_fix",
+          "observation_ref": "walk-fix:gap:42"
+        }
+      }
+    }
+  ]
+}

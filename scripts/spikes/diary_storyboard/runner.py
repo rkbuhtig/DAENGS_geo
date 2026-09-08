@@ -2,6 +2,13 @@
 
 from pathlib import Path
 
+from .candidates import (
+    candidate_for_scene,
+    catalog_for,
+    check_candidate_scene,
+    check_selection,
+)
+from .composition import scene_context
 from .contracts import (
     Diary,
     Edit,
@@ -11,17 +18,20 @@ from .contracts import (
     Review,
     Revision,
     SceneUpdate,
+    SelectionPlan,
     State,
     check_plan,
     check_references,
 )
 from .evidence import from_scenario
 from .prompts import COMMON, STAGES
+from .selection_prompts import selection_instructions
 from .storage import checkpoint, digest, export, latest, read, save
 
 
 def initialize(run: Path, source: dict, model: str):
     evidence = from_scenario(source)
+    catalog = catalog_for(evidence)
     if run.exists() and any(run.iterdir()):
         raise ValueError("start requires a new empty run directory")
     run.mkdir(parents=True, exist_ok=True)
@@ -34,6 +44,9 @@ def initialize(run: Path, source: dict, model: str):
             "evidence_sha256": digest(snapshot),
             "prompt_sha256": digest({"common": COMMON, "stages": STAGES}),
             "contract_version": "diary-skeleton-v1",
+            **({"selection_prompt_sha256": digest(selection_instructions(catalog)),
+                "selection_schema_sha256": digest(SelectionPlan.model_json_schema())}
+               if catalog is not None else {}),
         },
     )
 
@@ -46,9 +59,21 @@ def load(run: Path):
     if config["prompt_sha256"] != digest({"common": COMMON, "stages": STAGES}):
         raise ValueError("prompts changed; start a new run")
     evidence = Evidence.model_validate(snapshot)
+    catalog = catalog_for(evidence)
+    if catalog is not None and (
+        config.get("selection_prompt_sha256") != digest(selection_instructions(catalog))
+        or config.get("selection_schema_sha256") != digest(SelectionPlan.model_json_schema())
+    ):
+        raise ValueError("selection prompt or schema changed; start a new run")
     state = latest(run)
     if state and state.evidence_sha256 != config["evidence_sha256"]:
         raise ValueError("state and evidence snapshot differ")
+    if state and catalog is not None:
+        if state.selection is None:
+            raise ValueError("candidate run is missing selection metadata")
+        check_selection(SelectionPlan(
+            understanding=state.understanding, outline=state.outline, selection=state.selection
+        ), evidence)
     return config, evidence, state
 
 
@@ -81,11 +106,18 @@ def _step(run: Path, provider) -> State:
         return previous
     payload = {"evidence_snapshot": evidence.model_dump(mode="json")}
     if previous is None:
-        result = provider.call("understand", payload, Plan)
-        check_plan(result, evidence)
+        catalog = catalog_for(evidence)
+        stage = "select" if catalog is not None else "understand"
+        if catalog is not None and catalog.composition_mode == "grouped":
+            stage = "compose"
+        result = provider.call(stage, payload, SelectionPlan if catalog is not None else Plan)
+        if catalog is not None:
+            check_selection(result, evidence)
+        else:
+            check_plan(result, evidence)
         state = State(
             revision=0,
-            status="filling",
+            status="filling" if result.outline else "awaiting_review",
             evidence_sha256=config["evidence_sha256"],
             understanding=result.understanding,
             outline=result.outline,
@@ -93,8 +125,9 @@ def _step(run: Path, provider) -> State:
             revisit_scene_ids=[],
             findings=[],
             revisions=[],
+            selection=result.selection if catalog is not None else None,
         )
-        stage, reason = "understand", "전체 자료에서 잠정 이해와 장면 개요 작성"
+        reason = "전체 자료에서 잠정 이해와 장면 개요 작성"
         sources = sorted({i for s in result.outline for i in s.evidence_ids})
         affected = [s.scene_id for s in result.outline]
     else:
@@ -104,10 +137,18 @@ def _step(run: Path, provider) -> State:
         if previous.status == "filling":
             target = previous.outline[len(previous.scenes)]
             payload["target_scene"] = target.model_dump(mode="json")
+            if previous.selection is not None:
+                payload["target_candidate"] = candidate_for_scene(
+                    previous, target.scene_id, evidence
+                ).model_dump(mode="json")
+                if catalog_for(evidence).composition_mode == "grouped":
+                    payload["scene_context"] = scene_context(previous, target.scene_id, evidence)
             result = provider.call("scene", payload, SceneUpdate)
             check_references(result, evidence)
             if result.scene.scene_id != target.scene_id:
                 raise ValueError("model returned a different target scene")
+            if previous.selection is not None:
+                check_candidate_scene(result.scene, previous, evidence)
             if not set(result.revisit_scene_ids) <= {s.scene_id for s in previous.scenes}:
                 raise ValueError("revisit must refer to already completed scenes")
             state.scenes.append(result.scene)
@@ -129,6 +170,9 @@ def _step(run: Path, provider) -> State:
             referenced = set(replacements) | {i for f in result.findings for i in f.scene_ids}
             if not referenced <= known:
                 raise ValueError("reconciliation refers to an unknown scene")
+            if previous.selection is not None:
+                for replacement in result.replacement_scenes:
+                    check_candidate_scene(replacement, previous, evidence)
             state.scenes = [replacements.get(s.scene_id, s) for s in state.scenes]
             state.understanding = result.understanding
             state.findings = result.findings
@@ -192,7 +236,10 @@ def review(run: Path, expected_revision: int, actor: str, reviewer: str, edits: 
     return state
 
 
-def reviewed_snapshot(state: State) -> dict:
+def reviewed_snapshot(state: State, evidence: Evidence | None = None) -> dict:
+    grouped = state.selection is not None and bool(state.selection.compositions)
+    if grouped and evidence is None:
+        raise ValueError("grouped review requires source event snapshot")
     edits = {e.scene_id: e for e in state.review.edits}
     outlines = {s.scene_id: s for s in state.outline}
     scenes = []
@@ -216,6 +263,8 @@ def reviewed_snapshot(state: State) -> dict:
                     effective.pop(key)
         outline = outlines[scene.scene_id]
         effective.update(start_at=outline.start_at.isoformat(), end_at=outline.end_at.isoformat())
+        if grouped:
+            effective["scene_context"] = scene_context(state, scene.scene_id, evidence)
         scenes.append(effective)
     return {
         "storyboard_revision": state.revision,
@@ -227,12 +276,12 @@ def reviewed_snapshot(state: State) -> dict:
 
 
 def decide(run: Path, expected_revision: int, choice: str, provider=None):
-    _, _, state = load(run)
+    _, evidence, state = load(run)
     if state is None or state.status != "reviewed" or state.revision != expected_revision:
         raise ValueError("decision requires the exact reviewed revision")
     if choice not in ("skip", "generate"):
         raise ValueError("unknown decision")
-    snapshot = reviewed_snapshot(state)
+    snapshot = reviewed_snapshot(state, evidence)
     destination = run / "decisions" / f"{state.revision:06d}-{choice}"
     result_path = destination / "result.json"
     if result_path.exists():

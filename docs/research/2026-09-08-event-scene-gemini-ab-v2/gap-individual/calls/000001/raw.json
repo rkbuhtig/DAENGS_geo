@@ -1,0 +1,31 @@
+{
+  "candidates": [
+    {
+      "content": {
+        "parts": [
+          {
+            "text": "{\n  \"understanding\": {\n    \"summary\": \"보호자와 반려견 두부가 상가 밀집 지역과 공원 인근을 포함한 다양한 환경을 산책하며 냄새 맡기 및 사진 촬영 등의 활동을 수행함.\",\n    \"observed_flow\": [\n      {\n        \"text\": \"상가 밀집 지역으로 진입하여 두부가 냄새를 맡는 활동을 함.\",\n        \"candidate_ids\": [\"e03\", \"e04\"]\n      },\n      {\n        \"text\": \"늘벗근린공원 인근으로 이동하여 보호자와 두부가 함께 사진을 촬영함.\",\n        \"candidate_ids\": [\"e06\", \"e07\"]\n      },\n      {\n        \"text\": \"양재천 인근과 상가 지역을 거쳐 독골근린공원 주변을 경유함.\",\n        \"candidate_ids\": [\"e10\", \"e11\", \"e13\", \"e14\", \"e15\"]\n      },\n      {\n        \"text\": \"산책을 마무리하며 다시 상가 밀집 지역으로 이동함.\",\n        \"candidate_ids\": [\"e17\"]\n      }\n    ],\n    \"interpretations\": [\n      {\n        \"text\": \"두부는 산책 중 상가 밀집 지역에서 냄새를 맡으며 주변 환경을 탐색함.\",\n        \"candidate_ids\": [\"e04\"]\n      },\n      {\n        \"text\": \"보호자는 늘벗근린공원 인근에서 두부와의 산책 순간을 사진으로 기록함.\",\n        \"candidate_ids\": [\"e07\"]\n      }\n    ],\n    \"open_questions\": [\"두부가 냄새를 맡은 특정 대상이 무엇인지\", \"사진 촬영 당시의 구체적인 배경이나 상황\"]\n  },\n  \"title_draft\": {\n    \"text\": \"두부와 함께한 상가와 공원 산책\",\n    \"candidate_ids\": [\"e04\", \"e07\"]\n  },\n  \"scenes\": [\n    {\n      \"candidate_id\": \"e04\",\n      \"focus\": \"상가 밀집 지역에서의 냄새 맡기\",\n      \"reason\": \"사용자의 직접적인 행동 기록이 포함된 핵심 장면임.\"\n    },\n    {\n      \"candidate_id\": \"e07\",\n      \"focus\": \"늘벗근린공원 인근에서의 사진 촬영\",\n      \"reason\": \"산책 중 보호자와 반려견의 상호작용을 보여주는 중요한 기록임.\"\n    }\n  ],\n  \"omissions\": [\n    {\n      \"candidate_id\": \"e03\",\n      \"code\": \"redundant\",\n      \"reason\": \"e04 장면의 배경 정보로 충분히 유추 가능함.\"\n    },\n    {\n      \"candidate_id\": \"e06\",\n      \"code\": \"redundant\",\n      \"reason\": \"e07 장면의 배경 정보로 충분히 유추 가능함.\"\n    },\n    {\n      \"candidate_id\": \"e10\",\n      \"code\": \"low_signal\",\n      \"reason\": \"단순 이동 경로의 변화로 별도의 장면 구성이 불필요함.\"\n    },\n    {\n      \"candidate_id\": \"e11\",\n      \"code\": \"low_signal\",\n      \"reason\": \"단순 이동 경로의 변화로 별도의 장면 구성이 불필요함.\"\n    },\n    {\n      \"candidate_id\": \"e13\",\n      \"code\": \"low_signal\",\n      \"reason\": \"단순 이동 경로의 변화로 별도의 장면 구성이 불필요함.\"\n    },\n    {\n      \"candidate_id\": \"e14\",\n      \"code\": \"low_signal\",\n      \"reason\": \"단순 이동 경로의 변화로 별도의 장면 구성이 불필요함.\"\n    },\n    {\n      \"candidate_id\": \"e15\",\n      \"code\": \"low_signal\",\n      \"reason\": \"단순 이동 경로의 변화로 별도의 장면 구성이 불필요함.\"\n    },\n    {\n      \"candidate_id\": \"e17\",\n      \"code\": \"low_signal\",\n      \"reason\": \"산책 종료 시점의 단순 이동으로 장면 구성의 우선순위가 낮음.\"\n    }\n  ]\n}",
+            "thoughtSignature": "EnEKbwERTTIPECoLCodu2nzsOx05A9Tc+QyQs0RKRQbBCTS44BSr3c658v1ka/x9s46wT33aRKkD0bjVKOmHPfYYZQMreUABX7cwyHCKSPPMFBbuyARd0SeMYQWh2PLAYaVhdmNzpgxvElrF27WYgcynjQ=="
+          }
+        ],
+        "role": "model"
+      },
+      "finishReason": "STOP",
+      "index": 0
+    }
+  ],
+  "usageMetadata": {
+    "promptTokenCount": 14034,
+    "candidatesTokenCount": 1002,
+    "totalTokenCount": 15036,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 14034
+      }
+    ],
+    "serviceTier": "standard"
+  },
+  "modelVersion": "gemini-3.1-flash-lite",
+  "responseId": "oYufav_WIJ2w1e8PuYuciQo"
+}

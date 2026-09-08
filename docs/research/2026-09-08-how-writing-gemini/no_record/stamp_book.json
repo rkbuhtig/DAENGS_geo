@@ -1,0 +1,1346 @@
+{
+  "schema_version": "stamp-book-v1",
+  "source_kind": "record_how",
+  "source": {
+    "schema_version": "record-how-source-v1",
+    "route": {
+      "schema_version": "how-source-v1",
+      "session_id": "stamp-comparison",
+      "dog_id": "synthetic-dog",
+      "started_at": "2026-09-08T06:00:00Z",
+      "ended_at": "2026-09-08T06:06:50Z",
+      "fixes": [
+        {
+          "client_seq": 0,
+          "chain_index": 0,
+          "at": "2026-09-08T06:00:00Z",
+          "lat": 37.000008993216056,
+          "lng": 130.0,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 1,
+          "chain_index": 0,
+          "at": "2026-09-08T06:00:05Z",
+          "lat": 37.00005346471776,
+          "lng": 130.00000864149456,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 2,
+          "chain_index": 0,
+          "at": "2026-09-08T06:00:10Z",
+          "lat": 37.0000970014606,
+          "lng": 129.99998891871311,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 3,
+          "chain_index": 0,
+          "at": "2026-09-08T06:00:15Z",
+          "lat": 37.00013976065636,
+          "lng": 130.00000556842232,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 4,
+          "chain_index": 0,
+          "at": "2026-09-08T06:00:20Z",
+          "lat": 37.00018198503863,
+          "lng": 130.00000394070665,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 5,
+          "chain_index": 0,
+          "at": "2026-09-08T06:00:25Z",
+          "lat": 37.000223976164754,
+          "lng": 129.99998937827345,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 6,
+          "chain_index": 0,
+          "at": "2026-09-08T06:00:30Z",
+          "lat": 37.00026606124775,
+          "lng": 130.0000096799001,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 7,
+          "chain_index": 0,
+          "at": "2026-09-08T06:00:35Z",
+          "lat": 37.00030855716637,
+          "lng": 129.99999820885634,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 8,
+          "chain_index": 0,
+          "at": "2026-09-08T06:00:40Z",
+          "lat": 37.000351735611886,
+          "lng": 129.99999261694524,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 9,
+          "chain_index": 0,
+          "at": "2026-09-08T06:00:45Z",
+          "lat": 37.000395793204916,
+          "lng": 130.00001125868974,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 10,
+          "chain_index": 0,
+          "at": "2026-09-08T06:00:50Z",
+          "lat": 37.000440829869305,
+          "lng": 129.9999929456481,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 11,
+          "chain_index": 0,
+          "at": "2026-09-08T06:00:55Z",
+          "lat": 37.00048683784157,
+          "lng": 129.99999778734932,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 12,
+          "chain_index": 0,
+          "at": "2026-09-08T06:01:00Z",
+          "lat": 37.00053370252478,
+          "lng": 130.00000989171028,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 13,
+          "chain_index": 0,
+          "at": "2026-09-08T06:01:05Z",
+          "lat": 37.000581215092986,
+          "lng": 129.999989528169,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 14,
+          "chain_index": 0,
+          "at": "2026-09-08T06:01:10Z",
+          "lat": 37.000629095459885,
+          "lng": 130.00000353668025,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 15,
+          "chain_index": 0,
+          "at": "2026-09-08T06:01:15Z",
+          "lat": 37.00067702308524,
+          "lng": 130.00000593662375,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 16,
+          "chain_index": 0,
+          "at": "2026-09-08T06:01:20Z",
+          "lat": 37.000724672230895,
+          "lng": 129.99998885058207,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 17,
+          "chain_index": 0,
+          "at": "2026-09-08T06:01:25Z",
+          "lat": 37.00077174778847,
+          "lng": 130.00000836065988,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 18,
+          "chain_index": 0,
+          "at": "2026-09-08T06:01:30Z",
+          "lat": 37.000818017738126,
+          "lng": 130.00000042825502,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 19,
+          "chain_index": 0,
+          "at": "2026-09-08T06:01:35Z",
+          "lat": 37.00081837258793,
+          "lng": 130.00004739380645,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 20,
+          "chain_index": 0,
+          "at": "2026-09-08T06:01:40Z",
+          "lat": 37.000817739388516,
+          "lng": 130.00012360438777,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 21,
+          "chain_index": 0,
+          "at": "2026-09-08T06:01:45Z",
+          "lat": 37.00081618778502,
+          "lng": 130.00016371873355,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 22,
+          "chain_index": 0,
+          "at": "2026-09-08T06:01:50Z",
+          "lat": 37.000813888437165,
+          "lng": 130.00022087549883,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 23,
+          "chain_index": 0,
+          "at": "2026-09-08T06:01:55Z",
+          "lat": 37.00081109424852,
+          "lng": 130.00029227441658,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 24,
+          "chain_index": 0,
+          "at": "2026-09-08T06:02:00Z",
+          "lat": 37.00080811254983,
+          "lng": 130.00032836771086,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 25,
+          "chain_index": 0,
+          "at": "2026-09-08T06:02:05Z",
+          "lat": 37.00080527129593,
+          "lng": 130.0003954924729,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 26,
+          "chain_index": 0,
+          "at": "2026-09-08T06:02:10Z",
+          "lat": 37.00080288299424,
+          "lng": 130.00045813013566,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 27,
+          "chain_index": 0,
+          "at": "2026-09-08T06:02:15Z",
+          "lat": 37.000801210332305,
+          "lng": 130.00049549029305,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 28,
+          "chain_index": 0,
+          "at": "2026-09-08T06:02:20Z",
+          "lat": 37.000800437284965,
+          "lng": 130.00056975176778,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 29,
+          "chain_index": 0,
+          "at": "2026-09-08T06:02:25Z",
+          "lat": 37.00080064887913,
+          "lng": 130.0006219709143,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 30,
+          "chain_index": 0,
+          "at": "2026-09-08T06:02:30Z",
+          "lat": 37.00080182184172,
+          "lng": 130.00066555438215,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 31,
+          "chain_index": 0,
+          "at": "2026-09-08T06:02:35Z",
+          "lat": 37.00080382715944,
+          "lng": 130.00074225400718,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 32,
+          "chain_index": 0,
+          "at": "2026-09-08T06:02:40Z",
+          "lat": 37.00080644426887,
+          "lng": 130.00078512331888,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 33,
+          "chain_index": 0,
+          "at": "2026-09-08T06:02:45Z",
+          "lat": 37.00080938531609,
+          "lng": 130.0008382582525,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 34,
+          "chain_index": 0,
+          "at": "2026-09-08T06:02:50Z",
+          "lat": 37.000812326817474,
+          "lng": 130.00091205953797,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 35,
+          "chain_index": 0,
+          "at": "2026-09-08T06:02:55Z",
+          "lat": 37.00081494523947,
+          "lng": 130.00094909402483,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 36,
+          "chain_index": 0,
+          "at": "2026-09-08T06:03:00Z",
+          "lat": 37.000816952583776,
+          "lng": 130.0010126094954,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 37,
+          "chain_index": 0,
+          "at": "2026-09-08T06:03:05Z",
+          "lat": 37.00081812806407,
+          "lng": 130.00102263065213,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 38,
+          "chain_index": 0,
+          "at": "2026-09-08T06:03:10Z",
+          "lat": 37.00081834239014,
+          "lng": 130.00100256833878,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 39,
+          "chain_index": 0,
+          "at": "2026-09-08T06:03:15Z",
+          "lat": 37.00081757198842,
+          "lng": 130.0010182737793,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 40,
+          "chain_index": 0,
+          "at": "2026-09-08T06:03:20Z",
+          "lat": 37.000815901594834,
+          "lng": 130.0010181964639,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 41,
+          "chain_index": 0,
+          "at": "2026-09-08T06:03:25Z",
+          "lat": 37.000813514934734,
+          "lng": 130.0010025901676,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 42,
+          "chain_index": 0,
+          "at": "2026-09-08T06:03:30Z",
+          "lat": 37.0008106745151,
+          "lng": 130.0010226799757,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 43,
+          "chain_index": 0,
+          "at": "2026-09-08T06:03:35Z",
+          "lat": 37.00080769275159,
+          "lng": 130.00101252441726,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 44,
+          "chain_index": 0,
+          "at": "2026-09-08T06:03:40Z",
+          "lat": 37.00080489760617,
+          "lng": 130.00100545743243,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 45,
+          "chain_index": 0,
+          "at": "2026-09-08T06:03:45Z",
+          "lat": 37.00080259651483,
+          "lng": 130.0010246752296,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 46,
+          "chain_index": 0,
+          "at": "2026-09-08T06:03:50Z",
+          "lat": 37.00080104257289,
+          "lng": 130.00100709856946,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 47,
+          "chain_index": 0,
+          "at": "2026-09-08T06:03:55Z",
+          "lat": 37.00080040669728,
+          "lng": 130.0010104199306,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 48,
+          "chain_index": 0,
+          "at": "2026-09-08T06:04:00Z",
+          "lat": 37.0008007588275,
+          "lng": 130.00102373749462,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 49,
+          "chain_index": 0,
+          "at": "2026-09-08T06:04:05Z",
+          "lat": 37.00080206023299,
+          "lng": 130.00105964219378,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 50,
+          "chain_index": 0,
+          "at": "2026-09-08T06:04:10Z",
+          "lat": 37.00080416777314,
+          "lng": 130.00112878651905,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 51,
+          "chain_index": 0,
+          "at": "2026-09-08T06:04:15Z",
+          "lat": 37.00080684964115,
+          "lng": 130.00118902302125,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 52,
+          "chain_index": 0,
+          "at": "2026-09-08T06:04:20Z",
+          "lat": 37.00080981086035,
+          "lng": 130.00122744270647,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 53,
+          "chain_index": 0,
+          "at": "2026-09-08T06:04:25Z",
+          "lat": 37.00081272572842,
+          "lng": 130.00130274667262,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 54,
+          "chain_index": 0,
+          "at": "2026-09-08T06:04:30Z",
+          "lat": 37.00081527364118,
+          "lng": 130.00135256946857,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 55,
+          "chain_index": 0,
+          "at": "2026-09-08T06:04:35Z",
+          "lat": 37.00081717435558,
+          "lng": 130.0013981833681,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 56,
+          "chain_index": 0,
+          "at": "2026-09-08T06:04:40Z",
+          "lat": 37.00081821881346,
+          "lng": 130.00147467565105,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 57,
+          "chain_index": 0,
+          "at": "2026-09-08T06:04:45Z",
+          "lat": 37.00081829213565,
+          "lng": 130.001515780413,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 58,
+          "chain_index": 0,
+          "at": "2026-09-08T06:04:50Z",
+          "lat": 37.00081738625751,
+          "lng": 130.0015713854318,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 59,
+          "chain_index": 0,
+          "at": "2026-09-08T06:04:55Z",
+          "lat": 37.00081560081591,
+          "lng": 130.00164378379148,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 60,
+          "chain_index": 0,
+          "at": "2026-09-08T06:05:00Z",
+          "lat": 37.000813132190245,
+          "lng": 130.00168014721334,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 61,
+          "chain_index": 0,
+          "at": "2026-09-08T06:05:05Z",
+          "lat": 37.00081025190283,
+          "lng": 130.00174592613953,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 62,
+          "chain_index": 0,
+          "at": "2026-09-08T06:05:10Z",
+          "lat": 37.00080727675435,
+          "lng": 130.0018100194865,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 63,
+          "chain_index": 0,
+          "at": "2026-09-08T06:05:15Z",
+          "lat": 37.00080453397919,
+          "lng": 130.00184685880558,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 64,
+          "chain_index": 0,
+          "at": "2026-09-08T06:05:20Z",
+          "lat": 37.00080232525317,
+          "lng": 130.00192033248504,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 65,
+          "chain_index": 0,
+          "at": "2026-09-08T06:05:25Z",
+          "lat": 37.00080089351242,
+          "lng": 130.00197408268693,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 66,
+          "chain_index": 0,
+          "at": "2026-09-08T06:05:30Z",
+          "lat": 37.00080039623306,
+          "lng": 130.00201649062487,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 67,
+          "chain_index": 0,
+          "at": "2026-09-08T06:05:35Z",
+          "lat": 37.00080088811047,
+          "lng": 130.00198055935206,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 68,
+          "chain_index": 0,
+          "at": "2026-09-08T06:05:40Z",
+          "lat": 37.00080231504342,
+          "lng": 130.0019120272337,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 69,
+          "chain_index": 0,
+          "at": "2026-09-08T06:05:45Z",
+          "lat": 37.000804520084614,
+          "lng": 130.00185103225107,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 70,
+          "chain_index": 0,
+          "at": "2026-09-08T06:05:50Z",
+          "lat": 37.0008072607032,
+          "lng": 130.00181297298454,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 71,
+          "chain_index": 0,
+          "at": "2026-09-08T06:05:55Z",
+          "lat": 37.00081023546055,
+          "lng": 130.00173796532147,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 72,
+          "chain_index": 0,
+          "at": "2026-09-08T06:06:00Z",
+          "lat": 37.000813117165315,
+          "lng": 130.00168740214718,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 73,
+          "chain_index": 0,
+          "at": "2026-09-08T06:06:05Z",
+          "lat": 37.00081558886091,
+          "lng": 130.00164244135732,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 74,
+          "chain_index": 0,
+          "at": "2026-09-08T06:06:10Z",
+          "lat": 37.000817378687366,
+          "lng": 130.00156585194765,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 75,
+          "chain_index": 0,
+          "at": "2026-09-08T06:06:15Z",
+          "lat": 37.00081828978299,
+          "lng": 130.00152421862498,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 76,
+          "chain_index": 0,
+          "at": "2026-09-08T06:06:20Z",
+          "lat": 37.00081822193705,
+          "lng": 130.00146938852455,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 77,
+          "chain_index": 0,
+          "at": "2026-09-08T06:06:25Z",
+          "lat": 37.000817182611875,
+          "lng": 130.001396525021,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 78,
+          "chain_index": 0,
+          "at": "2026-09-08T06:06:30Z",
+          "lat": 37.00081528612206,
+          "lng": 130.00135998315082,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 79,
+          "chain_index": 0,
+          "at": "2026-09-08T06:06:35Z",
+          "lat": 37.00081274106113,
+          "lng": 130.00129489819895,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 80,
+          "chain_index": 0,
+          "at": "2026-09-08T06:06:40Z",
+          "lat": 37.00080982735845,
+          "lng": 130.00123009339305,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 81,
+          "chain_index": 0,
+          "at": "2026-09-08T06:06:45Z",
+          "lat": 37.000806865490034,
+          "lng": 130.00119347242799,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        },
+        {
+          "client_seq": 82,
+          "chain_index": 0,
+          "at": "2026-09-08T06:06:50Z",
+          "lat": 37.00080418122959,
+          "lng": 130.00112043020457,
+          "accuracy_m": 5.0,
+          "is_mock": true
+        }
+      ]
+    },
+    "records": {
+      "schema_version": "walk-record-envelopes-v1",
+      "synthetic": true,
+      "owner_id": "synthetic-owner",
+      "records": [],
+      "envelopes": [],
+      "selected_envelope_ids": []
+    },
+    "attachments": []
+  },
+  "source_version": "bcd4c6250b9fde737ebcaccb79568fac22be727cdfb67fd6621694c49e3a5d21",
+  "policy": {
+    "version": "how-stamp-v1",
+    "record": {
+      "version": "record-stamp-v1",
+      "space_slots": 3,
+      "action_slots": 2,
+      "environment_slots": 1,
+      "context_age_s": 300,
+      "action_age_s": 600,
+      "max_cards": 7
+    },
+    "geometry": {
+      "version": "how-geometry-v1",
+      "max_accuracy_m": 20.0,
+      "max_speed_mps": 4.0,
+      "simplify_m": 8.0,
+      "stay_diameter_m": 20.0,
+      "stay_min_s": 30.0,
+      "stay_min_fixes": 5,
+      "stay_progress_step_s": 10.0,
+      "stay_progress_max_mps": 0.4,
+      "straight_min_m": 40.0,
+      "turn_leg_min_m": 30.0,
+      "turn_min_deg": 45.0,
+      "reversal_min_deg": 150.0,
+      "retrace_tolerance_m": 10.0,
+      "retrace_min_m": 40.0
+    },
+    "turn_near_s": 20.0,
+    "focus_radius_m": 15.0,
+    "shape_context_slots": 2
+  },
+  "stamps": [
+    {
+      "ref": {
+        "id": "stamp:how:12081edea0846f8b",
+        "version": "6d93b9b717ee85f052935feb44f0333af31533d66a8d480171d3b62f2a937395"
+      },
+      "frame": {
+        "id": "stamp:how:12081edea0846f8b",
+        "required": false,
+        "center": {
+          "kind": "how",
+          "material_ref": {
+            "id": "how:12081edea0846f8b",
+            "version": "12081edea0846f8bd01d288c7b13a3ab424348e685f5dea86c50cabc06a11916"
+          }
+        },
+        "how_members": [
+          {
+            "material_ref": {
+              "id": "how:12081edea0846f8b",
+              "version": "12081edea0846f8bd01d288c7b13a3ab424348e685f5dea86c50cabc06a11916"
+            },
+            "role": "focus",
+            "relation": {
+              "type": "focus_geometry",
+              "event_order": "not_established"
+            }
+          },
+          {
+            "material_ref": {
+              "id": "how:fffc17863363e368",
+              "version": "fffc17863363e36862ea907bbcbbc1b60acae8e4d5ca16e58f3798b3a22d8e23"
+            },
+            "role": "shape_context",
+            "relation": {
+              "type": "ends_at_focus_vertex",
+              "basis": "source_geometry"
+            }
+          },
+          {
+            "material_ref": {
+              "id": "how:81d8c939c1941d66",
+              "version": "81d8c939c1941d66aedff5ac9d166609c44cb36a57288eefb5ad4b718e3b2413"
+            },
+            "role": "shape_context",
+            "relation": {
+              "type": "starts_at_focus_vertex",
+              "basis": "source_geometry"
+            }
+          }
+        ],
+        "route_binding": "accepted_run"
+      }
+    },
+    {
+      "ref": {
+        "id": "stamp:how:7a66b966562f7523",
+        "version": "e1f64d2b9b68789013f024d28bf69f14bfb28a63a522f135f1ca1deb55213249"
+      },
+      "frame": {
+        "id": "stamp:how:7a66b966562f7523",
+        "required": false,
+        "center": {
+          "kind": "how",
+          "material_ref": {
+            "id": "how:7a66b966562f7523",
+            "version": "7a66b966562f7523e41a137560d5c5260d39f9385c7e458ef4b496bda9fae0a8"
+          }
+        },
+        "how_members": [
+          {
+            "material_ref": {
+              "id": "how:7a66b966562f7523",
+              "version": "7a66b966562f7523e41a137560d5c5260d39f9385c7e458ef4b496bda9fae0a8"
+            },
+            "role": "focus",
+            "relation": {
+              "type": "focus_geometry",
+              "event_order": "not_established"
+            }
+          },
+          {
+            "material_ref": {
+              "id": "how:81d8c939c1941d66",
+              "version": "81d8c939c1941d66aedff5ac9d166609c44cb36a57288eefb5ad4b718e3b2413"
+            },
+            "role": "shape_context",
+            "relation": {
+              "type": "support_overlaps_stay",
+              "basis": "source_geometry"
+            }
+          }
+        ],
+        "route_binding": "accepted_run"
+      }
+    },
+    {
+      "ref": {
+        "id": "stamp:how:beaed9b87b263c05",
+        "version": "9f7eb402bb0667eba9a2353b60da5f74fc9382a9f7a38de9859c22ba3683d987"
+      },
+      "frame": {
+        "id": "stamp:how:beaed9b87b263c05",
+        "required": false,
+        "center": {
+          "kind": "how",
+          "material_ref": {
+            "id": "how:beaed9b87b263c05",
+            "version": "beaed9b87b263c057c0b123faff5275d49b4748c703759d4ec36da06d71d01dd"
+          }
+        },
+        "how_members": [
+          {
+            "material_ref": {
+              "id": "how:beaed9b87b263c05",
+              "version": "beaed9b87b263c057c0b123faff5275d49b4748c703759d4ec36da06d71d01dd"
+            },
+            "role": "focus",
+            "relation": {
+              "type": "focus_geometry",
+              "event_order": "not_established"
+            }
+          },
+          {
+            "material_ref": {
+              "id": "how:496e6e0ac6d1c843",
+              "version": "496e6e0ac6d1c84358aa1034e397d54b05aeee5ce99331a9834e4d298f93d12b"
+            },
+            "role": "cofocus",
+            "relation": {
+              "type": "focus_geometry",
+              "event_order": "not_established"
+            }
+          },
+          {
+            "material_ref": {
+              "id": "how:81d8c939c1941d66",
+              "version": "81d8c939c1941d66aedff5ac9d166609c44cb36a57288eefb5ad4b718e3b2413"
+            },
+            "role": "shape_context",
+            "relation": {
+              "type": "ends_at_focus_vertex",
+              "basis": "source_geometry"
+            }
+          },
+          {
+            "material_ref": {
+              "id": "how:3cdb1a343e099cac",
+              "version": "3cdb1a343e099cacf9a1140496587cc10b8ff4935bef9c5515f609f6a54d5153"
+            },
+            "role": "shape_context",
+            "relation": {
+              "type": "starts_at_focus_vertex",
+              "basis": "source_geometry"
+            }
+          }
+        ],
+        "route_binding": "accepted_run"
+      }
+    }
+  ],
+  "slot_audit": {
+    "record": [],
+    "how": [
+      {
+        "pool": "how_shape",
+        "stamp_id": "stamp:how:12081edea0846f8b",
+        "id": "how:fffc17863363e368",
+        "reason": "admit"
+      },
+      {
+        "pool": "how_shape",
+        "stamp_id": "stamp:how:12081edea0846f8b",
+        "id": "how:81d8c939c1941d66",
+        "reason": "admit"
+      },
+      {
+        "pool": "how_shape",
+        "stamp_id": "stamp:how:7a66b966562f7523",
+        "id": "how:81d8c939c1941d66",
+        "reason": "admit"
+      },
+      {
+        "pool": "how_shape",
+        "stamp_id": "stamp:how:beaed9b87b263c05",
+        "id": "how:81d8c939c1941d66",
+        "reason": "admit"
+      },
+      {
+        "pool": "how_shape",
+        "stamp_id": "stamp:how:beaed9b87b263c05",
+        "id": "how:3cdb1a343e099cac",
+        "reason": "admit"
+      }
+    ]
+  },
+  "how_catalog": {
+    "schema_version": "how-materials-v1",
+    "session_id": "stamp-comparison",
+    "evidence_origin": "mock",
+    "source_sha256": "e47641eaa6d29540735fcb1d54249095537700c10f7a1b8a17163e7504fd1da9",
+    "policy": {
+      "version": "how-geometry-v1",
+      "max_accuracy_m": 20.0,
+      "max_speed_mps": 4.0,
+      "simplify_m": 8.0,
+      "stay_diameter_m": 20.0,
+      "stay_min_s": 30.0,
+      "stay_min_fixes": 5,
+      "stay_progress_step_s": 10.0,
+      "stay_progress_max_mps": 0.4,
+      "straight_min_m": 40.0,
+      "turn_leg_min_m": 30.0,
+      "turn_min_deg": 45.0,
+      "reversal_min_deg": 150.0,
+      "retrace_tolerance_m": 10.0,
+      "retrace_min_m": 40.0
+    },
+    "calculation_version": 4,
+    "materials": [
+      {
+        "axis": "how",
+        "kind": "straight_run",
+        "status": "candidate",
+        "subject": "recording_device",
+        "support": {
+          "chain_index": 0,
+          "how_run_index": 0,
+          "from_seq": 0,
+          "to_seq": 18,
+          "started_at": "2026-09-08T06:00:00+00:00",
+          "ended_at": "2026-09-08T06:01:30+00:00",
+          "window_s": 90.0,
+          "time_meaning": "observed_support_window"
+        },
+        "anchor": {
+          "client_seq": 0,
+          "at": "2026-09-08T06:00:00+00:00",
+          "lat": 37.000008993216056,
+          "lng": 130.0,
+          "route_offset_m": 0.0
+        },
+        "metrics": {
+          "displacement_m": 89.96,
+          "max_deviation_m": 1.02,
+          "tolerance_m": 8.0
+        },
+        "quality": {
+          "fix_count": 19,
+          "accuracy_p50_m": 5.0,
+          "unknown_accuracy_count": 0
+        },
+        "ref": {
+          "id": "how:fffc17863363e368",
+          "version": "fffc17863363e36862ea907bbcbbc1b60acae8e4d5ca16e58f3798b3a22d8e23"
+        }
+      },
+      {
+        "axis": "how",
+        "kind": "straight_run",
+        "status": "candidate",
+        "subject": "recording_device",
+        "support": {
+          "chain_index": 0,
+          "how_run_index": 0,
+          "from_seq": 18,
+          "to_seq": 66,
+          "started_at": "2026-09-08T06:01:30+00:00",
+          "ended_at": "2026-09-08T06:05:30+00:00",
+          "window_s": 240.0,
+          "time_meaning": "observed_support_window"
+        },
+        "anchor": {
+          "client_seq": 18,
+          "at": "2026-09-08T06:01:30+00:00",
+          "lat": 37.000818017738126,
+          "lng": 130.00000042825502,
+          "route_offset_m": 92.844
+        },
+        "metrics": {
+          "displacement_m": 179.05,
+          "max_deviation_m": 1.5,
+          "tolerance_m": 8.0
+        },
+        "quality": {
+          "fix_count": 49,
+          "accuracy_p50_m": 5.0,
+          "unknown_accuracy_count": 0
+        },
+        "ref": {
+          "id": "how:81d8c939c1941d66",
+          "version": "81d8c939c1941d66aedff5ac9d166609c44cb36a57288eefb5ad4b718e3b2413"
+        }
+      },
+      {
+        "axis": "how",
+        "kind": "turn",
+        "status": "candidate",
+        "subject": "recording_device",
+        "support": {
+          "chain_index": 0,
+          "how_run_index": 0,
+          "from_seq": 0,
+          "to_seq": 66,
+          "started_at": "2026-09-08T06:00:00+00:00",
+          "ended_at": "2026-09-08T06:05:30+00:00",
+          "window_s": 330.0,
+          "time_meaning": "observed_support_window"
+        },
+        "anchor": {
+          "client_seq": 18,
+          "at": "2026-09-08T06:01:30+00:00",
+          "lat": 37.000818017738126,
+          "lng": 130.00000042825502,
+          "route_offset_m": 92.844
+        },
+        "metrics": {
+          "direction": "right",
+          "signed_angle_deg": -90.6,
+          "incoming_m": 89.96,
+          "outgoing_m": 179.05,
+          "tolerance_m": 8.0
+        },
+        "quality": {
+          "fix_count": 67,
+          "accuracy_p50_m": 5.0,
+          "unknown_accuracy_count": 0
+        },
+        "ref": {
+          "id": "how:12081edea0846f8b",
+          "version": "12081edea0846f8bd01d288c7b13a3ab424348e685f5dea86c50cabc06a11916"
+        }
+      },
+      {
+        "axis": "how",
+        "kind": "local_stay",
+        "status": "candidate",
+        "subject": "recording_device",
+        "support": {
+          "chain_index": 0,
+          "how_run_index": 0,
+          "from_seq": 33,
+          "to_seq": 49,
+          "started_at": "2026-09-08T06:02:45+00:00",
+          "ended_at": "2026-09-08T06:04:05+00:00",
+          "window_s": 80.0,
+          "time_meaning": "observed_support_window"
+        },
+        "anchor": {
+          "client_seq": 35,
+          "at": "2026-09-08T06:02:55+00:00",
+          "lat": 37.00081494523947,
+          "lng": 130.00094909402483,
+          "route_offset_m": 177.194
+        },
+        "metrics": {
+          "bounding_diagonal_m": 19.76,
+          "observed_duration_s": 80.0,
+          "coarse_progress_mps": 0.328
+        },
+        "quality": {
+          "fix_count": 17,
+          "accuracy_p50_m": 5.0,
+          "unknown_accuracy_count": 0
+        },
+        "ref": {
+          "id": "how:7a66b966562f7523",
+          "version": "7a66b966562f7523e41a137560d5c5260d39f9385c7e458ef4b496bda9fae0a8"
+        }
+      },
+      {
+        "axis": "how",
+        "kind": "retrace",
+        "status": "candidate",
+        "subject": "recording_device",
+        "support": {
+          "chain_index": 0,
+          "how_run_index": 0,
+          "from_seq": 66,
+          "to_seq": 82,
+          "started_at": "2026-09-08T06:05:30+00:00",
+          "ended_at": "2026-09-08T06:06:50+00:00",
+          "window_s": 80.0,
+          "time_meaning": "observed_support_window"
+        },
+        "anchor": {
+          "client_seq": 66,
+          "at": "2026-09-08T06:05:30+00:00",
+          "lat": 37.00080039623306,
+          "lng": 130.00201649062487,
+          "route_offset_m": 271.11
+        },
+        "metrics": {
+          "previous_from_seq": 18,
+          "previous_to_seq": 66,
+          "return_displacement_m": 79.58,
+          "max_distance_to_previous_leg_m": 1.51,
+          "corridor_m": 10.0
+        },
+        "quality": {
+          "fix_count": 17,
+          "accuracy_p50_m": 5.0,
+          "unknown_accuracy_count": 0
+        },
+        "ref": {
+          "id": "how:beaed9b87b263c05",
+          "version": "beaed9b87b263c057c0b123faff5275d49b4748c703759d4ec36da06d71d01dd"
+        }
+      },
+      {
+        "axis": "how",
+        "kind": "straight_run",
+        "status": "candidate",
+        "subject": "recording_device",
+        "support": {
+          "chain_index": 0,
+          "how_run_index": 0,
+          "from_seq": 66,
+          "to_seq": 82,
+          "started_at": "2026-09-08T06:05:30+00:00",
+          "ended_at": "2026-09-08T06:06:50+00:00",
+          "window_s": 80.0,
+          "time_meaning": "observed_support_window"
+        },
+        "anchor": {
+          "client_seq": 66,
+          "at": "2026-09-08T06:05:30+00:00",
+          "lat": 37.00080039623306,
+          "lng": 130.00201649062487,
+          "route_offset_m": 271.11
+        },
+        "metrics": {
+          "displacement_m": 79.58,
+          "max_deviation_m": 1.76,
+          "tolerance_m": 8.0
+        },
+        "quality": {
+          "fix_count": 17,
+          "accuracy_p50_m": 5.0,
+          "unknown_accuracy_count": 0
+        },
+        "ref": {
+          "id": "how:3cdb1a343e099cac",
+          "version": "3cdb1a343e099cacf9a1140496587cc10b8ff4935bef9c5515f609f6a54d5153"
+        }
+      },
+      {
+        "axis": "how",
+        "kind": "turn",
+        "status": "candidate",
+        "subject": "recording_device",
+        "support": {
+          "chain_index": 0,
+          "how_run_index": 0,
+          "from_seq": 18,
+          "to_seq": 82,
+          "started_at": "2026-09-08T06:01:30+00:00",
+          "ended_at": "2026-09-08T06:06:50+00:00",
+          "window_s": 320.0,
+          "time_meaning": "observed_support_window"
+        },
+        "anchor": {
+          "client_seq": 66,
+          "at": "2026-09-08T06:05:30+00:00",
+          "lat": 37.00080039623306,
+          "lng": 130.00201649062487,
+          "route_offset_m": 271.11
+        },
+        "metrics": {
+          "direction": "reverse",
+          "signed_angle_deg": -179.68,
+          "incoming_m": 179.05,
+          "outgoing_m": 79.58,
+          "tolerance_m": 8.0
+        },
+        "quality": {
+          "fix_count": 65,
+          "accuracy_p50_m": 5.0,
+          "unknown_accuracy_count": 0
+        },
+        "ref": {
+          "id": "how:496e6e0ac6d1c843",
+          "version": "496e6e0ac6d1c84358aa1034e397d54b05aeee5ce99331a9834e4d298f93d12b"
+        }
+      }
+    ],
+    "shape_runs": [
+      {
+        "chain_index": 0,
+        "how_run_index": 0,
+        "tolerance_m": 8.0,
+        "from_seq": 0,
+        "to_seq": 82,
+        "source_fix_count": 83,
+        "vertices": [
+          {
+            "client_seq": 0,
+            "lat": 37.000008993216056,
+            "lng": 130.0
+          },
+          {
+            "client_seq": 18,
+            "lat": 37.000818017738126,
+            "lng": 130.00000042825502
+          },
+          {
+            "client_seq": 66,
+            "lat": 37.00080039623306,
+            "lng": 130.00201649062487
+          },
+          {
+            "client_seq": 82,
+            "lat": 37.00080418122959,
+            "lng": 130.00112043020457
+          }
+        ]
+      }
+    ],
+    "quality_audit": [],
+    "canonical_quality": {
+      "received": 83,
+      "accepted": 83,
+      "rejected_low_accuracy": 0,
+      "rejected_out_of_order": 0,
+      "rejected_before_start": 0,
+      "rejected_after_end": 0,
+      "unknown_accuracy": 0,
+      "jump_breaks": 0,
+      "gap_breaks": 0,
+      "explicit_breaks": 0,
+      "dropped_at_capacity": 0,
+      "mock_fixes": 83
+    },
+    "limits": {
+      "calibration": "synthetic_only",
+      "where": "not_evaluated",
+      "purpose": "not_inferred",
+      "gradual_curve": "not_classified",
+      "retrace": "adjacent_simplified_legs_only"
+    }
+  }
+}

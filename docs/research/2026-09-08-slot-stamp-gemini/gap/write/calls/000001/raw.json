@@ -1,0 +1,31 @@
+{
+  "candidates": [
+    {
+      "content": {
+        "parts": [
+          {
+            "text": "{\n  \"title\": \"두부와 함께한 산책 기록\",\n  \"cards\": [\n    {\n      \"stamp_id\": \"stamp:e03\",\n      \"title\": \"상가 밀집 지역으로 이동\",\n      \"text\": \"등록 상가가 산재한 구간에서 등록 상가가 모인 구간으로 이동하였다.\"\n    },\n    {\n      \"stamp_id\": \"stamp:e04\",\n      \"title\": \"상가 밀집 지역에서의 냄새 맡기\",\n      \"text\": \"등록 상가가 모인 구간에서 두부가 냄새를 맡았다.\"\n    },\n    {\n      \"stamp_id\": \"stamp:e06\",\n      \"title\": \"늘벗근린공원 인근으로 이동\",\n      \"text\": \"등록 상가가 모인 구간에서 늘벗근린공원 인근으로 이동하였다.\"\n    },\n    {\n      \"stamp_id\": \"stamp:e07\",\n      \"title\": \"늘벗근린공원 인근에서의 사진 촬영\",\n      \"text\": \"늘벗근린공원 인근에서 두부와 함께 사진을 찍었다.\"\n    },\n    {\n      \"stamp_id\": \"stamp:e13\",\n      \"title\": \"양재천 인근으로 이동\",\n      \"text\": \"등록 상가가 적은 구간에서 양재천 인근으로 이동하였다.\"\n    },\n    {\n      \"stamp_id\": \"stamp:e14\",\n      \"title\": \"독골근린공원 인근으로 이동\",\n      \"text\": \"양재천 인근에서 독골근린공원 인근으로 이동하였다.\"\n    },\n    {\n      \"stamp_id\": \"stamp:e15\",\n      \"title\": \"상가 적은 구간으로 이동\",\n      \"text\": \"독골근린공원 인근에서 등록 상가가 적은 구간으로 이동하였다.\"\n    }\n  ]\n}",
+            "thoughtSignature": "EnEKbwERTTIP+/t4gAjvtsQ57qZV5C/5Qb97NNyMBToCO4T85D9/VEXaGxWgu8S5igAJNzPB2AB5vzQ+1FRVh6/LeecY+e7uUeHX50wtnItL7tes1R/WwPCjOIFHbBq9Ky4wv/TtiqtqL09ULZPgdrZUUA=="
+          }
+        ],
+        "role": "model"
+      },
+      "finishReason": "STOP",
+      "index": 0
+    }
+  ],
+  "usageMetadata": {
+    "promptTokenCount": 1917,
+    "candidatesTokenCount": 445,
+    "totalTokenCount": 2362,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 1917
+      }
+    ],
+    "serviceTier": "standard"
+  },
+  "modelVersion": "gemini-3.1-flash-lite",
+  "responseId": "ZKGfaqW-J9TXrfcPrcHjsAY"
+}

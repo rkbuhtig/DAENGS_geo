@@ -1,0 +1,31 @@
+{
+  "candidates": [
+    {
+      "content": {
+        "parts": [
+          {
+            "text": "{\n  \"title\": \"산책 중 기록된 사진과 메모의 여정\",\n  \"cards\": [\n    {\n      \"stamp_id\": \"stamp:walk_photo:synthetic-record-1\",\n      \"title\": \"경로 전환점에서 촬영한 사진\",\n      \"text\": \"경로의 전환점 부근에서 사진을 촬영하며 기록을 시작했습니다.\"\n    },\n    {\n      \"stamp_id\": \"stamp:walk_entry:synthetic-record-2\",\n      \"title\": \"잠시 멈춰 주변을 둘러본 기록\",\n      \"text\": \"사진 촬영 후 120초가 지난 시점에 잠시 멈춰 서서 주변을 살펴보았습니다.\"\n    },\n    {\n      \"stamp_id\": \"stamp:walk_entry:synthetic-record-3\",\n      \"title\": \"이동 경로에서 사진을 확인한 기록\",\n      \"text\": \"사진 촬영으로부터 245초 후, 경로를 되돌아가는 지점 근처에서 앞서 찍은 사진을 확인했습니다.\"\n    }\n  ]\n}",
+            "thoughtSignature": "EnEKbwERTTIPMBBWuSd9rBPJcWyZVGp6K0ATTMiP4VV/omlxr7R/w6IA3JCvFua8fTjq79+j2aNEUfG7mENi395+X60nLSH8gEhnI6aL9OJJMMidBJ6SguWBMRzMpoRsxgfbXArxSB+2MBhtWpMPBIjTMA=="
+          }
+        ],
+        "role": "model"
+      },
+      "finishReason": "STOP",
+      "index": 0
+    }
+  ],
+  "usageMetadata": {
+    "promptTokenCount": 1385,
+    "candidatesTokenCount": 245,
+    "totalTokenCount": 1630,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 1385
+      }
+    ],
+    "serviceTier": "standard"
+  },
+  "modelVersion": "gemini-3.1-flash-lite",
+  "responseId": "V8afasySJeaM1e8PsvKNkAo"
+}

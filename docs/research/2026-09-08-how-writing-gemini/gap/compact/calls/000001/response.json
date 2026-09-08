@@ -1,0 +1,15 @@
+{
+  "title": "산책 중 기록된 사진과 메모",
+  "cards": [
+    {
+      "stamp_id": "stamp:walk_photo:synthetic-record-1",
+      "title": "산책 중 촬영한 사진",
+      "text": "2026년 9월 8일 06시 01분에 촬영된 사진 기록입니다."
+    },
+    {
+      "stamp_id": "stamp:walk_entry:synthetic-record-2",
+      "title": "산책 기록 재개",
+      "text": "2026년 9월 8일 06시 03분에 기록이 다시 잡혔다는 메모를 남겼습니다."
+    }
+  ]
+}

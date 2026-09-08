@@ -1,0 +1,111 @@
+{
+  "title": "반려견 두부와 함께한 산책 경로 기록",
+  "semantic_status": "not_evaluated",
+  "cards": [
+    {
+      "stamp_id": "stamp:e03",
+      "title": "상가 밀집 지역으로의 이동",
+      "text": "보호자와 반려견 두부가 등록 상가가 산재한 구간에서 등록 상가가 모인 구간으로 이동하였다.",
+      "source_stamp_sha256": "84f36d4a9a10d0d13a92da4fc6a2d26e5a6f5df19d308c4bad41d59565d4d292",
+      "anchor": {
+        "event_id": "e03",
+        "support_s": [
+          480.0,
+          720.0
+        ],
+        "time_kind": "interval"
+      },
+      "chain": 0
+    },
+    {
+      "stamp_id": "stamp:e04",
+      "title": "늘벗근린공원 인근으로 이동",
+      "text": "등록 상가가 모인 구간에서 240초 후 늘벗근린공원 인근으로 이동하였다.",
+      "source_stamp_sha256": "2f4361bca341952f2290b4dba7bb42267ff1c68eeb75fefc23e30a5e0d9abe85",
+      "anchor": {
+        "event_id": "e04",
+        "support_s": [
+          780.0,
+          960.0
+        ],
+        "time_kind": "interval"
+      },
+      "chain": 0
+    },
+    {
+      "stamp_id": "stamp:e05",
+      "title": "양재천 인근으로 이동",
+      "text": "늘벗근린공원 인근에서 240초 후 양재천 인근으로 이동하였다.",
+      "source_stamp_sha256": "deed133dc6cdeaa5316d77a04ba073d7305bfd47558220dc53198a7d5311657f",
+      "anchor": {
+        "event_id": "e05",
+        "support_s": [
+          1020.0,
+          1200.0
+        ],
+        "time_kind": "interval"
+      },
+      "chain": 0
+    },
+    {
+      "stamp_id": "stamp:e06",
+      "title": "상가 밀집 지역으로 복귀",
+      "text": "양재천 인근에서 240초 후 등록 상가가 모인 구간으로 이동하였다.",
+      "source_stamp_sha256": "119b1407edb97bf755493a6b2041d10cbd5d40db12297790d334148e0eb6011f",
+      "anchor": {
+        "event_id": "e06",
+        "support_s": [
+          1260.0,
+          1440.0
+        ],
+        "time_kind": "interval"
+      },
+      "chain": 0
+    },
+    {
+      "stamp_id": "stamp:e07",
+      "title": "상가 적은 구간으로 이동",
+      "text": "등록 상가가 모인 구간에서 180초 후 등록 상가가 적은 구간으로 이동하였다.",
+      "source_stamp_sha256": "a9e2b51b649c6e66f39c96f3aa0dedf73bc32453daafcd62682bfa8d600649bc",
+      "anchor": {
+        "event_id": "e07",
+        "support_s": [
+          1500.0,
+          1620.0
+        ],
+        "time_kind": "interval"
+      },
+      "chain": 0
+    },
+    {
+      "stamp_id": "stamp:e08",
+      "title": "양재천 인근에서의 거리 변화",
+      "text": "양재천 인근에서 머무르며 양재천과의 거리가 가까워졌다가 다시 멀어지는 변화가 있었다.",
+      "source_stamp_sha256": "692660fa36b4d80212ed17c4917c2a1caecf5bb0f1aa86b65e798f8461a204cf",
+      "anchor": {
+        "event_id": "e08",
+        "support_s": [
+          1680.0,
+          1980.0
+        ],
+        "time_kind": "interval"
+      },
+      "chain": 0
+    },
+    {
+      "stamp_id": "stamp:e09",
+      "title": "상가 적은 구간으로 재진입",
+      "text": "양재천 인근에서 180초 후 등록 상가가 적은 구간으로 이동하였다.",
+      "source_stamp_sha256": "6756fe914de64de3147029dc08d4b0e52c9935772afd7506ef06683a8a88f1f9",
+      "anchor": {
+        "event_id": "e09",
+        "support_s": [
+          2040.0,
+          2160.0
+        ],
+        "time_kind": "interval"
+      },
+      "chain": 0
+    }
+  ]
+}

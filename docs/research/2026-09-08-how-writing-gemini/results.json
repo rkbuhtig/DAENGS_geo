@@ -1,0 +1,617 @@
+{
+  "schema_version": "how-writing-results-v1",
+  "rows": [
+    {
+      "case": "all_records",
+      "arm": "baseline",
+      "attempts": 1,
+      "status": "accepted",
+      "structural_status": "accepted",
+      "semantic_status": "not_evaluated",
+      "usage": {
+        "promptTokenCount": 3561,
+        "candidatesTokenCount": 200,
+        "totalTokenCount": 3761,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 3561
+          }
+        ],
+        "serviceTier": "standard"
+      },
+      "unknown_usage": false,
+      "input_json_bytes": 8261,
+      "model": "gemini-3.1-flash-lite",
+      "latency_s": 4.689,
+      "finish_reason": "STOP",
+      "result": {
+        "revision": "70746644c999e940da7ab6099f6d35b1e7a238cad76c56dbfce9c96a3933fb81",
+        "title": "산책 중 사진 촬영과 기록",
+        "semantic_status": "not_evaluated",
+        "cards": [
+          {
+            "stamp_ref": {
+              "id": "stamp:walk_photo:synthetic-record-1",
+              "version": "ac268f52fe4e221e6fa3c17e1b6fda864bb8300e475280c1f91592cd06934f20"
+            },
+            "title": "산책 중 사진 촬영",
+            "text": "산책 경로를 따라 이동하며 사진을 촬영했습니다.",
+            "anchor": {
+              "record_ref": {
+                "store": "walk_photo",
+                "id": "synthetic-record-1",
+                "version": "1",
+                "version_kind": "revision"
+              },
+              "session_id": "stamp-comparison",
+              "event_at": "2026-09-08T06:01:30+00:00",
+              "time_basis": "photo_capture",
+              "location": {
+                "point": {
+                  "lat": 37.000818017738126,
+                  "lng": 130.00000042825502
+                },
+                "captured_at": "2026-09-08T06:01:30Z",
+                "accuracy_m": 5.0,
+                "basis": "device_fix",
+                "observation_ref": "walk-fix:stamp-comparison:18"
+              }
+            }
+          },
+          {
+            "stamp_ref": {
+              "id": "stamp:walk_entry:synthetic-record-2",
+              "version": "928fa9c37f0962c65cfc52c3648f95ba321bbe97852fdaca691f9a807b41a5ed"
+            },
+            "title": "주변 관찰 기록",
+            "text": "사진 촬영 후 이동 중에 잠시 멈춰 주변을 둘러보았습니다.",
+            "anchor": {
+              "record_ref": {
+                "store": "walk_entry",
+                "id": "synthetic-record-2",
+                "version": "1",
+                "version_kind": "revision"
+              },
+              "session_id": "stamp-comparison",
+              "event_at": "2026-09-08T06:03:30+00:00",
+              "time_basis": "recorded_at",
+              "location": {
+                "point": {
+                  "lat": 37.0008106745151,
+                  "lng": 130.0010226799757
+                },
+                "captured_at": "2026-09-08T06:03:30Z",
+                "accuracy_m": 5.0,
+                "basis": "device_fix",
+                "observation_ref": "walk-fix:stamp-comparison:42"
+              }
+            }
+          },
+          {
+            "stamp_ref": {
+              "id": "stamp:walk_entry:synthetic-record-3",
+              "version": "f10a42dab6b45cc903e6b92a32bc5fc2fbf9ce761024dc3aa5519a81159118b7"
+            },
+            "title": "사진 확인 기록",
+            "text": "산책 경로를 따라 이동하다가 촬영한 사진을 확인했습니다.",
+            "anchor": {
+              "record_ref": {
+                "store": "walk_entry",
+                "id": "synthetic-record-3",
+                "version": "1",
+                "version_kind": "revision"
+              },
+              "session_id": "stamp-comparison",
+              "event_at": "2026-09-08T06:05:35+00:00",
+              "time_basis": "recorded_at",
+              "location": {
+                "point": {
+                  "lat": 37.00080088811047,
+                  "lng": 130.00198055935206
+                },
+                "captured_at": "2026-09-08T06:05:35Z",
+                "accuracy_m": 5.0,
+                "basis": "device_fix",
+                "observation_ref": "walk-fix:stamp-comparison:67"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case": "all_records",
+      "arm": "compact",
+      "attempts": 1,
+      "status": "accepted",
+      "structural_status": "accepted",
+      "semantic_status": "not_evaluated",
+      "usage": {
+        "promptTokenCount": 1385,
+        "candidatesTokenCount": 245,
+        "totalTokenCount": 1630,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 1385
+          }
+        ],
+        "serviceTier": "standard"
+      },
+      "unknown_usage": false,
+      "input_json_bytes": 4273,
+      "model": "gemini-3.1-flash-lite",
+      "latency_s": 2.863,
+      "finish_reason": "STOP",
+      "result": {
+        "revision": "71a43f3ca50143e23988ce30ca30fb84c922889a6bde6bb7c9831c84c7665f00",
+        "title": "산책 중 기록된 사진과 메모의 여정",
+        "semantic_status": "not_evaluated",
+        "cards": [
+          {
+            "stamp_ref": {
+              "id": "stamp:walk_photo:synthetic-record-1",
+              "version": "ac268f52fe4e221e6fa3c17e1b6fda864bb8300e475280c1f91592cd06934f20"
+            },
+            "title": "경로 전환점에서 촬영한 사진",
+            "text": "경로의 전환점 부근에서 사진을 촬영하며 기록을 시작했습니다.",
+            "anchor": {
+              "record_ref": {
+                "store": "walk_photo",
+                "id": "synthetic-record-1",
+                "version": "1",
+                "version_kind": "revision"
+              },
+              "session_id": "stamp-comparison",
+              "event_at": "2026-09-08T06:01:30+00:00",
+              "time_basis": "photo_capture",
+              "location": {
+                "point": {
+                  "lat": 37.000818017738126,
+                  "lng": 130.00000042825502
+                },
+                "captured_at": "2026-09-08T06:01:30Z",
+                "accuracy_m": 5.0,
+                "basis": "device_fix",
+                "observation_ref": "walk-fix:stamp-comparison:18"
+              }
+            }
+          },
+          {
+            "stamp_ref": {
+              "id": "stamp:walk_entry:synthetic-record-2",
+              "version": "928fa9c37f0962c65cfc52c3648f95ba321bbe97852fdaca691f9a807b41a5ed"
+            },
+            "title": "잠시 멈춰 주변을 둘러본 기록",
+            "text": "사진 촬영 후 120초가 지난 시점에 잠시 멈춰 서서 주변을 살펴보았습니다.",
+            "anchor": {
+              "record_ref": {
+                "store": "walk_entry",
+                "id": "synthetic-record-2",
+                "version": "1",
+                "version_kind": "revision"
+              },
+              "session_id": "stamp-comparison",
+              "event_at": "2026-09-08T06:03:30+00:00",
+              "time_basis": "recorded_at",
+              "location": {
+                "point": {
+                  "lat": 37.0008106745151,
+                  "lng": 130.0010226799757
+                },
+                "captured_at": "2026-09-08T06:03:30Z",
+                "accuracy_m": 5.0,
+                "basis": "device_fix",
+                "observation_ref": "walk-fix:stamp-comparison:42"
+              }
+            }
+          },
+          {
+            "stamp_ref": {
+              "id": "stamp:walk_entry:synthetic-record-3",
+              "version": "f10a42dab6b45cc903e6b92a32bc5fc2fbf9ce761024dc3aa5519a81159118b7"
+            },
+            "title": "이동 경로에서 사진을 확인한 기록",
+            "text": "사진 촬영으로부터 245초 후, 경로를 되돌아가는 지점 근처에서 앞서 찍은 사진을 확인했습니다.",
+            "anchor": {
+              "record_ref": {
+                "store": "walk_entry",
+                "id": "synthetic-record-3",
+                "version": "1",
+                "version_kind": "revision"
+              },
+              "session_id": "stamp-comparison",
+              "event_at": "2026-09-08T06:05:35+00:00",
+              "time_basis": "recorded_at",
+              "location": {
+                "point": {
+                  "lat": 37.00080088811047,
+                  "lng": 130.00198055935206
+                },
+                "captured_at": "2026-09-08T06:05:35Z",
+                "accuracy_m": 5.0,
+                "basis": "device_fix",
+                "observation_ref": "walk-fix:stamp-comparison:67"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case": "no_record",
+      "arm": "compact",
+      "attempts": 1,
+      "status": "accepted",
+      "structural_status": "accepted",
+      "semantic_status": "not_evaluated",
+      "usage": {
+        "promptTokenCount": 1136,
+        "candidatesTokenCount": 270,
+        "totalTokenCount": 1406,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 1136
+          }
+        ],
+        "serviceTier": "standard"
+      },
+      "unknown_usage": false,
+      "input_json_bytes": 3365,
+      "model": "gemini-3.1-flash-lite",
+      "latency_s": 1.868,
+      "finish_reason": "STOP",
+      "result": {
+        "revision": "b03385db79dfc8a9b713393af9d26148135cf367dd54bd942d85e3edece23446",
+        "title": "이동 경로의 전환과 체류 및 회귀 기록",
+        "semantic_status": "not_evaluated",
+        "cards": [
+          {
+            "stamp_ref": {
+              "id": "stamp:how:12081edea0846f8b",
+              "version": "6d93b9b717ee85f052935feb44f0333af31533d66a8d480171d3b62f2a937395"
+            },
+            "title": "경로의 우회전과 직선 주행",
+            "text": "우회전 기동을 중심으로 전후의 직선 주행 구간이 연결되어 이동 경로가 형성되었습니다.",
+            "anchor": {
+              "session_id": "stamp-comparison",
+              "event_at": "2026-09-08T06:01:30+00:00",
+              "time_basis": "geometry_representative_observation",
+              "location": {
+                "point": {
+                  "lat": 37.000818017738126,
+                  "lng": 130.00000042825502
+                },
+                "observation_ref": "walk-fix:stamp-comparison:18"
+              }
+            }
+          },
+          {
+            "stamp_ref": {
+              "id": "stamp:how:7a66b966562f7523",
+              "version": "e1f64d2b9b68789013f024d28bf69f14bfb28a63a522f135f1ca1deb55213249"
+            },
+            "title": "특정 지점에서의 체류",
+            "text": "직선 주행 경로상에서 80초 동안 관찰된 체류 지점이 기록되었습니다.",
+            "anchor": {
+              "session_id": "stamp-comparison",
+              "event_at": "2026-09-08T06:02:55+00:00",
+              "time_basis": "geometry_representative_observation",
+              "location": {
+                "point": {
+                  "lat": 37.00081494523947,
+                  "lng": 130.00094909402483
+                },
+                "observation_ref": "walk-fix:stamp-comparison:35"
+              }
+            }
+          },
+          {
+            "stamp_ref": {
+              "id": "stamp:how:beaed9b87b263c05",
+              "version": "9f7eb402bb0667eba9a2353b60da5f74fc9382a9f7a38de9859c22ba3683d987"
+            },
+            "title": "경로 회귀와 방향 전환",
+            "text": "이전 경로를 따라 79.58미터만큼 회귀하며 방향을 반대로 전환하고 새로운 직선 주행을 시작했습니다.",
+            "anchor": {
+              "session_id": "stamp-comparison",
+              "event_at": "2026-09-08T06:05:30+00:00",
+              "time_basis": "geometry_representative_observation",
+              "location": {
+                "point": {
+                  "lat": 37.00080039623306,
+                  "lng": 130.00201649062487
+                },
+                "observation_ref": "walk-fix:stamp-comparison:66"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case": "no_record",
+      "arm": "baseline",
+      "attempts": 1,
+      "status": "accepted",
+      "structural_status": "accepted",
+      "semantic_status": "not_evaluated",
+      "usage": {
+        "promptTokenCount": 3312,
+        "candidatesTokenCount": 244,
+        "totalTokenCount": 3556,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 3312
+          }
+        ],
+        "serviceTier": "standard"
+      },
+      "unknown_usage": false,
+      "input_json_bytes": 7353,
+      "model": "gemini-3.1-flash-lite",
+      "latency_s": 2.18,
+      "finish_reason": "STOP",
+      "result": {
+        "revision": "af4cdbc065e75785870454af4698d028b3afdae6cc404f88db3df2fd878748b4",
+        "title": "이동 경로와 체류 및 회귀 기록",
+        "semantic_status": "not_evaluated",
+        "cards": [
+          {
+            "stamp_ref": {
+              "id": "stamp:how:12081edea0846f8b",
+              "version": "6d93b9b717ee85f052935feb44f0333af31533d66a8d480171d3b62f2a937395"
+            },
+            "title": "방향 전환을 포함한 이동",
+            "text": "직선으로 이동하다가 방향을 전환하여 새로운 경로로 진입하였습니다.",
+            "anchor": {
+              "session_id": "stamp-comparison",
+              "event_at": "2026-09-08T06:01:30+00:00",
+              "time_basis": "geometry_representative_observation",
+              "location": {
+                "point": {
+                  "lat": 37.000818017738126,
+                  "lng": 130.00000042825502
+                },
+                "observation_ref": "walk-fix:stamp-comparison:18"
+              }
+            }
+          },
+          {
+            "stamp_ref": {
+              "id": "stamp:how:7a66b966562f7523",
+              "version": "e1f64d2b9b68789013f024d28bf69f14bfb28a63a522f135f1ca1deb55213249"
+            },
+            "title": "특정 구간에서의 체류",
+            "text": "이동 경로상의 특정 지점에서 일정 시간 동안 머무르며 체류하였습니다.",
+            "anchor": {
+              "session_id": "stamp-comparison",
+              "event_at": "2026-09-08T06:02:55+00:00",
+              "time_basis": "geometry_representative_observation",
+              "location": {
+                "point": {
+                  "lat": 37.00081494523947,
+                  "lng": 130.00094909402483
+                },
+                "observation_ref": "walk-fix:stamp-comparison:35"
+              }
+            }
+          },
+          {
+            "stamp_ref": {
+              "id": "stamp:how:beaed9b87b263c05",
+              "version": "9f7eb402bb0667eba9a2353b60da5f74fc9382a9f7a38de9859c22ba3683d987"
+            },
+            "title": "이전 경로로의 회귀",
+            "text": "이동을 마친 후 방향을 완전히 돌려 이전 경로를 따라 되돌아갔습니다.",
+            "anchor": {
+              "session_id": "stamp-comparison",
+              "event_at": "2026-09-08T06:05:30+00:00",
+              "time_basis": "geometry_representative_observation",
+              "location": {
+                "point": {
+                  "lat": 37.00080039623306,
+                  "lng": 130.00201649062487
+                },
+                "observation_ref": "walk-fix:stamp-comparison:66"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case": "gap",
+      "arm": "baseline",
+      "attempts": 1,
+      "status": "accepted",
+      "structural_status": "accepted",
+      "semantic_status": "not_evaluated",
+      "usage": {
+        "promptTokenCount": 1011,
+        "candidatesTokenCount": 189,
+        "totalTokenCount": 1200,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 1011
+          }
+        ],
+        "serviceTier": "standard"
+      },
+      "unknown_usage": false,
+      "input_json_bytes": 2317,
+      "model": "gemini-3.1-flash-lite",
+      "latency_s": 3.392,
+      "finish_reason": "STOP",
+      "result": {
+        "revision": "cae31a3d4da449ed4851910207af6d8ad038f7f10075cc986e62c13dd2b197ef",
+        "title": "2026년 9월 8일의 산책 기록",
+        "semantic_status": "not_evaluated",
+        "cards": [
+          {
+            "stamp_ref": {
+              "id": "stamp:walk_photo:synthetic-record-1",
+              "version": "a27edb27413ac0b69fcc1d1937cb98a3958e6536ce9bdb6f11bf1897777303f1"
+            },
+            "title": "산책 중 촬영한 사진",
+            "text": "2026년 9월 8일 06시 01분 30초에 촬영된 사진 기록입니다.",
+            "anchor": {
+              "record_ref": {
+                "store": "walk_photo",
+                "id": "synthetic-record-1",
+                "version": "1",
+                "version_kind": "revision"
+              },
+              "session_id": "gap",
+              "event_at": "2026-09-08T06:01:30+00:00",
+              "time_basis": "photo_capture",
+              "location": {
+                "point": {
+                  "lat": 37.00080938944533,
+                  "lng": 130.0
+                },
+                "captured_at": "2026-09-08T06:01:30Z",
+                "accuracy_m": 5.0,
+                "basis": "device_fix",
+                "observation_ref": "walk-fix:gap:18"
+              }
+            }
+          },
+          {
+            "stamp_ref": {
+              "id": "stamp:walk_entry:synthetic-record-2",
+              "version": "499c527bb2dbcd467060d8c302723128aa759d055a398e34c9a93d21939495b8"
+            },
+            "title": "기록 재개 메모",
+            "text": "2026년 9월 8일 06시 03분 30초에 기록이 다시 잡혔다는 메모를 남겼습니다.",
+            "anchor": {
+              "record_ref": {
+                "store": "walk_entry",
+                "id": "synthetic-record-2",
+                "version": "1",
+                "version_kind": "revision"
+              },
+              "session_id": "gap",
+              "event_at": "2026-09-08T06:03:30+00:00",
+              "time_basis": "recorded_at",
+              "location": {
+                "point": {
+                  "lat": 37.00080938944533,
+                  "lng": 130.0
+                },
+                "captured_at": "2026-09-08T06:03:30Z",
+                "accuracy_m": 5.0,
+                "basis": "device_fix",
+                "observation_ref": "walk-fix:gap:42"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case": "gap",
+      "arm": "compact",
+      "attempts": 1,
+      "status": "accepted",
+      "structural_status": "accepted",
+      "semantic_status": "not_evaluated",
+      "usage": {
+        "promptTokenCount": 508,
+        "candidatesTokenCount": 172,
+        "totalTokenCount": 680,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 508
+          }
+        ],
+        "serviceTier": "standard"
+      },
+      "unknown_usage": false,
+      "input_json_bytes": 1427,
+      "model": "gemini-3.1-flash-lite",
+      "latency_s": 2.723,
+      "finish_reason": "STOP",
+      "result": {
+        "revision": "f55b0508b94f2abb980566f9e8bb4da2476c2245cdec4175c810c5fdba792233",
+        "title": "산책 중 기록된 사진과 메모",
+        "semantic_status": "not_evaluated",
+        "cards": [
+          {
+            "stamp_ref": {
+              "id": "stamp:walk_photo:synthetic-record-1",
+              "version": "a27edb27413ac0b69fcc1d1937cb98a3958e6536ce9bdb6f11bf1897777303f1"
+            },
+            "title": "산책 중 촬영한 사진",
+            "text": "2026년 9월 8일 06시 01분에 촬영된 사진 기록입니다.",
+            "anchor": {
+              "record_ref": {
+                "store": "walk_photo",
+                "id": "synthetic-record-1",
+                "version": "1",
+                "version_kind": "revision"
+              },
+              "session_id": "gap",
+              "event_at": "2026-09-08T06:01:30+00:00",
+              "time_basis": "photo_capture",
+              "location": {
+                "point": {
+                  "lat": 37.00080938944533,
+                  "lng": 130.0
+                },
+                "captured_at": "2026-09-08T06:01:30Z",
+                "accuracy_m": 5.0,
+                "basis": "device_fix",
+                "observation_ref": "walk-fix:gap:18"
+              }
+            }
+          },
+          {
+            "stamp_ref": {
+              "id": "stamp:walk_entry:synthetic-record-2",
+              "version": "499c527bb2dbcd467060d8c302723128aa759d055a398e34c9a93d21939495b8"
+            },
+            "title": "산책 기록 재개",
+            "text": "2026년 9월 8일 06시 03분에 기록이 다시 잡혔다는 메모를 남겼습니다.",
+            "anchor": {
+              "record_ref": {
+                "store": "walk_entry",
+                "id": "synthetic-record-2",
+                "version": "1",
+                "version_kind": "revision"
+              },
+              "session_id": "gap",
+              "event_at": "2026-09-08T06:03:30+00:00",
+              "time_basis": "recorded_at",
+              "location": {
+                "point": {
+                  "lat": 37.00080938944533,
+                  "lng": 130.0
+                },
+                "captured_at": "2026-09-08T06:03:30Z",
+                "accuracy_m": 5.0,
+                "basis": "device_fix",
+                "observation_ref": "walk-fix:gap:42"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "attempts": 6,
+  "accepted": 6,
+  "unknown_usage_attempts": 0,
+  "known_usage_totals": {
+    "promptTokenCount": 10913,
+    "candidatesTokenCount": 1320,
+    "thoughtsTokenCount": 0,
+    "totalTokenCount": 12233
+  },
+  "semantic_status": "not_evaluated"
+}

@@ -1,0 +1,571 @@
+{
+  "id": "movement",
+  "variant": "complete",
+  "model": "gemini-3.1-flash-lite",
+  "model_version": "gemini-3.1-flash-lite",
+  "input": {
+    "format": "scene-purpose-v3",
+    "synthetic_walk": true,
+    "actors": [
+      {
+        "id": "who:guardian",
+        "kind": "who",
+        "text": "보호자",
+        "source": "가상 산책 참가자 설정",
+        "subject_ids": [
+          "who:guardian"
+        ]
+      },
+      {
+        "id": "who:dog",
+        "kind": "who",
+        "text": "반려견 두부",
+        "source": "가상 산책 참가자 설정",
+        "subject_ids": [
+          "who:dog"
+        ]
+      }
+    ],
+    "session": {
+      "start_s": 0,
+      "end_s": 2328.561869,
+      "status": "completed_record",
+      "note": "시작과 종료는 세션 틀이며 별도 카드로 채우지 않음"
+    },
+    "gaps": [],
+    "limits": {
+      "max_scene_seconds": null,
+      "merging": false,
+      "scene_count_min": 0,
+      "scene_count_max": 7
+    },
+    "events": [
+      {
+        "id": "e00",
+        "role": "connection",
+        "card_eligible": false,
+        "start_s": 0.0,
+        "end_s": 0.0,
+        "chain": 0,
+        "why_keep": "뚜렷한 사용자 행동이나 채택 기준에 맞는 공간 변화가 없어 지도 동선으로 연결"
+      },
+      {
+        "id": "e01",
+        "role": "connection",
+        "card_eligible": false,
+        "start_s": 60.0,
+        "end_s": 180.0,
+        "chain": 0,
+        "why_keep": "뚜렷한 사용자 행동이나 채택 기준에 맞는 공간 변화가 없어 지도 동선으로 연결"
+      },
+      {
+        "id": "e02",
+        "role": "connection",
+        "card_eligible": false,
+        "start_s": 240.0,
+        "end_s": 420.0,
+        "chain": 0,
+        "why_keep": "뚜렷한 사용자 행동이나 채택 기준에 맞는 공간 변화가 없어 지도 동선으로 연결"
+      },
+      {
+        "id": "e03",
+        "role": "transition",
+        "card_eligible": true,
+        "required": false,
+        "start_s": 480.0,
+        "end_s": 720.0,
+        "chain": 0,
+        "why_keep": "공간 배경 또는 장소와의 관계가 달라짐: 등록 상가가 산재한 구간에서 등록 상가가 모인 구간으로 주변 특징이 바뀜",
+        "primary_evidence_id": "e03:where2",
+        "who_ids": [
+          "who:guardian",
+          "who:dog"
+        ],
+        "what_ids": [
+          "e03:what0"
+        ],
+        "where_ids": [
+          "e03:where2",
+          "e03:where0"
+        ],
+        "evidence": [
+          {
+            "id": "e03:what0",
+            "kind": "what",
+            "text": "보호자와 두부의 이동 기록",
+            "subject_ids": [
+              "who:guardian",
+              "who:dog"
+            ]
+          },
+          {
+            "id": "e03:where0",
+            "kind": "where",
+            "text": "등록 상가가 모인 구간"
+          },
+          {
+            "id": "e03:where2",
+            "kind": "where",
+            "text": "등록 상가가 산재한 구간에서 등록 상가가 모인 구간으로 주변 특징이 바뀜"
+          }
+        ]
+      },
+      {
+        "id": "e04",
+        "role": "transition",
+        "card_eligible": true,
+        "required": false,
+        "start_s": 780.0,
+        "end_s": 960.0,
+        "chain": 0,
+        "why_keep": "공간 배경 또는 장소와의 관계가 달라짐: 등록 상가가 모인 구간에서 늘벗근린공원 가까운 구간으로 주변 특징이 바뀜",
+        "primary_evidence_id": "e04:where3",
+        "who_ids": [
+          "who:guardian",
+          "who:dog"
+        ],
+        "what_ids": [
+          "e04:what0"
+        ],
+        "where_ids": [
+          "e04:where3",
+          "e04:where0"
+        ],
+        "evidence": [
+          {
+            "id": "e04:what0",
+            "kind": "what",
+            "text": "보호자와 두부의 이동 기록",
+            "subject_ids": [
+              "who:guardian",
+              "who:dog"
+            ]
+          },
+          {
+            "id": "e04:where0",
+            "kind": "where",
+            "text": "늘벗근린공원 가까운 구간"
+          },
+          {
+            "id": "e04:where3",
+            "kind": "where",
+            "text": "등록 상가가 모인 구간에서 늘벗근린공원 가까운 구간으로 주변 특징이 바뀜"
+          }
+        ]
+      },
+      {
+        "id": "e05",
+        "role": "transition",
+        "card_eligible": true,
+        "required": false,
+        "start_s": 1020.0,
+        "end_s": 1200.0,
+        "chain": 0,
+        "why_keep": "공간 배경 또는 장소와의 관계가 달라짐: 늘벗근린공원 가까운 구간에서 양재천 가까운 구간으로 주변 특징이 바뀜",
+        "primary_evidence_id": "e05:where3",
+        "who_ids": [
+          "who:guardian",
+          "who:dog"
+        ],
+        "what_ids": [
+          "e05:what0"
+        ],
+        "where_ids": [
+          "e05:where3",
+          "e05:where0"
+        ],
+        "evidence": [
+          {
+            "id": "e05:what0",
+            "kind": "what",
+            "text": "보호자와 두부의 이동 기록",
+            "subject_ids": [
+              "who:guardian",
+              "who:dog"
+            ]
+          },
+          {
+            "id": "e05:where0",
+            "kind": "where",
+            "text": "양재천 가까운 구간"
+          },
+          {
+            "id": "e05:where3",
+            "kind": "where",
+            "text": "늘벗근린공원 가까운 구간에서 양재천 가까운 구간으로 주변 특징이 바뀜"
+          }
+        ]
+      },
+      {
+        "id": "e06",
+        "role": "transition",
+        "card_eligible": true,
+        "required": false,
+        "start_s": 1260.0,
+        "end_s": 1440.0,
+        "chain": 0,
+        "why_keep": "공간 배경 또는 장소와의 관계가 달라짐: 양재천 가까운 구간에서 등록 상가가 모인 구간으로 주변 특징이 바뀜",
+        "primary_evidence_id": "e06:where3",
+        "who_ids": [
+          "who:guardian",
+          "who:dog"
+        ],
+        "what_ids": [
+          "e06:what0"
+        ],
+        "where_ids": [
+          "e06:where3",
+          "e06:where0"
+        ],
+        "evidence": [
+          {
+            "id": "e06:what0",
+            "kind": "what",
+            "text": "보호자와 두부의 이동 기록",
+            "subject_ids": [
+              "who:guardian",
+              "who:dog"
+            ]
+          },
+          {
+            "id": "e06:where0",
+            "kind": "where",
+            "text": "등록 상가가 모인 구간"
+          },
+          {
+            "id": "e06:where3",
+            "kind": "where",
+            "text": "양재천 가까운 구간에서 등록 상가가 모인 구간으로 주변 특징이 바뀜"
+          }
+        ]
+      },
+      {
+        "id": "e07",
+        "role": "transition",
+        "card_eligible": true,
+        "required": false,
+        "start_s": 1500.0,
+        "end_s": 1620.0,
+        "chain": 0,
+        "why_keep": "공간 배경 또는 장소와의 관계가 달라짐: 등록 상가가 모인 구간에서 등록 상가가 적은 구간으로 주변 특징이 바뀜",
+        "primary_evidence_id": "e07:where2",
+        "who_ids": [
+          "who:guardian",
+          "who:dog"
+        ],
+        "what_ids": [
+          "e07:what0"
+        ],
+        "where_ids": [
+          "e07:where2",
+          "e07:where0"
+        ],
+        "evidence": [
+          {
+            "id": "e07:what0",
+            "kind": "what",
+            "text": "보호자와 두부의 이동 기록",
+            "subject_ids": [
+              "who:guardian",
+              "who:dog"
+            ]
+          },
+          {
+            "id": "e07:where0",
+            "kind": "where",
+            "text": "등록 상가가 적은 구간"
+          },
+          {
+            "id": "e07:where2",
+            "kind": "where",
+            "text": "등록 상가가 모인 구간에서 등록 상가가 적은 구간으로 주변 특징이 바뀜"
+          }
+        ]
+      },
+      {
+        "id": "e08",
+        "role": "transition",
+        "card_eligible": true,
+        "required": false,
+        "start_s": 1680.0,
+        "end_s": 1980.0,
+        "chain": 0,
+        "why_keep": "공간 배경 또는 장소와의 관계가 달라짐: 양재천까지 거리가 줄었다가 다시 늘어남",
+        "primary_evidence_id": "e08:where3",
+        "who_ids": [
+          "who:guardian",
+          "who:dog"
+        ],
+        "what_ids": [
+          "e08:what0"
+        ],
+        "where_ids": [
+          "e08:where3",
+          "e08:where0"
+        ],
+        "evidence": [
+          {
+            "id": "e08:what0",
+            "kind": "what",
+            "text": "보호자와 두부의 이동 기록",
+            "subject_ids": [
+              "who:guardian",
+              "who:dog"
+            ]
+          },
+          {
+            "id": "e08:where0",
+            "kind": "where",
+            "text": "양재천 가까운 구간"
+          },
+          {
+            "id": "e08:where3",
+            "kind": "where",
+            "text": "양재천까지 거리가 줄었다가 다시 늘어남"
+          }
+        ]
+      },
+      {
+        "id": "e09",
+        "role": "transition",
+        "card_eligible": true,
+        "required": false,
+        "start_s": 2040.0,
+        "end_s": 2160.0,
+        "chain": 0,
+        "why_keep": "공간 배경 또는 장소와의 관계가 달라짐: 양재천 가까운 구간에서 등록 상가가 적은 구간으로 주변 특징이 바뀜",
+        "primary_evidence_id": "e09:where3",
+        "who_ids": [
+          "who:guardian",
+          "who:dog"
+        ],
+        "what_ids": [
+          "e09:what0"
+        ],
+        "where_ids": [
+          "e09:where3",
+          "e09:where0"
+        ],
+        "evidence": [
+          {
+            "id": "e09:what0",
+            "kind": "what",
+            "text": "보호자와 두부의 이동 기록",
+            "subject_ids": [
+              "who:guardian",
+              "who:dog"
+            ]
+          },
+          {
+            "id": "e09:where0",
+            "kind": "where",
+            "text": "등록 상가가 적은 구간"
+          },
+          {
+            "id": "e09:where3",
+            "kind": "where",
+            "text": "양재천 가까운 구간에서 등록 상가가 적은 구간으로 주변 특징이 바뀜"
+          }
+        ]
+      },
+      {
+        "id": "e10",
+        "role": "connection",
+        "card_eligible": false,
+        "start_s": 2220.0,
+        "end_s": 2328.561869,
+        "chain": 0,
+        "why_keep": "뚜렷한 사용자 행동이나 채택 기준에 맞는 공간 변화가 없어 지도 동선으로 연결"
+      }
+    ]
+  },
+  "input_sha256": "f2ca42c655fb09a61beb45eb61075baba1291681d19c626264b70f39320f6cd0",
+  "prompt_sha256": "78215381614ffd9c091eae7cf0a163ccd33a21ca8b663f25fd9f8590ccf0f1ae",
+  "output": {
+    "title": "두부와 함께한 산책 경로",
+    "summary": "보호자와 반려견 두부가 상가 밀집 지역과 공원, 하천 주변을 이동하며 산책한 기록입니다.",
+    "limitations": [
+      "산책 중 구체적인 행동이나 상호작용은 기록되지 않았으며 이동 경로에 따른 주변 환경 변화 위주로 구성함."
+    ],
+    "scenes": [
+      {
+        "event_id": "e03",
+        "title": "상가 밀집 지역으로의 이동",
+        "body": "보호자와 두부가 상가가 산재한 곳에서 상가가 모여 있는 구간으로 이동했습니다.",
+        "reason": "주변 환경이 상가 밀집 지역으로 변화하는 지점을 포착함.",
+        "who_ids": [
+          "who:guardian",
+          "who:dog"
+        ],
+        "what_ids": [
+          "e03:what0"
+        ],
+        "where_ids": [
+          "e03:where2",
+          "e03:where0"
+        ]
+      },
+      {
+        "event_id": "e04",
+        "title": "늘벗근린공원 인근 이동",
+        "body": "상가 밀집 구간을 지나 늘벗근린공원과 가까운 곳으로 이동했습니다.",
+        "reason": "공원 인근으로 주변 환경이 변화하는 지점을 포착함.",
+        "who_ids": [
+          "who:guardian",
+          "who:dog"
+        ],
+        "what_ids": [
+          "e04:what0"
+        ],
+        "where_ids": [
+          "e04:where3",
+          "e04:where0"
+        ]
+      },
+      {
+        "event_id": "e05",
+        "title": "양재천 인근으로의 이동",
+        "body": "늘벗근린공원 근처에서 양재천과 가까운 구간으로 이동했습니다.",
+        "reason": "하천 인근으로 주변 환경이 변화하는 지점을 포착함.",
+        "who_ids": [
+          "who:guardian",
+          "who:dog"
+        ],
+        "what_ids": [
+          "e05:what0"
+        ],
+        "where_ids": [
+          "e05:where3",
+          "e05:where0"
+        ]
+      },
+      {
+        "event_id": "e06",
+        "title": "다시 상가 밀집 지역으로",
+        "body": "양재천 인근에서 다시 상가가 모여 있는 구간으로 이동했습니다.",
+        "reason": "상가 밀집 지역으로 주변 환경이 다시 변화하는 지점을 포착함.",
+        "who_ids": [
+          "who:guardian",
+          "who:dog"
+        ],
+        "what_ids": [
+          "e06:what0"
+        ],
+        "where_ids": [
+          "e06:where3",
+          "e06:where0"
+        ]
+      },
+      {
+        "event_id": "e07",
+        "title": "상가 적은 구간으로 이동",
+        "body": "상가 밀집 지역에서 상가가 적은 구간으로 이동했습니다.",
+        "reason": "주변 환경이 상가가 적은 지역으로 변화하는 지점을 포착함.",
+        "who_ids": [
+          "who:guardian",
+          "who:dog"
+        ],
+        "what_ids": [
+          "e07:what0"
+        ],
+        "where_ids": [
+          "e07:where2",
+          "e07:where0"
+        ]
+      },
+      {
+        "event_id": "e08",
+        "title": "양재천 주변 이동",
+        "body": "양재천과 가까운 구간을 따라 이동하며 하천과의 거리가 변화했습니다.",
+        "reason": "하천과의 거리 변화가 나타나는 구간을 포착함.",
+        "who_ids": [
+          "who:guardian",
+          "who:dog"
+        ],
+        "what_ids": [
+          "e08:what0"
+        ],
+        "where_ids": [
+          "e08:where3",
+          "e08:where0"
+        ]
+      },
+      {
+        "event_id": "e09",
+        "title": "상가 적은 구간으로의 복귀",
+        "body": "양재천 인근에서 다시 상가가 적은 구간으로 이동했습니다.",
+        "reason": "주변 환경이 다시 상가가 적은 지역으로 변화하는 지점을 포착함.",
+        "who_ids": [
+          "who:guardian",
+          "who:dog"
+        ],
+        "what_ids": [
+          "e09:what0"
+        ],
+        "where_ids": [
+          "e09:where3",
+          "e09:where0"
+        ]
+      }
+    ],
+    "skipped": [
+      {
+        "event_id": "e00",
+        "reason": "연결 구간으로 장면 카드 대상이 아님"
+      },
+      {
+        "event_id": "e01",
+        "reason": "연결 구간으로 장면 카드 대상이 아님"
+      },
+      {
+        "event_id": "e02",
+        "reason": "연결 구간으로 장면 카드 대상이 아님"
+      },
+      {
+        "event_id": "e10",
+        "reason": "연결 구간으로 장면 카드 대상이 아님"
+      }
+    ]
+  },
+  "seconds": 7.359,
+  "usage": {
+    "promptTokenCount": 3283,
+    "candidatesTokenCount": 1354,
+    "totalTokenCount": 4637,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 3283
+      }
+    ],
+    "serviceTier": "standard"
+  },
+  "validation": {
+    "structural_pass": true,
+    "errors": [],
+    "semantic_status": "requires_editorial_review"
+  },
+  "output_sha256": "9d666f248f29fb0a3ec49d0e9a0a7e2e8fd2112f6f5c9240d0a2fd3af96b8e24",
+  "editorial_review": {
+    "output_sha256": "9d666f248f29fb0a3ec49d0e9a0a7e2e8fd2112f6f5c9240d0a2fd3af96b8e24",
+    "summary": "행정동 이동 대신 공간 배경의 전환을 서술했다. 연결 구간 4개는 빠졌지만 전환 후보 7개를 전부 채택해 비슷한 ‘이동했다’ 문장이 반복된다.",
+    "issues": [
+      {
+        "scene": 0,
+        "quote": "전환 후보 7개 전부 선택",
+        "note": "역할 구분은 따랐으나 중요도와 반복을 줄이는 선택은 거의 하지 않았다. 전환이라고 모두 카드 가치가 같은 것은 아니다."
+      },
+      {
+        "scene": 6,
+        "quote": "하천과의 거리가 변화했습니다",
+        "note": "인용 근거에는 거리가 줄었다가 다시 늘어난 순서가 있다. 문장은 방향과 순서를 지워 여전히 정보가 약하다."
+      },
+      {
+        "scene": 7,
+        "quote": "상가 적은 구간으로의 복귀",
+        "note": "같은 유형의 배경을 다시 만난 것이며, 같은 장소로 돌아왔다는 근거는 없다. ‘복귀’는 과한 표현이다."
+      }
+    ]
+  },
+  "review_author": "Codex; separate from Gemini output and not a user evaluation"
+}

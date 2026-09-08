@@ -1,0 +1,31 @@
+{
+  "candidates": [
+    {
+      "content": {
+        "parts": [
+          {
+            "text": "{\n  \"understanding\": {\n    \"summary\": \"보호자와 반려견 두부가 도심 상가 밀집 지역에서 시작하여 늘벗근린공원과 양재천 주변을 순환하며 산책한 기록이다.\",\n    \"observed_flow\": [\n      {\n        \"text\": \"상가 밀집 지역에서 늘벗근린공원 방향으로 이동하며 주변 환경이 변화함\",\n        \"candidate_ids\": [\"e03\", \"e04\"]\n      },\n      {\n        \"text\": \"늘벗근린공원에서 양재천 인근으로 이동하며 자연 친화적인 구간을 지남\",\n        \"candidate_ids\": [\"e05\"]\n      },\n      {\n        \"text\": \"양재천에서 다시 상가 밀집 지역으로 돌아왔다가 상가가 적은 구간으로 이동함\",\n        \"candidate_ids\": [\"e06\", \"e07\"]\n      },\n      {\n        \"text\": \"양재천과의 거리가 변하는 구간을 지나 최종적으로 상가가 적은 지역으로 이동함\",\n        \"candidate_ids\": [\"e08\", \"e09\"]\n      }\n    ],\n    \"interpretations\": [\n      {\n        \"text\": \"도심의 상업 시설과 공원, 하천이라는 서로 다른 성격의 공간을 교차하며 산책 경로를 구성함\",\n        \"candidate_ids\": [\"e03\", \"e04\", \"e05\", \"e06\", \"e07\", \"e08\", \"e09\"]\n      }\n    ],\n    \"open_questions\": [\"산책 중 두부가 특정 장소에서 머무르거나 반응을 보인 구체적인 지점이 있는가?\"]\n  },\n  \"title_draft\": {\n    \"text\": \"상가와 자연을 잇는 도심 산책\",\n    \"candidate_ids\": [\"e03\", \"e04\", \"e05\", \"e06\", \"e07\", \"e08\", \"e09\"]\n  },\n  \"scenes\": [\n    {\n      \"primary_candidate_id\": \"e03\",\n      \"included_candidate_ids\": [\"e03\", \"e04\"],\n      \"context_candidate_ids\": [],\n      \"focus\": \"상가 밀집 지역에서 공원 인근으로의 환경 변화\",\n      \"reason\": \"상업 시설이 많은 곳에서 공원이라는 녹지 공간으로 이동하는 흐름을 묶어 공간적 대비를 보여줌\"\n    },\n    {\n      \"primary_candidate_id\": \"e05\",\n      \"included_candidate_ids\": [\"e05\", \"e06\"],\n      \"context_candidate_ids\": [\"e04\"],\n      \"focus\": \"양재천과 상가 지역의 교차\",\n      \"reason\": \"하천 인근과 상가 지역을 오가는 산책의 리듬을 강조함\"\n    },\n    {\n      \"primary_candidate_id\": \"e07\",\n      \"included_candidate_ids\": [\"e07\", \"e08\", \"e09\"],\n      \"context_candidate_ids\": [\"e06\"],\n      \"focus\": \"양재천 주변을 포함한 산책의 마무리\",\n      \"reason\": \"하천과의 거리가 변하는 구간을 포함하여 산책의 후반부 경로를 일관성 있게 정리함\"\n    }\n  ],\n  \"omissions\": []\n}",
+            "thoughtSignature": "EnEKbwERTTIPSNSSzRugz8b7X324AuTjZm2/s6bLqr3OUQaYpawJZJgCiKkuH3sxDUmwIh0satFlq7ivtrcrF6J3TGioM/SPSlg0SmruDezvXWeOKAhTtsN4j8SuR7lo7wXd94wBObhbjJ9GSLlZY9MldA=="
+          }
+        ],
+        "role": "model"
+      },
+      "finishReason": "STOP",
+      "index": 0
+    }
+  ],
+  "usageMetadata": {
+    "promptTokenCount": 10181,
+    "candidatesTokenCount": 793,
+    "totalTokenCount": 10974,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 10181
+      }
+    ],
+    "serviceTier": "standard"
+  },
+  "modelVersion": "gemini-3.1-flash-lite",
+  "responseId": "koufau-SLafO1e8P07SdmA0"
+}

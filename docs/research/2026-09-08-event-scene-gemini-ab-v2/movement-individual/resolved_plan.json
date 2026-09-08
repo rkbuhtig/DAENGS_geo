@@ -1,0 +1,272 @@
+{
+  "understanding": {
+    "summary": "보호자와 반려견 두부가 도심의 상가 밀집 지역과 늘벗근린공원, 양재천 인근을 경유하며 산책을 진행했다.",
+    "observed_flow": [
+      {
+        "text": "상가 밀집 지역에서 공원과 하천 인근으로 이동하며 주변 환경이 변화했다.",
+        "evidence_ids": [
+          "e03:what0",
+          "e03:where0",
+          "e03:where2",
+          "e04:what0",
+          "e04:where0",
+          "e04:where3",
+          "e05:what0",
+          "e05:where0",
+          "e05:where3",
+          "e06:what0",
+          "e06:where0",
+          "e06:where3",
+          "e07:what0",
+          "e07:where0",
+          "e07:where2",
+          "e08:what0",
+          "e08:where0",
+          "e08:where3",
+          "e09:what0",
+          "e09:where0",
+          "e09:where3",
+          "who:dog",
+          "who:guardian"
+        ]
+      }
+    ],
+    "interpretations": [
+      {
+        "text": "산책 경로가 상가 지역과 자연 친화적인 공간(공원, 하천)을 교차하며 구성되어 있다.",
+        "evidence_ids": [
+          "e03:what0",
+          "e03:where0",
+          "e03:where2",
+          "e04:what0",
+          "e04:where0",
+          "e04:where3",
+          "e05:what0",
+          "e05:where0",
+          "e05:where3",
+          "e06:what0",
+          "e06:where0",
+          "e06:where3",
+          "e07:what0",
+          "e07:where0",
+          "e07:where2",
+          "e08:what0",
+          "e08:where0",
+          "e08:where3",
+          "e09:what0",
+          "e09:where0",
+          "e09:where3",
+          "who:dog",
+          "who:guardian"
+        ]
+      }
+    ],
+    "open_questions": [
+      "산책 중 두부가 특정 장소에서 보인 반응이 있었는가?",
+      "상가 지역과 자연 공간 중 두부가 더 선호하는 환경은 무엇인가?"
+    ]
+  },
+  "outline": [
+    {
+      "scene_id": "scene_01",
+      "start_at": "2026-09-07T09:08:00+09:00",
+      "end_at": "2026-09-07T09:12:00+09:00",
+      "focus": "상가 밀집 구간으로의 진입",
+      "evidence_ids": [
+        "e03:what0",
+        "e03:where0",
+        "e03:where2",
+        "who:dog",
+        "who:guardian"
+      ]
+    },
+    {
+      "scene_id": "scene_02",
+      "start_at": "2026-09-07T09:13:00+09:00",
+      "end_at": "2026-09-07T09:16:00+09:00",
+      "focus": "늘벗근린공원 인근으로의 이동",
+      "evidence_ids": [
+        "e04:what0",
+        "e04:where0",
+        "e04:where3",
+        "who:dog",
+        "who:guardian"
+      ]
+    },
+    {
+      "scene_id": "scene_03",
+      "start_at": "2026-09-07T09:17:00+09:00",
+      "end_at": "2026-09-07T09:20:00+09:00",
+      "focus": "양재천 인근 구간 진입",
+      "evidence_ids": [
+        "e05:what0",
+        "e05:where0",
+        "e05:where3",
+        "who:dog",
+        "who:guardian"
+      ]
+    },
+    {
+      "scene_id": "scene_04",
+      "start_at": "2026-09-07T09:21:00+09:00",
+      "end_at": "2026-09-07T09:24:00+09:00",
+      "focus": "다시 상가 밀집 구간으로 복귀",
+      "evidence_ids": [
+        "e06:what0",
+        "e06:where0",
+        "e06:where3",
+        "who:dog",
+        "who:guardian"
+      ]
+    },
+    {
+      "scene_id": "scene_05",
+      "start_at": "2026-09-07T09:25:00+09:00",
+      "end_at": "2026-09-07T09:27:00+09:00",
+      "focus": "상가 밀집 지역에서 한적한 구간으로의 이동",
+      "evidence_ids": [
+        "e07:what0",
+        "e07:where0",
+        "e07:where2",
+        "who:dog",
+        "who:guardian"
+      ]
+    },
+    {
+      "scene_id": "scene_06",
+      "start_at": "2026-09-07T09:28:00+09:00",
+      "end_at": "2026-09-07T09:33:00+09:00",
+      "focus": "양재천과의 거리 변화",
+      "evidence_ids": [
+        "e08:what0",
+        "e08:where0",
+        "e08:where3",
+        "who:dog",
+        "who:guardian"
+      ]
+    },
+    {
+      "scene_id": "scene_07",
+      "start_at": "2026-09-07T09:34:00+09:00",
+      "end_at": "2026-09-07T09:36:00+09:00",
+      "focus": "산책 후반부의 환경 변화",
+      "evidence_ids": [
+        "e09:what0",
+        "e09:where0",
+        "e09:where3",
+        "who:dog",
+        "who:guardian"
+      ]
+    }
+  ],
+  "selection": {
+    "title_draft": {
+      "text": "도심 상가와 자연을 잇는 산책",
+      "evidence_ids": [
+        "e03:what0",
+        "e03:where0",
+        "e03:where2",
+        "e04:what0",
+        "e04:where0",
+        "e04:where3",
+        "e05:what0",
+        "e05:where0",
+        "e05:where3",
+        "e06:what0",
+        "e06:where0",
+        "e06:where3",
+        "e07:what0",
+        "e07:where0",
+        "e07:where2",
+        "e08:what0",
+        "e08:where0",
+        "e08:where3",
+        "e09:what0",
+        "e09:where0",
+        "e09:where3",
+        "who:dog",
+        "who:guardian"
+      ]
+    },
+    "decisions": [
+      {
+        "candidate_id": "e00",
+        "scene_id": null,
+        "code": "connection",
+        "reason": "원본의 카드 비대상 연결 구간",
+        "context_scene_ids": []
+      },
+      {
+        "candidate_id": "e01",
+        "scene_id": null,
+        "code": "connection",
+        "reason": "원본의 카드 비대상 연결 구간",
+        "context_scene_ids": []
+      },
+      {
+        "candidate_id": "e02",
+        "scene_id": null,
+        "code": "connection",
+        "reason": "원본의 카드 비대상 연결 구간",
+        "context_scene_ids": []
+      },
+      {
+        "candidate_id": "e03",
+        "scene_id": "scene_01",
+        "code": "selected",
+        "reason": "산책의 시작점에서 주변 환경이 상가 밀집 지역으로 변화하는 지점이다.",
+        "context_scene_ids": []
+      },
+      {
+        "candidate_id": "e04",
+        "scene_id": "scene_02",
+        "code": "selected",
+        "reason": "상가 지역에서 공원 인근으로 환경이 전환되는 과정을 보여준다.",
+        "context_scene_ids": []
+      },
+      {
+        "candidate_id": "e05",
+        "scene_id": "scene_03",
+        "code": "selected",
+        "reason": "공원 인근에서 하천 인근으로 산책 공간의 성격이 변화했다.",
+        "context_scene_ids": []
+      },
+      {
+        "candidate_id": "e06",
+        "scene_id": "scene_04",
+        "code": "selected",
+        "reason": "하천 인근에서 다시 상가 지역으로 이동하며 경로의 다양성을 보여준다.",
+        "context_scene_ids": []
+      },
+      {
+        "candidate_id": "e07",
+        "scene_id": "scene_05",
+        "code": "selected",
+        "reason": "상가 밀집도 변화에 따른 공간적 특징의 차이를 보여준다.",
+        "context_scene_ids": []
+      },
+      {
+        "candidate_id": "e08",
+        "scene_id": "scene_06",
+        "code": "selected",
+        "reason": "하천과의 거리가 가까워졌다가 멀어지는 동선상의 변화를 기록한다.",
+        "context_scene_ids": []
+      },
+      {
+        "candidate_id": "e09",
+        "scene_id": "scene_07",
+        "code": "selected",
+        "reason": "하천 인근에서 상가가 적은 구간으로 이동하며 산책을 마무리하는 과정이다.",
+        "context_scene_ids": []
+      },
+      {
+        "candidate_id": "e10",
+        "scene_id": null,
+        "code": "connection",
+        "reason": "원본의 카드 비대상 연결 구간",
+        "context_scene_ids": []
+      }
+    ],
+    "compositions": []
+  }
+}

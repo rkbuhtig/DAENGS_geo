@@ -1,0 +1,248 @@
+{
+  "understanding": {
+    "summary": "보호자와 반려견 두부가 상가 밀집 지역에서 시작하여 늘벗근린공원 인근을 거쳐 양재천 주변을 산책한 기록입니다. 이동 중 상가 밀집도와 공원, 하천과의 근접성에 따라 주변 환경이 지속적으로 변화했습니다.",
+    "observed_flow": [
+      {
+        "text": "상가 밀집 구간에서 이동을 시작하여 늘벗근린공원 인근으로 진입함",
+        "evidence_ids": [
+          "e03:where2",
+          "e06:where2"
+        ]
+      },
+      {
+        "text": "늘벗근린공원 인근에서 양재천 인근으로 이동하며 환경 변화",
+        "evidence_ids": [
+          "e09:where3"
+        ]
+      },
+      {
+        "text": "양재천 인근에서 다시 상가 밀집 구간을 거쳐 상가가 적은 구간으로 이동",
+        "evidence_ids": [
+          "e10:where3",
+          "e11:where2",
+          "e13:where3"
+        ]
+      }
+    ],
+    "interpretations": [
+      {
+        "text": "두부의 냄새 맡기 행동과 사진 촬영은 산책 경로 중 특정 지점에서의 정지 및 상호작용을 의미함",
+        "evidence_ids": [
+          "e04:what0",
+          "e07:what0"
+        ]
+      },
+      {
+        "text": "주변 환경의 변화는 산책로의 물리적 특성(상가, 공원, 하천)에 따른 공간적 맥락을 반영함",
+        "evidence_ids": [
+          "e03:where2",
+          "e06:where2",
+          "e09:where3",
+          "e10:where3",
+          "e11:where2",
+          "e13:where3"
+        ]
+      }
+    ],
+    "open_questions": [
+      "산책 중 두부의 냄새 맡기 행동이 특정 환경(상가 vs 공원)에서 더 빈번하게 나타나는지 여부",
+      "사진 촬영 지점인 늘벗근린공원 인근의 구체적인 환경적 특징"
+    ]
+  },
+  "outline": [
+    {
+      "scene_id": "scene_01",
+      "start_at": "2026-09-07T09:08:00+09:00",
+      "end_at": "2026-09-07T09:09:00+09:00",
+      "focus": "상가 밀집 구간으로의 진입",
+      "evidence_ids": [
+        "e03:where2"
+      ]
+    },
+    {
+      "scene_id": "scene_02",
+      "start_at": "2026-09-07T09:10:00+09:00",
+      "end_at": "2026-09-07T09:10:00+09:00",
+      "focus": "두부의 냄새 맡기 행동",
+      "evidence_ids": [
+        "e04:what0"
+      ]
+    },
+    {
+      "scene_id": "scene_03",
+      "start_at": "2026-09-07T09:13:00+09:00",
+      "end_at": "2026-09-07T09:14:00+09:00",
+      "focus": "늘벗근린공원 인근으로의 환경 변화",
+      "evidence_ids": [
+        "e06:where2"
+      ]
+    },
+    {
+      "scene_id": "scene_04",
+      "start_at": "2026-09-07T09:15:00+09:00",
+      "end_at": "2026-09-07T09:15:00+09:00",
+      "focus": "공원 인근에서의 사진 촬영",
+      "evidence_ids": [
+        "e07:what0"
+      ]
+    },
+    {
+      "scene_id": "scene_05",
+      "start_at": "2026-09-07T09:17:00+09:00",
+      "end_at": "2026-09-07T09:20:00+09:00",
+      "focus": "양재천 인근으로의 이동",
+      "evidence_ids": [
+        "e09:where3"
+      ]
+    }
+  ],
+  "selection": {
+    "title_draft": {
+      "text": "상가와 공원, 그리고 하천을 잇는 두부와의 산책",
+      "evidence_ids": [
+        "e03:where2",
+        "e06:where2",
+        "e09:where3"
+      ]
+    },
+    "decisions": [
+      {
+        "candidate_id": "e00",
+        "scene_id": null,
+        "code": "connection",
+        "reason": "산책 시작 전 연결 구간"
+      },
+      {
+        "candidate_id": "e01",
+        "scene_id": null,
+        "code": "connection",
+        "reason": "산책 시작 전 연결 구간"
+      },
+      {
+        "candidate_id": "e02",
+        "scene_id": null,
+        "code": "connection",
+        "reason": "산책 시작 전 연결 구간"
+      },
+      {
+        "candidate_id": "e03",
+        "scene_id": "scene_01",
+        "code": "selected",
+        "reason": "상가 밀집 구간으로의 환경 변화"
+      },
+      {
+        "candidate_id": "e04",
+        "scene_id": "scene_02",
+        "code": "selected",
+        "reason": "두부의 냄새 맡기 행동"
+      },
+      {
+        "candidate_id": "e05",
+        "scene_id": null,
+        "code": "connection",
+        "reason": "장면 간 이동 구간"
+      },
+      {
+        "candidate_id": "e06",
+        "scene_id": "scene_03",
+        "code": "selected",
+        "reason": "늘벗근린공원 인근으로의 환경 변화"
+      },
+      {
+        "candidate_id": "e07",
+        "scene_id": "scene_04",
+        "code": "selected",
+        "reason": "사진 촬영 행동"
+      },
+      {
+        "candidate_id": "e08",
+        "scene_id": null,
+        "code": "connection",
+        "reason": "장면 간 이동 구간"
+      },
+      {
+        "candidate_id": "e09",
+        "scene_id": "scene_05",
+        "code": "selected",
+        "reason": "양재천 인근으로의 환경 변화"
+      },
+      {
+        "candidate_id": "e10",
+        "scene_id": null,
+        "code": "budget",
+        "reason": "최대 장면 수 초과로 인한 생략"
+      },
+      {
+        "candidate_id": "e11",
+        "scene_id": null,
+        "code": "budget",
+        "reason": "최대 장면 수 초과로 인한 생략"
+      },
+      {
+        "candidate_id": "e12",
+        "scene_id": null,
+        "code": "budget",
+        "reason": "최대 장면 수 초과로 인한 생략"
+      },
+      {
+        "candidate_id": "e13",
+        "scene_id": null,
+        "code": "budget",
+        "reason": "최대 장면 수 초과로 인한 생략"
+      },
+      {
+        "candidate_id": "e14",
+        "scene_id": null,
+        "code": "connection",
+        "reason": "산책 종료 후 연결 구간"
+      }
+    ],
+    "compositions": [
+      {
+        "scene_id": "scene_01",
+        "primary_candidate_id": "e03",
+        "included_candidate_ids": [
+          "e03"
+        ],
+        "context_candidate_ids": [],
+        "reason": "상가 밀집 구간으로의 진입을 통한 산책의 시작적 배경 설정"
+      },
+      {
+        "scene_id": "scene_02",
+        "primary_candidate_id": "e04",
+        "included_candidate_ids": [
+          "e04"
+        ],
+        "context_candidate_ids": [],
+        "reason": "두부의 냄새 맡기 행동을 통한 산책의 활기찬 시작"
+      },
+      {
+        "scene_id": "scene_03",
+        "primary_candidate_id": "e06",
+        "included_candidate_ids": [
+          "e06"
+        ],
+        "context_candidate_ids": [],
+        "reason": "늘벗근린공원 인근으로의 장소 변화"
+      },
+      {
+        "scene_id": "scene_04",
+        "primary_candidate_id": "e07",
+        "included_candidate_ids": [
+          "e07"
+        ],
+        "context_candidate_ids": [],
+        "reason": "공원 인근에서의 사진 촬영을 통한 기억 기록"
+      },
+      {
+        "scene_id": "scene_05",
+        "primary_candidate_id": "e09",
+        "included_candidate_ids": [
+          "e09"
+        ],
+        "context_candidate_ids": [],
+        "reason": "양재천 인근으로의 이동을 통한 산책의 확장"
+      }
+    ]
+  }
+}

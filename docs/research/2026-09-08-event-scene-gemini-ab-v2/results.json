@@ -1,0 +1,1688 @@
+{
+  "rows": [
+    {
+      "id": "movement-individual",
+      "status": "accepted",
+      "error": null,
+      "attempts": 1,
+      "receipt": {
+        "stage": "select",
+        "requested_model": "gemini-3.1-flash-lite",
+        "request_sha256": "ceee16cf1b04580584ecd8182392ebe45d162d2a1977bc0aaeb3b1c99c6f0f3e",
+        "transport": "gemini",
+        "http_status": 200,
+        "model": "gemini-3.1-flash-lite",
+        "usage": {
+          "promptTokenCount": 10071,
+          "candidatesTokenCount": 791,
+          "totalTokenCount": 10862,
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 10071
+            }
+          ],
+          "serviceTier": "standard"
+        },
+        "finish_reason": "STOP",
+        "status": "parsed",
+        "latency_s": 6.098,
+        "validation": "accepted"
+      },
+      "output": {
+        "understanding": {
+          "summary": "보호자와 반려견 두부가 도심의 상가 밀집 지역과 늘벗근린공원, 양재천 인근을 경유하며 산책을 진행했다.",
+          "observed_flow": [
+            {
+              "text": "상가 밀집 지역에서 공원과 하천 인근으로 이동하며 주변 환경이 변화했다.",
+              "candidate_ids": [
+                "e03",
+                "e04",
+                "e05",
+                "e06",
+                "e07",
+                "e08",
+                "e09"
+              ]
+            }
+          ],
+          "interpretations": [
+            {
+              "text": "산책 경로가 상가 지역과 자연 친화적인 공간(공원, 하천)을 교차하며 구성되어 있다.",
+              "candidate_ids": [
+                "e03",
+                "e04",
+                "e05",
+                "e06",
+                "e07",
+                "e08",
+                "e09"
+              ]
+            }
+          ],
+          "open_questions": [
+            "산책 중 두부가 특정 장소에서 보인 반응이 있었는가?",
+            "상가 지역과 자연 공간 중 두부가 더 선호하는 환경은 무엇인가?"
+          ]
+        },
+        "title_draft": {
+          "text": "도심 상가와 자연을 잇는 산책",
+          "candidate_ids": [
+            "e03",
+            "e04",
+            "e05",
+            "e06",
+            "e07",
+            "e08",
+            "e09"
+          ]
+        },
+        "scenes": [
+          {
+            "candidate_id": "e03",
+            "focus": "상가 밀집 구간으로의 진입",
+            "reason": "산책의 시작점에서 주변 환경이 상가 밀집 지역으로 변화하는 지점이다."
+          },
+          {
+            "candidate_id": "e04",
+            "focus": "늘벗근린공원 인근으로의 이동",
+            "reason": "상가 지역에서 공원 인근으로 환경이 전환되는 과정을 보여준다."
+          },
+          {
+            "candidate_id": "e05",
+            "focus": "양재천 인근 구간 진입",
+            "reason": "공원 인근에서 하천 인근으로 산책 공간의 성격이 변화했다."
+          },
+          {
+            "candidate_id": "e06",
+            "focus": "다시 상가 밀집 구간으로 복귀",
+            "reason": "하천 인근에서 다시 상가 지역으로 이동하며 경로의 다양성을 보여준다."
+          },
+          {
+            "candidate_id": "e07",
+            "focus": "상가 밀집 지역에서 한적한 구간으로의 이동",
+            "reason": "상가 밀집도 변화에 따른 공간적 특징의 차이를 보여준다."
+          },
+          {
+            "candidate_id": "e08",
+            "focus": "양재천과의 거리 변화",
+            "reason": "하천과의 거리가 가까워졌다가 멀어지는 동선상의 변화를 기록한다."
+          },
+          {
+            "candidate_id": "e09",
+            "focus": "산책 후반부의 환경 변화",
+            "reason": "하천 인근에서 상가가 적은 구간으로 이동하며 산책을 마무리하는 과정이다."
+          }
+        ],
+        "omissions": []
+      },
+      "resolved_output": {
+        "understanding": {
+          "summary": "보호자와 반려견 두부가 도심의 상가 밀집 지역과 늘벗근린공원, 양재천 인근을 경유하며 산책을 진행했다.",
+          "observed_flow": [
+            {
+              "text": "상가 밀집 지역에서 공원과 하천 인근으로 이동하며 주변 환경이 변화했다.",
+              "evidence_ids": [
+                "e03:what0",
+                "e03:where0",
+                "e03:where2",
+                "e04:what0",
+                "e04:where0",
+                "e04:where3",
+                "e05:what0",
+                "e05:where0",
+                "e05:where3",
+                "e06:what0",
+                "e06:where0",
+                "e06:where3",
+                "e07:what0",
+                "e07:where0",
+                "e07:where2",
+                "e08:what0",
+                "e08:where0",
+                "e08:where3",
+                "e09:what0",
+                "e09:where0",
+                "e09:where3",
+                "who:dog",
+                "who:guardian"
+              ]
+            }
+          ],
+          "interpretations": [
+            {
+              "text": "산책 경로가 상가 지역과 자연 친화적인 공간(공원, 하천)을 교차하며 구성되어 있다.",
+              "evidence_ids": [
+                "e03:what0",
+                "e03:where0",
+                "e03:where2",
+                "e04:what0",
+                "e04:where0",
+                "e04:where3",
+                "e05:what0",
+                "e05:where0",
+                "e05:where3",
+                "e06:what0",
+                "e06:where0",
+                "e06:where3",
+                "e07:what0",
+                "e07:where0",
+                "e07:where2",
+                "e08:what0",
+                "e08:where0",
+                "e08:where3",
+                "e09:what0",
+                "e09:where0",
+                "e09:where3",
+                "who:dog",
+                "who:guardian"
+              ]
+            }
+          ],
+          "open_questions": [
+            "산책 중 두부가 특정 장소에서 보인 반응이 있었는가?",
+            "상가 지역과 자연 공간 중 두부가 더 선호하는 환경은 무엇인가?"
+          ]
+        },
+        "outline": [
+          {
+            "scene_id": "scene_01",
+            "start_at": "2026-09-07T09:08:00+09:00",
+            "end_at": "2026-09-07T09:12:00+09:00",
+            "focus": "상가 밀집 구간으로의 진입",
+            "evidence_ids": [
+              "e03:what0",
+              "e03:where0",
+              "e03:where2",
+              "who:dog",
+              "who:guardian"
+            ]
+          },
+          {
+            "scene_id": "scene_02",
+            "start_at": "2026-09-07T09:13:00+09:00",
+            "end_at": "2026-09-07T09:16:00+09:00",
+            "focus": "늘벗근린공원 인근으로의 이동",
+            "evidence_ids": [
+              "e04:what0",
+              "e04:where0",
+              "e04:where3",
+              "who:dog",
+              "who:guardian"
+            ]
+          },
+          {
+            "scene_id": "scene_03",
+            "start_at": "2026-09-07T09:17:00+09:00",
+            "end_at": "2026-09-07T09:20:00+09:00",
+            "focus": "양재천 인근 구간 진입",
+            "evidence_ids": [
+              "e05:what0",
+              "e05:where0",
+              "e05:where3",
+              "who:dog",
+              "who:guardian"
+            ]
+          },
+          {
+            "scene_id": "scene_04",
+            "start_at": "2026-09-07T09:21:00+09:00",
+            "end_at": "2026-09-07T09:24:00+09:00",
+            "focus": "다시 상가 밀집 구간으로 복귀",
+            "evidence_ids": [
+              "e06:what0",
+              "e06:where0",
+              "e06:where3",
+              "who:dog",
+              "who:guardian"
+            ]
+          },
+          {
+            "scene_id": "scene_05",
+            "start_at": "2026-09-07T09:25:00+09:00",
+            "end_at": "2026-09-07T09:27:00+09:00",
+            "focus": "상가 밀집 지역에서 한적한 구간으로의 이동",
+            "evidence_ids": [
+              "e07:what0",
+              "e07:where0",
+              "e07:where2",
+              "who:dog",
+              "who:guardian"
+            ]
+          },
+          {
+            "scene_id": "scene_06",
+            "start_at": "2026-09-07T09:28:00+09:00",
+            "end_at": "2026-09-07T09:33:00+09:00",
+            "focus": "양재천과의 거리 변화",
+            "evidence_ids": [
+              "e08:what0",
+              "e08:where0",
+              "e08:where3",
+              "who:dog",
+              "who:guardian"
+            ]
+          },
+          {
+            "scene_id": "scene_07",
+            "start_at": "2026-09-07T09:34:00+09:00",
+            "end_at": "2026-09-07T09:36:00+09:00",
+            "focus": "산책 후반부의 환경 변화",
+            "evidence_ids": [
+              "e09:what0",
+              "e09:where0",
+              "e09:where3",
+              "who:dog",
+              "who:guardian"
+            ]
+          }
+        ],
+        "selection": {
+          "title_draft": {
+            "text": "도심 상가와 자연을 잇는 산책",
+            "evidence_ids": [
+              "e03:what0",
+              "e03:where0",
+              "e03:where2",
+              "e04:what0",
+              "e04:where0",
+              "e04:where3",
+              "e05:what0",
+              "e05:where0",
+              "e05:where3",
+              "e06:what0",
+              "e06:where0",
+              "e06:where3",
+              "e07:what0",
+              "e07:where0",
+              "e07:where2",
+              "e08:what0",
+              "e08:where0",
+              "e08:where3",
+              "e09:what0",
+              "e09:where0",
+              "e09:where3",
+              "who:dog",
+              "who:guardian"
+            ]
+          },
+          "decisions": [
+            {
+              "candidate_id": "e00",
+              "scene_id": null,
+              "code": "connection",
+              "reason": "원본의 카드 비대상 연결 구간",
+              "context_scene_ids": []
+            },
+            {
+              "candidate_id": "e01",
+              "scene_id": null,
+              "code": "connection",
+              "reason": "원본의 카드 비대상 연결 구간",
+              "context_scene_ids": []
+            },
+            {
+              "candidate_id": "e02",
+              "scene_id": null,
+              "code": "connection",
+              "reason": "원본의 카드 비대상 연결 구간",
+              "context_scene_ids": []
+            },
+            {
+              "candidate_id": "e03",
+              "scene_id": "scene_01",
+              "code": "selected",
+              "reason": "산책의 시작점에서 주변 환경이 상가 밀집 지역으로 변화하는 지점이다.",
+              "context_scene_ids": []
+            },
+            {
+              "candidate_id": "e04",
+              "scene_id": "scene_02",
+              "code": "selected",
+              "reason": "상가 지역에서 공원 인근으로 환경이 전환되는 과정을 보여준다.",
+              "context_scene_ids": []
+            },
+            {
+              "candidate_id": "e05",
+              "scene_id": "scene_03",
+              "code": "selected",
+              "reason": "공원 인근에서 하천 인근으로 산책 공간의 성격이 변화했다.",
+              "context_scene_ids": []
+            },
+            {
+              "candidate_id": "e06",
+              "scene_id": "scene_04",
+              "code": "selected",
+              "reason": "하천 인근에서 다시 상가 지역으로 이동하며 경로의 다양성을 보여준다.",
+              "context_scene_ids": []
+            },
+            {
+              "candidate_id": "e07",
+              "scene_id": "scene_05",
+              "code": "selected",
+              "reason": "상가 밀집도 변화에 따른 공간적 특징의 차이를 보여준다.",
+              "context_scene_ids": []
+            },
+            {
+              "candidate_id": "e08",
+              "scene_id": "scene_06",
+              "code": "selected",
+              "reason": "하천과의 거리가 가까워졌다가 멀어지는 동선상의 변화를 기록한다.",
+              "context_scene_ids": []
+            },
+            {
+              "candidate_id": "e09",
+              "scene_id": "scene_07",
+              "code": "selected",
+              "reason": "하천 인근에서 상가가 적은 구간으로 이동하며 산책을 마무리하는 과정이다.",
+              "context_scene_ids": []
+            },
+            {
+              "candidate_id": "e10",
+              "scene_id": null,
+              "code": "connection",
+              "reason": "원본의 카드 비대상 연결 구간",
+              "context_scene_ids": []
+            }
+          ],
+          "compositions": []
+        }
+      },
+      "scene_count": 7,
+      "proposed_scene_count": 7,
+      "semantic_status": "not_evaluated"
+    },
+    {
+      "id": "movement-grouped",
+      "status": "accepted",
+      "error": null,
+      "attempts": 1,
+      "receipt": {
+        "stage": "compose",
+        "requested_model": "gemini-3.1-flash-lite",
+        "request_sha256": "a5e4548774c8f2135031231670acf1df3a4be71c70c82e635d2cd1deb9a85722",
+        "transport": "gemini",
+        "http_status": 200,
+        "model": "gemini-3.1-flash-lite",
+        "usage": {
+          "promptTokenCount": 10181,
+          "candidatesTokenCount": 793,
+          "totalTokenCount": 10974,
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 10181
+            }
+          ],
+          "serviceTier": "standard"
+        },
+        "finish_reason": "STOP",
+        "status": "parsed",
+        "latency_s": 3.917,
+        "validation": "accepted"
+      },
+      "output": {
+        "understanding": {
+          "summary": "보호자와 반려견 두부가 도심 상가 밀집 지역에서 시작하여 늘벗근린공원과 양재천 주변을 순환하며 산책한 기록이다.",
+          "observed_flow": [
+            {
+              "text": "상가 밀집 지역에서 늘벗근린공원 방향으로 이동하며 주변 환경이 변화함",
+              "candidate_ids": [
+                "e03",
+                "e04"
+              ]
+            },
+            {
+              "text": "늘벗근린공원에서 양재천 인근으로 이동하며 자연 친화적인 구간을 지남",
+              "candidate_ids": [
+                "e05"
+              ]
+            },
+            {
+              "text": "양재천에서 다시 상가 밀집 지역으로 돌아왔다가 상가가 적은 구간으로 이동함",
+              "candidate_ids": [
+                "e06",
+                "e07"
+              ]
+            },
+            {
+              "text": "양재천과의 거리가 변하는 구간을 지나 최종적으로 상가가 적은 지역으로 이동함",
+              "candidate_ids": [
+                "e08",
+                "e09"
+              ]
+            }
+          ],
+          "interpretations": [
+            {
+              "text": "도심의 상업 시설과 공원, 하천이라는 서로 다른 성격의 공간을 교차하며 산책 경로를 구성함",
+              "candidate_ids": [
+                "e03",
+                "e04",
+                "e05",
+                "e06",
+                "e07",
+                "e08",
+                "e09"
+              ]
+            }
+          ],
+          "open_questions": [
+            "산책 중 두부가 특정 장소에서 머무르거나 반응을 보인 구체적인 지점이 있는가?"
+          ]
+        },
+        "title_draft": {
+          "text": "상가와 자연을 잇는 도심 산책",
+          "candidate_ids": [
+            "e03",
+            "e04",
+            "e05",
+            "e06",
+            "e07",
+            "e08",
+            "e09"
+          ]
+        },
+        "scenes": [
+          {
+            "primary_candidate_id": "e03",
+            "included_candidate_ids": [
+              "e03",
+              "e04"
+            ],
+            "context_candidate_ids": [],
+            "focus": "상가 밀집 지역에서 공원 인근으로의 환경 변화",
+            "reason": "상업 시설이 많은 곳에서 공원이라는 녹지 공간으로 이동하는 흐름을 묶어 공간적 대비를 보여줌"
+          },
+          {
+            "primary_candidate_id": "e05",
+            "included_candidate_ids": [
+              "e05",
+              "e06"
+            ],
+            "context_candidate_ids": [
+              "e04"
+            ],
+            "focus": "양재천과 상가 지역의 교차",
+            "reason": "하천 인근과 상가 지역을 오가는 산책의 리듬을 강조함"
+          },
+          {
+            "primary_candidate_id": "e07",
+            "included_candidate_ids": [
+              "e07",
+              "e08",
+              "e09"
+            ],
+            "context_candidate_ids": [
+              "e06"
+            ],
+            "focus": "양재천 주변을 포함한 산책의 마무리",
+            "reason": "하천과의 거리가 변하는 구간을 포함하여 산책의 후반부 경로를 일관성 있게 정리함"
+          }
+        ],
+        "omissions": []
+      },
+      "resolved_output": {
+        "understanding": {
+          "summary": "보호자와 반려견 두부가 도심 상가 밀집 지역에서 시작하여 늘벗근린공원과 양재천 주변을 순환하며 산책한 기록이다.",
+          "observed_flow": [
+            {
+              "text": "상가 밀집 지역에서 늘벗근린공원 방향으로 이동하며 주변 환경이 변화함",
+              "evidence_ids": [
+                "e03:what0",
+                "e03:where0",
+                "e03:where2",
+                "e04:what0",
+                "e04:where0",
+                "e04:where3",
+                "who:dog",
+                "who:guardian"
+              ]
+            },
+            {
+              "text": "늘벗근린공원에서 양재천 인근으로 이동하며 자연 친화적인 구간을 지남",
+              "evidence_ids": [
+                "e05:what0",
+                "e05:where0",
+                "e05:where3",
+                "who:dog",
+                "who:guardian"
+              ]
+            },
+            {
+              "text": "양재천에서 다시 상가 밀집 지역으로 돌아왔다가 상가가 적은 구간으로 이동함",
+              "evidence_ids": [
+                "e06:what0",
+                "e06:where0",
+                "e06:where3",
+                "e07:what0",
+                "e07:where0",
+                "e07:where2",
+                "who:dog",
+                "who:guardian"
+              ]
+            },
+            {
+              "text": "양재천과의 거리가 변하는 구간을 지나 최종적으로 상가가 적은 지역으로 이동함",
+              "evidence_ids": [
+                "e08:what0",
+                "e08:where0",
+                "e08:where3",
+                "e09:what0",
+                "e09:where0",
+                "e09:where3",
+                "who:dog",
+                "who:guardian"
+              ]
+            }
+          ],
+          "interpretations": [
+            {
+              "text": "도심의 상업 시설과 공원, 하천이라는 서로 다른 성격의 공간을 교차하며 산책 경로를 구성함",
+              "evidence_ids": [
+                "e03:what0",
+                "e03:where0",
+                "e03:where2",
+                "e04:what0",
+                "e04:where0",
+                "e04:where3",
+                "e05:what0",
+                "e05:where0",
+                "e05:where3",
+                "e06:what0",
+                "e06:where0",
+                "e06:where3",
+                "e07:what0",
+                "e07:where0",
+                "e07:where2",
+                "e08:what0",
+                "e08:where0",
+                "e08:where3",
+                "e09:what0",
+                "e09:where0",
+                "e09:where3",
+                "who:dog",
+                "who:guardian"
+              ]
+            }
+          ],
+          "open_questions": [
+            "산책 중 두부가 특정 장소에서 머무르거나 반응을 보인 구체적인 지점이 있는가?"
+          ]
+        },
+        "outline": [
+          {
+            "scene_id": "scene_01",
+            "start_at": "2026-09-07T09:08:00+09:00",
+            "end_at": "2026-09-07T09:12:00+09:00",
+            "focus": "상가 밀집 지역에서 공원 인근으로의 환경 변화",
+            "evidence_ids": [
+              "e03:what0",
+              "e03:where0",
+              "e03:where2",
+              "e04:what0",
+              "e04:where0",
+              "e04:where3",
+              "who:dog",
+              "who:guardian"
+            ]
+          },
+          {
+            "scene_id": "scene_02",
+            "start_at": "2026-09-07T09:17:00+09:00",
+            "end_at": "2026-09-07T09:20:00+09:00",
+            "focus": "양재천과 상가 지역의 교차",
+            "evidence_ids": [
+              "e04:what0",
+              "e04:where0",
+              "e04:where3",
+              "e05:what0",
+              "e05:where0",
+              "e05:where3",
+              "e06:what0",
+              "e06:where0",
+              "e06:where3",
+              "who:dog",
+              "who:guardian"
+            ]
+          },
+          {
+            "scene_id": "scene_03",
+            "start_at": "2026-09-07T09:25:00+09:00",
+            "end_at": "2026-09-07T09:27:00+09:00",
+            "focus": "양재천 주변을 포함한 산책의 마무리",
+            "evidence_ids": [
+              "e06:what0",
+              "e06:where0",
+              "e06:where3",
+              "e07:what0",
+              "e07:where0",
+              "e07:where2",
+              "e08:what0",
+              "e08:where0",
+              "e08:where3",
+              "e09:what0",
+              "e09:where0",
+              "e09:where3",
+              "who:dog",
+              "who:guardian"
+            ]
+          }
+        ],
+        "selection": {
+          "title_draft": {
+            "text": "상가와 자연을 잇는 도심 산책",
+            "evidence_ids": [
+              "e03:what0",
+              "e03:where0",
+              "e03:where2",
+              "e04:what0",
+              "e04:where0",
+              "e04:where3",
+              "e05:what0",
+              "e05:where0",
+              "e05:where3",
+              "e06:what0",
+              "e06:where0",
+              "e06:where3",
+              "e07:what0",
+              "e07:where0",
+              "e07:where2",
+              "e08:what0",
+              "e08:where0",
+              "e08:where3",
+              "e09:what0",
+              "e09:where0",
+              "e09:where3",
+              "who:dog",
+              "who:guardian"
+            ]
+          },
+          "decisions": [
+            {
+              "candidate_id": "e00",
+              "scene_id": null,
+              "code": "connection",
+              "reason": "원본의 카드 비대상 연결 구간",
+              "context_scene_ids": []
+            },
+            {
+              "candidate_id": "e01",
+              "scene_id": null,
+              "code": "connection",
+              "reason": "원본의 카드 비대상 연결 구간",
+              "context_scene_ids": []
+            },
+            {
+              "candidate_id": "e02",
+              "scene_id": null,
+              "code": "connection",
+              "reason": "원본의 카드 비대상 연결 구간",
+              "context_scene_ids": []
+            },
+            {
+              "candidate_id": "e03",
+              "scene_id": "scene_01",
+              "code": "selected",
+              "reason": "상업 시설이 많은 곳에서 공원이라는 녹지 공간으로 이동하는 흐름을 묶어 공간적 대비를 보여줌",
+              "context_scene_ids": []
+            },
+            {
+              "candidate_id": "e04",
+              "scene_id": "scene_01",
+              "code": "selected",
+              "reason": "상업 시설이 많은 곳에서 공원이라는 녹지 공간으로 이동하는 흐름을 묶어 공간적 대비를 보여줌",
+              "context_scene_ids": [
+                "scene_02"
+              ]
+            },
+            {
+              "candidate_id": "e05",
+              "scene_id": "scene_02",
+              "code": "selected",
+              "reason": "하천 인근과 상가 지역을 오가는 산책의 리듬을 강조함",
+              "context_scene_ids": []
+            },
+            {
+              "candidate_id": "e06",
+              "scene_id": "scene_02",
+              "code": "selected",
+              "reason": "하천 인근과 상가 지역을 오가는 산책의 리듬을 강조함",
+              "context_scene_ids": [
+                "scene_03"
+              ]
+            },
+            {
+              "candidate_id": "e07",
+              "scene_id": "scene_03",
+              "code": "selected",
+              "reason": "하천과의 거리가 변하는 구간을 포함하여 산책의 후반부 경로를 일관성 있게 정리함",
+              "context_scene_ids": []
+            },
+            {
+              "candidate_id": "e08",
+              "scene_id": "scene_03",
+              "code": "selected",
+              "reason": "하천과의 거리가 변하는 구간을 포함하여 산책의 후반부 경로를 일관성 있게 정리함",
+              "context_scene_ids": []
+            },
+            {
+              "candidate_id": "e09",
+              "scene_id": "scene_03",
+              "code": "selected",
+              "reason": "하천과의 거리가 변하는 구간을 포함하여 산책의 후반부 경로를 일관성 있게 정리함",
+              "context_scene_ids": []
+            },
+            {
+              "candidate_id": "e10",
+              "scene_id": null,
+              "code": "connection",
+              "reason": "원본의 카드 비대상 연결 구간",
+              "context_scene_ids": []
+            }
+          ],
+          "compositions": [
+            {
+              "scene_id": "scene_01",
+              "primary_candidate_id": "e03",
+              "included_candidate_ids": [
+                "e03",
+                "e04"
+              ],
+              "context_candidate_ids": [],
+              "reason": "상업 시설이 많은 곳에서 공원이라는 녹지 공간으로 이동하는 흐름을 묶어 공간적 대비를 보여줌"
+            },
+            {
+              "scene_id": "scene_02",
+              "primary_candidate_id": "e05",
+              "included_candidate_ids": [
+                "e05",
+                "e06"
+              ],
+              "context_candidate_ids": [
+                "e04"
+              ],
+              "reason": "하천 인근과 상가 지역을 오가는 산책의 리듬을 강조함"
+            },
+            {
+              "scene_id": "scene_03",
+              "primary_candidate_id": "e07",
+              "included_candidate_ids": [
+                "e07",
+                "e08",
+                "e09"
+              ],
+              "context_candidate_ids": [
+                "e06"
+              ],
+              "reason": "하천과의 거리가 변하는 구간을 포함하여 산책의 후반부 경로를 일관성 있게 정리함"
+            }
+          ]
+        }
+      },
+      "scene_count": 3,
+      "proposed_scene_count": 3,
+      "semantic_status": "not_evaluated"
+    },
+    {
+      "id": "actions-grouped",
+      "status": "rejected_or_failed",
+      "error": "omissions must cover exactly unused eligible events",
+      "attempts": 1,
+      "receipt": {
+        "stage": "compose",
+        "requested_model": "gemini-3.1-flash-lite",
+        "request_sha256": "43305f3ccb6ad8008aa5456fe2da504421872c7ed0421726752172a25e8ef28c",
+        "transport": "gemini",
+        "http_status": 200,
+        "model": "gemini-3.1-flash-lite",
+        "usage": {
+          "promptTokenCount": 12394,
+          "candidatesTokenCount": 1162,
+          "totalTokenCount": 13556,
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 12394
+            }
+          ],
+          "serviceTier": "standard"
+        },
+        "finish_reason": "STOP",
+        "status": "parsed",
+        "latency_s": 5.956,
+        "validation": "rejected",
+        "validation_error": "omissions must cover exactly unused eligible events"
+      },
+      "output": {
+        "understanding": {
+          "summary": "보호자와 반려견 두부가 상가 밀집 지역에서 출발하여 늘벗근린공원과 양재천 인근을 경유하며 산책을 진행했다. 산책 중 두부는 특정 지점에서 냄새를 맡고 보호자와 함께 사진을 촬영하는 등 활발한 탐색 활동을 보였다.",
+          "observed_flow": [
+            {
+              "text": "상가 밀집 지역에서 이동을 시작하여 두부가 냄새를 맡는 행동을 확인했다.",
+              "candidate_ids": [
+                "e03",
+                "e04"
+              ]
+            },
+            {
+              "text": "늘벗근린공원 인근으로 이동하여 보호자와 두부가 함께 사진을 촬영했다.",
+              "candidate_ids": [
+                "e06",
+                "e07"
+              ]
+            },
+            {
+              "text": "양재천 인근을 거쳐 다시 상가 지역과 한적한 구간을 오가며 산책을 마무리했다.",
+              "candidate_ids": [
+                "e09",
+                "e10",
+                "e11",
+                "e12",
+                "e13"
+              ]
+            }
+          ],
+          "interpretations": [
+            {
+              "text": "두부는 산책 경로상의 다양한 환경 변화에 반응하며 냄새를 맡는 등 적극적으로 주변을 탐색하고 있다.",
+              "candidate_ids": [
+                "e04",
+                "e06",
+                "e11"
+              ]
+            },
+            {
+              "text": "보호자는 두부와의 산책 중 특정 장소에서 사진을 남기며 기록을 이어가고 있다.",
+              "candidate_ids": [
+                "e07"
+              ]
+            }
+          ],
+          "open_questions": [
+            "두부가 냄새를 맡는 행동이 특정 환경적 요인과 연관이 있는지 확인이 필요하다.",
+            "산책 경로 중 상가 밀집 지역과 자연 구간의 비율이 두부의 활동성에 미치는 영향은 무엇인가?"
+          ]
+        },
+        "title_draft": {
+          "text": "두부와 함께한 상가와 자연을 잇는 산책",
+          "candidate_ids": [
+            "e04",
+            "e07"
+          ]
+        },
+        "scenes": [
+          {
+            "primary_candidate_id": "e04",
+            "included_candidate_ids": [
+              "e03",
+              "e04"
+            ],
+            "context_candidate_ids": [
+              "e00",
+              "e01",
+              "e02"
+            ],
+            "focus": "상가 밀집 지역에서의 탐색",
+            "reason": "산책 초반 상가 지역으로 진입하며 두부가 냄새를 맡는 행동을 중심으로 환경 변화를 함께 기록한다."
+          },
+          {
+            "primary_candidate_id": "e07",
+            "included_candidate_ids": [
+              "e06",
+              "e07"
+            ],
+            "context_candidate_ids": [
+              "e05"
+            ],
+            "focus": "늘벗근린공원 인근에서의 사진 촬영",
+            "reason": "공원 인근으로 이동하여 보호자와 두부가 함께한 순간을 기록하고 환경적 특징 변화를 연결한다."
+          },
+          {
+            "primary_candidate_id": "e09",
+            "included_candidate_ids": [
+              "e09",
+              "e10",
+              "e11",
+              "e12",
+              "e13"
+            ],
+            "context_candidate_ids": [
+              "e08",
+              "e14"
+            ],
+            "focus": "양재천과 주변 지역을 아우르는 산책의 흐름",
+            "reason": "산책 후반부 양재천을 중심으로 주변 환경이 상가와 한적한 곳으로 교차되는 변화를 하나의 흐름으로 묶어 전달한다."
+          }
+        ],
+        "omissions": [
+          {
+            "candidate_id": "e00",
+            "code": "redundant",
+            "reason": "산책 시작 전의 단순 연결 구간으로 별도의 장면 구성이 불필요함."
+          },
+          {
+            "candidate_id": "e01",
+            "code": "redundant",
+            "reason": "산책 시작 전의 단순 연결 구간으로 별도의 장면 구성이 불필요함."
+          },
+          {
+            "candidate_id": "e02",
+            "code": "redundant",
+            "reason": "산책 시작 전의 단순 연결 구간으로 별도의 장면 구성이 불필요함."
+          },
+          {
+            "candidate_id": "e05",
+            "code": "redundant",
+            "reason": "장면 간 이동을 위한 단순 연결 구간임."
+          },
+          {
+            "candidate_id": "e08",
+            "code": "redundant",
+            "reason": "장면 간 이동을 위한 단순 연결 구간임."
+          },
+          {
+            "candidate_id": "e14",
+            "code": "redundant",
+            "reason": "산책 종료 후의 단순 연결 구간임."
+          }
+        ]
+      },
+      "resolved_output": null,
+      "scene_count": null,
+      "proposed_scene_count": 3,
+      "semantic_status": "not_evaluated"
+    },
+    {
+      "id": "actions-individual",
+      "status": "rejected_or_failed",
+      "error": "title must refer to selected scene events",
+      "attempts": 1,
+      "receipt": {
+        "stage": "select",
+        "requested_model": "gemini-3.1-flash-lite",
+        "request_sha256": "71d73d13a8283487b3525b95e51112e42a712c0524d5a2ae8cfa82b9fdddd1ef",
+        "transport": "gemini",
+        "http_status": 200,
+        "model": "gemini-3.1-flash-lite",
+        "usage": {
+          "promptTokenCount": 12284,
+          "candidatesTokenCount": 930,
+          "totalTokenCount": 13214,
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 12284
+            }
+          ],
+          "serviceTier": "standard"
+        },
+        "finish_reason": "STOP",
+        "status": "parsed",
+        "latency_s": 4.637,
+        "validation": "rejected",
+        "validation_error": "title must refer to selected scene events"
+      },
+      "output": {
+        "understanding": {
+          "summary": "보호자와 반려견 두부가 상가 밀집 지역에서 시작해 늘벗근린공원 인근을 거쳐 양재천 주변을 산책하며 다양한 환경 변화를 경험한 기록입니다.",
+          "observed_flow": [
+            {
+              "text": "상가 밀집 구간으로 진입하며 두부가 냄새를 맡는 행동을 보임",
+              "candidate_ids": [
+                "e03",
+                "e04"
+              ]
+            },
+            {
+              "text": "늘벗근린공원 인근으로 이동하여 함께 사진을 촬영함",
+              "candidate_ids": [
+                "e06",
+                "e07"
+              ]
+            },
+            {
+              "text": "양재천 인근과 상가 구간을 오가며 산책을 이어감",
+              "candidate_ids": [
+                "e09",
+                "e10",
+                "e11",
+                "e12",
+                "e13"
+              ]
+            }
+          ],
+          "interpretations": [
+            {
+              "text": "상가와 공원, 하천 등 다양한 환경을 경유하며 두부의 탐색 활동이 활발히 이루어짐",
+              "candidate_ids": [
+                "e04",
+                "e07"
+              ]
+            }
+          ],
+          "open_questions": [
+            "두부가 가장 흥미를 보인 특정 지점의 환경적 특징은 무엇인가?",
+            "산책 중 사진 촬영이 이루어진 장소의 구체적인 분위기는 어떠했는가?"
+          ]
+        },
+        "title_draft": {
+          "text": "두부와 함께한 상가와 하천을 잇는 산책",
+          "candidate_ids": [
+            "e03",
+            "e04",
+            "e06",
+            "e07",
+            "e09",
+            "e10",
+            "e11",
+            "e12",
+            "e13"
+          ]
+        },
+        "scenes": [
+          {
+            "candidate_id": "e03",
+            "focus": "상가 밀집 구간으로의 진입",
+            "reason": "산책 경로의 환경적 변화가 시작되는 지점임"
+          },
+          {
+            "candidate_id": "e04",
+            "focus": "두부의 탐색 행동",
+            "reason": "사용자가 직접 남긴 반려견의 행동 기록임"
+          },
+          {
+            "candidate_id": "e06",
+            "focus": "늘벗근린공원 인근으로의 이동",
+            "reason": "주변 환경이 상가에서 공원 인근으로 전환됨"
+          },
+          {
+            "candidate_id": "e07",
+            "focus": "기념 사진 촬영",
+            "reason": "사용자가 직접 남긴 산책의 주요 활동임"
+          },
+          {
+            "candidate_id": "e09",
+            "focus": "양재천 인근으로의 진입",
+            "reason": "주변 환경이 하천 인근으로 전환됨"
+          },
+          {
+            "candidate_id": "e10",
+            "focus": "상가 구간으로의 재진입",
+            "reason": "환경적 특징이 다시 상가 밀집 지역으로 바뀜"
+          },
+          {
+            "candidate_id": "e11",
+            "focus": "상가 밀집도가 낮은 구간으로의 이동",
+            "reason": "산책로의 환경적 특징 변화를 보여줌"
+          }
+        ],
+        "omissions": [
+          {
+            "candidate_id": "e12",
+            "code": "redundant",
+            "reason": "양재천 인근의 환경 변화가 앞선 장면들과 유사하여 생략함"
+          },
+          {
+            "candidate_id": "e13",
+            "code": "redundant",
+            "reason": "산책 후반부의 환경 변화가 앞선 기록들과 중복됨"
+          }
+        ]
+      },
+      "resolved_output": null,
+      "scene_count": null,
+      "proposed_scene_count": 7,
+      "semantic_status": "not_evaluated"
+    },
+    {
+      "id": "gap-individual",
+      "status": "accepted",
+      "error": null,
+      "attempts": 1,
+      "receipt": {
+        "stage": "select",
+        "requested_model": "gemini-3.1-flash-lite",
+        "request_sha256": "023fa56d7ca8b083a923ed046a77fce4fc6f22d5d3e54b028a40753a2fb4ff16",
+        "transport": "gemini",
+        "http_status": 200,
+        "model": "gemini-3.1-flash-lite",
+        "usage": {
+          "promptTokenCount": 14034,
+          "candidatesTokenCount": 1002,
+          "totalTokenCount": 15036,
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 14034
+            }
+          ],
+          "serviceTier": "standard"
+        },
+        "finish_reason": "STOP",
+        "status": "parsed",
+        "latency_s": 4.504,
+        "validation": "accepted"
+      },
+      "output": {
+        "understanding": {
+          "summary": "보호자와 반려견 두부가 상가 밀집 지역과 공원 인근을 포함한 다양한 환경을 산책하며 냄새 맡기 및 사진 촬영 등의 활동을 수행함.",
+          "observed_flow": [
+            {
+              "text": "상가 밀집 지역으로 진입하여 두부가 냄새를 맡는 활동을 함.",
+              "candidate_ids": [
+                "e03",
+                "e04"
+              ]
+            },
+            {
+              "text": "늘벗근린공원 인근으로 이동하여 보호자와 두부가 함께 사진을 촬영함.",
+              "candidate_ids": [
+                "e06",
+                "e07"
+              ]
+            },
+            {
+              "text": "양재천 인근과 상가 지역을 거쳐 독골근린공원 주변을 경유함.",
+              "candidate_ids": [
+                "e10",
+                "e11",
+                "e13",
+                "e14",
+                "e15"
+              ]
+            },
+            {
+              "text": "산책을 마무리하며 다시 상가 밀집 지역으로 이동함.",
+              "candidate_ids": [
+                "e17"
+              ]
+            }
+          ],
+          "interpretations": [
+            {
+              "text": "두부는 산책 중 상가 밀집 지역에서 냄새를 맡으며 주변 환경을 탐색함.",
+              "candidate_ids": [
+                "e04"
+              ]
+            },
+            {
+              "text": "보호자는 늘벗근린공원 인근에서 두부와의 산책 순간을 사진으로 기록함.",
+              "candidate_ids": [
+                "e07"
+              ]
+            }
+          ],
+          "open_questions": [
+            "두부가 냄새를 맡은 특정 대상이 무엇인지",
+            "사진 촬영 당시의 구체적인 배경이나 상황"
+          ]
+        },
+        "title_draft": {
+          "text": "두부와 함께한 상가와 공원 산책",
+          "candidate_ids": [
+            "e04",
+            "e07"
+          ]
+        },
+        "scenes": [
+          {
+            "candidate_id": "e04",
+            "focus": "상가 밀집 지역에서의 냄새 맡기",
+            "reason": "사용자의 직접적인 행동 기록이 포함된 핵심 장면임."
+          },
+          {
+            "candidate_id": "e07",
+            "focus": "늘벗근린공원 인근에서의 사진 촬영",
+            "reason": "산책 중 보호자와 반려견의 상호작용을 보여주는 중요한 기록임."
+          }
+        ],
+        "omissions": [
+          {
+            "candidate_id": "e03",
+            "code": "redundant",
+            "reason": "e04 장면의 배경 정보로 충분히 유추 가능함."
+          },
+          {
+            "candidate_id": "e06",
+            "code": "redundant",
+            "reason": "e07 장면의 배경 정보로 충분히 유추 가능함."
+          },
+          {
+            "candidate_id": "e10",
+            "code": "low_signal",
+            "reason": "단순 이동 경로의 변화로 별도의 장면 구성이 불필요함."
+          },
+          {
+            "candidate_id": "e11",
+            "code": "low_signal",
+            "reason": "단순 이동 경로의 변화로 별도의 장면 구성이 불필요함."
+          },
+          {
+            "candidate_id": "e13",
+            "code": "low_signal",
+            "reason": "단순 이동 경로의 변화로 별도의 장면 구성이 불필요함."
+          },
+          {
+            "candidate_id": "e14",
+            "code": "low_signal",
+            "reason": "단순 이동 경로의 변화로 별도의 장면 구성이 불필요함."
+          },
+          {
+            "candidate_id": "e15",
+            "code": "low_signal",
+            "reason": "단순 이동 경로의 변화로 별도의 장면 구성이 불필요함."
+          },
+          {
+            "candidate_id": "e17",
+            "code": "low_signal",
+            "reason": "산책 종료 시점의 단순 이동으로 장면 구성의 우선순위가 낮음."
+          }
+        ]
+      },
+      "resolved_output": {
+        "understanding": {
+          "summary": "보호자와 반려견 두부가 상가 밀집 지역과 공원 인근을 포함한 다양한 환경을 산책하며 냄새 맡기 및 사진 촬영 등의 활동을 수행함.",
+          "observed_flow": [
+            {
+              "text": "상가 밀집 지역으로 진입하여 두부가 냄새를 맡는 활동을 함.",
+              "evidence_ids": [
+                "e03:what0",
+                "e03:where0",
+                "e03:where2",
+                "e04:what0",
+                "e04:where0",
+                "who:dog",
+                "who:guardian"
+              ]
+            },
+            {
+              "text": "늘벗근린공원 인근으로 이동하여 보호자와 두부가 함께 사진을 촬영함.",
+              "evidence_ids": [
+                "e06:what0",
+                "e06:where0",
+                "e06:where2",
+                "e07:what0",
+                "e07:where0",
+                "who:dog",
+                "who:guardian"
+              ]
+            },
+            {
+              "text": "양재천 인근과 상가 지역을 거쳐 독골근린공원 주변을 경유함.",
+              "evidence_ids": [
+                "e10:what0",
+                "e10:where0",
+                "e10:where3",
+                "e11:what0",
+                "e11:where0",
+                "e11:where2",
+                "e13:what0",
+                "e13:where0",
+                "e13:where2",
+                "e14:what0",
+                "e14:where0",
+                "e14:where2",
+                "e15:what0",
+                "e15:where0",
+                "e15:where2",
+                "who:dog",
+                "who:guardian"
+              ]
+            },
+            {
+              "text": "산책을 마무리하며 다시 상가 밀집 지역으로 이동함.",
+              "evidence_ids": [
+                "e17:what0",
+                "e17:where0",
+                "e17:where2",
+                "who:dog",
+                "who:guardian"
+              ]
+            }
+          ],
+          "interpretations": [
+            {
+              "text": "두부는 산책 중 상가 밀집 지역에서 냄새를 맡으며 주변 환경을 탐색함.",
+              "evidence_ids": [
+                "e04:what0",
+                "e04:where0",
+                "who:dog",
+                "who:guardian"
+              ]
+            },
+            {
+              "text": "보호자는 늘벗근린공원 인근에서 두부와의 산책 순간을 사진으로 기록함.",
+              "evidence_ids": [
+                "e07:what0",
+                "e07:where0",
+                "who:dog",
+                "who:guardian"
+              ]
+            }
+          ],
+          "open_questions": [
+            "두부가 냄새를 맡은 특정 대상이 무엇인지",
+            "사진 촬영 당시의 구체적인 배경이나 상황"
+          ]
+        },
+        "outline": [
+          {
+            "scene_id": "scene_01",
+            "start_at": "2026-09-07T09:10:00+09:00",
+            "end_at": "2026-09-07T09:10:00+09:00",
+            "focus": "상가 밀집 지역에서의 냄새 맡기",
+            "evidence_ids": [
+              "e04:what0",
+              "e04:where0",
+              "who:dog",
+              "who:guardian"
+            ]
+          },
+          {
+            "scene_id": "scene_02",
+            "start_at": "2026-09-07T09:15:00+09:00",
+            "end_at": "2026-09-07T09:15:00+09:00",
+            "focus": "늘벗근린공원 인근에서의 사진 촬영",
+            "evidence_ids": [
+              "e07:what0",
+              "e07:where0",
+              "who:dog",
+              "who:guardian"
+            ]
+          }
+        ],
+        "selection": {
+          "title_draft": {
+            "text": "두부와 함께한 상가와 공원 산책",
+            "evidence_ids": [
+              "e04:what0",
+              "e04:where0",
+              "e07:what0",
+              "e07:where0",
+              "who:dog",
+              "who:guardian"
+            ]
+          },
+          "decisions": [
+            {
+              "candidate_id": "e00",
+              "scene_id": null,
+              "code": "connection",
+              "reason": "원본의 카드 비대상 연결 구간",
+              "context_scene_ids": []
+            },
+            {
+              "candidate_id": "e01",
+              "scene_id": null,
+              "code": "connection",
+              "reason": "원본의 카드 비대상 연결 구간",
+              "context_scene_ids": []
+            },
+            {
+              "candidate_id": "e02",
+              "scene_id": null,
+              "code": "connection",
+              "reason": "원본의 카드 비대상 연결 구간",
+              "context_scene_ids": []
+            },
+            {
+              "candidate_id": "e03",
+              "scene_id": null,
+              "code": "redundant",
+              "reason": "e04 장면의 배경 정보로 충분히 유추 가능함.",
+              "context_scene_ids": []
+            },
+            {
+              "candidate_id": "e04",
+              "scene_id": "scene_01",
+              "code": "selected",
+              "reason": "사용자의 직접적인 행동 기록이 포함된 핵심 장면임.",
+              "context_scene_ids": []
+            },
+            {
+              "candidate_id": "e05",
+              "scene_id": null,
+              "code": "connection",
+              "reason": "원본의 카드 비대상 연결 구간",
+              "context_scene_ids": []
+            },
+            {
+              "candidate_id": "e06",
+              "scene_id": null,
+              "code": "redundant",
+              "reason": "e07 장면의 배경 정보로 충분히 유추 가능함.",
+              "context_scene_ids": []
+            },
+            {
+              "candidate_id": "e07",
+              "scene_id": "scene_02",
+              "code": "selected",
+              "reason": "산책 중 보호자와 반려견의 상호작용을 보여주는 중요한 기록임.",
+              "context_scene_ids": []
+            },
+            {
+              "candidate_id": "e08",
+              "scene_id": null,
+              "code": "connection",
+              "reason": "원본의 카드 비대상 연결 구간",
+              "context_scene_ids": []
+            },
+            {
+              "candidate_id": "e09",
+              "scene_id": null,
+              "code": "connection",
+              "reason": "원본의 카드 비대상 연결 구간",
+              "context_scene_ids": []
+            },
+            {
+              "candidate_id": "e10",
+              "scene_id": null,
+              "code": "low_signal",
+              "reason": "단순 이동 경로의 변화로 별도의 장면 구성이 불필요함.",
+              "context_scene_ids": []
+            },
+            {
+              "candidate_id": "e11",
+              "scene_id": null,
+              "code": "low_signal",
+              "reason": "단순 이동 경로의 변화로 별도의 장면 구성이 불필요함.",
+              "context_scene_ids": []
+            },
+            {
+              "candidate_id": "e12",
+              "scene_id": null,
+              "code": "connection",
+              "reason": "원본의 카드 비대상 연결 구간",
+              "context_scene_ids": []
+            },
+            {
+              "candidate_id": "e13",
+              "scene_id": null,
+              "code": "low_signal",
+              "reason": "단순 이동 경로의 변화로 별도의 장면 구성이 불필요함.",
+              "context_scene_ids": []
+            },
+            {
+              "candidate_id": "e14",
+              "scene_id": null,
+              "code": "low_signal",
+              "reason": "단순 이동 경로의 변화로 별도의 장면 구성이 불필요함.",
+              "context_scene_ids": []
+            },
+            {
+              "candidate_id": "e15",
+              "scene_id": null,
+              "code": "low_signal",
+              "reason": "단순 이동 경로의 변화로 별도의 장면 구성이 불필요함.",
+              "context_scene_ids": []
+            },
+            {
+              "candidate_id": "e16",
+              "scene_id": null,
+              "code": "connection",
+              "reason": "원본의 카드 비대상 연결 구간",
+              "context_scene_ids": []
+            },
+            {
+              "candidate_id": "e17",
+              "scene_id": null,
+              "code": "low_signal",
+              "reason": "산책 종료 시점의 단순 이동으로 장면 구성의 우선순위가 낮음.",
+              "context_scene_ids": []
+            }
+          ],
+          "compositions": []
+        }
+      },
+      "scene_count": 2,
+      "proposed_scene_count": 2,
+      "semantic_status": "not_evaluated"
+    },
+    {
+      "id": "gap-grouped",
+      "status": "rejected_or_failed",
+      "error": "composition cannot join GPS chains",
+      "attempts": 1,
+      "receipt": {
+        "stage": "compose",
+        "requested_model": "gemini-3.1-flash-lite",
+        "request_sha256": "7abb75e557ba210e42aefebabcb43b6771fc9949d6a8fa5dbafc64782e440deb",
+        "transport": "gemini",
+        "http_status": 200,
+        "model": "gemini-3.1-flash-lite",
+        "usage": {
+          "promptTokenCount": 14144,
+          "candidatesTokenCount": 860,
+          "totalTokenCount": 15004,
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 14144
+            }
+          ],
+          "serviceTier": "standard"
+        },
+        "finish_reason": "STOP",
+        "status": "parsed",
+        "latency_s": 5.286,
+        "validation": "rejected",
+        "validation_error": "composition cannot join GPS chains"
+      },
+      "output": {
+        "understanding": {
+          "summary": "보호자와 반려견 두부가 상가 밀집 지역과 공원 인근을 포함한 다양한 도시 환경을 산책하며 이동했다. 산책 중 두부는 특정 지점에서 냄새를 맡고, 보호자와 함께 사진을 남기는 등 상호작용을 보였다.",
+          "observed_flow": [
+            {
+              "text": "상가 밀집 지역으로 진입하여 두부가 냄새를 맡는 행동을 보였다.",
+              "candidate_ids": [
+                "e03",
+                "e04"
+              ]
+            },
+            {
+              "text": "늘벗근린공원 인근으로 이동하여 보호자와 두부가 함께 사진을 촬영했다.",
+              "candidate_ids": [
+                "e06",
+                "e07"
+              ]
+            },
+            {
+              "text": "양재천과 독골근린공원 주변을 거쳐 다시 상가 밀집 지역으로 돌아오는 경로를 따라 산책을 이어갔다.",
+              "candidate_ids": [
+                "e10",
+                "e11",
+                "e13",
+                "e14",
+                "e15",
+                "e17"
+              ]
+            }
+          ],
+          "interpretations": [
+            {
+              "text": "두부는 산책 중 익숙하거나 흥미로운 냄새를 탐색하며 주변 환경을 적극적으로 확인했다.",
+              "candidate_ids": [
+                "e04"
+              ]
+            },
+            {
+              "text": "보호자는 산책 중 특정 장소에서 반려견과의 추억을 기록하기 위해 사진을 남겼다.",
+              "candidate_ids": [
+                "e07"
+              ]
+            }
+          ],
+          "open_questions": [
+            "두부가 냄새를 맡은 지점의 구체적인 환경적 특징은 무엇인가?",
+            "산책 후반부에 다시 상가 밀집 지역으로 돌아온 이유는 무엇인가?"
+          ]
+        },
+        "title_draft": {
+          "text": "두부와 함께한 도시 산책: 상가와 공원을 잇는 기록",
+          "candidate_ids": [
+            "e04",
+            "e07"
+          ]
+        },
+        "scenes": [
+          {
+            "primary_candidate_id": "e04",
+            "included_candidate_ids": [
+              "e03",
+              "e04"
+            ],
+            "context_candidate_ids": [
+              "e00",
+              "e01",
+              "e02"
+            ],
+            "focus": "상가 밀집 지역에서의 탐색",
+            "reason": "산책 초반부의 공간 변화와 두부의 냄새 맡기 행동을 연결하여 기록하기 위함."
+          },
+          {
+            "primary_candidate_id": "e07",
+            "included_candidate_ids": [
+              "e06",
+              "e07"
+            ],
+            "context_candidate_ids": [
+              "e05"
+            ],
+            "focus": "늘벗근린공원에서의 사진 촬영",
+            "reason": "공원 인근으로의 공간 이동과 보호자의 사진 촬영 행동을 함께 묶어 산책의 주요 장면으로 구성."
+          },
+          {
+            "primary_candidate_id": "e10",
+            "included_candidate_ids": [
+              "e10",
+              "e11",
+              "e13",
+              "e14",
+              "e15",
+              "e17"
+            ],
+            "context_candidate_ids": [
+              "e08",
+              "e09",
+              "e12",
+              "e16"
+            ],
+            "focus": "양재천과 공원을 아우르는 후반부 산책",
+            "reason": "다양한 공간 변화가 연속적으로 일어나는 후반부 경로를 하나의 흐름으로 묶어 산책의 전체적인 이동을 보여줌."
+          }
+        ],
+        "omissions": []
+      },
+      "resolved_output": null,
+      "scene_count": null,
+      "proposed_scene_count": 3,
+      "semantic_status": "not_evaluated"
+    }
+  ],
+  "attempts": 6,
+  "accepted": 3,
+  "known_total_tokens": 78646,
+  "unknown_usage_attempts": 0,
+  "semantic_note": "Structural acceptance is not narrative quality or factual certification."
+}

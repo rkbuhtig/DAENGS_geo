@@ -1,0 +1,31 @@
+{
+  "candidates": [
+    {
+      "content": {
+        "parts": [
+          {
+            "text": "{\n  \"title\": \"이동 경로와 체류 및 회귀 기록\",\n  \"cards\": [\n    {\n      \"stamp_id\": \"stamp:how:12081edea0846f8b\",\n      \"title\": \"방향 전환을 포함한 이동\",\n      \"text\": \"직선으로 이동하다가 방향을 전환하여 새로운 경로로 진입하였습니다.\"\n    },\n    {\n      \"stamp_id\": \"stamp:how:7a66b966562f7523\",\n      \"title\": \"특정 구간에서의 체류\",\n      \"text\": \"이동 경로상의 특정 지점에서 일정 시간 동안 머무르며 체류하였습니다.\"\n    },\n    {\n      \"stamp_id\": \"stamp:how:beaed9b87b263c05\",\n      \"title\": \"이전 경로로의 회귀\",\n      \"text\": \"이동을 마친 후 방향을 완전히 돌려 이전 경로를 따라 되돌아갔습니다.\"\n    }\n  ]\n}",
+            "thoughtSignature": "EnEKbwERTTIPIF59jw5SEhrvIO7BdtECDbGB5X9BoGbKDTc64OtBUZNbB/j426EZhMQJNHaKl2ttFnXOyMkwGeWCcLj4pNnWXmB2bMS2vt6jYEXpmc1tdfIV+nLCAMePWoGHBb1CaGst+IikZUi67aHJ4g=="
+          }
+        ],
+        "role": "model"
+      },
+      "finishReason": "STOP",
+      "index": 0
+    }
+  ],
+  "usageMetadata": {
+    "promptTokenCount": 3312,
+    "candidatesTokenCount": 244,
+    "totalTokenCount": 3556,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 3312
+      }
+    ],
+    "serviceTier": "standard"
+  },
+  "modelVersion": "gemini-3.1-flash-lite",
+  "responseId": "XMafarrLIdCi2roP4uamuQQ"
+}

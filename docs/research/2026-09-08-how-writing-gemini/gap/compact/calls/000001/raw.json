@@ -1,0 +1,31 @@
+{
+  "candidates": [
+    {
+      "content": {
+        "parts": [
+          {
+            "text": "{\n  \"title\": \"산책 중 기록된 사진과 메모\",\n  \"cards\": [\n    {\n      \"stamp_id\": \"stamp:walk_photo:synthetic-record-1\",\n      \"title\": \"산책 중 촬영한 사진\",\n      \"text\": \"2026년 9월 8일 06시 01분에 촬영된 사진 기록입니다.\"\n    },\n    {\n      \"stamp_id\": \"stamp:walk_entry:synthetic-record-2\",\n      \"title\": \"산책 기록 재개\",\n      \"text\": \"2026년 9월 8일 06시 03분에 기록이 다시 잡혔다는 메모를 남겼습니다.\"\n    }\n  ]\n}",
+            "thoughtSignature": "EnEKbwERTTIPDkJO2EecivfcLXZAoxy2+yMXUR03uex5beo0kpKo6ZrpH4NDZyiFdIqDhY86tBXRd+x/iQV93Dztz6oByRBUypAvCidIugSR7QzkY881aNFATPu7UP2wa/40DzHWnQi8dXx+7mwcdH5QFw=="
+          }
+        ],
+        "role": "model"
+      },
+      "finishReason": "STOP",
+      "index": 0
+    }
+  ],
+  "usageMetadata": {
+    "promptTokenCount": 508,
+    "candidatesTokenCount": 172,
+    "totalTokenCount": 680,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 508
+      }
+    ],
+    "serviceTier": "standard"
+  },
+  "modelVersion": "gemini-3.1-flash-lite",
+  "responseId": "YsafasKiFL_q2roPsp_MkAs"
+}

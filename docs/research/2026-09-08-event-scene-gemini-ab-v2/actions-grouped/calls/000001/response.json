@@ -1,0 +1,134 @@
+{
+  "understanding": {
+    "summary": "보호자와 반려견 두부가 상가 밀집 지역에서 출발하여 늘벗근린공원과 양재천 인근을 경유하며 산책을 진행했다. 산책 중 두부는 특정 지점에서 냄새를 맡고 보호자와 함께 사진을 촬영하는 등 활발한 탐색 활동을 보였다.",
+    "observed_flow": [
+      {
+        "text": "상가 밀집 지역에서 이동을 시작하여 두부가 냄새를 맡는 행동을 확인했다.",
+        "candidate_ids": [
+          "e03",
+          "e04"
+        ]
+      },
+      {
+        "text": "늘벗근린공원 인근으로 이동하여 보호자와 두부가 함께 사진을 촬영했다.",
+        "candidate_ids": [
+          "e06",
+          "e07"
+        ]
+      },
+      {
+        "text": "양재천 인근을 거쳐 다시 상가 지역과 한적한 구간을 오가며 산책을 마무리했다.",
+        "candidate_ids": [
+          "e09",
+          "e10",
+          "e11",
+          "e12",
+          "e13"
+        ]
+      }
+    ],
+    "interpretations": [
+      {
+        "text": "두부는 산책 경로상의 다양한 환경 변화에 반응하며 냄새를 맡는 등 적극적으로 주변을 탐색하고 있다.",
+        "candidate_ids": [
+          "e04",
+          "e06",
+          "e11"
+        ]
+      },
+      {
+        "text": "보호자는 두부와의 산책 중 특정 장소에서 사진을 남기며 기록을 이어가고 있다.",
+        "candidate_ids": [
+          "e07"
+        ]
+      }
+    ],
+    "open_questions": [
+      "두부가 냄새를 맡는 행동이 특정 환경적 요인과 연관이 있는지 확인이 필요하다.",
+      "산책 경로 중 상가 밀집 지역과 자연 구간의 비율이 두부의 활동성에 미치는 영향은 무엇인가?"
+    ]
+  },
+  "title_draft": {
+    "text": "두부와 함께한 상가와 자연을 잇는 산책",
+    "candidate_ids": [
+      "e04",
+      "e07"
+    ]
+  },
+  "scenes": [
+    {
+      "primary_candidate_id": "e04",
+      "included_candidate_ids": [
+        "e03",
+        "e04"
+      ],
+      "context_candidate_ids": [
+        "e00",
+        "e01",
+        "e02"
+      ],
+      "focus": "상가 밀집 지역에서의 탐색",
+      "reason": "산책 초반 상가 지역으로 진입하며 두부가 냄새를 맡는 행동을 중심으로 환경 변화를 함께 기록한다."
+    },
+    {
+      "primary_candidate_id": "e07",
+      "included_candidate_ids": [
+        "e06",
+        "e07"
+      ],
+      "context_candidate_ids": [
+        "e05"
+      ],
+      "focus": "늘벗근린공원 인근에서의 사진 촬영",
+      "reason": "공원 인근으로 이동하여 보호자와 두부가 함께한 순간을 기록하고 환경적 특징 변화를 연결한다."
+    },
+    {
+      "primary_candidate_id": "e09",
+      "included_candidate_ids": [
+        "e09",
+        "e10",
+        "e11",
+        "e12",
+        "e13"
+      ],
+      "context_candidate_ids": [
+        "e08",
+        "e14"
+      ],
+      "focus": "양재천과 주변 지역을 아우르는 산책의 흐름",
+      "reason": "산책 후반부 양재천을 중심으로 주변 환경이 상가와 한적한 곳으로 교차되는 변화를 하나의 흐름으로 묶어 전달한다."
+    }
+  ],
+  "omissions": [
+    {
+      "candidate_id": "e00",
+      "code": "redundant",
+      "reason": "산책 시작 전의 단순 연결 구간으로 별도의 장면 구성이 불필요함."
+    },
+    {
+      "candidate_id": "e01",
+      "code": "redundant",
+      "reason": "산책 시작 전의 단순 연결 구간으로 별도의 장면 구성이 불필요함."
+    },
+    {
+      "candidate_id": "e02",
+      "code": "redundant",
+      "reason": "산책 시작 전의 단순 연결 구간으로 별도의 장면 구성이 불필요함."
+    },
+    {
+      "candidate_id": "e05",
+      "code": "redundant",
+      "reason": "장면 간 이동을 위한 단순 연결 구간임."
+    },
+    {
+      "candidate_id": "e08",
+      "code": "redundant",
+      "reason": "장면 간 이동을 위한 단순 연결 구간임."
+    },
+    {
+      "candidate_id": "e14",
+      "code": "redundant",
+      "reason": "산책 종료 후의 단순 연결 구간임."
+    }
+  ]
+}

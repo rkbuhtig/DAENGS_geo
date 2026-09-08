@@ -1,0 +1,20 @@
+{
+  "title": "산책 중 사진 촬영과 기록",
+  "cards": [
+    {
+      "stamp_id": "stamp:walk_photo:synthetic-record-1",
+      "title": "산책 중 사진 촬영",
+      "text": "산책 경로를 따라 이동하며 사진을 촬영했습니다."
+    },
+    {
+      "stamp_id": "stamp:walk_entry:synthetic-record-2",
+      "title": "주변 관찰 기록",
+      "text": "사진 촬영 후 이동 중에 잠시 멈춰 주변을 둘러보았습니다."
+    },
+    {
+      "stamp_id": "stamp:walk_entry:synthetic-record-3",
+      "title": "사진 확인 기록",
+      "text": "산책 경로를 따라 이동하다가 촬영한 사진을 확인했습니다."
+    }
+  ]
+}

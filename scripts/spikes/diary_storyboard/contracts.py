@@ -65,6 +65,38 @@ class Plan(Contract):
     outline: list[Outline] = Field(min_length=1)
 
 
+class SelectionDecision(Contract):
+    candidate_id: str
+    scene_id: str | None
+    code: Literal[
+        "selected", "context", "connection", "redundant", "low_signal", "insufficient", "budget"
+    ]
+    reason: str = Field(min_length=1)
+    context_scene_ids: list[str] = Field(default_factory=list)
+
+
+class SceneComposition(Contract):
+    """Editorial membership only; event times and locations stay in the source catalog."""
+
+    scene_id: str
+    primary_candidate_id: str
+    included_candidate_ids: list[str] = Field(min_length=1)
+    context_candidate_ids: list[str]
+    reason: str = Field(min_length=1)
+
+
+class SelectionMetadata(Contract):
+    title_draft: Claim | None
+    decisions: list[SelectionDecision]
+    compositions: list[SceneComposition] = Field(default_factory=list)
+
+
+class SelectionPlan(Contract):
+    understanding: Understanding
+    outline: list[Outline]
+    selection: SelectionMetadata
+
+
 class Scene(Contract):
     scene_id: str
     title: str
@@ -136,6 +168,7 @@ class State(Contract):
     findings: list[Finding]
     revisions: list[Revision]
     review: Review | None = None
+    selection: SelectionMetadata | None = None
 
 
 def check_references(value: Contract, evidence: Evidence) -> None:

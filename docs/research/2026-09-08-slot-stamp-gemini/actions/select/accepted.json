@@ -1,0 +1,25 @@
+{
+  "selected_stamp_ids": [
+    "stamp:e03",
+    "stamp:e04",
+    "stamp:e06",
+    "stamp:e07",
+    "stamp:e09",
+    "stamp:e10",
+    "stamp:e11"
+  ],
+  "omitted_stamp_ids": [
+    "stamp:e12",
+    "stamp:e13"
+  ],
+  "used_source_event_ids": [
+    "e03",
+    "e04",
+    "e06",
+    "e07",
+    "e09",
+    "e10",
+    "e11"
+  ],
+  "selection_explanation": "membership derived by system; model omission reasons not requested"
+}

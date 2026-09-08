@@ -8,6 +8,7 @@ from pathlib import Path
 import httpx
 
 from .prompts import COMMON, STAGES
+from .selection_prompts import COMPOSE, COMPOSE_WRITE, SELECT
 from .storage import digest, read, save
 
 
@@ -37,11 +38,16 @@ class Provider:
         self.last_attempt = None
 
     def instruction(self, stage):
-        return COMMON + "\n" + STAGES[stage]
+        special = {"select": SELECT, "compose": COMPOSE}
+        return COMMON + "\n" + (special[stage] if stage in special else STAGES[stage])
 
-    def call(self, stage, payload, contract):
-        request = {
-            "systemInstruction": {"parts": [{"text": self.instruction(stage)}]},
+    def request(self, stage, payload, contract):
+        instruction = self.instruction(stage)
+        catalog = payload.get("evidence_snapshot", {}).get("context", {}).get("candidate_catalog")
+        if catalog and catalog.get("composition_mode") == "grouped" and stage != "compose":
+            instruction += "\n" + COMPOSE_WRITE
+        return {
+            "systemInstruction": {"parts": [{"text": instruction}]},
             "contents": [
                 {"role": "user", "parts": [{"text": json.dumps(payload, ensure_ascii=False)}]}
             ],
@@ -50,6 +56,9 @@ class Provider:
                 "responseJsonSchema": contract.model_json_schema(),
             },
         }
+
+    def call(self, stage, payload, contract):
+        request = self.request(stage, payload, contract)
         root = self.run / "calls"
         root.mkdir(exist_ok=True)
         attempt = root / f"{len(list(root.iterdir())) + 1:06d}"

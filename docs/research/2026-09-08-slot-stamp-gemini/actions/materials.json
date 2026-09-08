@@ -1,0 +1,1124 @@
+{
+  "version": "slot-stamp-materials-v1",
+  "case": "actions",
+  "source_input_sha256": "94d785116881e7816e4895a6bce9c6f37f445792eee9da4ad927961e062bb1f6",
+  "policy": {
+    "version": "archived-slot-stamp-v1",
+    "space_slots": 3,
+    "action_slots": 2,
+    "recent_space_s": 300,
+    "recent_action_s": 600,
+    "recent_spaces_per_stamp": 1
+  },
+  "actors": [
+    {
+      "id": "who:guardian",
+      "label": "보호자"
+    },
+    {
+      "id": "who:dog",
+      "label": "반려견 두부"
+    }
+  ],
+  "gaps": [],
+  "max_cards": 7,
+  "stamps": [
+    {
+      "snapshot": {
+        "id": "stamp:e03",
+        "trigger": "transition",
+        "required": false,
+        "chain": 0,
+        "anchor": {
+          "event_id": "e03",
+          "support_s": [
+            480.0,
+            540.0
+          ],
+          "time_kind": "interval"
+        },
+        "who": [
+          "who:guardian",
+          "who:dog"
+        ],
+        "action": null,
+        "where": {
+          "current": {
+            "event_id": "e03",
+            "descriptor": {
+              "key": "commerce:clustered",
+              "tag": "commercial_background",
+              "distribution": "clustered",
+              "label": "등록 상가가 모인 구간",
+              "identity": "type_only"
+            },
+            "support_s": [
+              480.0,
+              540.0
+            ],
+            "episode": {
+              "event_id": "e03",
+              "source_segment_start_s": 480.0
+            }
+          },
+          "recent_observations": []
+        },
+        "spatial_change": {
+          "type": "background_change",
+          "from": {
+            "key": "commerce:scattered",
+            "tag": "commercial_background",
+            "distribution": "scattered",
+            "label": "등록 상가가 산재한 구간",
+            "identity": "type_only"
+          },
+          "to": {
+            "key": "commerce:clustered",
+            "tag": "commercial_background",
+            "distribution": "clustered",
+            "label": "등록 상가가 모인 구간",
+            "identity": "type_only"
+          }
+        },
+        "relations": [],
+        "unavailable": [
+          "coordinates",
+          "weather",
+          "view",
+          "action_duration"
+        ]
+      },
+      "sha256": "ba62380c6972a47b116482394236f3e3143178462de1dbf33565724f99eab4d9",
+      "source_event_ids": [
+        "e03"
+      ],
+      "policy": "archived-slot-stamp-v1"
+    },
+    {
+      "snapshot": {
+        "id": "stamp:e04",
+        "trigger": "action",
+        "required": true,
+        "chain": 0,
+        "anchor": {
+          "event_id": "e04",
+          "support_s": [
+            600.0,
+            600.0
+          ],
+          "time_kind": "point"
+        },
+        "who": [
+          "who:guardian",
+          "who:dog"
+        ],
+        "action": {
+          "code": "sniff_recorded",
+          "actor_ids": [
+            "who:dog"
+          ],
+          "record_text": "두부가 여기서 냄새를 맡았다",
+          "target": null
+        },
+        "where": {
+          "current": {
+            "event_id": "e04",
+            "descriptor": {
+              "key": "commerce:clustered",
+              "tag": "commercial_background",
+              "distribution": "clustered",
+              "label": "등록 상가가 모인 구간",
+              "identity": "type_only"
+            },
+            "support_s": [
+              600.0,
+              600.0
+            ],
+            "episode": {
+              "event_id": "e03",
+              "source_segment_start_s": 480.0
+            }
+          },
+          "recent_observations": []
+        },
+        "spatial_change": null,
+        "relations": [
+          {
+            "type": "since_space_segment_start",
+            "event_id": "e03",
+            "source_segment_start_s": 480.0,
+            "elapsed_s": 120.0,
+            "continuous_presence": "not_established"
+          }
+        ],
+        "unavailable": [
+          "coordinates",
+          "weather",
+          "view",
+          "action_duration"
+        ]
+      },
+      "sha256": "8f0150dba957a90761708f3df0cb7335770a377171d3193ccc2f2eee065fc5a9",
+      "source_event_ids": [
+        "e03",
+        "e04"
+      ],
+      "policy": "archived-slot-stamp-v1"
+    },
+    {
+      "snapshot": {
+        "id": "stamp:e06",
+        "trigger": "transition",
+        "required": false,
+        "chain": 0,
+        "anchor": {
+          "event_id": "e06",
+          "support_s": [
+            780.0,
+            840.0
+          ],
+          "time_kind": "interval"
+        },
+        "who": [
+          "who:guardian",
+          "who:dog"
+        ],
+        "action": null,
+        "where": {
+          "current": {
+            "event_id": "e06",
+            "descriptor": {
+              "key": "label:늘벗근린공원",
+              "tag": "park",
+              "label": "늘벗근린공원",
+              "relation": "near",
+              "identity": "source_label_only"
+            },
+            "support_s": [
+              780.0,
+              840.0
+            ],
+            "episode": {
+              "event_id": "e06",
+              "source_segment_start_s": 780.0
+            }
+          },
+          "recent_observations": [
+            {
+              "event_id": "e04",
+              "descriptor": {
+                "key": "commerce:clustered",
+                "tag": "commercial_background",
+                "distribution": "clustered",
+                "label": "등록 상가가 모인 구간",
+                "identity": "type_only"
+              },
+              "support_s": [
+                600.0,
+                600.0
+              ],
+              "episode": {
+                "event_id": "e03",
+                "source_segment_start_s": 480.0
+              },
+              "observed_at_s": 600.0,
+              "chain": 0
+            }
+          ]
+        },
+        "spatial_change": {
+          "type": "background_change",
+          "from": {
+            "key": "commerce:clustered",
+            "tag": "commercial_background",
+            "distribution": "clustered",
+            "label": "등록 상가가 모인 구간",
+            "identity": "type_only"
+          },
+          "to": {
+            "key": "label:늘벗근린공원",
+            "tag": "park",
+            "label": "늘벗근린공원",
+            "relation": "near",
+            "identity": "source_label_only"
+          }
+        },
+        "relations": [],
+        "unavailable": [
+          "coordinates",
+          "weather",
+          "view",
+          "action_duration"
+        ]
+      },
+      "sha256": "c6099dbcd1da88e572ea38647d66953e6894ce8ed9a7d1156b77d7b29ba951c6",
+      "source_event_ids": [
+        "e04",
+        "e06"
+      ],
+      "policy": "archived-slot-stamp-v1"
+    },
+    {
+      "snapshot": {
+        "id": "stamp:e07",
+        "trigger": "action",
+        "required": true,
+        "chain": 0,
+        "anchor": {
+          "event_id": "e07",
+          "support_s": [
+            900.0,
+            900.0
+          ],
+          "time_kind": "point"
+        },
+        "who": [
+          "who:guardian",
+          "who:dog"
+        ],
+        "action": {
+          "code": "photo_recorded",
+          "actor_ids": [
+            "who:guardian",
+            "who:dog"
+          ],
+          "record_text": "여기서 두부와 함께 사진을 찍었다",
+          "target": null
+        },
+        "where": {
+          "current": {
+            "event_id": "e07",
+            "descriptor": {
+              "key": "label:늘벗근린공원",
+              "tag": "park",
+              "label": "늘벗근린공원",
+              "relation": "near",
+              "identity": "source_label_only"
+            },
+            "support_s": [
+              900.0,
+              900.0
+            ],
+            "episode": {
+              "event_id": "e06",
+              "source_segment_start_s": 780.0
+            }
+          },
+          "recent_observations": [
+            {
+              "event_id": "e04",
+              "descriptor": {
+                "key": "commerce:clustered",
+                "tag": "commercial_background",
+                "distribution": "clustered",
+                "label": "등록 상가가 모인 구간",
+                "identity": "type_only"
+              },
+              "support_s": [
+                600.0,
+                600.0
+              ],
+              "episode": {
+                "event_id": "e03",
+                "source_segment_start_s": 480.0
+              },
+              "observed_at_s": 600.0,
+              "chain": 0
+            }
+          ]
+        },
+        "spatial_change": null,
+        "relations": [
+          {
+            "type": "after_action_record",
+            "event_id": "e04",
+            "action": {
+              "code": "sniff_recorded",
+              "actor_ids": [
+                "who:dog"
+              ],
+              "record_text": "두부가 여기서 냄새를 맡았다",
+              "target": null
+            },
+            "elapsed_s": 300.0
+          },
+          {
+            "type": "since_space_segment_start",
+            "event_id": "e06",
+            "source_segment_start_s": 780.0,
+            "elapsed_s": 120.0,
+            "continuous_presence": "not_established"
+          }
+        ],
+        "unavailable": [
+          "coordinates",
+          "weather",
+          "view",
+          "action_duration"
+        ]
+      },
+      "sha256": "0609174f11433a8993c4ed998dd29aba0b5e653109ffa858037e7d414401c942",
+      "source_event_ids": [
+        "e04",
+        "e06",
+        "e07"
+      ],
+      "policy": "archived-slot-stamp-v1"
+    },
+    {
+      "snapshot": {
+        "id": "stamp:e09",
+        "trigger": "transition",
+        "required": false,
+        "chain": 0,
+        "anchor": {
+          "event_id": "e09",
+          "support_s": [
+            1020.0,
+            1200.0
+          ],
+          "time_kind": "interval"
+        },
+        "who": [
+          "who:guardian",
+          "who:dog"
+        ],
+        "action": null,
+        "where": {
+          "current": {
+            "event_id": "e09",
+            "descriptor": {
+              "key": "label:양재천",
+              "tag": "river",
+              "label": "양재천",
+              "relation": "near",
+              "identity": "source_label_only"
+            },
+            "support_s": [
+              1020.0,
+              1200.0
+            ],
+            "episode": {
+              "event_id": "e09",
+              "source_segment_start_s": 1020.0
+            }
+          },
+          "recent_observations": [
+            {
+              "event_id": "e07",
+              "descriptor": {
+                "key": "label:늘벗근린공원",
+                "tag": "park",
+                "label": "늘벗근린공원",
+                "relation": "near",
+                "identity": "source_label_only"
+              },
+              "support_s": [
+                900.0,
+                900.0
+              ],
+              "episode": {
+                "event_id": "e06",
+                "source_segment_start_s": 780.0
+              },
+              "observed_at_s": 900.0,
+              "chain": 0
+            }
+          ]
+        },
+        "spatial_change": {
+          "type": "background_change",
+          "from": {
+            "key": "label:늘벗근린공원",
+            "tag": "park",
+            "label": "늘벗근린공원",
+            "relation": "near",
+            "identity": "source_label_only"
+          },
+          "to": {
+            "key": "label:양재천",
+            "tag": "river",
+            "label": "양재천",
+            "relation": "near",
+            "identity": "source_label_only"
+          }
+        },
+        "relations": [],
+        "unavailable": [
+          "coordinates",
+          "weather",
+          "view",
+          "action_duration"
+        ]
+      },
+      "sha256": "e88e8776aa34600d562b7e704f685fde8d2b22d0b38f92dc35a1b661381e5e03",
+      "source_event_ids": [
+        "e07",
+        "e09"
+      ],
+      "policy": "archived-slot-stamp-v1"
+    },
+    {
+      "snapshot": {
+        "id": "stamp:e10",
+        "trigger": "transition",
+        "required": false,
+        "chain": 0,
+        "anchor": {
+          "event_id": "e10",
+          "support_s": [
+            1260.0,
+            1440.0
+          ],
+          "time_kind": "interval"
+        },
+        "who": [
+          "who:guardian",
+          "who:dog"
+        ],
+        "action": null,
+        "where": {
+          "current": {
+            "event_id": "e10",
+            "descriptor": {
+              "key": "commerce:clustered",
+              "tag": "commercial_background",
+              "distribution": "clustered",
+              "label": "등록 상가가 모인 구간",
+              "identity": "type_only"
+            },
+            "support_s": [
+              1260.0,
+              1440.0
+            ],
+            "episode": {
+              "event_id": "e10",
+              "source_segment_start_s": 1260.0
+            }
+          },
+          "recent_observations": [
+            {
+              "event_id": "e09",
+              "descriptor": {
+                "key": "label:양재천",
+                "tag": "river",
+                "label": "양재천",
+                "relation": "near",
+                "identity": "source_label_only"
+              },
+              "support_s": [
+                1020.0,
+                1200.0
+              ],
+              "episode": {
+                "event_id": "e09",
+                "source_segment_start_s": 1020.0
+              },
+              "observed_at_s": 1200.0,
+              "chain": 0
+            }
+          ]
+        },
+        "spatial_change": {
+          "type": "background_change",
+          "from": {
+            "key": "label:양재천",
+            "tag": "river",
+            "label": "양재천",
+            "relation": "near",
+            "identity": "source_label_only"
+          },
+          "to": {
+            "key": "commerce:clustered",
+            "tag": "commercial_background",
+            "distribution": "clustered",
+            "label": "등록 상가가 모인 구간",
+            "identity": "type_only"
+          }
+        },
+        "relations": [],
+        "unavailable": [
+          "coordinates",
+          "weather",
+          "view",
+          "action_duration"
+        ]
+      },
+      "sha256": "70974839387968431b1ac3d48b7639728d8fa2b06625f8efb839b0b02457b79f",
+      "source_event_ids": [
+        "e09",
+        "e10"
+      ],
+      "policy": "archived-slot-stamp-v1"
+    },
+    {
+      "snapshot": {
+        "id": "stamp:e11",
+        "trigger": "transition",
+        "required": false,
+        "chain": 0,
+        "anchor": {
+          "event_id": "e11",
+          "support_s": [
+            1500.0,
+            1620.0
+          ],
+          "time_kind": "interval"
+        },
+        "who": [
+          "who:guardian",
+          "who:dog"
+        ],
+        "action": null,
+        "where": {
+          "current": {
+            "event_id": "e11",
+            "descriptor": {
+              "key": "commerce:sparse",
+              "tag": "commercial_background",
+              "distribution": "sparse",
+              "label": "등록 상가가 적은 구간",
+              "identity": "type_only"
+            },
+            "support_s": [
+              1500.0,
+              1620.0
+            ],
+            "episode": {
+              "event_id": "e11",
+              "source_segment_start_s": 1500.0
+            }
+          },
+          "recent_observations": [
+            {
+              "event_id": "e10",
+              "descriptor": {
+                "key": "commerce:clustered",
+                "tag": "commercial_background",
+                "distribution": "clustered",
+                "label": "등록 상가가 모인 구간",
+                "identity": "type_only"
+              },
+              "support_s": [
+                1260.0,
+                1440.0
+              ],
+              "episode": {
+                "event_id": "e10",
+                "source_segment_start_s": 1260.0
+              },
+              "observed_at_s": 1440.0,
+              "chain": 0
+            }
+          ]
+        },
+        "spatial_change": {
+          "type": "background_change",
+          "from": {
+            "key": "commerce:clustered",
+            "tag": "commercial_background",
+            "distribution": "clustered",
+            "label": "등록 상가가 모인 구간",
+            "identity": "type_only"
+          },
+          "to": {
+            "key": "commerce:sparse",
+            "tag": "commercial_background",
+            "distribution": "sparse",
+            "label": "등록 상가가 적은 구간",
+            "identity": "type_only"
+          }
+        },
+        "relations": [],
+        "unavailable": [
+          "coordinates",
+          "weather",
+          "view",
+          "action_duration"
+        ]
+      },
+      "sha256": "7b91342203f1c74eb6b878d5af7f15f10e2028ccaa3037572364c1456e9b0248",
+      "source_event_ids": [
+        "e10",
+        "e11"
+      ],
+      "policy": "archived-slot-stamp-v1"
+    },
+    {
+      "snapshot": {
+        "id": "stamp:e12",
+        "trigger": "transition",
+        "required": false,
+        "chain": 0,
+        "anchor": {
+          "event_id": "e12",
+          "support_s": [
+            1680.0,
+            1980.0
+          ],
+          "time_kind": "interval"
+        },
+        "who": [
+          "who:guardian",
+          "who:dog"
+        ],
+        "action": null,
+        "where": {
+          "current": {
+            "event_id": "e12",
+            "descriptor": {
+              "key": "label:양재천",
+              "tag": "river",
+              "label": "양재천",
+              "relation": "near",
+              "identity": "source_label_only"
+            },
+            "support_s": [
+              1680.0,
+              1980.0
+            ],
+            "episode": {
+              "event_id": "e12",
+              "source_segment_start_s": 1680.0
+            }
+          },
+          "recent_observations": []
+        },
+        "spatial_change": {
+          "type": "distance_trend",
+          "target_label": "양재천",
+          "sequence": [
+            "decreasing",
+            "increasing"
+          ]
+        },
+        "relations": [],
+        "unavailable": [
+          "coordinates",
+          "weather",
+          "view",
+          "action_duration"
+        ]
+      },
+      "sha256": "a10a8f2ac2d1076f7c271ec62682767fd0cb04c4f95abf97d25f2c23b5550b2d",
+      "source_event_ids": [
+        "e12"
+      ],
+      "policy": "archived-slot-stamp-v1"
+    },
+    {
+      "snapshot": {
+        "id": "stamp:e13",
+        "trigger": "transition",
+        "required": false,
+        "chain": 0,
+        "anchor": {
+          "event_id": "e13",
+          "support_s": [
+            2040.0,
+            2160.0
+          ],
+          "time_kind": "interval"
+        },
+        "who": [
+          "who:guardian",
+          "who:dog"
+        ],
+        "action": null,
+        "where": {
+          "current": {
+            "event_id": "e13",
+            "descriptor": {
+              "key": "commerce:sparse",
+              "tag": "commercial_background",
+              "distribution": "sparse",
+              "label": "등록 상가가 적은 구간",
+              "identity": "type_only"
+            },
+            "support_s": [
+              2040.0,
+              2160.0
+            ],
+            "episode": {
+              "event_id": "e13",
+              "source_segment_start_s": 2040.0
+            }
+          },
+          "recent_observations": [
+            {
+              "event_id": "e12",
+              "descriptor": {
+                "key": "label:양재천",
+                "tag": "river",
+                "label": "양재천",
+                "relation": "near",
+                "identity": "source_label_only"
+              },
+              "support_s": [
+                1680.0,
+                1980.0
+              ],
+              "episode": {
+                "event_id": "e12",
+                "source_segment_start_s": 1680.0
+              },
+              "observed_at_s": 1980.0,
+              "chain": 0
+            }
+          ]
+        },
+        "spatial_change": {
+          "type": "background_change",
+          "from": {
+            "key": "label:양재천",
+            "tag": "river",
+            "label": "양재천",
+            "relation": "near",
+            "identity": "source_label_only"
+          },
+          "to": {
+            "key": "commerce:sparse",
+            "tag": "commercial_background",
+            "distribution": "sparse",
+            "label": "등록 상가가 적은 구간",
+            "identity": "type_only"
+          }
+        },
+        "relations": [],
+        "unavailable": [
+          "coordinates",
+          "weather",
+          "view",
+          "action_duration"
+        ]
+      },
+      "sha256": "50f7d5efde1d55f54e2f1b7d27ade975b2e781fa5cfba762e20cecb38bb24eef",
+      "source_event_ids": [
+        "e12",
+        "e13"
+      ],
+      "policy": "archived-slot-stamp-v1"
+    }
+  ],
+  "pools": {
+    "space": {
+      "history": [
+        {
+          "event_id": "e03",
+          "descriptor": {
+            "key": "commerce:clustered",
+            "tag": "commercial_background",
+            "distribution": "clustered",
+            "label": "등록 상가가 모인 구간",
+            "identity": "type_only"
+          },
+          "support_s": [
+            480.0,
+            540.0
+          ],
+          "episode": {
+            "event_id": "e03",
+            "source_segment_start_s": 480.0
+          },
+          "observed_at_s": 540.0,
+          "chain": 0
+        },
+        {
+          "event_id": "e04",
+          "descriptor": {
+            "key": "commerce:clustered",
+            "tag": "commercial_background",
+            "distribution": "clustered",
+            "label": "등록 상가가 모인 구간",
+            "identity": "type_only"
+          },
+          "support_s": [
+            600.0,
+            600.0
+          ],
+          "episode": {
+            "event_id": "e03",
+            "source_segment_start_s": 480.0
+          },
+          "observed_at_s": 600.0,
+          "chain": 0
+        },
+        {
+          "event_id": "e06",
+          "descriptor": {
+            "key": "label:늘벗근린공원",
+            "tag": "park",
+            "label": "늘벗근린공원",
+            "relation": "near",
+            "identity": "source_label_only"
+          },
+          "support_s": [
+            780.0,
+            840.0
+          ],
+          "episode": {
+            "event_id": "e06",
+            "source_segment_start_s": 780.0
+          },
+          "observed_at_s": 840.0,
+          "chain": 0
+        },
+        {
+          "event_id": "e07",
+          "descriptor": {
+            "key": "label:늘벗근린공원",
+            "tag": "park",
+            "label": "늘벗근린공원",
+            "relation": "near",
+            "identity": "source_label_only"
+          },
+          "support_s": [
+            900.0,
+            900.0
+          ],
+          "episode": {
+            "event_id": "e06",
+            "source_segment_start_s": 780.0
+          },
+          "observed_at_s": 900.0,
+          "chain": 0
+        },
+        {
+          "event_id": "e09",
+          "descriptor": {
+            "key": "label:양재천",
+            "tag": "river",
+            "label": "양재천",
+            "relation": "near",
+            "identity": "source_label_only"
+          },
+          "support_s": [
+            1020.0,
+            1200.0
+          ],
+          "episode": {
+            "event_id": "e09",
+            "source_segment_start_s": 1020.0
+          },
+          "observed_at_s": 1200.0,
+          "chain": 0
+        },
+        {
+          "event_id": "e10",
+          "descriptor": {
+            "key": "commerce:clustered",
+            "tag": "commercial_background",
+            "distribution": "clustered",
+            "label": "등록 상가가 모인 구간",
+            "identity": "type_only"
+          },
+          "support_s": [
+            1260.0,
+            1440.0
+          ],
+          "episode": {
+            "event_id": "e10",
+            "source_segment_start_s": 1260.0
+          },
+          "observed_at_s": 1440.0,
+          "chain": 0
+        },
+        {
+          "event_id": "e11",
+          "descriptor": {
+            "key": "commerce:sparse",
+            "tag": "commercial_background",
+            "distribution": "sparse",
+            "label": "등록 상가가 적은 구간",
+            "identity": "type_only"
+          },
+          "support_s": [
+            1500.0,
+            1620.0
+          ],
+          "episode": {
+            "event_id": "e11",
+            "source_segment_start_s": 1500.0
+          },
+          "observed_at_s": 1620.0,
+          "chain": 0
+        },
+        {
+          "event_id": "e12",
+          "descriptor": {
+            "key": "label:양재천",
+            "tag": "river",
+            "label": "양재천",
+            "relation": "near",
+            "identity": "source_label_only"
+          },
+          "support_s": [
+            1680.0,
+            1980.0
+          ],
+          "episode": {
+            "event_id": "e12",
+            "source_segment_start_s": 1680.0
+          },
+          "observed_at_s": 1980.0,
+          "chain": 0
+        },
+        {
+          "event_id": "e13",
+          "descriptor": {
+            "key": "commerce:sparse",
+            "tag": "commercial_background",
+            "distribution": "sparse",
+            "label": "등록 상가가 적은 구간",
+            "identity": "type_only"
+          },
+          "support_s": [
+            2040.0,
+            2160.0
+          ],
+          "episode": {
+            "event_id": "e13",
+            "source_segment_start_s": 2040.0
+          },
+          "observed_at_s": 2160.0,
+          "chain": 0
+        }
+      ],
+      "audit": [
+        {
+          "at_s": 540.0,
+          "key": "commerce:clustered",
+          "reason": "admit"
+        },
+        {
+          "at_s": 600.0,
+          "key": "commerce:clustered",
+          "reason": "refresh"
+        },
+        {
+          "at_s": 840.0,
+          "key": "label:늘벗근린공원",
+          "reason": "admit"
+        },
+        {
+          "at_s": 900.0,
+          "key": "label:늘벗근린공원",
+          "reason": "refresh"
+        },
+        {
+          "at_s": 960.0,
+          "key": "commerce:clustered",
+          "reason": "expired"
+        },
+        {
+          "at_s": 1200.0,
+          "key": "label:양재천",
+          "reason": "admit"
+        },
+        {
+          "at_s": 1440.0,
+          "key": "label:늘벗근린공원",
+          "reason": "expired"
+        },
+        {
+          "at_s": 1440.0,
+          "key": "commerce:clustered",
+          "reason": "admit"
+        },
+        {
+          "at_s": 1620.0,
+          "key": "label:양재천",
+          "reason": "expired"
+        },
+        {
+          "at_s": 1620.0,
+          "key": "commerce:sparse",
+          "reason": "admit"
+        },
+        {
+          "at_s": 1980.0,
+          "key": "commerce:clustered",
+          "reason": "expired"
+        },
+        {
+          "at_s": 1980.0,
+          "key": "commerce:sparse",
+          "reason": "expired"
+        },
+        {
+          "at_s": 1980.0,
+          "key": "label:양재천",
+          "reason": "admit"
+        },
+        {
+          "at_s": 2160.0,
+          "key": "commerce:sparse",
+          "reason": "admit"
+        },
+        {
+          "at_s": 2328.561869,
+          "key": "label:양재천",
+          "reason": "expired"
+        }
+      ]
+    },
+    "action": {
+      "history": [
+        {
+          "event_id": "e04",
+          "action": {
+            "code": "sniff_recorded",
+            "actor_ids": [
+              "who:dog"
+            ],
+            "record_text": "두부가 여기서 냄새를 맡았다",
+            "target": null
+          },
+          "observed_at_s": 600.0,
+          "chain": 0
+        },
+        {
+          "event_id": "e07",
+          "action": {
+            "code": "photo_recorded",
+            "actor_ids": [
+              "who:guardian",
+              "who:dog"
+            ],
+            "record_text": "여기서 두부와 함께 사진을 찍었다",
+            "target": null
+          },
+          "observed_at_s": 900.0,
+          "chain": 0
+        }
+      ],
+      "audit": [
+        {
+          "at_s": 600.0,
+          "key": "e04",
+          "reason": "admit"
+        },
+        {
+          "at_s": 900.0,
+          "key": "e07",
+          "reason": "admit"
+        },
+        {
+          "at_s": 1440.0,
+          "key": "e04",
+          "reason": "expired"
+        },
+        {
+          "at_s": 1620.0,
+          "key": "e07",
+          "reason": "expired"
+        }
+      ]
+    },
+    "environment": {
+      "status": "no_source",
+      "history": [],
+      "audit": []
+    }
+  }
+}

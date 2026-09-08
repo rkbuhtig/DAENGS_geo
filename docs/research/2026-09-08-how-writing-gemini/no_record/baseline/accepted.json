@@ -1,0 +1,67 @@
+{
+  "revision": "af4cdbc065e75785870454af4698d028b3afdae6cc404f88db3df2fd878748b4",
+  "title": "이동 경로와 체류 및 회귀 기록",
+  "semantic_status": "not_evaluated",
+  "cards": [
+    {
+      "stamp_ref": {
+        "id": "stamp:how:12081edea0846f8b",
+        "version": "6d93b9b717ee85f052935feb44f0333af31533d66a8d480171d3b62f2a937395"
+      },
+      "title": "방향 전환을 포함한 이동",
+      "text": "직선으로 이동하다가 방향을 전환하여 새로운 경로로 진입하였습니다.",
+      "anchor": {
+        "session_id": "stamp-comparison",
+        "event_at": "2026-09-08T06:01:30+00:00",
+        "time_basis": "geometry_representative_observation",
+        "location": {
+          "point": {
+            "lat": 37.000818017738126,
+            "lng": 130.00000042825502
+          },
+          "observation_ref": "walk-fix:stamp-comparison:18"
+        }
+      }
+    },
+    {
+      "stamp_ref": {
+        "id": "stamp:how:7a66b966562f7523",
+        "version": "e1f64d2b9b68789013f024d28bf69f14bfb28a63a522f135f1ca1deb55213249"
+      },
+      "title": "특정 구간에서의 체류",
+      "text": "이동 경로상의 특정 지점에서 일정 시간 동안 머무르며 체류하였습니다.",
+      "anchor": {
+        "session_id": "stamp-comparison",
+        "event_at": "2026-09-08T06:02:55+00:00",
+        "time_basis": "geometry_representative_observation",
+        "location": {
+          "point": {
+            "lat": 37.00081494523947,
+            "lng": 130.00094909402483
+          },
+          "observation_ref": "walk-fix:stamp-comparison:35"
+        }
+      }
+    },
+    {
+      "stamp_ref": {
+        "id": "stamp:how:beaed9b87b263c05",
+        "version": "9f7eb402bb0667eba9a2353b60da5f74fc9382a9f7a38de9859c22ba3683d987"
+      },
+      "title": "이전 경로로의 회귀",
+      "text": "이동을 마친 후 방향을 완전히 돌려 이전 경로를 따라 되돌아갔습니다.",
+      "anchor": {
+        "session_id": "stamp-comparison",
+        "event_at": "2026-09-08T06:05:30+00:00",
+        "time_basis": "geometry_representative_observation",
+        "location": {
+          "point": {
+            "lat": 37.00080039623306,
+            "lng": 130.00201649062487
+          },
+          "observation_ref": "walk-fix:stamp-comparison:66"
+        }
+      }
+    }
+  ]
+}

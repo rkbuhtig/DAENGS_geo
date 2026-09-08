@@ -1,0 +1,205 @@
+{
+  "understanding": {
+    "summary": "보호자와 반려견 두부가 도심 상가 밀집 지역에서 시작하여 늘벗근린공원과 양재천 인근을 경유하며 산책을 즐긴 기록입니다. 상가 밀집도와 자연 환경(공원, 하천)의 변화에 따라 산책로의 성격이 교차하는 흐름을 보입니다.",
+    "observed_flow": [
+      {
+        "text": "상가 밀집 구간에서 늘벗근린공원 인근으로 이동",
+        "evidence_ids": [
+          "e03:where2",
+          "e04:where3"
+        ]
+      },
+      {
+        "text": "늘벗근린공원에서 양재천 인근으로 이동",
+        "evidence_ids": [
+          "e05:where3"
+        ]
+      },
+      {
+        "text": "양재천 인근에서 다시 상가 밀집 구간으로 진입",
+        "evidence_ids": [
+          "e06:where3"
+        ]
+      },
+      {
+        "text": "상가 밀집 구간에서 상가가 적은 구간으로 이동하며 양재천과의 거리가 변동",
+        "evidence_ids": [
+          "e07:where2",
+          "e08:where3",
+          "e09:where3"
+        ]
+      }
+    ],
+    "interpretations": [
+      {
+        "text": "산책 경로는 도심의 상업적 환경과 자연 친화적 환경을 번갈아 경험하도록 구성되어 있습니다.",
+        "evidence_ids": [
+          "e03:where0",
+          "e04:where0",
+          "e05:where0",
+          "e08:where0"
+        ]
+      },
+      {
+        "text": "양재천과 늘벗근린공원은 산책의 주요 전환점 역할을 하며 환경적 환기를 제공합니다.",
+        "evidence_ids": [
+          "e04:where3",
+          "e05:where3",
+          "e08:where3"
+        ]
+      }
+    ],
+    "open_questions": [
+      "두부가 특정 환경에서 더 활발하게 움직이는지 여부",
+      "상가 밀집 구간에서의 정지 여부와 목적"
+    ]
+  },
+  "outline": [
+    {
+      "scene_id": "scene_01",
+      "start_at": "2026-09-07T09:08:00+09:00",
+      "end_at": "2026-09-07T09:16:00+09:00",
+      "focus": "상가 밀집 지역에서 공원 인근으로의 환경 변화",
+      "evidence_ids": [
+        "e03:where2",
+        "e04:where3"
+      ]
+    },
+    {
+      "scene_id": "scene_02",
+      "start_at": "2026-09-07T09:17:00+09:00",
+      "end_at": "2026-09-07T09:24:00+09:00",
+      "focus": "양재천 인근의 자연 환경과 다시 상가 지역으로의 복귀",
+      "evidence_ids": [
+        "e05:where3",
+        "e06:where3"
+      ]
+    },
+    {
+      "scene_id": "scene_03",
+      "start_at": "2026-09-07T09:25:00+09:00",
+      "end_at": "2026-09-07T09:36:00+09:00",
+      "focus": "상가 밀집도가 낮은 구간을 지나며 양재천과 거리를 두는 산책의 마무리",
+      "evidence_ids": [
+        "e07:where2",
+        "e08:where3",
+        "e09:where3"
+      ]
+    }
+  ],
+  "selection": {
+    "title_draft": {
+      "text": "도심과 자연을 잇는 두부와의 산책",
+      "evidence_ids": [
+        "e03:where2",
+        "e05:where3",
+        "e08:where3"
+      ]
+    },
+    "decisions": [
+      {
+        "candidate_id": "e00",
+        "scene_id": null,
+        "code": "connection",
+        "reason": "산책 시작 전 이동 구간"
+      },
+      {
+        "candidate_id": "e01",
+        "scene_id": null,
+        "code": "connection",
+        "reason": "산책 시작 전 이동 구간"
+      },
+      {
+        "candidate_id": "e02",
+        "scene_id": null,
+        "code": "connection",
+        "reason": "산책 시작 전 이동 구간"
+      },
+      {
+        "candidate_id": "e03",
+        "scene_id": "scene_01",
+        "code": "selected",
+        "reason": "산책의 본격적인 시작과 환경 변화"
+      },
+      {
+        "candidate_id": "e04",
+        "scene_id": "scene_01",
+        "code": "selected",
+        "reason": "공원 인근으로의 진입"
+      },
+      {
+        "candidate_id": "e05",
+        "scene_id": "scene_02",
+        "code": "selected",
+        "reason": "양재천 인근으로의 환경 변화"
+      },
+      {
+        "candidate_id": "e06",
+        "scene_id": "scene_02",
+        "code": "selected",
+        "reason": "상가 지역으로의 복귀"
+      },
+      {
+        "candidate_id": "e07",
+        "scene_id": "scene_03",
+        "code": "selected",
+        "reason": "상가 밀집도 감소 구간"
+      },
+      {
+        "candidate_id": "e08",
+        "scene_id": "scene_03",
+        "code": "selected",
+        "reason": "양재천 거리 변동"
+      },
+      {
+        "candidate_id": "e09",
+        "scene_id": "scene_03",
+        "code": "selected",
+        "reason": "산책 마무리 구간"
+      },
+      {
+        "candidate_id": "e10",
+        "scene_id": null,
+        "code": "connection",
+        "reason": "산책 종료 후 이동 구간"
+      }
+    ],
+    "compositions": [
+      {
+        "scene_id": "scene_01",
+        "primary_candidate_id": "e03",
+        "included_candidate_ids": [
+          "e03",
+          "e04"
+        ],
+        "context_candidate_ids": [],
+        "reason": "상가 지역에서 공원 인근으로 이동하며 산책의 성격이 바뀌는 구간을 묶음"
+      },
+      {
+        "scene_id": "scene_02",
+        "primary_candidate_id": "e05",
+        "included_candidate_ids": [
+          "e05",
+          "e06"
+        ],
+        "context_candidate_ids": [
+          "e04"
+        ],
+        "reason": "양재천 인근과 다시 상가 지역으로 돌아오는 환경적 대조를 묶음"
+      },
+      {
+        "scene_id": "scene_03",
+        "primary_candidate_id": "e08",
+        "included_candidate_ids": [
+          "e07",
+          "e08",
+          "e09"
+        ],
+        "context_candidate_ids": [
+          "e06"
+        ],
+        "reason": "산책의 후반부로, 양재천과의 거리가 변하며 산책이 마무리되는 과정을 묶음"
+      }
+    ]
+  }
+}

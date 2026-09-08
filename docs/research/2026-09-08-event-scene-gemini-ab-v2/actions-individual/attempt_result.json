@@ -1,0 +1,4 @@
+{
+  "status": "rejected_or_failed",
+  "error": "title must refer to selected scene events"
+}

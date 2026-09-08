@@ -1,0 +1,206 @@
+{
+  "understanding": {
+    "summary": "보호자와 반려견 두부가 상가 밀집 지역과 공원 인근을 경유하며 산책한 기록입니다. 이동 중 냄새 맡기 및 사진 촬영 등 두부의 주요 행동이 관측되었습니다.",
+    "observed_flow": [
+      {
+        "text": "상가 밀집 구간에서 이동을 시작하여 냄새 맡기 행동을 보임",
+        "evidence_ids": [
+          "e03:where0",
+          "e04:what0"
+        ]
+      },
+      {
+        "text": "늘벗근린공원 인근으로 이동하여 사진 촬영을 진행함",
+        "evidence_ids": [
+          "e06:where0",
+          "e07:what0"
+        ]
+      },
+      {
+        "text": "양재천 및 독골근린공원 주변을 거쳐 상가 산재 구간으로 이동",
+        "evidence_ids": [
+          "e10:where3",
+          "e13:where2",
+          "e14:where2",
+          "e15:where2"
+        ]
+      }
+    ],
+    "interpretations": [
+      {
+        "text": "상가 밀집 지역과 공원 인근을 교차하며 산책 환경의 변화를 경험함",
+        "evidence_ids": [
+          "e03:where2",
+          "e06:where2",
+          "e11:where2"
+        ]
+      }
+    ],
+    "open_questions": [
+      "산책 중 발생한 3분간의 공백(gap) 동안의 구체적인 활동 내용"
+    ]
+  },
+  "outline": [
+    {
+      "scene_id": "scene_01",
+      "start_at": "2026-09-07T09:10:00+09:00",
+      "end_at": "2026-09-07T09:10:00+09:00",
+      "focus": "상가 밀집 구간에서의 냄새 맡기",
+      "evidence_ids": [
+        "e04:what0"
+      ]
+    },
+    {
+      "scene_id": "scene_02",
+      "start_at": "2026-09-07T09:15:00+09:00",
+      "end_at": "2026-09-07T09:15:00+09:00",
+      "focus": "늘벗근린공원 인근에서의 사진 촬영",
+      "evidence_ids": [
+        "e07:what0"
+      ]
+    }
+  ],
+  "selection": {
+    "title_draft": {
+      "text": "두부와 함께한 상가와 공원 산책",
+      "evidence_ids": [
+        "e04:what0",
+        "e07:what0"
+      ]
+    },
+    "decisions": [
+      {
+        "candidate_id": "e00",
+        "scene_id": null,
+        "code": "connection",
+        "reason": "단순 이동 구간으로 장면 구성에 불필요함"
+      },
+      {
+        "candidate_id": "e01",
+        "scene_id": null,
+        "code": "connection",
+        "reason": "단순 이동 구간으로 장면 구성에 불필요함"
+      },
+      {
+        "candidate_id": "e02",
+        "scene_id": null,
+        "code": "connection",
+        "reason": "단순 이동 구간으로 장면 구성에 불필요함"
+      },
+      {
+        "candidate_id": "e03",
+        "scene_id": null,
+        "code": "context",
+        "reason": "장면 전환을 위한 배경 정보로 활용"
+      },
+      {
+        "candidate_id": "e04",
+        "scene_id": "scene_01",
+        "code": "selected",
+        "reason": "사용자의 명확한 행동(냄새 맡기)이 포함됨"
+      },
+      {
+        "candidate_id": "e05",
+        "scene_id": null,
+        "code": "connection",
+        "reason": "단순 이동 구간으로 장면 구성에 불필요함"
+      },
+      {
+        "candidate_id": "e06",
+        "scene_id": null,
+        "code": "context",
+        "reason": "장면 전환을 위한 배경 정보로 활용"
+      },
+      {
+        "candidate_id": "e07",
+        "scene_id": "scene_02",
+        "code": "selected",
+        "reason": "사용자의 명확한 행동(사진 촬영)이 포함됨"
+      },
+      {
+        "candidate_id": "e08",
+        "scene_id": null,
+        "code": "connection",
+        "reason": "단순 이동 구간으로 장면 구성에 불필요함"
+      },
+      {
+        "candidate_id": "e09",
+        "scene_id": null,
+        "code": "connection",
+        "reason": "단순 이동 구간으로 장면 구성에 불필요함"
+      },
+      {
+        "candidate_id": "e10",
+        "scene_id": null,
+        "code": "redundant",
+        "reason": "산책 흐름상 중복되는 정보"
+      },
+      {
+        "candidate_id": "e11",
+        "scene_id": null,
+        "code": "redundant",
+        "reason": "산책 흐름상 중복되는 정보"
+      },
+      {
+        "candidate_id": "e12",
+        "scene_id": null,
+        "code": "connection",
+        "reason": "단순 이동 구간으로 장면 구성에 불필요함"
+      },
+      {
+        "candidate_id": "e13",
+        "scene_id": null,
+        "code": "redundant",
+        "reason": "산책 흐름상 중복되는 정보"
+      },
+      {
+        "candidate_id": "e14",
+        "scene_id": null,
+        "code": "redundant",
+        "reason": "산책 흐름상 중복되는 정보"
+      },
+      {
+        "candidate_id": "e15",
+        "scene_id": null,
+        "code": "redundant",
+        "reason": "산책 흐름상 중복되는 정보"
+      },
+      {
+        "candidate_id": "e16",
+        "scene_id": null,
+        "code": "connection",
+        "reason": "단순 이동 구간으로 장면 구성에 불필요함"
+      },
+      {
+        "candidate_id": "e17",
+        "scene_id": null,
+        "code": "redundant",
+        "reason": "산책 흐름상 중복되는 정보"
+      }
+    ],
+    "compositions": [
+      {
+        "scene_id": "scene_01",
+        "primary_candidate_id": "e04",
+        "included_candidate_ids": [
+          "e04"
+        ],
+        "context_candidate_ids": [
+          "e03"
+        ],
+        "reason": "상가 밀집 지역에서의 두부의 냄새 맡기 행동을 중심으로 구성"
+      },
+      {
+        "scene_id": "scene_02",
+        "primary_candidate_id": "e07",
+        "included_candidate_ids": [
+          "e07"
+        ],
+        "context_candidate_ids": [
+          "e06"
+        ],
+        "reason": "늘벗근린공원 인근에서의 사진 촬영 행동을 중심으로 구성"
+      }
+    ]
+  }
+}

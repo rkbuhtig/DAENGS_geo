@@ -1,0 +1,76 @@
+[
+  {
+    "scene_id": "scene_01",
+    "representative_start_at": "2026-09-07T09:10:00+09:00",
+    "representative_end_at": "2026-09-07T09:10:00+09:00",
+    "included_extent": {
+      "start_at": "2026-09-07T09:10:00+09:00",
+      "end_at": "2026-09-07T09:10:00+09:00",
+      "meaning": "editorial envelope only; not action duration or continuous observation"
+    },
+    "source_events": [
+      {
+        "id": "e04",
+        "role": "action",
+        "time_kind": "point",
+        "start_at": "2026-09-07T09:10:00+09:00",
+        "end_at": "2026-09-07T09:10:00+09:00",
+        "chain": 0,
+        "card_eligible": true,
+        "required": true,
+        "why_keep": "사용자가 직접 남긴 행동이 있어 이 시점 자체를 남길 이유가 있음",
+        "evidence_ids": [
+          "e04:what0",
+          "e04:where0"
+        ],
+        "subject_ids": [
+          "who:guardian",
+          "who:dog"
+        ],
+        "primary_evidence_id": "e04:what0",
+        "source_event_id": "e04",
+        "source_input_sha256": "0fa7af0d7444eb6067a6c209efad1834a3f7006212b15e5bd323c66f2a08b2f9",
+        "location_status": "unresolved",
+        "candidate_id": "e04",
+        "membership": "included"
+      }
+    ]
+  },
+  {
+    "scene_id": "scene_02",
+    "representative_start_at": "2026-09-07T09:15:00+09:00",
+    "representative_end_at": "2026-09-07T09:15:00+09:00",
+    "included_extent": {
+      "start_at": "2026-09-07T09:15:00+09:00",
+      "end_at": "2026-09-07T09:15:00+09:00",
+      "meaning": "editorial envelope only; not action duration or continuous observation"
+    },
+    "source_events": [
+      {
+        "id": "e07",
+        "role": "action",
+        "time_kind": "point",
+        "start_at": "2026-09-07T09:15:00+09:00",
+        "end_at": "2026-09-07T09:15:00+09:00",
+        "chain": 0,
+        "card_eligible": true,
+        "required": true,
+        "why_keep": "사용자가 직접 남긴 행동이 있어 이 시점 자체를 남길 이유가 있음",
+        "evidence_ids": [
+          "e07:what0",
+          "e07:where0"
+        ],
+        "subject_ids": [
+          "who:guardian",
+          "who:dog"
+        ],
+        "primary_evidence_id": "e07:what0",
+        "source_event_id": "e07",
+        "source_input_sha256": "0fa7af0d7444eb6067a6c209efad1834a3f7006212b15e5bd323c66f2a08b2f9",
+        "location_status": "unresolved",
+        "candidate_id": "e07",
+        "membership": "included"
+      }
+    ]
+  }
+]

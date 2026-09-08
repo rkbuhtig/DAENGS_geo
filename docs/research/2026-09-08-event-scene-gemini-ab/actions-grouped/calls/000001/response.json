@@ -1,0 +1,223 @@
+{
+  "understanding": {
+    "summary": "보호자와 반려견 두부가 도심 상가 밀집 지역에서 시작하여 늘벗근린공원 인근을 거쳐 양재천 주변을 산책하는 경로입니다. 산책 중 두부의 냄새 맡기 행동과 보호자와의 사진 촬영이 주요 사건으로 기록되었습니다.",
+    "observed_flow": [
+      {
+        "text": "상가 밀집 지역에서 이동을 시작하여 주변 환경이 변화하는 구간을 지남",
+        "evidence_ids": [
+          "e03:where2",
+          "e06:where2",
+          "e09:where3",
+          "e10:where3",
+          "e11:where2",
+          "e12:where3",
+          "e13:where3"
+        ]
+      },
+      {
+        "text": "상가 밀집 지역에서 두부가 냄새를 맡는 행동 발생",
+        "evidence_ids": [
+          "e04:what0"
+        ]
+      },
+      {
+        "text": "늘벗근린공원 인근에서 보호자와 두부가 함께 사진을 촬영함",
+        "evidence_ids": [
+          "e07:what0"
+        ]
+      }
+    ],
+    "interpretations": [
+      {
+        "text": "산책 경로는 상가와 공원, 하천이라는 서로 다른 환경적 특성을 순차적으로 경험하도록 구성됨",
+        "evidence_ids": [
+          "e03:where2",
+          "e06:where2",
+          "e09:where3"
+        ]
+      },
+      {
+        "text": "두부의 냄새 맡기와 보호자의 사진 촬영은 산책 중 휴식과 교감의 지점으로 기능함",
+        "evidence_ids": [
+          "e04:what0",
+          "e07:what0"
+        ]
+      }
+    ],
+    "open_questions": [
+      "두부의 냄새 맡기 행동이 특정 환경적 요인에 의한 것인지 여부",
+      "사진 촬영 장소의 구체적인 경관적 특징"
+    ]
+  },
+  "outline": [
+    {
+      "scene_id": "scene_01",
+      "start_at": "2026-09-07T09:08:00+09:00",
+      "end_at": "2026-09-07T09:10:00+09:00",
+      "focus": "상가 밀집 지역에서의 이동과 두부의 냄새 맡기",
+      "evidence_ids": [
+        "e03:where2",
+        "e04:what0"
+      ]
+    },
+    {
+      "scene_id": "scene_02",
+      "start_at": "2026-09-07T09:13:00+09:00",
+      "end_at": "2026-09-07T09:15:00+09:00",
+      "focus": "늘벗근린공원 인근으로의 진입과 기념 사진 촬영",
+      "evidence_ids": [
+        "e06:where2",
+        "e07:what0"
+      ]
+    },
+    {
+      "scene_id": "scene_03",
+      "start_at": "2026-09-07T09:17:00+09:00",
+      "end_at": "2026-09-07T09:36:00+09:00",
+      "focus": "양재천 주변을 포함한 환경 변화 구간 이동",
+      "evidence_ids": [
+        "e09:where3",
+        "e10:where3",
+        "e11:where2",
+        "e12:where3",
+        "e13:where3"
+      ]
+    }
+  ],
+  "selection": {
+    "title_draft": {
+      "text": "두부와 함께한 도심 속 산책: 상가에서 하천까지",
+      "evidence_ids": [
+        "e04:what0",
+        "e07:what0"
+      ]
+    },
+    "decisions": [
+      {
+        "candidate_id": "e00",
+        "scene_id": null,
+        "code": "connection",
+        "reason": "단순 이동 경로"
+      },
+      {
+        "candidate_id": "e01",
+        "scene_id": null,
+        "code": "connection",
+        "reason": "단순 이동 경로"
+      },
+      {
+        "candidate_id": "e02",
+        "scene_id": null,
+        "code": "connection",
+        "reason": "단순 이동 경로"
+      },
+      {
+        "candidate_id": "e03",
+        "scene_id": "scene_01",
+        "code": "selected",
+        "reason": "환경 변화의 시작점"
+      },
+      {
+        "candidate_id": "e04",
+        "scene_id": "scene_01",
+        "code": "selected",
+        "reason": "두부의 주요 행동"
+      },
+      {
+        "candidate_id": "e05",
+        "scene_id": null,
+        "code": "connection",
+        "reason": "단순 이동 경로"
+      },
+      {
+        "candidate_id": "e06",
+        "scene_id": "scene_02",
+        "code": "selected",
+        "reason": "환경 변화의 전환점"
+      },
+      {
+        "candidate_id": "e07",
+        "scene_id": "scene_02",
+        "code": "selected",
+        "reason": "보호자의 주요 행동"
+      },
+      {
+        "candidate_id": "e08",
+        "scene_id": null,
+        "code": "connection",
+        "reason": "단순 이동 경로"
+      },
+      {
+        "candidate_id": "e09",
+        "scene_id": "scene_03",
+        "code": "selected",
+        "reason": "환경 변화의 전환점"
+      },
+      {
+        "candidate_id": "e10",
+        "scene_id": "scene_03",
+        "code": "selected",
+        "reason": "환경 변화의 전환점"
+      },
+      {
+        "candidate_id": "e11",
+        "scene_id": "scene_03",
+        "code": "selected",
+        "reason": "환경 변화의 전환점"
+      },
+      {
+        "candidate_id": "e12",
+        "scene_id": "scene_03",
+        "code": "selected",
+        "reason": "환경 변화의 전환점"
+      },
+      {
+        "candidate_id": "e13",
+        "scene_id": "scene_03",
+        "code": "selected",
+        "reason": "환경 변화의 전환점"
+      },
+      {
+        "candidate_id": "e14",
+        "scene_id": null,
+        "code": "connection",
+        "reason": "단순 이동 경로"
+      }
+    ],
+    "compositions": [
+      {
+        "scene_id": "scene_01",
+        "primary_candidate_id": "e04",
+        "included_candidate_ids": [
+          "e03",
+          "e04"
+        ],
+        "context_candidate_ids": [],
+        "reason": "상가 밀집 지역에서의 이동과 두부의 냄새 맡기 행동을 묶어 산책 초반의 활기찬 분위기 전달"
+      },
+      {
+        "scene_id": "scene_02",
+        "primary_candidate_id": "e07",
+        "included_candidate_ids": [
+          "e06",
+          "e07"
+        ],
+        "context_candidate_ids": [],
+        "reason": "공원 인근으로의 환경 변화와 기념 사진 촬영을 묶어 산책의 정점을 강조"
+      },
+      {
+        "scene_id": "scene_03",
+        "primary_candidate_id": "e09",
+        "included_candidate_ids": [
+          "e09",
+          "e10",
+          "e11",
+          "e12",
+          "e13"
+        ],
+        "context_candidate_ids": [],
+        "reason": "양재천을 중심으로 한 다양한 환경 변화를 연속적으로 보여주어 산책의 후반부 흐름 구성"
+      }
+    ]
+  }
+}
