@@ -6,6 +6,10 @@ last_verified: 2026-09-06
 
 # 산책 점령 게임 — 구현 근거와 Geo → DEV → APP 인수인계
 
+> **2026-09-09 후속 기획:** [인증 차등 보상·월간 시즌 합의](territory-monthly-season-rewards.md).
+> 아래는 기존 구현·이관 기준점의 기록이다. 매 변경 보너스·7일 시즌 등 초안값을 새 정책으로
+> 채택하지 않는다. 시즌당 최초 보상과 인증 차액, 월간 자동 전환은 별도 구현이 필요하다.
+
 다음 기반 작업은 [산책·점령 세션과 통계 working skeleton 설계](../statistics/activity-statistics-skeleton.md)다.
 비교 범위·순위·칭호보다 먼저 기존 세션 ID 연결과 두 도메인의 통계 근거를 구축한다.
 아래 게임 구현/이관 현황과 구분한다. [통계 순수 코어](../../../contracts/activity-statistics-core.md)는

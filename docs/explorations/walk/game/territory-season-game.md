@@ -6,6 +6,10 @@ last_verified: 2026-09-06
 
 # 동네 강자 — 점령·보유 시간·시즌 게임
 
+> **2026-09-09 후속 기획:** [인증 차등 보상·월간 시즌 합의](territory-monthly-season-rewards.md).
+> 아래 배점·반복 보너스·7일 시즌은 기존 로컬 실험 설명이다. 새 합의의 구현 완료나
+> 미결 배점의 확정을 뜻하지 않는다. 인증 보호의 변경은 [정책 v2](../../../territory-policy-v2.md)를 따른다.
+
 전체 개발 경위와 DEV·APP 이관은 [게임 인수인계](territory-game-handoff.md)를 먼저 읽는다.
 이 문서는 로컬 체험과 현재 점수 규칙을 설명한다. 동네 범위와 칭호는
 [미구현 정책/계약 초안](../../../contracts/territory-ranking-titles.md)에서 별도로 다룬다.
