@@ -6,6 +6,9 @@ depends-on: territory-site-game.md, territory-season-scoring.md, ../../mobile-sh
 ---
 # 산책 점령 게임 — 제작 계획
 
+> **2026-09-09 보상·시즌 후속:** [인증 차등 보상·월간 시즌 합의](territory-monthly-season-rewards.md).
+> 아래 당시 계획의 미결 항목과 구체적인 보상 합의·남은 설계를 구분해서 읽는다.
+
 > **최신 재개 기준:** [게임 구현·이관 인수인계](territory-game-handoff.md).
 > 아래는 9월 5일 단계별 계획/검증 기록이다. 이후 APP 서버 조회·영역표시·사진 연결이 추가됐고,
 > Geo 정책·PostgreSQL 구현과 동네·칭호 미결 사항은 최신 문서에서 구분한다.

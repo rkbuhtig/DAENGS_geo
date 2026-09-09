@@ -3,9 +3,12 @@
 [산책 전체 입구](../README.md) · [세션 통계](../statistics/README.md)
 
 작업 재개는 **[게임 구현·이관 인수인계](territory-game-handoff.md)**에서 시작한다.
+후속 제품 규칙은 **[인증 차등 보상·월간 시즌 합의](territory-monthly-season-rewards.md)**를 함께 읽는다.
+합의한 기획과 기존 실험 코드의 기본값은 구분한다.
 
 | 작업 | 기준 문서 |
 |---|---|
+| 2026-09-09 합의: 인증 차등·시즌당 보상 제한·월간 자동 전환 및 미결 배점 | [월간 시즌과 보상](territory-monthly-season-rewards.md) |
 | 지도·촬영부터 온라인 공유까지 제작 순서 | [제작 계획](territory-production-plan.md) |
 | 현재 로컬 시즌 게임의 규칙·실행·검증 | [동네 강자 시즌 게임](territory-season-game.md) |
 | 접촉·사진·증언·점령의 증거 경계 | [점령지 게임](territory-site-game.md) |
