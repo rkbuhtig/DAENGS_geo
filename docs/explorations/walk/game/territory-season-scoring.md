@@ -6,8 +6,9 @@ depends-on: territory-site-game.md, ../diary/storyboard-and-regions.md, decision
 ---
 # 시즌 점령전 — 정기 점수와 최대 동시 정복
 
-> **2026-09-09 후속 기획:** [인증 차등 보상·월간 시즌 합의](territory-monthly-season-rewards.md).
-> 이 문서의 정기 정산 가설과 새 합의는 구분하며, 과거 설명은 비교 기록으로 보존한다.
+> **2026-09-10 첫 시즌 합의:** [보상·72시간 유지·월간 시즌](territory-monthly-season-rewards.md).
+> 시간당 미인증 2점·인증 10점이며 계수는 없다. 기본 보상 100점 한도와 매 탈취 20점은
+> 별개다. 아래 정기 정산 가설은 비교 기록으로 보존하며 최신 합의로 읽지 않는다.
 
 > **최신 재개 기준:** [게임 구현·이관 인수인계](territory-game-handoff.md).
 > 실제 동네 순위·칭호의 현재 미구현 범위와 검토 계약은 [별도 초안](../../../contracts/territory-ranking-titles.md)에 있다.

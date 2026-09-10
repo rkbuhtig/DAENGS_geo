@@ -8,7 +8,7 @@
 
 | 작업 | 기준 문서 |
 |---|---|
-| 2026-09-09 합의: 인증 차등·시즌당 보상 제한·월간 자동 전환 및 미결 배점 | [월간 시즌과 보상](territory-monthly-season-rewards.md) |
+| 2026-09-10 첫 시즌 합의: 회원별 기본 100점·매 탈취 20점·시간당 2/10점·계수 없음·72시간 유지·월간 자동 전환 | [월간 시즌과 보상](territory-monthly-season-rewards.md) |
 | 지도·촬영부터 온라인 공유까지 제작 순서 | [제작 계획](territory-production-plan.md) |
 | 현재 로컬 시즌 게임의 규칙·실행·검증 | [동네 강자 시즌 게임](territory-season-game.md) |
 | 접촉·사진·증언·점령의 증거 경계 | [점령지 게임](territory-site-game.md) |

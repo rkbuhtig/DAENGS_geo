@@ -1,5 +1,9 @@
 # 인증 우선 점령 정책 v2
 
+> 아래는 기존 v2 구현 설명이다. 2026-09-10 [첫 시즌 합의](explorations/walk/game/territory-monthly-season-rewards.md)는
+> 인증 강화 차액·매 탈취 20점·72시간 유지 연장을 추가한다. 아래의 “보너스 없음”은 기존
+> 코드 상태이며 새 보상 규칙이 아니다. 유지 재인증으로 10분 보호를 갱신하지 않는 원칙은 유지한다.
+
 Rules 기본 version은 `certified-protection-v2`다. 명시적으로 저장된 `draft-2026-09-06`은
 이전 획득 시각 보호/세션 제한을 그대로 재현한다. 알 수 없는 version은 거절한다.
 
