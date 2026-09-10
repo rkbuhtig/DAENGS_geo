@@ -1,6 +1,6 @@
 ---
 status: exploring
-implementation: none
+implementation: reward-core-only
 last_verified: 2026-09-10
 depends-on: territory-game-handoff.md, territory-season-game.md, ../../../territory-policy-v2.md
 ---
@@ -9,10 +9,11 @@ depends-on: territory-game-handoff.md, territory-season-game.md, ../../../territ
 
 2026-09-09~10 사용자와 합의한 **첫 시즌 제품 정책**이다. 9월 10일 합의가 이전 보상
 제안을 대체한다. 아래 배점·보상 단위·반복 탈취 허용은 확정이며 다시 미결로 취급하지 않는다.
-`status: exploring`은 후속 구현·운영 설계가 남았다는 뜻이다. `implementation: none`은
-이번 보상 분리·72시간 만료/연장·월간 자동 시작의 상태이며 기존 점령·인증 기반까지 없다는 뜻은 아니다.
+`status: exploring`은 후속 구현·운영 설계가 남았다는 뜻이다. `implementation: reward-core-only`는
+GEO의 새 보상 계산 코어만 구현됐다는 뜻이다. 운영 연결·72시간 만료/연장·월간 자동 시작은 남아 있다.
 
-이번 변경은 문서화다. 코드·DB·서버 설정·게임 활성화는 변경하지 않는다.
+합의에 따른 [1단계 보상 계산 계약](../../../contracts/territory-first-season-rewards.md)을 추가했다.
+DB·서버 설정·게임 활성화는 변경하지 않는다.
 게임은 정책 구현·검증 후 별도로 활성화한다. 기존 저장 시즌의 규칙도 소급 변경하지 않는다.
 
 ## 1. 첫 시즌 운영 방향
@@ -162,6 +163,10 @@ A에게 지급한 20점은 그대로 남긴다. 기본 보상 합계는 100점�
 이 문서는 해당 범위를 확정하거나 구현하지 않는다.
 
 ## 8. 구현 현황과 작업 순서
+
+1단계: `first_season_rewards.py`에 회원별 기본 차액, 매 탈취 20점, 별도 강아지 귀속,
+시간당 2/10 무계수 정산, 영수증 재시도 계산을 구현했다. 기존 운영 정책과 저장 형식은 유지한다.
+아래 기존 코드 비교는 운영 연결 전 상태이며 새 코어의 상세 범위는 위 계약을 따른다.
 
 2026-09-10 소스 대조: GEO `ed867b7`, DEV `6ba276f`, APP `4b05f3f`.
 기존 GEO `app/features/territory_game/policy.py`와 DEV

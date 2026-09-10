@@ -42,7 +42,9 @@ class BlockInfrastructure:
 sys.meta_path.insert(0, BlockInfrastructure())
 from app.features.territory_game.policy import Rules
 from app.features.territory_game.policy_service import apply_ownership_in_transaction
+from app.features.territory_game.first_season_rewards import RewardRules, plan_reward, settle_holding
 assert Rules(version="draft-2026-09-06").protection_ms == 600000
+assert RewardRules().unverified_base_target == 20
 """,
         ],
         capture_output=True,
