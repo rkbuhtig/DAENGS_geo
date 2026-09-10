@@ -6,8 +6,9 @@ depends-on: territory-site-game.md, territory-season-scoring.md, ../../mobile-sh
 ---
 # 산책 점령 게임 — 제작 계획
 
-> **2026-09-09 보상·시즌 후속:** [인증 차등 보상·월간 시즌 합의](territory-monthly-season-rewards.md).
-> 아래 당시 계획의 미결 항목과 구체적인 보상 합의·남은 설계를 구분해서 읽는다.
+> **2026-09-10 첫 시즌 확정 정책:** [보상·72시간 유지·월간 시즌 합의](territory-monthly-season-rewards.md).
+> 기본 100점 한도와 매 탈취 20점, 시간당 2/10점·계수 없음, 72시간 유지를 아래 옛 계획과
+> 구분해서 읽는다. 첫 시즌의 반복 탈취 보너스는 추가 어뷰징 제한 없이 허용한다.
 
 > **최신 재개 기준:** [게임 구현·이관 인수인계](territory-game-handoff.md).
 > 아래는 9월 5일 단계별 계획/검증 기록이다. 이후 APP 서버 조회·영역표시·사진 연결이 추가됐고,
