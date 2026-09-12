@@ -64,7 +64,7 @@ backlog.md           갈래에 안 붙는 미결
 | 지도·경로 어댑터와 현재 조립 | [지도 제공사](explorations/map-provider/README.md), [공급자 조립](provider-assembly.md) |
 | 모바일 기준 구현과 화면 정책 | [모바일 셸](explorations/mobile-shell/README.md) |
 | 산책 전체·수집·공간 분석 | [산책](explorations/walk/README.md), [기록](explorations/walk/recording/README.md), [공간](explorations/walk/spatial/README.md) |
-| 일기 제작·자료·장면 실험 | [일기](explorations/walk/diary/README.md) |
+| 독립 장면·별도 일기 생성 기획과 재료·실험 | [일기](explorations/walk/diary/README.md) |
 | 점령 정책·시즌·구현 이관 | [게임](explorations/walk/game/README.md) |
 | 산책·점령 세션의 통계 | [통계](explorations/walk/statistics/README.md) |
 

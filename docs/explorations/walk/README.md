@@ -26,7 +26,7 @@ DEV·APP 채택 기준은 [승격 원장](../../promotion-ledger.toml)과 각 �
 
 공간 분석은 산책별 Cellophane을 보존하고 조건별로 골라 읽는다. 방문률·시간·체류와
 공간 이용 분포는 분모와 연산이 다르며, 상세 계획과 계약은 [공간 입구](spatial/README.md)에 있다.
-일기는 [제작 계획](diary/plan.md)과 [자료 카탈로그](diary/evidence-catalog.md),
+장면·일기는 [독립 장면과 별도 일기 생성 기획](diary/plan.md)과 [자료 카탈로그](diary/evidence-catalog.md),
 게임은 [구현·이관 인수인계](game/territory-game-handoff.md)에서 작업을 재개한다.
 
 ## 탐색과 구현을 읽는 법

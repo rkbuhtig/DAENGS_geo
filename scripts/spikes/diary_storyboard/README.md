@@ -1,4 +1,8 @@
-# 산책 세션 이해 → 스토리보드 → 선택적 일기 실험
+# 산책 장면 재료와 이전 일기 실험 실행 안내
+
+현재 제품 방향은 [장면 우선 기획](../../../docs/explorations/walk/diary/plan.md)을 따른다.
+각 장면을 독립된 서브 일기로 완성하며 전체 세션 이해·순차 갱신을 선행하지 않는다.
+아래 실행기는 기존 실험 재현용이다. 새 작성 입력·프롬프트·제품 연결의 구현 완료를 뜻하지 않는다.
 
 ## 현재 구현: 중심 생성 → 공통 배경 조립
 
@@ -90,7 +94,8 @@ uv run pytest tests/spikes/diary_storyboard/test_how_writing_experiment.py -q
 
 ## 이전 전체 제작 흐름과 비교 실행기
 
-[산책 일기 제작 계획](../../../docs/explorations/walk/diary/plan.md)의 실험 골격이다.
+아래는 폐기한 전체 이해·순차 갱신 기획의 실험 골격이다. 명령과 결과 재현을 위해 유지한다.
+현재 [장면·일기 기획](../../../docs/explorations/walk/diary/plan.md)의 구현 순서로 사용하지 않는다.
 값·계산 정의·확보 범위와 추출 정책은 [자료 카탈로그](../../../docs/explorations/walk/diary/evidence-catalog.md)에 있다.
 `app/`의 운영 경로와 DB에 연결하지 않고 로컬 파일로 전체 흐름을 실행한다.
 초기 `fixtures/scenario.json`은 값을 직접 작성한 가상 산책이다. 후속 `acquire`는 합성 관측 GPS를

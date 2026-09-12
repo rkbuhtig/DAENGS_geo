@@ -5,7 +5,10 @@ last_verified: 2026-09-08
 ---
 # 사용자 산책 기록과 주변 정보 봉투 — 1단위 계약
 
-[일기 입구](README.md) · [제작 계획](plan.md) · [LLM 아키텍처](llm-architecture.md) · [2단위 수집 실험](record-envelope-collection.md)
+[일기 입구](README.md) · [장면·일기 기획](plan.md) · [2단위 수집 실험](record-envelope-collection.md)
+
+아래는 원본·봉투의 기존 수집 계약이다. 보존한 시각·관계 필드를 장면 작성 입력에
+그대로 전달하는 계약은 아니다. 서술에 사용할 재료의 범위는 현재 기획을 따른다.
 
 ## 이번 작업의 범위
 
